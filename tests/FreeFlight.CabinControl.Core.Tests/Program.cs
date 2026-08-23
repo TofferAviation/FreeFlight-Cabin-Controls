@@ -1,13 +1,17 @@
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Content;
 using FreeFlight.CabinControl.Core.Persistence;
+using FreeFlight.CabinControl.Core.Passengers;
 
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("Settings round-trip", SettingsRoundTripAsync),
     ("Valid airline pack", ValidAirlinePackAsync),
     ("Traversal asset rejected", TraversalAssetRejectedAsync),
-    ("Executable asset rejected", ExecutableAssetRejectedAsync)
+    ("Executable asset rejected", ExecutableAssetRejectedAsync),
+    ("L2-only passenger routing", L2OnlyPassengerRoutingAsync),
+    ("Boarding waits for an open door", BoardingWaitsForDoorAsync),
+    ("Passenger boarding completes", PassengerBoardingCompletesAsync)
 };
 
 var failures = new List<string>();
@@ -48,6 +52,8 @@ static async Task SettingsRoundTripAsync()
             AudioOutputDeviceName = "Test speakers",
             ActiveAirlinePackId = "test.airline",
             ActiveAirlineId = "custom.tst",
+            PassengerPreviewBookedCount = 196,
+            PassengerPreviewSpeed = 4d,
             CustomAirlineProfiles =
             [
                 new CustomAirlineProfileSettings
@@ -71,6 +77,8 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("test-endpoint", actual.AudioOutputDeviceId, "Audio endpoint id was not persisted.");
         AssertEqual("test.airline", actual.ActiveAirlinePackId, "Airline pack id was not persisted.");
         AssertEqual("custom.tst", actual.ActiveAirlineId, "Active airline id was not persisted.");
+        AssertEqual(196, actual.PassengerPreviewBookedCount, "Preview passenger count was not persisted.");
+        AssertEqual(4d, actual.PassengerPreviewSpeed, "Preview boarding speed was not persisted.");
         AssertEqual("Test Virtual", actual.CustomAirlineProfiles.Single().Name, "Custom airline was not persisted.");
     }
     finally
@@ -110,6 +118,57 @@ static Task ExecutableAssetRejectedAsync()
     var result = new AirlinePackValidator().Validate(manifest, Path.Combine(Path.GetTempPath(), "pack"));
     Assert(!result.IsValid, "An executable asset was accepted.");
     return Task.CompletedTask;
+}
+
+static Task L2OnlyPassengerRoutingAsync()
+{
+    var engine = new PassengerBoardingEngine(40);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    Advance(engine, seconds: 8d, speed: 4d);
+    var visiblePassengers = engine.Passengers
+        .Where(passenger => passenger.MovementState != PassengerMovementState.Waiting)
+        .ToArray();
+    Assert(visiblePassengers.Length > 0, "No passengers entered through the open L2 door.");
+    Assert(visiblePassengers.All(passenger => passenger.Door == BoardingDoor.L2),
+        "A passenger used a door other than L2 while only L2 was open.");
+    return Task.CompletedTask;
+}
+
+static Task BoardingWaitsForDoorAsync()
+{
+    var engine = new PassengerBoardingEngine(20);
+    engine.Start();
+    Advance(engine, seconds: 2d, speed: 4d);
+    AssertEqual(BoardingRunState.WaitingForDoor, engine.State, "Boarding did not wait with every door closed.");
+    AssertEqual(0, engine.WalkingCount, "A passenger entered while every door was closed.");
+
+    engine.SetDoorOpen(BoardingDoor.L1, true);
+    Advance(engine, seconds: 3d, speed: 4d);
+    Assert(engine.Passengers.Any(passenger => passenger.Door == BoardingDoor.L1),
+        "Boarding did not resume through L1 when that door opened.");
+    return Task.CompletedTask;
+}
+
+static Task PassengerBoardingCompletesAsync()
+{
+    var engine = new PassengerBoardingEngine(12);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    Advance(engine, seconds: 30d, speed: 4d);
+    AssertEqual(BoardingRunState.Complete, engine.State, "The preview boarding run did not complete.");
+    AssertEqual(12, engine.BoardedCount, "The boarded count did not match the manifest.");
+    AssertEqual(0, engine.RemainingCount, "Completed boarding still reported remaining passengers.");
+    return Task.CompletedTask;
+}
+
+static void Advance(PassengerBoardingEngine engine, double seconds, double speed)
+{
+    var tickCount = (int)Math.Ceiling(seconds / 0.1d);
+    for (var index = 0; index < tickCount; index++)
+    {
+        engine.Tick(TimeSpan.FromSeconds(0.1d), speed);
+    }
 }
 
 static AirlinePackManifest CreateManifest(IReadOnlyList<AirlinePackAsset> assets) => new()

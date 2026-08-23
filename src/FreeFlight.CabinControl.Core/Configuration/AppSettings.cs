@@ -69,4 +69,8 @@ public sealed class AppSettings
     public int UiScalePercent { get; set; } = 100;
 
     public string PerformanceMode { get; set; } = "Balanced";
+
+    public int PassengerPreviewBookedCount { get; set; } = 228;
+
+    public double PassengerPreviewSpeed { get; set; } = 2d;
 }

@@ -20,6 +20,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Status = new SharedStatusViewModel();
         Dashboard = new DashboardViewModel(settings, Status);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
+        Passengers = new PassengerFlowViewModel(settings, Status);
         CabinPanel = new CabinControlPanelViewModel(
             settings,
             settingsStore,
@@ -38,6 +39,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public DashboardViewModel Dashboard { get; }
 
     public AirlinersViewModel Airliners { get; }
+
+    public PassengerFlowViewModel Passengers { get; }
 
     public CabinControlPanelViewModel CabinPanel { get; }
 
@@ -64,6 +67,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         Audio.Dispose();
+        Passengers.Dispose();
         Performance.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -78,6 +82,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         CurrentPage = destination switch
         {
             "Airliners" => Airliners,
+            "Passengers" => Passengers,
             "CabinPanel" => CabinPanel,
             "Audio" => Audio,
             "Performance" => Performance,

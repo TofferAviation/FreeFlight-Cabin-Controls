@@ -9,6 +9,7 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Initial .NET 10 WPF application foundation.
 - Dashboard, Audio, Performance, and Settings application shell.
 - Airliners page with search, filters, persistent airline selection, and custom local profiles.
+- Passenger Flow page with a simulator-free 256-seat FF777 preview, animated passenger movement, configurable manifests, L1/L2 routing, boarding groups, progress/ETA, pause/resume/reset, and live door rerouting.
 - Windows playback-endpoint discovery and output-device selection.
 - FlightFactor 777 v2 cabin-layout reference and transparent FreeFlight sidebar branding.
 - Safe vAMSYS connection setup boundary pending approved OAuth application credentials.

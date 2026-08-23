@@ -109,7 +109,7 @@ internal static class Program
         window.Show();
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
-        foreach (var page in new[] { "Airliners", "CabinPanel", "Audio", "Performance", "Settings" })
+        foreach (var page in new[] { "Airliners", "Passengers", "CabinPanel", "Audio", "Performance", "Settings" })
         {
             viewModel.NavigateCommand.Execute(page);
             if (page == "Airliners")
@@ -135,7 +135,48 @@ internal static class Program
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             Render(window, Path.Combine(outputDirectory, $"{page.ToLowerInvariant()}.png"));
 
-            if (page == "CabinPanel")
+            if (page == "Passengers")
+            {
+                if (viewModel.Passengers.L1DoorOpen || !viewModel.Passengers.L2DoorOpen)
+                {
+                    throw new InvalidOperationException("Passenger Flow did not initialize with the L2-only preview scenario.");
+                }
+
+                viewModel.Passengers.StartPauseCommand.Execute(null);
+                for (var index = 0; index < 12; index++)
+                {
+                    viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (viewModel.Passengers.PassengerMarkers.Count == 0 ||
+                    viewModel.Passengers.BoardedPassengerCount + viewModel.Passengers.WalkingPassengerCount == 0 ||
+                    viewModel.Passengers.PassengerMarkers.Any(marker => marker.DoorLabel != "L2"))
+                {
+                    throw new InvalidOperationException("L2-only Passenger Flow did not route every visible passenger through L2.");
+                }
+
+                Render(window, Path.Combine(outputDirectory, "passengers-l2-boarding.png"));
+                viewModel.Passengers.L2DoorOpen = false;
+                if (viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.WaitingForDoor)
+                {
+                    throw new InvalidOperationException("Passenger Flow did not hold boarding when every passenger door closed.");
+                }
+
+                viewModel.Passengers.L1DoorOpen = true;
+                for (var index = 0; index < 6; index++)
+                {
+                    viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                }
+
+                if (viewModel.Passengers.L1PassengerCount == 0)
+                {
+                    throw new InvalidOperationException("Passenger Flow did not reroute new passengers through L1.");
+                }
+
+                viewModel.Passengers.StartPauseCommand.Execute(null);
+            }
+            else if (page == "CabinPanel")
             {
                 viewModel.CabinPanel.SelectPanelCommand.Execute("Main Menu");
                 var displayControlsButton = FindVisualChild<Button>(
@@ -434,7 +475,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 24 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 26 visual checks to {outputDirectory}");
         return 0;
     }
 
