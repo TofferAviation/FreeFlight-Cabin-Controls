@@ -12,3 +12,4 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Airline content-pack manifest and validation model.
 - Generic, redistributable example content pack.
 - Core application self-tests without third-party test dependencies.
+- Stable startup, shutdown, settings-error, and unhandled-error logging.

@@ -1,4 +1,8 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Windows;
+using System.Windows.Input;
 using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
@@ -15,12 +19,14 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
     private string _memoryUsage = "0 MB";
     private string _performanceMode;
 
-    public PerformanceViewModel(AppSettings settings, SharedStatusViewModel status)
+    public PerformanceViewModel(AppSettings settings, SharedStatusViewModel status, string logDirectory)
         : base("System Performance", "Live Cabin Core resource monitoring")
     {
         _settings = settings;
         Status = status;
         _performanceMode = settings.PerformanceMode;
+        LogDirectory = Path.GetFullPath(logDirectory);
+        OpenLogFolderCommand = new RelayCommand(_ => OpenLogFolder());
         DiagnosticEntries =
         [
             new("Cabin Core application initialized", true),
@@ -39,6 +45,10 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
     }
 
     public SharedStatusViewModel Status { get; }
+
+    public string LogDirectory { get; }
+
+    public ICommand OpenLogFolderCommand { get; }
 
     public ObservableCollection<DiagnosticEntry> DiagnosticEntries { get; }
 
@@ -129,6 +139,19 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(IsQualityMode));
         OnPropertyChanged(nameof(IsBalancedMode));
         OnPropertyChanged(nameof(IsLowImpactMode));
+    }
+
+    private void OpenLogFolder()
+    {
+        try
+        {
+            Directory.CreateDirectory(LogDirectory);
+            Process.Start(new ProcessStartInfo(LogDirectory) { UseShellExecute = true });
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            MessageBox.Show(exception.Message, "Could not open log folder", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 }
 

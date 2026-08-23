@@ -10,12 +10,12 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private PageViewModel _currentPage;
     private string _activePage = "Dashboard";
 
-    public MainWindowViewModel(AppSettings settings, ISettingsStore settingsStore)
+    public MainWindowViewModel(AppSettings settings, ISettingsStore settingsStore, string logDirectory)
     {
         Status = new SharedStatusViewModel();
         Dashboard = new DashboardViewModel(settings, Status);
         Audio = new AudioViewModel(settings, settingsStore, Status);
-        Performance = new PerformanceViewModel(settings, Status);
+        Performance = new PerformanceViewModel(settings, Status, logDirectory);
         Settings = new SettingsViewModel(settings, settingsStore, Status);
         _currentPage = Dashboard;
         NavigateCommand = new RelayCommand(Navigate);

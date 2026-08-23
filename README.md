@@ -11,6 +11,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;
 - real process CPU and memory sampling for the desktop application;
+- stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`;
 - no bundled third-party airline media.
 
 The X-Plane plugin, FlightFactor integration, audio playback, and in-aircraft screens are not implemented in this baseline.

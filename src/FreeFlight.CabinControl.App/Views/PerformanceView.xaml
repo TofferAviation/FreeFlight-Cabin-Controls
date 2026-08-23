@@ -160,7 +160,7 @@
                         </ItemsControl>
                         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
                             <Button Content="Export Diagnostics" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="False" ToolTip="Enabled after diagnostic export is implemented" Margin="0,0,10,0" />
-                            <Button Content="Open Log Folder" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="False" ToolTip="Enabled when file logging is active" />
+                            <Button Content="Open Log Folder" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding OpenLogFolderCommand}" />
                         </StackPanel>
                     </Grid>
                 </Border>

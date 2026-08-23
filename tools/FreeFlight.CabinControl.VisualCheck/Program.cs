@@ -24,7 +24,10 @@ internal static class Program
         application.InitializeComponent();
 
         var settingsPath = Path.Combine(outputDirectory, "visual-check-settings.json");
-        var viewModel = new MainWindowViewModel(new AppSettings(), new JsonSettingsStore(settingsPath));
+        var viewModel = new MainWindowViewModel(
+            new AppSettings(),
+            new JsonSettingsStore(settingsPath),
+            Path.Combine(outputDirectory, "logs"));
         var window = new CabinControlWindow
         {
             DataContext = viewModel,
