@@ -10,7 +10,8 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - the detailed FlightFactor 777 v2 cabin-layout reference on the Dashboard;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;
-- a live Boeing 777-inspired Cabin Area Control Panel with a main menu and nine navigable pages for lighting, chimes, temperature, water/waste, passenger address, doors, displays, boarding music, and special functions;
+- a live Cabin Area Control Panel using the ten supplied FF777 reference renders at their original aspect ratio, with exact-position interactive hit zones, pressed-key feedback, dynamic local readouts, and nine navigable system pages;
+- a British Airways 2024 safety-video test screen that opens the configured YouTube source and stages the same media event for the future aircraft bridge without bundling the third-party video;
 - a safe vAMSYS authorization entry point, pending an approved Pilot API client registration;
 - enumeration and persistent selection of active Windows playback endpoints;
 - honest disconnected/preview states until an X-Plane bridge exists;
@@ -20,7 +21,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`;
 - no bundled third-party airline audio or video media; the limited identifying wordmarks are documented under `Assets/AirlineLogos/SOURCES.md`.
 
-The X-Plane plugin, FlightFactor integration, actual audio/video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Aircraft-derived values such as door state remain explicitly `UNKNOWN` until live telemetry exists.
+The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Aircraft-derived values such as door state remain explicitly `UNKNOWN` until live telemetry exists.
 
 ## Build
 

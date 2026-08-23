@@ -1,5 +1,8 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Automation.Peers;
+using System.Windows.Automation.Provider;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using FreeFlight.CabinControl.App.ViewModels;
@@ -82,6 +85,23 @@ internal static class Program
 
             if (page == "CabinPanel")
             {
+                var displayControlsButton = FindVisualChild<Button>(
+                    window,
+                    button => Equals(button.CommandParameter, "Display Controls"));
+                if (displayControlsButton is null)
+                {
+                    throw new InvalidOperationException("Could not resolve the immersive CACP Display Controls hit zone.");
+                }
+
+                var peer = new ButtonAutomationPeer(displayControlsButton);
+                ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                if (viewModel.CabinPanel.SelectedPanel != "Display Controls")
+                {
+                    throw new InvalidOperationException("The immersive CACP hit zone did not navigate to Display Controls.");
+                }
+
+                viewModel.CabinPanel.MainMenuCommand.Execute(null);
                 var panelPages = new[]
                 {
                     (Name: "Lighting Control", Slug: "lighting"),
@@ -149,5 +169,26 @@ internal static class Program
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path);
         encoder.Save(stream);
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent, Predicate<T> predicate)
+        where T : DependencyObject
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, index);
+            if (child is T match && predicate(match))
+            {
+                return match;
+            }
+
+            var descendant = FindVisualChild(child, predicate);
+            if (descendant is not null)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
     }
 }

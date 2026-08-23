@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
@@ -32,6 +33,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private bool _displayPowerOn = true;
     private int _boardingMusicLevel;
     private int _selectedBoardingProgram = 1;
+    private string _safetyVideoPreviewStatus = "YouTube preview — aircraft playback awaits the X-Plane bridge";
 
     public CabinControlPanelViewModel(
         AppSettings settings,
@@ -49,6 +51,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         PreviousMenuCommand = new RelayCommand(_ => NavigateToPreviousMenu());
         ExecuteActionCommand = new RelayCommand(ExecuteAction);
         QueueCommand = new RelayCommand(QueueEvent);
+        OpenSafetyVideoCommand = new RelayCommand(_ => OpenSafetyVideoPreview());
         ClearQueueCommand = new RelayCommand(_ => ClearQueue());
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
     }
@@ -65,11 +68,25 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     public ICommand QueueCommand { get; }
 
+    public ICommand OpenSafetyVideoCommand { get; }
+
     public ICommand ClearQueueCommand { get; }
 
     public ICommand SaveCommand { get; }
 
     public ObservableCollection<string> ActivityQueue { get; } = [];
+
+    public string SafetyVideoUrl => "https://www.youtube.com/watch?v=ssVe0FaBhUU";
+
+    public string SafetyVideoThumbnailUrl => "https://i.ytimg.com/vi/ssVe0FaBhUU/hqdefault.jpg";
+
+    public string SafetyVideoTitle => "British Airways Safety Video 2024";
+
+    public string SafetyVideoPreviewStatus
+    {
+        get => _safetyVideoPreviewStatus;
+        private set => SetProperty(ref _safetyVideoPreviewStatus, value);
+    }
 
     public string SelectedPanel
     {
@@ -504,6 +521,23 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         ActivityQueue.Clear();
         QueueDepth = 0;
         LastAction = "Media and command queue cleared";
+    }
+
+    private void OpenSafetyVideoPreview()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(SafetyVideoUrl)
+            {
+                UseShellExecute = true
+            });
+            SafetyVideoPreviewStatus = "Preview opened in your default browser";
+            LastAction = "Opened British Airways safety video preview";
+        }
+        catch (Exception exception)
+        {
+            SafetyVideoPreviewStatus = $"Could not open preview: {exception.Message}";
+        }
     }
 
     private void MarkChanged() => SaveStatus = "Unsaved changes";

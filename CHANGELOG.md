@@ -13,6 +13,8 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - FlightFactor 777 v2 cabin-layout reference and transparent FreeFlight sidebar branding.
 - Safe vAMSYS connection setup boundary pending approved OAuth application credentials.
 - Cabin Area Control Panel with a faithful main menu, all nine supplied FF777 reference pages, working page navigation, local control state, and a separate bridge-ready media queue.
+- Pixel-faithful CACP rendering from all ten supplied 1536×1024 FF777 panel references, with exact-position interactive key overlays and darker pressed-key feedback.
+- British Airways 2024 safety-video test preview and future-aircraft staging action using the configured YouTube source.
 - Safety-video, passenger-address, display, boarding-music, lighting, temperature, chime, door, and service controls in preview mode.
 - ICAO-based airline-logo resolution with BAW and NOZ starter assets and an offline letter fallback.
 - Metallic CABIN CONTROL sidebar treatment matched to the FreeFlight brand mark.
