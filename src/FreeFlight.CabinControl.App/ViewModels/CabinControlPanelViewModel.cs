@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Windows;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
@@ -11,23 +10,45 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 {
     private readonly AppSettings _settings;
     private readonly ISettingsStore _settingsStore;
-    private string _selectedPanel = "Passenger Address";
-    private string _lastAction = "Cabin panel ready in local preview mode";
-    private string _saveStatus = "Panel preferences are stored locally";
+    private string _selectedPanel = "Main Menu";
+    private string _previousPanel = "Main Menu";
+    private string _lastAction = "Panel ready — aircraft bridge offline";
+    private string _saveStatus = "Changes are stored locally";
     private int _queueDepth;
+    private string _selectedLightingArea = "All Cabin";
+    private bool _passengerCallsEnabled = true;
+    private bool _lavatoryCallsEnabled = true;
+    private bool _attendantChimeEnabled = true;
+    private int _activeCalls;
+    private string _selectedTemperatureZone = "Zone 1";
+    private int _zone1TemperatureC = 23;
+    private int _zone2TemperatureC = 23;
+    private int _zone3TemperatureC = 22;
+    private int _paVolumeLevel = 5;
+    private bool _ambientNoiseSensorEnabled = true;
+    private bool _automaticPaVolumeEnabled = true;
+    private int _displayBrightness = 70;
+    private string _displayMode = "Day";
+    private bool _displayPowerOn = true;
+    private int _boardingMusicLevel;
+    private int _selectedBoardingProgram = 1;
 
     public CabinControlPanelViewModel(
         AppSettings settings,
         ISettingsStore settingsStore,
         SharedStatusViewModel status)
-        : base("Cabin Area Control Panel", "Boeing 777 cabin systems, media and service control")
+        : base("Cabin Area Control Panel", "FlightFactor 777 v2 cabin systems and media control")
     {
         _settings = settings;
         _settingsStore = settingsStore;
+        _boardingMusicLevel = Math.Clamp((int)Math.Round(settings.BoardingMusicVolume / 10d), 1, 10);
         Status = status;
+
         SelectPanelCommand = new RelayCommand(SelectPanel);
-        QueueCommand = new RelayCommand(QueueEvent);
+        MainMenuCommand = new RelayCommand(_ => NavigateToMainMenu());
+        PreviousMenuCommand = new RelayCommand(_ => NavigateToPreviousMenu());
         ExecuteActionCommand = new RelayCommand(ExecuteAction);
+        QueueCommand = new RelayCommand(QueueEvent);
         ClearQueueCommand = new RelayCommand(_ => ClearQueue());
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
     }
@@ -36,9 +57,13 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     public ICommand SelectPanelCommand { get; }
 
-    public ICommand QueueCommand { get; }
+    public ICommand MainMenuCommand { get; }
+
+    public ICommand PreviousMenuCommand { get; }
 
     public ICommand ExecuteActionCommand { get; }
+
+    public ICommand QueueCommand { get; }
 
     public ICommand ClearQueueCommand { get; }
 
@@ -46,12 +71,16 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     public ObservableCollection<string> ActivityQueue { get; } = [];
 
-    public IReadOnlyList<string> LightingModes { get; } = ["Boarding", "Bright", "Cruise", "Night", "Off"];
-
     public string SelectedPanel
     {
         get => _selectedPanel;
         private set => SetProperty(ref _selectedPanel, value);
+    }
+
+    public string PreviousPanel
+    {
+        get => _previousPanel;
+        private set => SetProperty(ref _previousPanel, value);
     }
 
     public string LastAction
@@ -72,114 +101,357 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         private set => SetProperty(ref _queueDepth, value);
     }
 
+    public string SelectedLightingArea
+    {
+        get => _selectedLightingArea;
+        private set => SetProperty(ref _selectedLightingArea, value);
+    }
+
     public string CabinLightingMode
     {
         get => _settings.CabinLightingMode;
-        set
+        private set
         {
+            if (_settings.CabinLightingMode == value)
+            {
+                return;
+            }
+
             _settings.CabinLightingMode = value;
             OnPropertyChanged();
             MarkChanged();
         }
     }
 
-    public double CabinTargetTemperatureC
+    public bool PassengerCallsEnabled
     {
-        get => _settings.CabinTargetTemperatureC;
-        set
+        get => _passengerCallsEnabled;
+        private set => SetProperty(ref _passengerCallsEnabled, value);
+    }
+
+    public bool LavatoryCallsEnabled
+    {
+        get => _lavatoryCallsEnabled;
+        private set => SetProperty(ref _lavatoryCallsEnabled, value);
+    }
+
+    public bool AttendantChimeEnabled
+    {
+        get => _attendantChimeEnabled;
+        private set
         {
-            _settings.CabinTargetTemperatureC = Math.Round(value, 1);
-            OnPropertyChanged();
-            MarkChanged();
+            if (SetProperty(ref _attendantChimeEnabled, value))
+            {
+                OnPropertyChanged(nameof(AttendantChimeStatus));
+            }
         }
     }
 
-    public bool AutomaticAnnouncementsEnabled
+    public string AttendantChimeStatus => AttendantChimeEnabled ? "ENABLED" : "DISABLED";
+
+    public int ActiveCalls
     {
-        get => _settings.AutomaticAnnouncementsEnabled;
-        set
+        get => _activeCalls;
+        private set => SetProperty(ref _activeCalls, value);
+    }
+
+    public string SelectedTemperatureZone
+    {
+        get => _selectedTemperatureZone;
+        private set
         {
-            _settings.AutomaticAnnouncementsEnabled = value;
-            OnPropertyChanged();
-            MarkChanged();
+            if (SetProperty(ref _selectedTemperatureZone, value))
+            {
+                OnPropertyChanged(nameof(SelectedTemperatureC));
+            }
         }
     }
 
-    public bool SeatbackDisplaysEnabled
+    public int Zone1TemperatureC
     {
-        get => _settings.SeatbackDisplaysEnabled;
-        set
+        get => _zone1TemperatureC;
+        private set
         {
-            _settings.SeatbackDisplaysEnabled = value;
-            OnPropertyChanged();
-            MarkChanged();
+            if (SetProperty(ref _zone1TemperatureC, value) && SelectedTemperatureZone == "Zone 1")
+            {
+                OnPropertyChanged(nameof(SelectedTemperatureC));
+            }
         }
     }
+
+    public int Zone2TemperatureC
+    {
+        get => _zone2TemperatureC;
+        private set
+        {
+            if (SetProperty(ref _zone2TemperatureC, value) && SelectedTemperatureZone == "Zone 2")
+            {
+                OnPropertyChanged(nameof(SelectedTemperatureC));
+            }
+        }
+    }
+
+    public int Zone3TemperatureC
+    {
+        get => _zone3TemperatureC;
+        private set
+        {
+            if (SetProperty(ref _zone3TemperatureC, value) && SelectedTemperatureZone == "Zone 3")
+            {
+                OnPropertyChanged(nameof(SelectedTemperatureC));
+            }
+        }
+    }
+
+    public int SelectedTemperatureC => SelectedTemperatureZone switch
+    {
+        "Zone 2" => Zone2TemperatureC,
+        "Zone 3" => Zone3TemperatureC,
+        _ => Zone1TemperatureC
+    };
+
+    public int PaVolumeLevel
+    {
+        get => _paVolumeLevel;
+        private set => SetProperty(ref _paVolumeLevel, value);
+    }
+
+    public bool AmbientNoiseSensorEnabled
+    {
+        get => _ambientNoiseSensorEnabled;
+        private set
+        {
+            if (SetProperty(ref _ambientNoiseSensorEnabled, value))
+            {
+                OnPropertyChanged(nameof(AmbientNoiseSensorStatus));
+            }
+        }
+    }
+
+    public string AmbientNoiseSensorStatus => AmbientNoiseSensorEnabled ? "ON" : "OFF";
+
+    public bool AutomaticPaVolumeEnabled
+    {
+        get => _automaticPaVolumeEnabled;
+        private set
+        {
+            if (SetProperty(ref _automaticPaVolumeEnabled, value))
+            {
+                OnPropertyChanged(nameof(AutomaticPaVolumeStatus));
+            }
+        }
+    }
+
+    public string AutomaticPaVolumeStatus => AutomaticPaVolumeEnabled ? "AUTOMATIC VOLUME: ON" : "AUTOMATIC VOLUME: OFF";
+
+    public int DisplayBrightness
+    {
+        get => _displayBrightness;
+        private set => SetProperty(ref _displayBrightness, value);
+    }
+
+    public string DisplayMode
+    {
+        get => _displayMode;
+        private set
+        {
+            if (SetProperty(ref _displayMode, value))
+            {
+                OnPropertyChanged(nameof(DisplayStatus));
+            }
+        }
+    }
+
+    public bool DisplayPowerOn
+    {
+        get => _displayPowerOn;
+        private set
+        {
+            if (SetProperty(ref _displayPowerOn, value))
+            {
+                OnPropertyChanged(nameof(DisplayStatus));
+            }
+        }
+    }
+
+    public string DisplayStatus => DisplayPowerOn ? $"{DisplayMode.ToUpperInvariant()} MODE ACTIVE" : "DISPLAY OFF";
 
     public bool BoardingMusicEnabled
     {
         get => _settings.BoardingMusicEnabled;
-        set
+        private set
         {
+            if (_settings.BoardingMusicEnabled == value)
+            {
+                return;
+            }
+
             _settings.BoardingMusicEnabled = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(BoardingMusicStatus));
             MarkChanged();
         }
     }
 
-    public int BoardingMusicVolume
+    public string BoardingMusicStatus => BoardingMusicEnabled ? "ON" : "OFF";
+
+    public int BoardingMusicLevel
     {
-        get => _settings.BoardingMusicVolume;
-        set
+        get => _boardingMusicLevel;
+        private set
         {
-            _settings.BoardingMusicVolume = value;
-            OnPropertyChanged();
+            if (!SetProperty(ref _boardingMusicLevel, value))
+            {
+                return;
+            }
+
+            _settings.BoardingMusicVolume = value * 10;
             MarkChanged();
         }
+    }
+
+    public int SelectedBoardingProgram
+    {
+        get => _selectedBoardingProgram;
+        private set => SetProperty(ref _selectedBoardingProgram, value);
     }
 
     private void SelectPanel(object? parameter)
     {
-        if (parameter is string panel && !string.IsNullOrWhiteSpace(panel))
-        {
-            SelectedPanel = panel;
-            LastAction = $"{panel} panel selected";
-        }
-    }
-
-    private void QueueEvent(object? parameter)
-    {
-        if (parameter is not string eventName || string.IsNullOrWhiteSpace(eventName))
+        if (parameter is not string destination || string.IsNullOrWhiteSpace(destination) || destination == SelectedPanel)
         {
             return;
         }
 
-        ActivityQueue.Insert(0, eventName);
-        while (ActivityQueue.Count > 5)
+        PreviousPanel = SelectedPanel;
+        SelectedPanel = destination;
+        LastAction = $"Opened {destination}";
+    }
+
+    private void NavigateToMainMenu()
+    {
+        if (SelectedPanel == "Main Menu")
         {
-            ActivityQueue.RemoveAt(ActivityQueue.Count - 1);
+            return;
         }
 
-        QueueDepth++;
-        LastAction = Status.IsConnected
-            ? $"{eventName} queued for the aircraft bridge"
-            : $"{eventName} queued locally; waiting for the X-Plane bridge";
+        PreviousPanel = SelectedPanel;
+        SelectedPanel = "Main Menu";
+        LastAction = "Returned to main menu";
+    }
+
+    private void NavigateToPreviousMenu()
+    {
+        var destination = PreviousPanel;
+        PreviousPanel = SelectedPanel;
+        SelectedPanel = string.IsNullOrWhiteSpace(destination) ? "Main Menu" : destination;
+        LastAction = $"Returned to {SelectedPanel}";
     }
 
     private void ExecuteAction(object? parameter)
     {
-        if (parameter is not string action || string.IsNullOrWhiteSpace(action))
+        if (parameter is not string action)
         {
             return;
         }
 
         switch (action)
         {
-            case "Return displays to IFE":
-                LastAction = "Seatback displays assigned to the normal IFE source";
+            case "Lighting:Cabin Lighting":
+            case "Lighting:Entry Way Lights":
+            case "Lighting:Reading Lights":
+            case "Lighting:Galley Lights":
+            case "Lighting:Lavatory Lights":
+            case "Lighting:Work Lights":
+                SelectedLightingArea = action["Lighting:".Length..];
+                CabinLightingMode = SelectedLightingArea;
+                LastAction = $"Selected {SelectedLightingArea}";
                 break;
-            case "Rescan aircraft bridge":
-                LastAction = "Bridge rescan requested; the X-Plane plugin is not connected yet";
+            case "Calls:Reset":
+                ActiveCalls = 0;
+                LastAction = "Passenger and lavatory calls reset";
+                break;
+            case "Chime:On":
+                AttendantChimeEnabled = true;
+                LastAction = "Attendant chime enabled";
+                break;
+            case "Chime:Off":
+                AttendantChimeEnabled = false;
+                LastAction = "Attendant chime disabled";
+                break;
+            case "Temp:Zone 1":
+            case "Temp:Zone 2":
+            case "Temp:Zone 3":
+                SelectedTemperatureZone = action["Temp:".Length..];
+                LastAction = $"Selected {SelectedTemperatureZone}";
+                break;
+            case "Temp:Increase":
+                AdjustSelectedTemperature(1);
+                break;
+            case "Temp:Decrease":
+                AdjustSelectedTemperature(-1);
+                break;
+            case "PA:VolumeUp":
+                PaVolumeLevel = Math.Clamp(PaVolumeLevel + 1, 1, 10);
+                LastAction = $"PA volume set to {PaVolumeLevel}";
+                break;
+            case "PA:VolumeDown":
+                PaVolumeLevel = Math.Clamp(PaVolumeLevel - 1, 1, 10);
+                LastAction = $"PA volume set to {PaVolumeLevel}";
+                break;
+            case "PA:SensorOn":
+                AmbientNoiseSensorEnabled = true;
+                LastAction = "Ambient noise sensor enabled";
+                break;
+            case "PA:SensorOff":
+                AmbientNoiseSensorEnabled = false;
+                LastAction = "Ambient noise sensor disabled";
+                break;
+            case "PA:AutomaticVolume":
+                AutomaticPaVolumeEnabled = !AutomaticPaVolumeEnabled;
+                LastAction = $"Automatic PA volume {(AutomaticPaVolumeEnabled ? "enabled" : "disabled")}";
+                break;
+            case "Display:BrightnessUp":
+                DisplayBrightness = Math.Clamp(DisplayBrightness + 10, 0, 100);
+                LastAction = $"Display brightness set to {DisplayBrightness}%";
+                break;
+            case "Display:BrightnessDown":
+                DisplayBrightness = Math.Clamp(DisplayBrightness - 10, 0, 100);
+                LastAction = $"Display brightness set to {DisplayBrightness}%";
+                break;
+            case "Display:Day":
+            case "Display:Night":
+                DisplayMode = action["Display:".Length..];
+                DisplayPowerOn = true;
+                LastAction = $"Display set to {DisplayMode.ToLowerInvariant()} mode";
+                break;
+            case "Display:Off":
+                DisplayPowerOn = false;
+                LastAction = "Display power command staged";
+                break;
+            case "Display:ScreenClean":
+                LastAction = "Screen clean mode staged";
+                break;
+            case "Music:On":
+                BoardingMusicEnabled = true;
+                LastAction = "Boarding music enabled";
+                break;
+            case "Music:Off":
+                BoardingMusicEnabled = false;
+                LastAction = "Boarding music disabled";
+                break;
+            case "Music:VolumeUp":
+                BoardingMusicLevel = Math.Clamp(BoardingMusicLevel + 1, 1, 10);
+                LastAction = $"Boarding music volume set to {BoardingMusicLevel}";
+                break;
+            case "Music:VolumeDown":
+                BoardingMusicLevel = Math.Clamp(BoardingMusicLevel - 1, 1, 10);
+                LastAction = $"Boarding music volume set to {BoardingMusicLevel}";
+                break;
+            case "Music:Program1":
+            case "Music:Program2":
+                SelectedBoardingProgram = action.EndsWith('1') ? 1 : 2;
+                LastAction = $"Boarding music program {SelectedBoardingProgram} selected";
                 break;
             default:
                 QueueEvent(action);
@@ -187,24 +459,61 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         }
     }
 
+    private void AdjustSelectedTemperature(int delta)
+    {
+        var updated = Math.Clamp(SelectedTemperatureC + delta, 18, 30);
+        switch (SelectedTemperatureZone)
+        {
+            case "Zone 2":
+                Zone2TemperatureC = updated;
+                break;
+            case "Zone 3":
+                Zone3TemperatureC = updated;
+                break;
+            default:
+                Zone1TemperatureC = updated;
+                break;
+        }
+
+        _settings.CabinTargetTemperatureC = updated;
+        LastAction = $"{SelectedTemperatureZone} target set to {updated} °C";
+        MarkChanged();
+    }
+
+    private void QueueEvent(object? parameter)
+    {
+        if (parameter is not string item || string.IsNullOrWhiteSpace(item))
+        {
+            return;
+        }
+
+        ActivityQueue.Insert(0, item);
+        while (ActivityQueue.Count > 5)
+        {
+            ActivityQueue.RemoveAt(ActivityQueue.Count - 1);
+        }
+
+        QueueDepth++;
+        LastAction = Status.IsConnected
+            ? $"Queued for aircraft bridge: {item}"
+            : $"Staged locally: {item}";
+    }
+
     private void ClearQueue()
     {
         ActivityQueue.Clear();
         QueueDepth = 0;
-        LastAction = "Cabin event queue cleared";
+        LastAction = "Media and command queue cleared";
     }
+
+    private void MarkChanged() => SaveStatus = "Unsaved changes";
 
     private async Task SaveAsync()
     {
         await _settingsStore.SaveAsync(_settings);
-        SaveStatus = $"Cabin panel preferences saved at {DateTime.Now:t}";
+        SaveStatus = "Panel preferences saved";
     }
 
-    private void MarkChanged() => SaveStatus = "Unsaved cabin panel changes";
-
-    private void ShowSaveError(Exception exception)
-    {
-        SaveStatus = "Cabin panel preferences could not be saved";
-        MessageBox.Show(exception.Message, "Save failed", MessageBoxButton.OK, MessageBoxImage.Error);
-    }
+    private void ShowSaveError(Exception exception) =>
+        SaveStatus = $"Could not save: {exception.Message}";
 }

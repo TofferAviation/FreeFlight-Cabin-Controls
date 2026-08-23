@@ -79,11 +79,55 @@ internal static class Program
 
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             Render(window, Path.Combine(outputDirectory, $"{page.ToLowerInvariant()}.png"));
+
+            if (page == "CabinPanel")
+            {
+                var panelPages = new[]
+                {
+                    (Name: "Lighting Control", Slug: "lighting"),
+                    (Name: "Service Call / Chime", Slug: "service-call-chime"),
+                    (Name: "Cabin Temperature", Slug: "temperature"),
+                    (Name: "Water / Waste Status", Slug: "water-waste"),
+                    (Name: "Passenger Address", Slug: "passenger-address"),
+                    (Name: "Cabin Door Status", Slug: "door-status"),
+                    (Name: "Display Controls", Slug: "display-controls"),
+                    (Name: "Boarding Music", Slug: "boarding-music"),
+                    (Name: "Special Functions", Slug: "special-functions")
+                };
+
+                foreach (var panelPage in panelPages)
+                {
+                    viewModel.CabinPanel.SelectPanelCommand.Execute(panelPage.Name);
+                    if (viewModel.CabinPanel.SelectedPanel != panelPage.Name)
+                    {
+                        throw new InvalidOperationException($"Cabin panel did not navigate to {panelPage.Name}.");
+                    }
+
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                    Render(window, Path.Combine(outputDirectory, $"cabinpanel-{panelPage.Slug}.png"));
+                }
+
+                viewModel.CabinPanel.ExecuteActionCommand.Execute("PA:VolumeUp");
+                viewModel.CabinPanel.ExecuteActionCommand.Execute("Display:BrightnessDown");
+                viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:Program2");
+                if (viewModel.CabinPanel.PaVolumeLevel != 6 ||
+                    viewModel.CabinPanel.DisplayBrightness != 60 ||
+                    viewModel.CabinPanel.SelectedBoardingProgram != 2)
+                {
+                    throw new InvalidOperationException("Cabin panel controls did not update their local preview state.");
+                }
+
+                viewModel.CabinPanel.MainMenuCommand.Execute(null);
+                if (viewModel.CabinPanel.SelectedPanel != "Main Menu")
+                {
+                    throw new InvalidOperationException("Cabin panel did not return to its main menu.");
+                }
+            }
         }
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered six visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 15 visual checks to {outputDirectory}");
         return 0;
     }
 
