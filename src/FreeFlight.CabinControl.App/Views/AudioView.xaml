@@ -115,9 +115,9 @@
                             </StackPanel>
                             <Button Grid.Column="1"
                                     Style="{StaticResource CircleButtonStyle}"
-                                    Content="{Binding SafetyDemonstrationActionGlyph}"
-                                    Command="{Binding SafetyDemonstrationCommand}"
-                                    ToolTip="{Binding SafetyDemonstrationActionLabel}" />
+                                    Content="{Binding NowPlayingActionGlyph}"
+                                    Command="{Binding NowPlayingCommand}"
+                                    ToolTip="{Binding NowPlayingActionLabel}" />
                         </Grid>
                         <TextBlock Grid.Row="2" Text="{Binding NowPlayingDescription}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
                     </Grid>
@@ -159,7 +159,15 @@
                     <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
                         <Grid><TextBlock Text="Boarding Music" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding BoardingMusicEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
                         <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
-                            <Slider Maximum="100" Value="{Binding BoardingMusicVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding BoardingMusicVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                            <Slider Maximum="100" Value="{Binding BoardingMusicVolume}" Margin="0,0,8,0" ToolTip="Boarding-music audio output" />
+                            <TextBlock Grid.Column="1" Text="{Binding BoardingMusicVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" />
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource CircleButtonStyle}"
+                                    Width="38"
+                                    Height="38"
+                                    Content="{Binding BoardingMusicActionGlyph}"
+                                    Command="{Binding BoardingMusicCommand}"
+                                    ToolTip="{Binding BoardingMusicActionLabel}" />
                         </Grid>
                     </Grid>
                 </Border>

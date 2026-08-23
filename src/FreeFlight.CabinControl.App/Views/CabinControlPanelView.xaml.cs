@@ -75,7 +75,7 @@ public partial class CabinControlPanelView
 
         if (e.PropertyName is nameof(CabinControlPanelViewModel.BoardingMusicLocalSource) or
             nameof(CabinControlPanelViewModel.IsBoardingMusicPlaying) or
-            nameof(CabinControlPanelViewModel.BoardingMusicLevel))
+            nameof(CabinControlPanelViewModel.BoardingMusicOutputVolume))
         {
             UpdateBoardingMusicPlayback();
         }
@@ -84,7 +84,7 @@ public partial class CabinControlPanelView
     private void UpdateBoardingMusicPlayback()
     {
         var viewModel = _attachedViewModel;
-        _boardingMusicPlayer.Volume = Math.Clamp((viewModel?.BoardingMusicLevel ?? 0) / 10d, 0d, 1d);
+        _boardingMusicPlayer.Volume = viewModel?.BoardingMusicOutputVolume ?? 0d;
         if (viewModel?.IsBoardingMusicPlaying == true && viewModel.BoardingMusicLocalSource is not null)
         {
             if (_boardingMusicSource != viewModel.BoardingMusicLocalSource)

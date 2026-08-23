@@ -329,6 +329,50 @@ internal static class Program
             }
             else if (page == "Audio")
             {
+                viewModel.Audio.BoardingMusicEnabled = true;
+                viewModel.Audio.BoardingMusicVolume = 37;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (Math.Abs(viewModel.CabinPanel.BoardingMusicOutputVolume - 0.37d) > 0.001d)
+                {
+                    throw new InvalidOperationException("The Audio boarding-music slider did not control playback volume.");
+                }
+
+                viewModel.Audio.BoardingMusicCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                var firstRandomProgram = viewModel.CabinPanel.SelectedBoardingProgram;
+                if (!viewModel.Audio.IsBoardingMusicInProgress ||
+                    !viewModel.CabinPanel.IsBoardingMusicPlaying ||
+                    !viewModel.CabinPanel.HasSelectedBoardingMusic ||
+                    !viewModel.Audio.NowPlaying.Contains($"Program {firstRandomProgram}", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The Audio boarding-music action did not start an installed random program.");
+                }
+
+                viewModel.Audio.BoardingMusicEnabled = false;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (Math.Abs(viewModel.CabinPanel.BoardingMusicOutputVolume) > 0.001d ||
+                    !viewModel.Audio.NowPlayingDescription.Contains("muted", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Disabling Boarding Music did not mute active playback.");
+                }
+
+                viewModel.Audio.BoardingMusicEnabled = true;
+                Render(window, Path.Combine(outputDirectory, "audio-boarding-music-in-progress.png"));
+                viewModel.Audio.BoardingMusicCommand.Execute(null);
+                viewModel.Audio.BoardingMusicCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                if (!viewModel.Audio.IsBoardingMusicInProgress ||
+                    viewModel.CabinPanel.SelectedBoardingProgram == firstRandomProgram)
+                {
+                    throw new InvalidOperationException("Consecutive Audio boarding sessions did not choose a new random program.");
+                }
+
+                viewModel.Audio.NowPlayingCommand.Execute(null);
+                if (viewModel.Audio.IsBoardingMusicInProgress)
+                {
+                    throw new InvalidOperationException("The Audio Now Playing control did not stop boarding music.");
+                }
+
                 viewModel.Audio.SafetyDemonstrationEnabled = true;
                 viewModel.Audio.SafetyDemonstrationVolume = 32;
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
@@ -390,7 +434,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 23 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 24 visual checks to {outputDirectory}");
         return 0;
     }
 

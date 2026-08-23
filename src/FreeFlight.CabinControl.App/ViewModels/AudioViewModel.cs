@@ -37,6 +37,8 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
         PreviewCommand = new RelayCommand(_ => ShowPreviewUnavailable());
         SafetyDemonstrationCommand = new RelayCommand(_ => ToggleSafetyDemonstration());
+        BoardingMusicCommand = new RelayCommand(_ => ToggleBoardingMusic());
+        NowPlayingCommand = new RelayCommand(_ => ToggleNowPlaying());
         RefreshOutputDevicesCommand = new RelayCommand(_ => RefreshOutputDevices());
         if (_cabinPanel is not null)
         {
@@ -53,6 +55,10 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
     public ICommand PreviewCommand { get; }
 
     public ICommand SafetyDemonstrationCommand { get; }
+
+    public ICommand BoardingMusicCommand { get; }
+
+    public ICommand NowPlayingCommand { get; }
 
     public ICommand RefreshOutputDevicesCommand { get; }
 
@@ -88,7 +94,9 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
 
     public string NowPlaying => IsSafetyDemonstrationInProgress
         ? _cabinPanel?.SafetyVideoTitle ?? "Safety demonstration"
-        : "No audio playing";
+        : IsBoardingMusicInProgress
+            ? $"Boarding Music — Program {_cabinPanel?.SelectedBoardingProgram}"
+            : "No audio playing";
 
     public string NowPlayingDescription
     {
@@ -101,19 +109,44 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
                     : "Local MP4 continues with audio muted";
             }
 
+            if (IsBoardingMusicInProgress)
+            {
+                return BoardingMusicEnabled
+                    ? $"Program {_cabinPanel?.SelectedBoardingProgram} at {BoardingMusicVolume}% — use Cabin Panel for a specific program"
+                    : $"Program {_cabinPanel?.SelectedBoardingProgram} continues with audio muted";
+            }
+
             return _cabinPanel?.HasLocalSafetyVideo == true
-                ? "British Airways safety demonstration ready"
-                : "Local BA safety demonstration is not installed";
+                ? "Safety demonstration and four boarding programs ready"
+                : "Four boarding programs ready; local BA safety demonstration is not installed";
         }
     }
 
     public bool IsSafetyDemonstrationInProgress => _cabinPanel?.IsSafetyVideoInProgress == true;
+
+    public bool IsBoardingMusicInProgress => _cabinPanel?.IsBoardingMusicPlaying == true;
+
+    public bool IsAnyAudioPlaying => IsSafetyDemonstrationInProgress || IsBoardingMusicInProgress;
+
+    public string NowPlayingActionGlyph => IsAnyAudioPlaying ? "\uE71A" : "\uE768";
+
+    public string NowPlayingActionLabel => IsSafetyDemonstrationInProgress
+        ? "Stop safety demonstration"
+        : IsBoardingMusicInProgress
+            ? "Stop boarding music"
+            : "Start safety demonstration";
 
     public string SafetyDemonstrationActionGlyph => IsSafetyDemonstrationInProgress ? "\uE71A" : "\uE768";
 
     public string SafetyDemonstrationActionLabel => IsSafetyDemonstrationInProgress
         ? "Stop safety demonstration"
         : "Start safety demonstration";
+
+    public string BoardingMusicActionGlyph => IsBoardingMusicInProgress ? "\uE71A" : "\uE768";
+
+    public string BoardingMusicActionLabel => IsBoardingMusicInProgress
+        ? "Stop boarding music"
+        : "Play a random boarding program";
 
     public string SaveStatus
     {
@@ -193,11 +226,20 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
 
     public bool BoardingMusicEnabled
     {
-        get => _settings.BoardingMusicEnabled;
+        get => _cabinPanel?.BoardingMusicEnabled ?? _settings.BoardingMusicEnabled;
         set
         {
-            _settings.BoardingMusicEnabled = value;
+            if (_cabinPanel is not null)
+            {
+                _cabinPanel.SetBoardingMusicEnabled(value);
+            }
+            else
+            {
+                _settings.BoardingMusicEnabled = value;
+            }
+
             OnPropertyChanged();
+            OnPropertyChanged(nameof(NowPlayingDescription));
         }
     }
 
@@ -206,8 +248,17 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         get => _settings.BoardingMusicVolume;
         set
         {
-            _settings.BoardingMusicVolume = value;
+            if (_cabinPanel is not null)
+            {
+                _cabinPanel.SetBoardingMusicVolume(value);
+            }
+            else
+            {
+                _settings.BoardingMusicVolume = Math.Clamp(value, 0, 100);
+            }
+
             OnPropertyChanged();
+            OnPropertyChanged(nameof(NowPlayingDescription));
         }
     }
 
@@ -289,24 +340,84 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         }
         else
         {
+            if (_cabinPanel.IsBoardingMusicPlaying)
+            {
+                _cabinPanel.StopBoardingMusic();
+            }
+
             _cabinPanel.StartSafetyVideoCommand.Execute(null);
+        }
+    }
+
+    private void ToggleBoardingMusic()
+    {
+        if (_cabinPanel is null)
+        {
+            ShowPreviewUnavailable();
+            return;
+        }
+
+        if (!_cabinPanel.IsBoardingMusicPlaying && _cabinPanel.IsSafetyVideoInProgress)
+        {
+            _cabinPanel.StopSafetyVideoCommand.Execute(null);
+        }
+
+        _cabinPanel.ToggleRandomBoardingMusic();
+    }
+
+    private void ToggleNowPlaying()
+    {
+        if (IsSafetyDemonstrationInProgress)
+        {
+            ToggleSafetyDemonstration();
+        }
+        else if (IsBoardingMusicInProgress)
+        {
+            ToggleBoardingMusic();
+        }
+        else
+        {
+            ToggleSafetyDemonstration();
         }
     }
 
     private void HandleCabinPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is not (nameof(CabinControlPanelViewModel.IsSafetyVideoInProgress) or
+        var safetyChanged = e.PropertyName is nameof(CabinControlPanelViewModel.IsSafetyVideoInProgress) or
             nameof(CabinControlPanelViewModel.SafetyVideoPreviewStatus) or
-            nameof(CabinControlPanelViewModel.HasLocalSafetyVideo)))
+            nameof(CabinControlPanelViewModel.HasLocalSafetyVideo);
+        var boardingMusicChanged = e.PropertyName is nameof(CabinControlPanelViewModel.IsBoardingMusicPlaying) or
+            nameof(CabinControlPanelViewModel.SelectedBoardingProgram) or
+            nameof(CabinControlPanelViewModel.BoardingMusicEnabled) or
+            nameof(CabinControlPanelViewModel.BoardingMusicLevel) or
+            nameof(CabinControlPanelViewModel.BoardingMusicOutputVolume) or
+            nameof(CabinControlPanelViewModel.BoardingMusicPreviewStatus);
+        if (!safetyChanged && !boardingMusicChanged)
         {
             return;
         }
 
-        OnPropertyChanged(nameof(IsSafetyDemonstrationInProgress));
+        if (safetyChanged)
+        {
+            OnPropertyChanged(nameof(IsSafetyDemonstrationInProgress));
+            OnPropertyChanged(nameof(SafetyDemonstrationActionGlyph));
+            OnPropertyChanged(nameof(SafetyDemonstrationActionLabel));
+        }
+
+        if (boardingMusicChanged)
+        {
+            OnPropertyChanged(nameof(IsBoardingMusicInProgress));
+            OnPropertyChanged(nameof(BoardingMusicEnabled));
+            OnPropertyChanged(nameof(BoardingMusicVolume));
+            OnPropertyChanged(nameof(BoardingMusicActionGlyph));
+            OnPropertyChanged(nameof(BoardingMusicActionLabel));
+        }
+
         OnPropertyChanged(nameof(NowPlaying));
         OnPropertyChanged(nameof(NowPlayingDescription));
-        OnPropertyChanged(nameof(SafetyDemonstrationActionGlyph));
-        OnPropertyChanged(nameof(SafetyDemonstrationActionLabel));
+        OnPropertyChanged(nameof(IsAnyAudioPlaying));
+        OnPropertyChanged(nameof(NowPlayingActionGlyph));
+        OnPropertyChanged(nameof(NowPlayingActionLabel));
     }
 
     private async Task SaveAsync()

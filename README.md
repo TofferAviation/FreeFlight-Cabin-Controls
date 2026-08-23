@@ -15,6 +15,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - live Audio-page safety-demonstration controls: both play buttons start/stop the shared MP4 session, the Safety Demonstration slider controls its real audio level, the switch mutes/unmutes it, and an amber page-wide banner marks an active announcement;
 - navigation-persistent safety-video playback, so switching application pages does not stop, restart, or lose the active preview position;
 - four installed British Airways Boarding Music programs on the coded 777 panel, with local playback/looping, live volume, and credited CC0/Creative Commons editions of each requested composition;
+- Audio-page boarding controls that choose a new installed program at random for each session, with live mute/volume and shared Now Playing state; exact program selection remains on the Cabin Panel;
 - a Display Controls brightness bar whose numeric value, filled range, and pointer move together;
 - a safe vAMSYS authorization entry point, pending an approved Pilot API client registration;
 - enumeration and persistent selection of active Windows playback endpoints;

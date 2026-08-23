@@ -52,7 +52,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     {
         _settings = settings;
         _settingsStore = settingsStore;
-        _boardingMusicLevel = Math.Clamp((int)Math.Round(settings.BoardingMusicVolume / 10d), 1, 10);
+        _boardingMusicLevel = Math.Clamp((int)Math.Round(settings.BoardingMusicVolume / 10d), 0, 10);
         BoardingMusicDirectory = boardingMusicDirectory ?? Path.Combine(
             AppContext.BaseDirectory, "content-packs", "british-airways", "audio", "boarding");
         SafetyVideoLocalFilePath = safetyVideoLocalFilePath ?? Path.Combine(
@@ -121,6 +121,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     }
 
     public bool HasSelectedBoardingMusic => BoardingMusicLocalSource is not null;
+
+    public double BoardingMusicOutputVolume => BoardingMusicEnabled
+        ? Math.Clamp(_settings.BoardingMusicVolume / 100d, 0d, 1d)
+        : 0d;
 
     public bool IsBoardingMusicPlaying
     {
@@ -390,6 +394,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
             _settings.BoardingMusicEnabled = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(BoardingMusicStatus));
+            OnPropertyChanged(nameof(BoardingMusicOutputVolume));
             MarkChanged();
         }
     }
@@ -407,6 +412,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
             }
 
             _settings.BoardingMusicVolume = value * 10;
+            OnPropertyChanged(nameof(BoardingMusicOutputVolume));
             MarkChanged();
         }
     }
@@ -545,26 +551,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
                 LastAction = "Screen clean mode staged";
                 break;
             case "Music:On":
-                RefreshSelectedBoardingProgram();
-                if (!HasSelectedBoardingMusic)
-                {
-                    IsBoardingMusicPlaying = false;
-                    LastAction = $"Boarding music program {SelectedBoardingProgram} is not installed";
-                    break;
-                }
-
-                BoardingMusicEnabled = true;
-                IsBoardingMusicPlaying = true;
-                BoardingMusicPreviewStatus = $"Playing Program {SelectedBoardingProgram}";
-                LastAction = $"Boarding music program {SelectedBoardingProgram} started";
+                StartSelectedBoardingMusic();
                 break;
             case "Music:Off":
-                IsBoardingMusicPlaying = false;
-                BoardingMusicEnabled = false;
-                BoardingMusicPreviewStatus = HasSelectedBoardingMusic
-                    ? $"Program {SelectedBoardingProgram} ready"
-                    : $"Program {SelectedBoardingProgram} recording is not installed";
-                LastAction = "Boarding music stopped";
+                StopBoardingMusic();
                 break;
             case "Music:VolumeUp":
                 BoardingMusicLevel = Math.Clamp(BoardingMusicLevel + 1, 1, 10);
@@ -695,6 +685,66 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     internal void RefreshSafetyVideoAudioOutput() => OnPropertyChanged(nameof(SafetyVideoVolume));
 
+    internal void SetBoardingMusicEnabled(bool enabled) => BoardingMusicEnabled = enabled;
+
+    internal void SetBoardingMusicVolume(int volumePercent)
+    {
+        var clampedVolume = Math.Clamp(volumePercent, 0, 100);
+        if (_settings.BoardingMusicVolume == clampedVolume)
+        {
+            return;
+        }
+
+        _settings.BoardingMusicVolume = clampedVolume;
+        var panelLevel = Math.Clamp((int)Math.Round(clampedVolume / 10d), 0, 10);
+        if (_boardingMusicLevel != panelLevel)
+        {
+            _boardingMusicLevel = panelLevel;
+            OnPropertyChanged(nameof(BoardingMusicLevel));
+        }
+
+        OnPropertyChanged(nameof(BoardingMusicOutputVolume));
+        MarkChanged();
+    }
+
+    internal void ToggleRandomBoardingMusic()
+    {
+        if (IsBoardingMusicPlaying)
+        {
+            StopBoardingMusic();
+            return;
+        }
+
+        var installedPrograms = Enumerable.Range(1, 4)
+            .Where(program => File.Exists(Path.Combine(BoardingMusicDirectory, GetBoardingProgram(program).FileName)))
+            .ToList();
+        if (installedPrograms.Count == 0)
+        {
+            IsBoardingMusicPlaying = false;
+            BoardingMusicEnabled = false;
+            BoardingMusicPreviewStatus = "No boarding music recordings are installed";
+            LastAction = "Boarding music could not start because no programs are installed";
+            return;
+        }
+
+        var randomCandidates = installedPrograms.Count > 1
+            ? installedPrograms.Where(program => program != SelectedBoardingProgram).ToList()
+            : installedPrograms;
+        SelectedBoardingProgram = randomCandidates[Random.Shared.Next(randomCandidates.Count)];
+        StartSelectedBoardingMusic();
+        LastAction = $"Random boarding music program {SelectedBoardingProgram} started";
+    }
+
+    internal void StopBoardingMusic()
+    {
+        IsBoardingMusicPlaying = false;
+        BoardingMusicEnabled = false;
+        BoardingMusicPreviewStatus = HasSelectedBoardingMusic
+            ? $"Program {SelectedBoardingProgram} ready"
+            : $"Program {SelectedBoardingProgram} recording is not installed";
+        LastAction = "Boarding music stopped";
+    }
+
     internal void ReportBoardingMusicPlaybackFailure(string? details)
     {
         IsBoardingMusicPlaying = false;
@@ -702,6 +752,22 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         LastAction = string.IsNullOrWhiteSpace(details)
             ? "Local boarding music playback failed"
             : $"Local boarding music playback failed: {details}";
+    }
+
+    private void StartSelectedBoardingMusic()
+    {
+        RefreshSelectedBoardingProgram();
+        if (!HasSelectedBoardingMusic)
+        {
+            IsBoardingMusicPlaying = false;
+            LastAction = $"Boarding music program {SelectedBoardingProgram} is not installed";
+            return;
+        }
+
+        BoardingMusicEnabled = true;
+        IsBoardingMusicPlaying = true;
+        BoardingMusicPreviewStatus = $"Playing Program {SelectedBoardingProgram}";
+        LastAction = $"Boarding music program {SelectedBoardingProgram} started";
     }
 
     private void RefreshSelectedBoardingProgram()
