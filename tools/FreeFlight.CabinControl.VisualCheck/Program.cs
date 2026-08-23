@@ -168,10 +168,36 @@ internal static class Program
 
                 viewModel.CabinPanel.StartSafetyVideoCommand.Execute(null);
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
-                if (!viewModel.CabinPanel.IsSafetyVideoInProgress ||
-                    !viewModel.CabinPanel.SafetyVideoEmbedSource.AbsoluteUri.Contains("youtube-nocookie.com", StringComparison.Ordinal))
+                if (!viewModel.CabinPanel.IsSafetyVideoInProgress)
                 {
                     throw new InvalidOperationException("The safety video test did not enter its in-progress state.");
+                }
+
+                if (viewModel.CabinPanel.HasLocalSafetyVideo)
+                {
+                    if (!viewModel.CabinPanel.IsUsingLocalSafetyVideo || viewModel.CabinPanel.SafetyVideoLocalSource is null)
+                    {
+                        throw new InvalidOperationException("The installed local BA safety video was not selected for playback.");
+                    }
+                }
+                else if (viewModel.CabinPanel.IsUsingLocalSafetyVideo ||
+                         !viewModel.CabinPanel.SafetyVideoEmbedSource.AbsoluteUri.Contains("youtube-nocookie.com", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The online safety-video fallback was not selected.");
+                }
+
+                var announcementOverlay = FindVisualChild<Border>(
+                    window,
+                    border => Equals(border.Tag, "AnnouncementOverlay"));
+                var announcementLabel = FindVisualChild<TextBlock>(
+                    window,
+                    textBlock => textBlock.Text == "Announcement in progress");
+                if (announcementOverlay?.Background is not SolidColorBrush overlayBrush ||
+                    overlayBrush.Color != Color.FromArgb(0xB3, 0x00, 0x00, 0x00) ||
+                    announcementLabel?.Foreground is not SolidColorBrush labelBrush ||
+                    labelBrush.Color != Colors.White)
+                {
+                    throw new InvalidOperationException("The dark Announcement in progress overlay does not match the approved treatment.");
                 }
 
                 Render(window, Path.Combine(outputDirectory, "cabinpanel-safety-video-in-progress.png"));

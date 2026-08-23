@@ -17,6 +17,13 @@
     <Resource Include="Assets\FreeFlightBrand.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
   </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\media\safety-video.mp4')">
+    <Content Include="..\..\content-packs\private\british-airways\media\safety-video.mp4">
+      <Link>content-packs\british-airways\media\safety-video.mp4</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" />
   </ItemGroup>

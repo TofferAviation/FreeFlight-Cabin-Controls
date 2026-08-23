@@ -24,24 +24,7 @@ public partial class App
             "CabinControl");
         _logService = new FileLogService(Path.Combine(settingsDirectory, "logs"));
         _logService.Information("FreeFlight Cabin Control starting.");
-        var settingsStore = new JsonSettingsStore(Path.Combine(settingsDirectory, "settings.json"));
-
-        AppSettings settings;
-        try
-        {
-            settings = await settingsStore.LoadAsync();
-            _logService.Information("Application settings loaded.");
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
-        {
-            _logService.Error("Application settings could not be loaded; defaults are in use.", exception);
-            settings = new AppSettings();
-            MessageBox.Show(
-                "Your saved settings could not be loaded. FreeFlight will use safe defaults for this session. The original file has not been deleted.",
-                "Settings could not be loaded",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-        }
+        var (settings, settingsStore) = await LoadSettingsAsync(settingsDirectory);
 
         var viewModel = new MainWindowViewModel(settings, settingsStore, _logService.LogDirectory);
         MainWindow = new MainWindow
@@ -67,5 +50,66 @@ public partial class App
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         e.Handled = true;
+    }
+
+    private async Task<(AppSettings Settings, ISettingsStore Store)> LoadSettingsAsync(string preferredDirectory)
+    {
+        var candidates = new[]
+        {
+            preferredDirectory,
+            Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "FreeFlight",
+                "CabinControl"),
+            Path.Combine(Path.GetTempPath(), "FreeFlight", "CabinControl")
+        }.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+        ISettingsStore fallbackStore = new JsonSettingsStore(Path.Combine(candidates[^1], "settings.json"));
+        foreach (var candidate in candidates)
+        {
+            if (!CanWriteToDirectory(candidate))
+            {
+                _logService?.Information($"Settings directory is not writable; trying fallback: {candidate}");
+                continue;
+            }
+
+            var store = new JsonSettingsStore(Path.Combine(candidate, "settings.json"));
+            fallbackStore = store;
+            try
+            {
+                var settings = await store.LoadAsync();
+                _logService?.Information($"Application settings loaded from {candidate}.");
+                return (settings, store);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+            {
+                _logService?.Error($"Application settings could not be loaded from {candidate}; trying a safe fallback.", exception);
+            }
+        }
+
+        _logService?.Information("No writable settings file was available; defaults are in use for this session.");
+        return (new AppSettings(), fallbackStore);
+    }
+
+    private static bool CanWriteToDirectory(string directory)
+    {
+        try
+        {
+            Directory.CreateDirectory(directory);
+            var probePath = Path.Combine(directory, $".write-test-{Guid.NewGuid():N}.tmp");
+            using var stream = new FileStream(
+                probePath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                1,
+                FileOptions.DeleteOnClose);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                          NotSupportedException or System.Security.SecurityException)
+        {
+            return false;
+        }
     }
 }

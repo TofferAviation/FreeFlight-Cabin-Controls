@@ -11,7 +11,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - a searchable local airline catalog with persistent selection and custom airline profiles;
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;
 - a fully coded Cabin Area Control Panel built on reference-locked 1040×812 instrument geometry and a 716×512 live LCD coordinate system, with a CSCP hierarchy and 15 live operational screens that preserve the supplied FF777 proportions without using the page renders at runtime;
-- a British Airways 2024 safety-video test mode with a 70% gray in-progress overlay, an embedded corner player, external-browser fallback, and future-aircraft queue staging without bundling the third-party video;
+- a British Airways 2024 safety-video test mode with a 70% black “Announcement in progress” overlay, embedded corner playback, future-aircraft queue staging, and a stable private media slot that automatically prefers an authorized bundled MP4 over the online development fallback;
 - a Display Controls brightness bar whose numeric value, filled range, and pointer move together;
 - a safe vAMSYS authorization entry point, pending an approved Pilot API client registration;
 - enumeration and persistent selection of active Windows playback endpoints;
@@ -19,7 +19,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;
 - real process CPU and memory sampling for the desktop application;
-- stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`;
+- stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
 - no bundled photographic CACP page renders or third-party airline audio/video media; the limited identifying wordmarks are documented under `Assets/AirlineLogos/SOURCES.md`.
 
 The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Aircraft-derived values such as door state remain explicitly `UNKNOWN` until live telemetry exists.
@@ -45,3 +45,5 @@ Source filenames remain stable. Releases are identified by Git tags and `CHANGEL
 Airline recordings, safety videos, music, logos, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores.
 
 No open-source licence has been selected yet. The repository owner retains all rights until a licence is added.
+
+The BA-first local media input and publish paths are documented in `docs/BAW-MEDIA.md`.

@@ -32,6 +32,9 @@ public partial class CabinControlPanelView
 
     private void HandleUnloaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        SafetyVideoMediaElement.Stop();
+        SafetyVideoMediaElement.Source = null;
+        SafetyVideoWebView.Source = new Uri("about:blank", UriKind.Absolute);
         AttachToViewModel(null);
     }
 
@@ -63,6 +66,7 @@ public partial class CabinControlPanelView
 
         _attachedViewModel.PropertyChanged += HandleViewModelPropertyChanged;
         NavigateToSafetyVideoSource();
+        UpdateLocalSafetyVideoPlayback();
     }
 
     private void HandleViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -70,6 +74,12 @@ public partial class CabinControlPanelView
         if (e.PropertyName == nameof(CabinControlPanelViewModel.SafetyVideoEmbedSource))
         {
             NavigateToSafetyVideoSource();
+        }
+
+        if (e.PropertyName is nameof(CabinControlPanelViewModel.SafetyVideoLocalSource) or
+            nameof(CabinControlPanelViewModel.IsUsingLocalSafetyVideo))
+        {
+            UpdateLocalSafetyVideoPlayback();
         }
     }
 
@@ -80,5 +90,29 @@ public partial class CabinControlPanelView
         {
             SafetyVideoWebView.Source = source;
         }
+    }
+
+    private void UpdateLocalSafetyVideoPlayback()
+    {
+        var viewModel = _attachedViewModel;
+        if (viewModel?.IsUsingLocalSafetyVideo == true && viewModel.SafetyVideoLocalSource is not null)
+        {
+            if (SafetyVideoMediaElement.Source != viewModel.SafetyVideoLocalSource)
+            {
+                SafetyVideoMediaElement.Source = viewModel.SafetyVideoLocalSource;
+                SafetyVideoMediaElement.Position = TimeSpan.Zero;
+            }
+
+            SafetyVideoMediaElement.Play();
+            return;
+        }
+
+        SafetyVideoMediaElement.Stop();
+        SafetyVideoMediaElement.Source = null;
+    }
+
+    private void HandleLocalSafetyVideoEnded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        _attachedViewModel?.StopSafetyVideoCommand.Execute(null);
     }
 }

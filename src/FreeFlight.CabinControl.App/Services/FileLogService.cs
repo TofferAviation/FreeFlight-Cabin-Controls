@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -6,13 +7,22 @@ namespace FreeFlight.CabinControl.App.Services;
 public sealed class FileLogService
 {
     private readonly Lock _writeLock = new();
+    private readonly string _fallbackLogPath;
 
     public FileLogService(string logDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logDirectory);
-        LogDirectory = Path.GetFullPath(logDirectory);
-        Directory.CreateDirectory(LogDirectory);
-        LogPath = Path.Combine(LogDirectory, "FreeFlight.CabinControl.log");
+        var requestedLogPath = Path.Combine(
+            Path.GetFullPath(logDirectory),
+            "FreeFlight.CabinControl.log");
+        _fallbackLogPath = Path.Combine(
+            Path.GetTempPath(),
+            "FreeFlight",
+            "CabinControl",
+            "logs",
+            "FreeFlight.CabinControl.log");
+        LogPath = CanOpenForWriting(requestedLogPath) ? requestedLogPath : _fallbackLogPath;
+        LogDirectory = Path.GetDirectoryName(LogPath) ?? Path.GetTempPath();
     }
 
     public string LogDirectory { get; }
@@ -39,7 +49,51 @@ public sealed class FileLogService
 
         lock (_writeLock)
         {
-            File.AppendAllText(LogPath, builder.ToString(), Encoding.UTF8);
+            var entry = builder.ToString();
+            if (!TryAppend(LogPath, entry) && !TryAppend(_fallbackLogPath, entry))
+            {
+                Debug.WriteLine(entry);
+            }
+        }
+    }
+
+    private static bool TryAppend(string path, string entry)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.AppendAllText(path, entry, Encoding.UTF8);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                          NotSupportedException or System.Security.SecurityException)
+        {
+            return false;
+        }
+    }
+
+    private static bool CanOpenForWriting(string path)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            using var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
+            return true;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+                                          NotSupportedException or System.Security.SecurityException)
+        {
+            return false;
         }
     }
 }

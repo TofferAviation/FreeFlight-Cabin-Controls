@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
@@ -35,6 +36,9 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private int _selectedBoardingProgram = 1;
     private string _safetyVideoPreviewStatus = "YouTube preview — aircraft playback awaits the X-Plane bridge";
     private bool _isSafetyVideoInProgress;
+    private bool _hasLocalSafetyVideo;
+    private bool _isUsingLocalSafetyVideo;
+    private Uri? _safetyVideoLocalSource;
     private Uri _safetyVideoEmbedSource = new("about:blank", UriKind.Absolute);
 
     public CabinControlPanelViewModel(
@@ -46,6 +50,16 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         _settings = settings;
         _settingsStore = settingsStore;
         _boardingMusicLevel = Math.Clamp((int)Math.Round(settings.BoardingMusicVolume / 10d), 1, 10);
+        SafetyVideoLocalFilePath = Path.Combine(
+            AppContext.BaseDirectory,
+            "content-packs",
+            "british-airways",
+            "media",
+            "safety-video.mp4");
+        _hasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
+        _safetyVideoPreviewStatus = _hasLocalSafetyVideo
+            ? "Built-in British Airways safety video ready"
+            : "Local BA media not installed — online test fallback available";
         Status = status;
 
         SelectPanelCommand = new RelayCommand(SelectPanel);
@@ -89,6 +103,26 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     public string SafetyVideoThumbnailUrl => "https://i.ytimg.com/vi/ssVe0FaBhUU/hqdefault.jpg";
 
     public string SafetyVideoTitle => "British Airways Safety Video 2024";
+
+    public string SafetyVideoLocalFilePath { get; }
+
+    public bool HasLocalSafetyVideo
+    {
+        get => _hasLocalSafetyVideo;
+        private set => SetProperty(ref _hasLocalSafetyVideo, value);
+    }
+
+    public bool IsUsingLocalSafetyVideo
+    {
+        get => _isUsingLocalSafetyVideo;
+        private set => SetProperty(ref _isUsingLocalSafetyVideo, value);
+    }
+
+    public Uri? SafetyVideoLocalSource
+    {
+        get => _safetyVideoLocalSource;
+        private set => SetProperty(ref _safetyVideoLocalSource, value);
+    }
 
     public bool IsSafetyVideoInProgress
     {
@@ -551,11 +585,25 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         }
 
         QueueEvent("Safety demonstration video");
-        SafetyVideoEmbedSource = new Uri(
-            "https://www.youtube-nocookie.com/embed/ssVe0FaBhUU?autoplay=1&mute=1&controls=1&rel=0&playsinline=1",
-            UriKind.Absolute);
+        HasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
+        if (HasLocalSafetyVideo)
+        {
+            SafetyVideoEmbedSource = new Uri("about:blank", UriKind.Absolute);
+            SafetyVideoLocalSource = new Uri(SafetyVideoLocalFilePath, UriKind.Absolute);
+            IsUsingLocalSafetyVideo = true;
+            SafetyVideoPreviewStatus = "Announcement in progress — built-in British Airways media";
+        }
+        else
+        {
+            SafetyVideoLocalSource = null;
+            IsUsingLocalSafetyVideo = false;
+            SafetyVideoEmbedSource = new Uri(
+                "https://www.youtube-nocookie.com/embed/ssVe0FaBhUU?autoplay=1&mute=1&controls=1&rel=0&playsinline=1",
+                UriKind.Absolute);
+            SafetyVideoPreviewStatus = "Announcement in progress — online test fallback";
+        }
+
         IsSafetyVideoInProgress = true;
-        SafetyVideoPreviewStatus = "Safety video in progress — in-app test playback is muted initially";
         LastAction = Status.IsConnected
             ? "Safety video started and queued for the aircraft bridge"
             : "Safety video test started; aircraft playback remains staged locally";
@@ -569,8 +617,12 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         }
 
         IsSafetyVideoInProgress = false;
+        IsUsingLocalSafetyVideo = false;
+        SafetyVideoLocalSource = null;
         SafetyVideoEmbedSource = new Uri("about:blank", UriKind.Absolute);
-        SafetyVideoPreviewStatus = "Safety video test stopped — aircraft playback awaits the X-Plane bridge";
+        SafetyVideoPreviewStatus = HasLocalSafetyVideo
+            ? "Built-in British Airways safety video ready"
+            : "Local BA media not installed — online test fallback available";
         LastAction = "Stopped safety video test playback";
     }
 
