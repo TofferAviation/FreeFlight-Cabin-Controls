@@ -100,6 +100,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     public string SafetyVideoTitle => "British Airways Safety Video 2024";
 
+    public double SafetyVideoVolume => _settings.SafetyDemonstrationEnabled
+        ? Math.Clamp(_settings.SafetyDemonstrationVolume / 100d, 0d, 1d)
+        : 0d;
+
     public string BoardingMusicDirectory { get; }
 
     public string SelectedBoardingProgramTitle => GetBoardingProgram(SelectedBoardingProgram).Title;
@@ -688,6 +692,8 @@ public sealed class CabinControlPanelViewModel : PageViewModel
             ? "Local safety video playback failed"
             : $"Local safety video playback failed: {details}";
     }
+
+    internal void RefreshSafetyVideoAudioOutput() => OnPropertyChanged(nameof(SafetyVideoVolume));
 
     internal void ReportBoardingMusicPlaybackFailure(string? details)
     {

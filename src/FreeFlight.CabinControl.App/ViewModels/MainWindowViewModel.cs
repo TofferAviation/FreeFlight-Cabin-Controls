@@ -26,7 +26,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             Status,
             safetyVideoLocalFilePath,
             boardingMusicDirectory);
-        Audio = new AudioViewModel(settings, settingsStore, Status);
+        Audio = new AudioViewModel(settings, settingsStore, Status, cabinPanel: CabinPanel);
         Performance = new PerformanceViewModel(settings, Status, logDirectory);
         Settings = new SettingsViewModel(settings, settingsStore, Status);
         _currentPage = Dashboard;
@@ -63,6 +63,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        Audio.Dispose();
         Performance.Dispose();
         GC.SuppressFinalize(this);
     }

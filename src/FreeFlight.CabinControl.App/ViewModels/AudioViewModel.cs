@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -9,11 +10,12 @@ using FreeFlight.CabinControl.Core.Persistence;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
 
-public sealed class AudioViewModel : PageViewModel
+public sealed class AudioViewModel : PageViewModel, IDisposable
 {
     private readonly AppSettings _settings;
     private readonly ISettingsStore _settingsStore;
     private readonly IAudioOutputDeviceService _audioOutputDeviceService;
+    private readonly CabinControlPanelViewModel? _cabinPanel;
     private bool _isRefreshingOutputDevices;
     private AudioOutputDevice? _selectedOutputDevice;
     private string _outputDeviceStatus = "Detecting Windows playback devices...";
@@ -23,16 +25,24 @@ public sealed class AudioViewModel : PageViewModel
         AppSettings settings,
         ISettingsStore settingsStore,
         SharedStatusViewModel status,
-        IAudioOutputDeviceService? audioOutputDeviceService = null)
+        IAudioOutputDeviceService? audioOutputDeviceService = null,
+        CabinControlPanelViewModel? cabinPanel = null)
         : base("Audio Control", "Cabin soundscape and announcement management")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _audioOutputDeviceService = audioOutputDeviceService ?? new AudioOutputDeviceService();
+        _cabinPanel = cabinPanel;
         Status = status;
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
         PreviewCommand = new RelayCommand(_ => ShowPreviewUnavailable());
+        SafetyDemonstrationCommand = new RelayCommand(_ => ToggleSafetyDemonstration());
         RefreshOutputDevicesCommand = new RelayCommand(_ => RefreshOutputDevices());
+        if (_cabinPanel is not null)
+        {
+            _cabinPanel.PropertyChanged += HandleCabinPanelPropertyChanged;
+        }
+
         RefreshOutputDevices();
     }
 
@@ -41,6 +51,8 @@ public sealed class AudioViewModel : PageViewModel
     public ICommand SaveCommand { get; }
 
     public ICommand PreviewCommand { get; }
+
+    public ICommand SafetyDemonstrationCommand { get; }
 
     public ICommand RefreshOutputDevicesCommand { get; }
 
@@ -74,7 +86,34 @@ public sealed class AudioViewModel : PageViewModel
         private set => SetProperty(ref _outputDeviceStatus, value);
     }
 
-    public string NowPlaying => "No audio playing";
+    public string NowPlaying => IsSafetyDemonstrationInProgress
+        ? _cabinPanel?.SafetyVideoTitle ?? "Safety demonstration"
+        : "No audio playing";
+
+    public string NowPlayingDescription
+    {
+        get
+        {
+            if (IsSafetyDemonstrationInProgress)
+            {
+                return SafetyDemonstrationEnabled
+                    ? $"Local MP4 audio at {SafetyDemonstrationVolume}%"
+                    : "Local MP4 continues with audio muted";
+            }
+
+            return _cabinPanel?.HasLocalSafetyVideo == true
+                ? "British Airways safety demonstration ready"
+                : "Local BA safety demonstration is not installed";
+        }
+    }
+
+    public bool IsSafetyDemonstrationInProgress => _cabinPanel?.IsSafetyVideoInProgress == true;
+
+    public string SafetyDemonstrationActionGlyph => IsSafetyDemonstrationInProgress ? "\uE71A" : "\uE768";
+
+    public string SafetyDemonstrationActionLabel => IsSafetyDemonstrationInProgress
+        ? "Stop safety demonstration"
+        : "Start safety demonstration";
 
     public string SaveStatus
     {
@@ -177,8 +216,10 @@ public sealed class AudioViewModel : PageViewModel
         get => _settings.SafetyDemonstrationVolume;
         set
         {
-            _settings.SafetyDemonstrationVolume = value;
+            _settings.SafetyDemonstrationVolume = Math.Clamp(value, 0, 100);
             OnPropertyChanged();
+            OnPropertyChanged(nameof(NowPlayingDescription));
+            _cabinPanel?.RefreshSafetyVideoAudioOutput();
         }
     }
 
@@ -189,6 +230,8 @@ public sealed class AudioViewModel : PageViewModel
         {
             _settings.SafetyDemonstrationEnabled = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(NowPlayingDescription));
+            _cabinPanel?.RefreshSafetyVideoAudioOutput();
         }
     }
 
@@ -220,6 +263,50 @@ public sealed class AudioViewModel : PageViewModel
             _settings.AudioProfile = value;
             OnPropertyChanged();
         }
+    }
+
+    public void Dispose()
+    {
+        if (_cabinPanel is not null)
+        {
+            _cabinPanel.PropertyChanged -= HandleCabinPanelPropertyChanged;
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
+    private void ToggleSafetyDemonstration()
+    {
+        if (_cabinPanel is null)
+        {
+            ShowPreviewUnavailable();
+            return;
+        }
+
+        if (_cabinPanel.IsSafetyVideoInProgress)
+        {
+            _cabinPanel.StopSafetyVideoCommand.Execute(null);
+        }
+        else
+        {
+            _cabinPanel.StartSafetyVideoCommand.Execute(null);
+        }
+    }
+
+    private void HandleCabinPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is not (nameof(CabinControlPanelViewModel.IsSafetyVideoInProgress) or
+            nameof(CabinControlPanelViewModel.SafetyVideoPreviewStatus) or
+            nameof(CabinControlPanelViewModel.HasLocalSafetyVideo)))
+        {
+            return;
+        }
+
+        OnPropertyChanged(nameof(IsSafetyDemonstrationInProgress));
+        OnPropertyChanged(nameof(NowPlaying));
+        OnPropertyChanged(nameof(NowPlayingDescription));
+        OnPropertyChanged(nameof(SafetyDemonstrationActionGlyph));
+        OnPropertyChanged(nameof(SafetyDemonstrationActionLabel));
     }
 
     private async Task SaveAsync()

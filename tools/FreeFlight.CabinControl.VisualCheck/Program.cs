@@ -305,11 +305,70 @@ internal static class Program
                     throw new InvalidOperationException("The safety video test did not leave its in-progress state.");
                 }
             }
+            else if (page == "Audio")
+            {
+                viewModel.Audio.SafetyDemonstrationEnabled = true;
+                viewModel.Audio.SafetyDemonstrationVolume = 32;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (Math.Abs(viewModel.CabinPanel.SafetyVideoVolume - 0.32d) > 0.001d)
+                {
+                    throw new InvalidOperationException("The Audio safety-demonstration slider did not control MP4 volume.");
+                }
+
+                viewModel.Audio.SafetyDemonstrationCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                if (!viewModel.Audio.IsSafetyDemonstrationInProgress ||
+                    !viewModel.CabinPanel.IsSafetyVideoInProgress ||
+                    viewModel.Audio.NowPlaying != viewModel.CabinPanel.SafetyVideoTitle)
+                {
+                    throw new InvalidOperationException("The Audio page play action did not start the shared safety demonstration.");
+                }
+
+                var audioAnnouncementBanner = FindVisualChild<Border>(
+                    window,
+                    border => Equals(border.Tag, "AudioAnnouncementBanner"));
+                var audioAnnouncementLabel = audioAnnouncementBanner is null
+                    ? null
+                    : FindVisualChild<TextBlock>(
+                        audioAnnouncementBanner,
+                        textBlock => textBlock.Text == "Announcement in progress");
+                var safetyMediaElement = FindVisualChild<MediaElement>(
+                    window,
+                    mediaElement => Equals(mediaElement.Tag, "InlineSafetyVideoPlayer"));
+                if (audioAnnouncementBanner?.Visibility != Visibility.Visible ||
+                    audioAnnouncementBanner.Background is not SolidColorBrush bannerBrush ||
+                    bannerBrush.Color != Color.FromRgb(0xE7, 0xB8, 0x3D) ||
+                    audioAnnouncementBanner.ActualWidth < 1000d ||
+                    audioAnnouncementLabel is null ||
+                    safetyMediaElement is null ||
+                    Math.Abs(safetyMediaElement.Volume - 0.32d) > 0.001d)
+                {
+                    throw new InvalidOperationException("The Audio announcement banner or live MP4 volume binding is incorrect.");
+                }
+
+                viewModel.Audio.SafetyDemonstrationEnabled = false;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (Math.Abs(safetyMediaElement.Volume) > 0.001d ||
+                    !viewModel.Audio.NowPlayingDescription.Contains("muted", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Disabling Safety Demonstration did not mute the active MP4.");
+                }
+
+                viewModel.Audio.SafetyDemonstrationEnabled = true;
+                Render(window, Path.Combine(outputDirectory, "audio-safety-announcement-in-progress.png"));
+                viewModel.Audio.SafetyDemonstrationCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (viewModel.Audio.IsSafetyDemonstrationInProgress ||
+                    audioAnnouncementBanner.Visibility != Visibility.Collapsed)
+                {
+                    throw new InvalidOperationException("The Audio page stop action did not end the safety demonstration.");
+                }
+            }
         }
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 22 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 23 visual checks to {outputDirectory}");
         return 0;
     }
 

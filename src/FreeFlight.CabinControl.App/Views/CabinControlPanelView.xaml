@@ -437,7 +437,7 @@
                                 </StackPanel>
                                 <MediaElement x:Name="SafetyVideoMediaElement" Tag="InlineSafetyVideoPlayer"
                                               LoadedBehavior="Manual" UnloadedBehavior="Manual"
-                                              Stretch="Uniform" Volume="0.80" ScrubbingEnabled="True"
+                                              Stretch="Uniform" Volume="{Binding SafetyVideoVolume, Mode=OneWay}" ScrubbingEnabled="True"
                                               MediaEnded="HandleLocalSafetyVideoEnded"
                                               MediaFailed="HandleLocalSafetyVideoFailed"
                                               Visibility="{Binding IsSafetyVideoInProgress, Converter={StaticResource BooleanToVisibilityConverter}}" />

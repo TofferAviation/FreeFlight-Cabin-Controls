@@ -10,6 +10,8 @@ When that file exists, `dotnet build` and `dotnet publish` copy it into the appl
 
 The Cabin Area Control Panel detects the published file automatically and uses native offline playback inside the Safety Video card, replacing the `LOCAL MP4` placeholder while active. If it is absent, Start reports that the local MP4 is not installed; the application never opens or embeds YouTube.
 
+The Audio page controls this same persistent playback session. Its Now Playing and Safety Demonstration play buttons start or stop the local MP4; the Safety Demonstration slider changes the MP4 audio level immediately; and its switch mutes or restores audio without stopping the video. While active, the Audio page shows a full-width amber `Announcement in progress` banner.
+
 Use an H.264 video with AAC audio in an MP4 container for broad Windows playback support. The private source directory and video extensions are ignored by Git. Only release a media file when its redistribution permission has been documented.
 
 ## Boarding music programs

@@ -12,6 +12,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;
 - a fully coded Cabin Area Control Panel built on reference-locked 1040×812 instrument geometry and a 716×512 live LCD coordinate system, with a CSCP hierarchy and 15 live operational screens that preserve the supplied FF777 proportions without using the page renders at runtime;
 - a British Airways 2024 safety-video mode with a 70% black “Announcement in progress” overlay, local MP4 playback directly inside the Safety Video card, future-aircraft queue staging, and no browser or YouTube dependency;
+- live Audio-page safety-demonstration controls: both play buttons start/stop the shared MP4 session, the Safety Demonstration slider controls its real audio level, the switch mutes/unmutes it, and an amber page-wide banner marks an active announcement;
 - navigation-persistent safety-video playback, so switching application pages does not stop, restart, or lose the active preview position;
 - four stable British Airways Boarding Music programs on the coded 777 panel, with local playback/looping, live volume, clear missing-media states, and a credited CC BY 3.0 Flower Duet alternative in Program 4;
 - a Display Controls brightness bar whose numeric value, filled range, and pointer move together;
