@@ -1,0 +1,39 @@
+# Build output
+bin/
+obj/
+artifacts/
+build/
+.vs/
+.dotnet-cli/
+.nuget/
+TestResults/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Runtime data
+logs/
+diagnostics/
+settings.json
+*.tmp
+
+# Private or unlicensed airline content must never enter source control.
+content-packs/private/
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.ogg
+*.flac
+*.mp4
+*.mov
+*.mkv
+*.webm
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini

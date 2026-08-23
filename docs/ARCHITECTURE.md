@@ -1,0 +1,34 @@
+# Architecture baseline
+
+## Components
+
+### Cabin Core application
+
+The Windows application owns configuration, cabin state, passenger simulation, content-pack selection, scheduling, diagnostics, and the operator interface.
+
+### X-Plane bridge plugin
+
+The future native C++ plugin will own X-Plane SDK access, simulator dataref sampling, X-Plane audio-bus playback, and simulator-side screen rendering. It must remain lightweight and must not block X-Plane's main thread.
+
+### Aircraft adapter
+
+Each supported aircraft receives a declarative adapter containing verified datarefs, commands, capabilities, and cabin-layout mappings. FlightFactor-specific behavior must not leak into the generic core.
+
+### Airline content pack
+
+Airline presentation and media are data. A pack may declare branding, languages, aircraft compatibility, trigger metadata, and relative asset paths. A pack cannot contain executable extensions or load arbitrary code.
+
+## Communication boundary
+
+The first Windows implementation will use local named pipes. The protocol will be versioned independently and will exchange immutable telemetry snapshots and explicit commands. Disconnects must fail safe on both sides.
+
+## Delivery order
+
+1. Visually approved application shell.
+2. Settings and content-pack foundation.
+3. Native bridge handshake and live telemetry.
+4. Flight-phase state machine.
+5. X-Plane audio playback and announcement scheduler.
+6. Cabin zones and passenger simulation.
+7. Single-screen in-aircraft rendering feasibility test.
+8. Scaled IFE and custom-cabin work after performance and licensing review.

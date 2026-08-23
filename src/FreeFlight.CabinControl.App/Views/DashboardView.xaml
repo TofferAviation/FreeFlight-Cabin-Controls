@@ -1,0 +1,238 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="820"
+             d:DesignWidth="1200">
+    <UserControl.Resources>
+        <Style x:Key="MiniSeatStyle" TargetType="Border">
+            <Setter Property="Width" Value="9" />
+            <Setter Property="Height" Value="13" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="BorderBrush" Value="#D8E1EE" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#253247" />
+            <Setter Property="Margin" Value="2" />
+        </Style>
+        <Style x:Key="ControlRowLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextStyle}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="290" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="280" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}"
+                               Foreground="{StaticResource WarningBrush}"
+                               FontSize="14"
+                               FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="18,16">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="54" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="32" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Text="BRIDGE PREVIEW MODE" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                        </StackPanel>
+                        <TextBlock Text="X-Plane 12 and FlightFactor telemetry are not connected"
+                                   Margin="23,6,0,0"
+                                   Style="{StaticResource MutedTextStyle}" />
+                    </StackPanel>
+
+                    <Viewbox Grid.Row="1" Stretch="Uniform" Margin="8,0">
+                        <Canvas Width="1080" Height="150">
+                            <Path Stroke="#EDF4FC" StrokeThickness="2.2" Fill="#140B1B2C"
+                                  Data="M 18,76 C 48,30 105,19 166,17 L 963,17 C 1016,22 1050,42 1062,75 C 1050,108 1016,128 963,133 L 166,133 C 105,131 48,120 18,76 Z" />
+
+                            <Line X1="170" Y1="20" X2="170" Y2="130" Stroke="#2B8CFF" StrokeThickness="2" />
+                            <Line X1="320" Y1="18" X2="320" Y2="132" Stroke="#B55DDE" StrokeThickness="2" />
+                            <Line X1="680" Y1="18" X2="680" Y2="132" Stroke="#00BFD9" StrokeThickness="2" />
+                            <Line X1="935" Y1="20" X2="935" Y2="130" Stroke="#00BFD9" StrokeThickness="2" />
+
+                            <StackPanel Canvas.Left="190" Canvas.Top="31" Orientation="Horizontal">
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                            </StackPanel>
+                            <StackPanel Canvas.Left="190" Canvas.Top="91" Orientation="Horizontal">
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                                <Border Style="{StaticResource MiniSeatStyle}" Width="18" Height="25" />
+                            </StackPanel>
+
+                            <UniformGrid Canvas.Left="345" Canvas.Top="28" Width="310" Height="96" Rows="3" Columns="12">
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                            </UniformGrid>
+
+                            <UniformGrid Canvas.Left="700" Canvas.Top="27" Width="216" Height="98" Rows="4" Columns="14">
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                                <Border Style="{StaticResource MiniSeatStyle}" /><Border Style="{StaticResource MiniSeatStyle}" />
+                            </UniformGrid>
+
+                            <Rectangle Canvas.Left="151" Canvas.Top="48" Width="13" Height="35" Fill="#168BDA" RadiusX="2" RadiusY="2" />
+                            <Rectangle Canvas.Left="663" Canvas.Top="48" Width="13" Height="35" Fill="#168BDA" RadiusX="2" RadiusY="2" />
+                            <Rectangle Canvas.Left="922" Canvas.Top="48" Width="13" Height="35" Fill="#168BDA" RadiusX="2" RadiusY="2" />
+                        </Canvas>
+                    </Viewbox>
+
+                    <Grid Grid.Row="2" Margin="70,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="360" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Flight Deck" Foreground="#238AFF" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="First" Foreground="#D27AF2" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="Business" Foreground="#35A0FF" HorizontalAlignment="Center" />
+                        <TextBlock Grid.Column="3" Text="Economy" Foreground="#00D2E8" HorizontalAlignment="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.18*" />
+                    <ColumnDefinition Width="1.02*" />
+                    <ColumnDefinition Width="1.08*" />
+                    <ColumnDefinition Width="1.06*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="42" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Quick Controls" Style="{StaticResource SectionTitleStyle}" />
+                        <StackPanel Grid.Row="1">
+                            <Grid Height="48"><TextBlock Text="Cabin Immersion" Style="{StaticResource ControlRowLabelStyle}" /><ToggleButton HorizontalAlignment="Right" Style="{StaticResource PillToggleStyle}" IsChecked="{Binding CabinImmersionEnabled}" /></Grid>
+                            <Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="48"><TextBlock Text="Automatic Announcements" Style="{StaticResource ControlRowLabelStyle}" /><ToggleButton HorizontalAlignment="Right" Style="{StaticResource PillToggleStyle}" IsChecked="{Binding AutomaticAnnouncementsEnabled}" /></Grid>
+                            <Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="48"><TextBlock Text="Passenger Ambience" Style="{StaticResource ControlRowLabelStyle}" /><ToggleButton HorizontalAlignment="Right" Style="{StaticResource PillToggleStyle}" IsChecked="{Binding PassengerAmbienceEnabled}" /></Grid>
+                            <Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="48"><TextBlock Text="Crew Events" Style="{StaticResource ControlRowLabelStyle}" /><ToggleButton HorizontalAlignment="Right" Style="{StaticResource PillToggleStyle}" IsChecked="{Binding CrewEventsEnabled}" /></Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <TextBlock Text="Current Flight Phase" Style="{StaticResource SectionTitleStyle}" />
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="70" Height="70" CornerRadius="35" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0D1C31">
+                                <TextBlock Text="&#xE709;" FontFamily="Segoe Fluent Icons" FontSize="36" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <TextBlock Text="{Binding FlightPhase}" FontSize="26" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                            <TextBlock Text="{Binding Altitude}" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <TextBlock Text="Audio Activity" Style="{StaticResource SectionTitleStyle}" />
+                        <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding NowPlaying}" Foreground="#42A8FF" FontSize="15" />
+                            <TextBlock Text="IDLE" Style="{StaticResource MutedTextStyle}" Margin="0,6,0,18" />
+                            <Viewbox Height="76" Stretch="Fill">
+                                <Path Stroke="{StaticResource CyanBrush}" StrokeThickness="2"
+                                      Data="M0,38 L8,38 L12,20 L17,55 L23,31 L30,44 L37,17 L43,61 L50,27 L57,49 L64,12 L71,64 L78,32 L85,45 L92,21 L99,57 L106,37 L116,37" />
+                            </Viewbox>
+                            <TextBlock Text="Audio activates through the X-Plane bridge" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,14,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="3" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <TextBlock Text="System Status" Style="{StaticResource SectionTitleStyle}" />
+                        <StackPanel Grid.Row="1">
+                            <Grid Height="45"><TextBlock Text="Cabin Core" VerticalAlignment="Center" /><TextBlock Text="RUNNING" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                            <Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="X-Plane bridge" VerticalAlignment="Center" /><TextBlock Text="OFFLINE" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                            <Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Active sounds" VerticalAlignment="Center" /><TextBlock Text="0" Foreground="#42A8FF" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                            <Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Airline pack" VerticalAlignment="Center" /><TextBlock Text="GENERIC" Foreground="#42A8FF" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

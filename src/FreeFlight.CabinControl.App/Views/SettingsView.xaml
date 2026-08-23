@@ -1,0 +1,171 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="820"
+             d:DesignWidth="1200">
+    <UserControl.Resources>
+        <Style x:Key="SettingsNavStyle" TargetType="RadioButton">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Margin" Value="0,3" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="NavBorder" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <TextBlock Text="{TemplateBinding Tag}" FontFamily="Segoe Fluent Icons" FontSize="18" VerticalAlignment="Center" />
+                                <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="NavBorder" Property="Background" Value="#14233B" /></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="NavBorder" Property="Background" Value="{StaticResource PrimaryGradientBrush}" /><Setter TargetName="NavBorder" Property="BorderBrush" Value="#398EFF" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="18" /><RowDefinition Height="*" /><RowDefinition Height="70" /></Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" />
+                <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
+                <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="198" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Padding="10">
+                <StackPanel>
+                    <RadioButton Content="General" Tag="&#xE713;" Style="{StaticResource SettingsNavStyle}" IsChecked="True" GroupName="SettingsNavigation" Command="{Binding SelectSectionCommand}" CommandParameter="General" />
+                    <RadioButton Content="Aircraft" Tag="&#xE709;" Style="{StaticResource SettingsNavStyle}" GroupName="SettingsNavigation" Command="{Binding SelectSectionCommand}" CommandParameter="Aircraft" />
+                    <RadioButton Content="Airline Packs" Tag="&#xE719;" Style="{StaticResource SettingsNavStyle}" GroupName="SettingsNavigation" Command="{Binding SelectSectionCommand}" CommandParameter="Airline Packs" />
+                    <RadioButton Content="Interface" Tag="&#xE7F4;" Style="{StaticResource SettingsNavStyle}" GroupName="SettingsNavigation" Command="{Binding SelectSectionCommand}" CommandParameter="Interface" />
+                    <RadioButton Content="Updates" Tag="&#xE895;" Style="{StaticResource SettingsNavStyle}" GroupName="SettingsNavigation" Command="{Binding SelectSectionCommand}" CommandParameter="Updates" />
+                    <RadioButton Content="Advanced" Tag="&#xE9F9;" Style="{StaticResource SettingsNavStyle}" GroupName="SettingsNavigation" Command="{Binding SelectSectionCommand}" CommandParameter="Advanced" />
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Column="2">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=General}">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="210" /><RowDefinition Height="16" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="1.3*" /></Grid.ColumnDefinitions>
+
+                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardStyle}">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition /></Grid.RowDefinitions>
+                                <TextBlock Text="User Profile" Style="{StaticResource SectionTitleStyle}" />
+                                <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                    <Border Width="68" Height="68" CornerRadius="34" Background="#162238" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"><TextBlock Text="&#xE77B;" FontFamily="Segoe Fluent Icons" FontSize="35" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Display name" Style="{StaticResource MutedTextStyle}" /><TextBox Text="{Binding UserDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,6,0,0" /></StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CardStyle}">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition /></Grid.RowDefinitions>
+                                <TextBlock Text="Application" Style="{StaticResource SectionTitleStyle}" />
+                                <StackPanel Grid.Row="1">
+                                    <Grid Height="34"><TextBlock Text="Launch with Windows" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding LaunchWithWindows}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Height="34"><TextBlock Text="Start minimized" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding StartMinimized}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Height="34"><TextBlock Text="Minimize to tray" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding MinimizeToTray}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Height="34"><TextBlock Text="Start Cabin Immersion automatically" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding StartCabinImmersionAutomatically}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardStyle}">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /><RowDefinition Height="44" /></Grid.RowDefinitions>
+                                <TextBlock Text="Installation Status" Style="{StaticResource SectionTitleStyle}" />
+                                <StackPanel Grid.Row="1">
+                                    <Grid Height="42"><TextBlock Text="Cabin Core" /><TextBlock Text="READY" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Height="42"><TextBlock Text="X-Plane bridge" /><TextBlock Text="NOT INSTALLED" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Height="42"><TextBlock Text="Aircraft adapter" /><TextBlock Text="NOT CONFIGURED" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Height="42"><TextBlock Text="Version" /><TextBlock Text="{Binding Version}" Foreground="#4CACFF" HorizontalAlignment="Right" /></Grid>
+                                </StackPanel>
+                                <TextBlock Grid.Row="2" Text="Bridge installation begins after the UI baseline is approved." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource CardStyle}">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition /></Grid.RowDefinitions>
+                                <TextBlock Text="Interface" Style="{StaticResource SectionTitleStyle}" />
+                                <StackPanel Grid.Row="1">
+                                    <TextBlock Text="Theme" Style="{StaticResource MutedTextStyle}" Margin="0,8,0,6" /><ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" />
+                                    <TextBlock Text="UI Scale" Style="{StaticResource MutedTextStyle}" Margin="0,18,0,6" /><ComboBox ItemsSource="{Binding UiScales}" SelectedItem="{Binding UiScalePercent}" />
+                                    <TextBlock Text="Scaling is stored now and will be applied after restart in the packaging milestone." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,18,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Aircraft}">
+                    <Grid.RowDefinitions><RowDefinition Height="220" /><RowDefinition Height="16" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardStyle}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="44" /><RowDefinition /></Grid.RowDefinitions>
+                            <TextBlock Text="Aircraft Integration" Style="{StaticResource SectionTitleStyle}" />
+                            <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="Development target" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="FlightFactor 777 v2" FontSize="22" Foreground="#4CACFF" Margin="0,8,0,22" /><TextBlock Text="Adapter status" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="Awaiting aircraft files and verified datarefs" Foreground="{StaticResource WarningBrush}" Margin="0,8,0,0" /></StackPanel>
+                                <StackPanel Grid.Column="1"><TextBlock Text="Planned capabilities" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="• Telemetry and flight-phase detection&#x0a;• Cabin signs, doors, and aircraft events&#x0a;• X-Plane interior audio routing&#x0a;• Custom avionics screen feasibility" TextWrapping="Wrap" LineHeight="28" Margin="0,8,0,0" /></StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}"><TextBlock Text="No aircraft files are modified by this application-shell baseline." Style="{StaticResource MutedTextStyle}" VerticalAlignment="Top" /></Border>
+                </Grid>
+
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Airline Packs}">
+                    <Grid.RowDefinitions><RowDefinition Height="220" /><RowDefinition Height="16" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Border Style="{StaticResource CardStyle}">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="44" /><RowDefinition /></Grid.RowDefinitions>
+                            <TextBlock Text="Active Airline Pack" Style="{StaticResource SectionTitleStyle}" />
+                            <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="78" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <Border Width="64" Height="64" CornerRadius="10" Background="{StaticResource PrimaryGradientBrush}"><TextBlock Text="FF" FontSize="23" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding ActiveAirlinePackName}" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="{Binding ActiveAirlinePackId}" Style="{StaticResource MutedTextStyle}" Margin="0,5,0,0" /><TextBlock Text="Validated metadata • No third-party media" Foreground="{StaticResource SuccessBrush}" Margin="0,8,0,0" /></StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}">
+                        <StackPanel><TextBlock Text="Virtual Airline Support" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Airline packs will customize branding, layouts, announcements, safety media, languages, and trigger rules without changing the application or X-Plane plugin." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,14,0,0" /><TextBlock Text="The public repository accepts only content with documented redistribution rights. Private development packs remain outside Git." Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Margin="0,18,0,0" /></StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Interface}">
+                    <Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Interface" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Theme" Style="{StaticResource MutedTextStyle}" Margin="0,24,0,6" /><ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}" Width="320" HorizontalAlignment="Left" /><TextBlock Text="UI Scale" Style="{StaticResource MutedTextStyle}" Margin="0,22,0,6" /><ComboBox ItemsSource="{Binding UiScales}" SelectedItem="{Binding UiScalePercent}" Width="320" HorizontalAlignment="Left" /><TextBlock Text="The approved dark-blue visual system is the only supported theme in v0.1.0." Style="{StaticResource MutedTextStyle}" Margin="0,24,0,0" /></StackPanel></Border>
+                </Grid>
+
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Updates}">
+                    <Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Updates" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Current version" Style="{StaticResource MutedTextStyle}" Margin="0,24,0,6" /><TextBlock Text="{Binding Version}" Foreground="#4CACFF" FontSize="22" /><TextBlock Text="Repository" Style="{StaticResource MutedTextStyle}" Margin="0,24,0,6" /><TextBlock Text="github.com/TofferAviation/FreeFlight-Cabin-Controls" Foreground="#4CACFF" /><TextBlock Text="Automatic network updates are intentionally disabled until hosting, signing, privacy, and rollback behavior are approved." Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Margin="0,26,0,0" /></StackPanel></Border>
+                </Grid>
+
+                <Grid Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Advanced}">
+                    <Border Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="Advanced" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Development baseline" FontSize="18" Margin="0,24,0,5" /><TextBlock Text="The application is running independently of X-Plane. No simulator datarefs, commands, audio devices, or aircraft files are accessed in this milestone." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" /><TextBlock Text="Diagnostics and bridge protocol controls will appear here after the native plugin handshake exists." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,22,0,0" /></StackPanel></Border>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Grid Grid.Row="3">
+            <TextBlock Text="{Binding SaveStatus}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="Restore Defaults" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding RestoreDefaultsCommand}" Margin="0,0,12,0" />
+                <Button Content="Save Changes" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}" MinWidth="150" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

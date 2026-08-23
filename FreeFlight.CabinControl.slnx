@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FreeFlight.CabinControl.App/FreeFlight.CabinControl.App.csproj" />
+    <Project Path="src/FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FreeFlight.CabinControl.Core.Tests/FreeFlight.CabinControl.Core.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/FreeFlight.CabinControl.VisualCheck/FreeFlight.CabinControl.VisualCheck.csproj" />
+  </Folder>
+</Solution>

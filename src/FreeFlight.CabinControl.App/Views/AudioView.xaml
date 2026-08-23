@@ -1,0 +1,158 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.AudioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="820"
+             d:DesignWidth="1200">
+    <UserControl.Resources>
+        <Style x:Key="AudioCardLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource SectionTitleStyle}">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="205" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="265" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="112" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.02*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <TextBlock Text="Master Audio" Style="{StaticResource SectionTitleStyle}" />
+                        <Grid Grid.Row="1">
+                            <TextBlock Text="Output Routing" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding OutputRoute}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" />
+                        </Grid>
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="86" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE767;" FontFamily="Segoe Fluent Icons" FontSize="23" VerticalAlignment="Center" />
+                            <Slider Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding MasterVolume}" Margin="12,0" />
+                            <TextBlock Grid.Column="2" Text="{Binding MasterVolume, StringFormat={}{0}%}" Foreground="#49A9FF" FontSize="17" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                            <Grid Grid.Column="3" Margin="10,2,0,2">
+                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <ProgressBar Grid.Column="0" Value="0" Maximum="100" Width="10" Height="62" Orientation="Vertical" Foreground="{StaticResource SuccessBrush}" Background="#202C3C" />
+                                <ProgressBar Grid.Column="1" Value="0" Maximum="100" Width="10" Height="62" Orientation="Vertical" Foreground="{StaticResource SuccessBrush}" Background="#202C3C" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="*" /><RowDefinition Height="30" /></Grid.RowDefinitions>
+                        <TextBlock Text="Now Playing" Style="{StaticResource SectionTitleStyle}" />
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="56" /></Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding NowPlaying}" Foreground="#42A8FF" FontSize="16" />
+                                <Viewbox Height="62" Stretch="Fill" Margin="0,8,22,0">
+                                    <Path Stroke="{StaticResource PrimaryBrush}" StrokeThickness="2" Data="M0,35 L5,35 L9,20 L13,52 L18,29 L23,42 L28,15 L34,56 L40,25 L46,46 L52,12 L58,58 L64,29 L70,43 L76,20 L82,51 L88,35 L96,35 L102,27 L109,44 L116,35" />
+                                </Viewbox>
+                            </StackPanel>
+                            <Button Grid.Column="1" Style="{StaticResource CircleButtonStyle}" Content="&#xE768;" Command="{Binding PreviewCommand}" ToolTip="Preview selected sound" />
+                        </Grid>
+                        <TextBlock Grid.Row="2" Text="No licensed or user-owned media installed" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="4">
+                <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,8" Padding="18,14">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
+                        <Grid><TextBlock Text="Passenger Ambience" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding PassengerAmbienceEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
+                            <Slider Maximum="100" Value="{Binding PassengerAmbienceVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding PassengerAmbienceVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,8,8" Padding="18,14">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
+                        <Grid><TextBlock Text="Crew Announcements" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding AutomaticAnnouncementsEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
+                            <Slider Maximum="100" Value="{Binding CrewAnnouncementsVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding CrewAnnouncementsVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,0,0,8" Padding="18,14">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
+                        <Grid><TextBlock Text="Cabin Sounds" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding CabinSoundsEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
+                            <Slider Maximum="100" Value="{Binding CabinSoundsVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding CabinSoundsVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,8,8,0" Padding="18,14">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
+                        <Grid><TextBlock Text="Boarding Music" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding BoardingMusicEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
+                            <Slider Maximum="100" Value="{Binding BoardingMusicVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding BoardingMusicVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,8,8,0" Padding="18,14">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
+                        <Grid><TextBlock Text="Safety Demonstration" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding SafetyDemonstrationEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
+                            <Slider Maximum="100" Value="{Binding SafetyDemonstrationVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding SafetyDemonstrationVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,8,0,0" Padding="18,14">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
+                        <Grid><TextBlock Text="Aircraft Events" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding AircraftEventsEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
+                            <Slider Maximum="100" Value="{Binding AircraftEventsVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding AircraftEventsVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.02*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="18,13">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="30" /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Text="Audio Profile" Style="{StaticResource SectionTitleStyle}" FontSize="16" />
+                        <ComboBox Grid.Row="1" ItemsSource="{Binding AudioProfiles}" SelectedItem="{Binding AudioProfile}" />
+                    </Grid>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0" Padding="18,13">
+                    <Grid>
+                        <TextBlock Text="{Binding SaveStatus}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
+                        <Button Content="Save Audio Profile" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}" HorizontalAlignment="Right" MinWidth="190" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

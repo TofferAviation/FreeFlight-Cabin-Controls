@@ -1,0 +1,170 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.PerformanceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="820"
+             d:DesignWidth="1200">
+    <UserControl.Resources>
+        <Style x:Key="MetricValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="28" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="18" />
+                <RowDefinition Height="125" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="275" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="240" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,7,0" Padding="16">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE950;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Cabin Core CPU" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding CpuUsage}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Live process measurement" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="7,0" Padding="16">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xEDA2;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Core Memory" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding MemoryUsage}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Live process measurement" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="7,0" Padding="16">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE767;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Audio Latency" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding AudioLatency}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Bridge required" Foreground="{StaticResource WarningBrush}" FontSize="12" /></StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="3" Style="{StaticResource CardStyle}" Margin="7,0,0,0" Padding="16">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE716;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Active Sounds" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding ActiveSounds}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="No audio engine connected" Foreground="{StaticResource WarningBrush}" FontSize="12" /></StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.78*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition Height="*" /><RowDefinition Height="26" /></Grid.RowDefinitions>
+                        <Grid><TextBlock Text="Resource Usage" Style="{StaticResource SectionTitleStyle}" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Rectangle Width="22" Height="3" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Center" /><TextBlock Text="CPU (%)" Margin="8,0,20,0" /><Rectangle Width="22" Height="3" Fill="{StaticResource CyanBrush}" VerticalAlignment="Center" /><TextBlock Text="Memory (MB)" Margin="8,0,0,0" /></StackPanel></Grid>
+                        <Grid Grid.Row="1" Margin="10,4,4,0">
+                            <Rectangle Fill="#060E1C" Stroke="{StaticResource BorderSoftBrush}" />
+                            <Grid Opacity="0.45">
+                                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <Border Grid.Row="1" Grid.ColumnSpan="6" BorderBrush="#314155" BorderThickness="0,1,0,0" /><Border Grid.Row="2" Grid.ColumnSpan="6" BorderBrush="#314155" BorderThickness="0,1,0,0" /><Border Grid.Row="3" Grid.ColumnSpan="6" BorderBrush="#314155" BorderThickness="0,1,0,0" />
+                                <Border Grid.Column="1" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="2" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="3" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="4" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="5" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" />
+                            </Grid>
+                            <Viewbox Stretch="Fill" Margin="0,12">
+                                <Canvas Width="700" Height="150">
+                                    <Polyline Stroke="{StaticResource CyanBrush}" StrokeThickness="3" Points="0,56 35,52 70,58 105,55 140,57 175,49 210,53 245,59 280,51 315,54 350,57 385,50 420,60 455,55 490,62 525,58 560,55 595,60 630,48 665,52 700,45" />
+                                    <Polyline Stroke="{StaticResource PrimaryBrush}" StrokeThickness="3" Points="0,112 35,105 70,116 105,103 140,110 175,98 210,109 245,103 280,114 315,106 350,111 385,96 420,108 455,101 490,116 525,105 560,109 595,99 630,112 665,104 700,107" />
+                                </Canvas>
+                            </Viewbox>
+                        </Grid>
+                        <TextBlock Grid.Row="2" Text="Live history graph begins with bridge telemetry milestone" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="36" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <TextBlock Text="Audio Engine" Style="{StaticResource SectionTitleStyle}" />
+                        <StackPanel Grid.Row="1">
+                            <Grid Height="45"><TextBlock Text="Buffer Health" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource WarningBrush}" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Sample Rate" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Underruns" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Queue Depth" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Status" VerticalAlignment="Center" /><TextBlock Text="OFFLINE" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource WarningBrush}" FontWeight="SemiBold" /></Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*" /><ColumnDefinition Width="0.95*" /><ColumnDefinition Width="1.75*" /></Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Text="Event Processing" Style="{StaticResource SectionTitleStyle}" />
+                        <StackPanel Grid.Row="1">
+                            <Grid Height="39"><TextBlock Text="Application shell" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
+                            <Grid Height="39"><TextBlock Text="Settings persistence" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
+                            <Grid Height="39"><TextBlock Text="Pack validation" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
+                            <Grid Height="39"><TextBlock Text="Plugin frame time" /><TextBlock Text="{Binding BridgeFrameTime}" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Right" /></Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition /></Grid.RowDefinitions>
+                        <TextBlock Text="Performance Mode" Style="{StaticResource SectionTitleStyle}" />
+                        <StackPanel Grid.Row="1">
+                            <RadioButton Content="Quality" IsChecked="{Binding IsQualityMode}" GroupName="PerformanceMode" Margin="0,7" />
+                            <TextBlock Text="Highest fidelity" Style="{StaticResource MutedTextStyle}" Margin="22,-4,0,5" />
+                            <RadioButton Content="Balanced" IsChecked="{Binding IsBalancedMode}" GroupName="PerformanceMode" Margin="0,7" />
+                            <TextBlock Text="Recommended default" Style="{StaticResource MutedTextStyle}" Margin="22,-4,0,5" />
+                            <RadioButton Content="Low Impact" IsChecked="{Binding IsLowImpactMode}" GroupName="PerformanceMode" Margin="0,7" />
+                            <TextBlock Text="Reduced background work" Style="{StaticResource MutedTextStyle}" Margin="22,-4,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition Height="*" /><RowDefinition Height="48" /></Grid.RowDefinitions>
+                        <TextBlock Text="Diagnostic Log (Latest)" Style="{StaticResource SectionTitleStyle}" />
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding DiagnosticEntries}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Height="31">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="●" FontSize="11" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                    <Style.Triggers><DataTrigger Binding="{Binding IsReady}" Value="False"><Setter Property="Foreground" Value="{StaticResource WarningBrush}" /></DataTrigger></Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Grid.Column="1" Text="{Binding Message}" FontSize="13" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                            <Button Content="Export Diagnostics" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="False" ToolTip="Enabled after diagnostic export is implemented" Margin="0,0,10,0" />
+                            <Button Content="Open Log Folder" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="False" ToolTip="Enabled when file logging is active" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

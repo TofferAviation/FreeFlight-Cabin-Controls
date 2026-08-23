@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "freeflight.generic",
+  "version": "1.0.0",
+  "displayName": "FreeFlight Generic",
+  "author": "FreeFlight Cabin Control",
+  "licence": "Project-owned metadata; no third-party media included.",
+  "aircraftAdapters": [
+    "generic.preview"
+  ],
+  "branding": {
+    "primaryColor": "#1476FF",
+    "accentColor": "#00BDF2"
+  },
+  "assets": []
+}
