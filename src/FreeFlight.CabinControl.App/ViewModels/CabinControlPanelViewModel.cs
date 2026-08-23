@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
@@ -34,32 +33,28 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private bool _displayPowerOn = true;
     private int _boardingMusicLevel;
     private int _selectedBoardingProgram = 1;
-    private string _safetyVideoPreviewStatus = "YouTube preview — aircraft playback awaits the X-Plane bridge";
+    private string _safetyVideoPreviewStatus = "Local BA safety-video.mp4 is not installed";
     private bool _isSafetyVideoInProgress;
     private bool _hasLocalSafetyVideo;
     private bool _isUsingLocalSafetyVideo;
     private Uri? _safetyVideoLocalSource;
-    private Uri _safetyVideoEmbedSource = new("about:blank", UriKind.Absolute);
 
     public CabinControlPanelViewModel(
         AppSettings settings,
         ISettingsStore settingsStore,
-        SharedStatusViewModel status)
+        SharedStatusViewModel status,
+        string? safetyVideoLocalFilePath = null)
         : base("Cabin Area Control Panel", "FlightFactor 777 v2 cabin systems and media control")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _boardingMusicLevel = Math.Clamp((int)Math.Round(settings.BoardingMusicVolume / 10d), 1, 10);
-        SafetyVideoLocalFilePath = Path.Combine(
-            AppContext.BaseDirectory,
-            "content-packs",
-            "british-airways",
-            "media",
-            "safety-video.mp4");
+        SafetyVideoLocalFilePath = safetyVideoLocalFilePath ?? Path.Combine(
+            AppContext.BaseDirectory, "content-packs", "british-airways", "media", "safety-video.mp4");
         _hasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
         _safetyVideoPreviewStatus = _hasLocalSafetyVideo
             ? "Built-in British Airways safety video ready"
-            : "Local BA media not installed — online test fallback available";
+            : "Local BA safety-video.mp4 is not installed";
         Status = status;
 
         SelectPanelCommand = new RelayCommand(SelectPanel);
@@ -69,7 +64,6 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         QueueCommand = new RelayCommand(QueueEvent);
         StartSafetyVideoCommand = new RelayCommand(_ => StartSafetyVideo());
         StopSafetyVideoCommand = new RelayCommand(_ => StopSafetyVideo());
-        OpenSafetyVideoCommand = new RelayCommand(_ => OpenSafetyVideoPreview());
         ClearQueueCommand = new RelayCommand(_ => ClearQueue());
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
     }
@@ -90,17 +84,11 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     public ICommand StopSafetyVideoCommand { get; }
 
-    public ICommand OpenSafetyVideoCommand { get; }
-
     public ICommand ClearQueueCommand { get; }
 
     public ICommand SaveCommand { get; }
 
     public ObservableCollection<string> ActivityQueue { get; } = [];
-
-    public string SafetyVideoUrl => "https://www.youtube.com/watch?v=ssVe0FaBhUU";
-
-    public string SafetyVideoThumbnailUrl => "https://i.ytimg.com/vi/ssVe0FaBhUU/hqdefault.jpg";
 
     public string SafetyVideoTitle => "British Airways Safety Video 2024";
 
@@ -128,12 +116,6 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     {
         get => _isSafetyVideoInProgress;
         private set => SetProperty(ref _isSafetyVideoInProgress, value);
-    }
-
-    public Uri SafetyVideoEmbedSource
-    {
-        get => _safetyVideoEmbedSource;
-        private set => SetProperty(ref _safetyVideoEmbedSource, value);
     }
 
     public string SafetyVideoPreviewStatus
@@ -584,29 +566,22 @@ public sealed class CabinControlPanelViewModel : PageViewModel
             return;
         }
 
-        QueueEvent("Safety demonstration video");
         HasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
-        if (HasLocalSafetyVideo)
+        if (!HasLocalSafetyVideo)
         {
-            SafetyVideoEmbedSource = new Uri("about:blank", UriKind.Absolute);
-            SafetyVideoLocalSource = new Uri(SafetyVideoLocalFilePath, UriKind.Absolute);
-            IsUsingLocalSafetyVideo = true;
-            SafetyVideoPreviewStatus = "Announcement in progress — built-in British Airways media";
-        }
-        else
-        {
-            SafetyVideoLocalSource = null;
-            IsUsingLocalSafetyVideo = false;
-            SafetyVideoEmbedSource = new Uri(
-                "https://www.youtube-nocookie.com/embed/ssVe0FaBhUU?autoplay=1&mute=1&controls=1&rel=0&playsinline=1",
-                UriKind.Absolute);
-            SafetyVideoPreviewStatus = "Announcement in progress — online test fallback";
+            SafetyVideoPreviewStatus = "Local BA safety-video.mp4 is not installed";
+            LastAction = "Safety video could not start because the local MP4 is missing";
+            return;
         }
 
+        QueueEvent("Safety demonstration video");
+        SafetyVideoLocalSource = new Uri(SafetyVideoLocalFilePath, UriKind.Absolute);
+        IsUsingLocalSafetyVideo = true;
         IsSafetyVideoInProgress = true;
+        SafetyVideoPreviewStatus = "Announcement in progress — local British Airways MP4";
         LastAction = Status.IsConnected
             ? "Safety video started and queued for the aircraft bridge"
-            : "Safety video test started; aircraft playback remains staged locally";
+            : "Local safety video preview started; aircraft playback remains staged locally";
     }
 
     private void StopSafetyVideo()
@@ -619,28 +594,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         IsSafetyVideoInProgress = false;
         IsUsingLocalSafetyVideo = false;
         SafetyVideoLocalSource = null;
-        SafetyVideoEmbedSource = new Uri("about:blank", UriKind.Absolute);
         SafetyVideoPreviewStatus = HasLocalSafetyVideo
             ? "Built-in British Airways safety video ready"
-            : "Local BA media not installed — online test fallback available";
+            : "Local BA safety-video.mp4 is not installed";
         LastAction = "Stopped safety video test playback";
-    }
-
-    private void OpenSafetyVideoPreview()
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo(SafetyVideoUrl)
-            {
-                UseShellExecute = true
-            });
-            SafetyVideoPreviewStatus = "Preview opened in your default browser";
-            LastAction = "Opened British Airways safety video preview";
-        }
-        catch (Exception exception)
-        {
-            SafetyVideoPreviewStatus = $"Could not open preview: {exception.Message}";
-        }
     }
 
     private void MarkChanged() => SaveStatus = "Unsaved changes";

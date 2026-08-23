@@ -28,7 +28,6 @@ All notable changes are recorded here. Filenames remain stable between releases.
 ### Fixed
 
 - Display-brightness telemetry is now one-way UI data, preventing the CACP Display Controls page from attempting to write to a read-only property.
-- The embedded safety player no longer binds WebView `Source` during view creation or teardown; code now assigns only validated non-null URIs, preventing “The Source property cannot be set to null” during application startup.
 - The Display Controls pointer now tracks every brightness change across the progress bar.
 - Diagnostic logging now falls back safely when the normal log file is locked or inaccessible, preventing the error handler itself from causing native Windows exception `0xe0434352`.
 - Settings storage now selects the first writable location across Local AppData, Roaming AppData, and the temporary directory, avoiding startup dialogs when a profile folder has unusable permissions.
@@ -39,3 +38,4 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Replaced responsive approximations with fixed reference coordinates so the bezel, LCD, keys, rules, readouts, and navigation preserve the original proportions when uniformly scaled.
 - Added the unique operational pages from the readable B777 reference archive as code-only screens; the supplied PNG pages remain design references and are not runtime assets.
 - Replaced the light safety-video treatment with a 70% black panel overlay and centered white “Announcement in progress” text.
+- Removed the YouTube/WebView player and external-browser action; safety video playback is now strictly local MP4 in the lower-right preview.

@@ -38,10 +38,26 @@ internal static class Program
         }
 
         var settingsPath = Path.Combine(outputDirectory, "visual-check-settings.json");
+        var localSafetyVideoPath = Path.Combine(outputDirectory, "safety-video.mp4");
+        File.WriteAllBytes(localSafetyVideoPath, []);
+
+        var missingMediaViewModel = new CabinControlPanelViewModel(
+            new AppSettings(),
+            new JsonSettingsStore(Path.Combine(outputDirectory, "missing-media-settings.json")),
+            new SharedStatusViewModel(),
+            Path.Combine(outputDirectory, "missing-safety-video.mp4"));
+        missingMediaViewModel.StartSafetyVideoCommand.Execute(null);
+        if (missingMediaViewModel.IsSafetyVideoInProgress || missingMediaViewModel.QueueDepth != 0 ||
+            !missingMediaViewModel.SafetyVideoPreviewStatus.Contains("not installed", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Missing local safety media did not remain safely stopped.");
+        }
+
         var viewModel = new MainWindowViewModel(
             new AppSettings(),
             new JsonSettingsStore(settingsPath),
-            Path.Combine(outputDirectory, "logs"));
+            Path.Combine(outputDirectory, "logs"),
+            localSafetyVideoPath);
         var window = new CabinControlWindow
         {
             DataContext = viewModel,
@@ -173,17 +189,11 @@ internal static class Program
                     throw new InvalidOperationException("The safety video test did not enter its in-progress state.");
                 }
 
-                if (viewModel.CabinPanel.HasLocalSafetyVideo)
+                if (!viewModel.CabinPanel.HasLocalSafetyVideo ||
+                    !viewModel.CabinPanel.IsUsingLocalSafetyVideo ||
+                    viewModel.CabinPanel.SafetyVideoLocalSource is null)
                 {
-                    if (!viewModel.CabinPanel.IsUsingLocalSafetyVideo || viewModel.CabinPanel.SafetyVideoLocalSource is null)
-                    {
-                        throw new InvalidOperationException("The installed local BA safety video was not selected for playback.");
-                    }
-                }
-                else if (viewModel.CabinPanel.IsUsingLocalSafetyVideo ||
-                         !viewModel.CabinPanel.SafetyVideoEmbedSource.AbsoluteUri.Contains("youtube-nocookie.com", StringComparison.Ordinal))
-                {
-                    throw new InvalidOperationException("The online safety-video fallback was not selected.");
+                    throw new InvalidOperationException("The installed local BA safety video was not selected for playback.");
                 }
 
                 var announcementOverlay = FindVisualChild<Border>(
@@ -198,6 +208,14 @@ internal static class Program
                     labelBrush.Color != Colors.White)
                 {
                     throw new InvalidOperationException("The dark Announcement in progress overlay does not match the approved treatment.");
+                }
+
+                var externalVideoButton = FindVisualChild<Button>(
+                    window,
+                    button => Equals(button.Content, "Open externally"));
+                if (externalVideoButton is not null)
+                {
+                    throw new InvalidOperationException("The removed online-video action is still present in the Cabin Panel UI.");
                 }
 
                 Render(window, Path.Combine(outputDirectory, "cabinpanel-safety-video-in-progress.png"));

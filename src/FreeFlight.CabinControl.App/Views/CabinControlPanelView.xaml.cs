@@ -1,7 +1,5 @@
-using System.IO;
 using System.ComponentModel;
 using FreeFlight.CabinControl.App.ViewModels;
-using Microsoft.Web.WebView2.Wpf;
 
 namespace FreeFlight.CabinControl.App.Views;
 
@@ -12,14 +10,6 @@ public partial class CabinControlPanelView
     public CabinControlPanelView()
     {
         InitializeComponent();
-        SafetyVideoWebView.CreationProperties = new CoreWebView2CreationProperties
-        {
-            UserDataFolder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "FreeFlight",
-                "CabinControl",
-                "WebView2")
-        };
         Loaded += HandleLoaded;
         Unloaded += HandleUnloaded;
         DataContextChanged += HandleDataContextChanged;
@@ -34,7 +24,6 @@ public partial class CabinControlPanelView
     {
         SafetyVideoMediaElement.Stop();
         SafetyVideoMediaElement.Source = null;
-        SafetyVideoWebView.Source = new Uri("about:blank", UriKind.Absolute);
         AttachToViewModel(null);
     }
 
@@ -65,30 +54,15 @@ public partial class CabinControlPanelView
         }
 
         _attachedViewModel.PropertyChanged += HandleViewModelPropertyChanged;
-        NavigateToSafetyVideoSource();
         UpdateLocalSafetyVideoPlayback();
     }
 
     private void HandleViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(CabinControlPanelViewModel.SafetyVideoEmbedSource))
-        {
-            NavigateToSafetyVideoSource();
-        }
-
         if (e.PropertyName is nameof(CabinControlPanelViewModel.SafetyVideoLocalSource) or
             nameof(CabinControlPanelViewModel.IsUsingLocalSafetyVideo))
         {
             UpdateLocalSafetyVideoPlayback();
-        }
-    }
-
-    private void NavigateToSafetyVideoSource()
-    {
-        var source = _attachedViewModel?.SafetyVideoEmbedSource;
-        if (source is not null)
-        {
-            SafetyVideoWebView.Source = source;
         }
     }
 
