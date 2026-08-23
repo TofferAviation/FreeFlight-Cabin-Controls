@@ -25,14 +25,18 @@ The coded 777 Boarding Music screen contains four stable British Airways program
 | 3 | Tchaikovsky — *Serenade for Strings in C Major, Op. 48: II. Waltz* | `BA_Boarding_Program_03_Tchaikovsky.mp3` |
 | 4 | Delibes — *The Flower Duet from Lakmé* | `BA_Boarding_Program_04_Flower_Duet.mp3` |
 
-Place authorised private recordings for Programs 1–3 under:
-
-`content-packs/private/british-airways/audio/boarding/`
-
-Build and publish copy installed recordings to:
+Redistribution-safe alternatives are bundled for all four programs under:
 
 `content-packs/british-airways/audio/boarding/`
 
-Program 4 currently uses a redistribution-safe 2022 Philip Milman alternative under CC BY 3.0. Its required credit and licence links are stored beside the recording in `content-packs/british-airways/audio/boarding/ATTRIBUTION.md`. It is not the commercial All Angels recording from the reference playlist.
+Each recording's performer, source, licence, and modifications are documented in the adjacent `ATTRIBUTION.md`. These are editions of the requested compositions, not the protected commercial masters shown in the reference playlist.
+
+An authorised private replacement can use the same stable filename under:
+
+`content-packs/private/british-airways/audio/boarding/`
+
+When present, the private file takes priority during build and publish. Installed recordings are copied to:
+
+`content-packs/british-airways/audio/boarding/`
 
 The panel reports any missing recording instead of attempting a web stream. `MUSIC ON` starts the selected local file, `MUSIC OFF` stops it, volume changes are live, and a completed track loops until stopped.

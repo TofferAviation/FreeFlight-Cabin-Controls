@@ -14,7 +14,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - a British Airways 2024 safety-video mode with a 70% black “Announcement in progress” overlay, local MP4 playback directly inside the Safety Video card, future-aircraft queue staging, and no browser or YouTube dependency;
 - live Audio-page safety-demonstration controls: both play buttons start/stop the shared MP4 session, the Safety Demonstration slider controls its real audio level, the switch mutes/unmutes it, and an amber page-wide banner marks an active announcement;
 - navigation-persistent safety-video playback, so switching application pages does not stop, restart, or lose the active preview position;
-- four stable British Airways Boarding Music programs on the coded 777 panel, with local playback/looping, live volume, clear missing-media states, and a credited CC BY 3.0 Flower Duet alternative in Program 4;
+- four installed British Airways Boarding Music programs on the coded 777 panel, with local playback/looping, live volume, and credited CC0/Creative Commons editions of each requested composition;
 - a Display Controls brightness bar whose numeric value, filled range, and pointer move together;
 - a safe vAMSYS authorization entry point, pending an approved Pilot API client registration;
 - enumeration and persistent selection of active Windows playback endpoints;
@@ -23,7 +23,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - a safe, versioned airline-content-pack model;
 - real process CPU and memory sampling for the desktop application;
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
-- no bundled photographic CACP page renders or third-party airline audio/video media; the limited identifying wordmarks are documented under `Assets/AirlineLogos/SOURCES.md`.
+- no bundled photographic CACP page renders or airline safety video; the boarding alternatives and limited identifying wordmarks are distributed only under their separately documented licences.
 
 The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Aircraft-derived values such as door state remain explicitly `UNKNOWN` until live telemetry exists.
 
@@ -44,7 +44,7 @@ dotnet run --project src/FreeFlight.CabinControl.App
 
 Source filenames remain stable. Releases are identified by Git tags and `CHANGELOG.md`, not renamed project files.
 
-Airline recordings, safety videos, music, logos, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores.
+Airline recordings, safety videos, music, logos, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores. Bundled boarding recordings retain the separate licences and attribution listed in `content-packs/british-airways/audio/boarding/ATTRIBUTION.md`.
 
 No open-source licence has been selected yet. The repository owner retains all rights until a licence is added.
 

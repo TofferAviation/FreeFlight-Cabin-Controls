@@ -735,19 +735,19 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     {
         2 => new(
             "BRAHMS — SYMPHONY NO. 3, III. POCO ALLEGRETTO",
-            "BA reference title — licensed recording required",
+            "Musopen Symphony Orchestra — CC0 1.0",
             "BA_Boarding_Program_02_Brahms.mp3"),
         3 => new(
             "TCHAIKOVSKY — SERENADE FOR STRINGS, OP. 48: II. WALTZ",
-            "BA reference title — licensed recording required",
+            "Omega13a / MuseSounds rendition — CC BY 4.0",
             "BA_Boarding_Program_03_Tchaikovsky.mp3"),
         4 => new(
             "DELIBES — THE FLOWER DUET FROM LAKMÉ",
             "Philip Milman recording — CC BY 3.0",
             "BA_Boarding_Program_04_Flower_Duet.mp3"),
         _ => new(
-            "DVOŘÁK — SERENADE FOR STRINGS IN E MAJOR, OP. 22",
-            "BA reference title — licensed recording required",
+            "DVOŘÁK — SERENADE FOR STRINGS, OP. 22: I. MODERATO",
+            "Virtual Philharmonic Orchestra / Reinhold Behringer — CC BY-SA 4.0",
             "BA_Boarding_Program_01_Dvorak.mp3")
     };
 

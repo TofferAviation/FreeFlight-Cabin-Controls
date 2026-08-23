@@ -18,6 +18,7 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - BA-first native offline video playback with the private `BA_Safety_Video.mp4` input automatically copied into development and published builds when present.
 - Four stable British Airways Boarding Music program slots with native local playback, looping, live volume, and missing-recording feedback.
 - A credited CC BY 3.0 Philip Milman Flower Duet alternative for Boarding Music Program 4.
+- Credited redistribution-safe Dvořák, Brahms, and Tchaikovsky editions for Boarding Music Programs 1–3, so all four programs work in a clean installation.
 - Audio-page controls for starting/stopping the shared safety MP4, changing its live audio volume, muting/unmuting it, and showing a page-wide amber “Announcement in progress” banner.
 - Safety-video, passenger-address, display, boarding-music, lighting, temperature, chime, door, and service controls in preview mode.
 - ICAO-based airline-logo resolution with BAW and NOZ starter assets and an offline letter fallback.

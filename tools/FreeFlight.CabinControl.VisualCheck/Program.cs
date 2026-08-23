@@ -53,11 +53,27 @@ internal static class Program
         var boardingMusicDirectory = args.Length > 2
             ? Path.GetFullPath(args[2])
             : Path.Combine(AppContext.BaseDirectory, "content-packs", "british-airways", "audio", "boarding");
-        var flowerDuetPath = Path.Combine(boardingMusicDirectory, "BA_Boarding_Program_04_Flower_Duet.mp3");
-        if (File.Exists(flowerDuetPath))
+        var boardingMusicPaths = new[]
         {
-            VerifyLocalAudioCanOpen(flowerDuetPath);
+            Path.Combine(boardingMusicDirectory, "BA_Boarding_Program_01_Dvorak.mp3"),
+            Path.Combine(boardingMusicDirectory, "BA_Boarding_Program_02_Brahms.mp3"),
+            Path.Combine(boardingMusicDirectory, "BA_Boarding_Program_03_Tchaikovsky.mp3"),
+            Path.Combine(boardingMusicDirectory, "BA_Boarding_Program_04_Flower_Duet.mp3")
+        };
+        foreach (var boardingMusicPath in boardingMusicPaths)
+        {
+            if (File.Exists(boardingMusicPath))
+            {
+                VerifyLocalAudioCanOpen(boardingMusicPath);
+            }
+            else if (args.Length > 2)
+            {
+                throw new FileNotFoundException("Expected boarding-music program was not installed.", boardingMusicPath);
+            }
         }
+
+        var tchaikovskyPath = boardingMusicPaths[2];
+        var flowerDuetPath = boardingMusicPaths[3];
 
         var missingMediaViewModel = new CabinControlPanelViewModel(
             new AppSettings(),
@@ -192,9 +208,15 @@ internal static class Program
                 if (viewModel.CabinPanel.PaVolumeLevel != 6 ||
                     viewModel.CabinPanel.DisplayBrightness != 60 ||
                     viewModel.CabinPanel.SelectedBoardingProgram != 3 ||
-                    viewModel.CabinPanel.HasSelectedBoardingMusic)
+                    viewModel.CabinPanel.HasSelectedBoardingMusic != File.Exists(tchaikovskyPath))
                 {
                     throw new InvalidOperationException("Cabin panel controls did not update their local preview state.");
+                }
+
+                if (File.Exists(tchaikovskyPath) &&
+                    !viewModel.CabinPanel.SelectedBoardingProgramCredit.Contains("CC BY 4.0", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The licensed Tchaikovsky boarding program was not resolved.");
                 }
 
                 viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:Program4");
