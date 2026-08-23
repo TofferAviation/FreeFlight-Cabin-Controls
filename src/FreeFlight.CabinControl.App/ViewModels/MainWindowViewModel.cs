@@ -14,12 +14,18 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         AppSettings settings,
         ISettingsStore settingsStore,
         string logDirectory,
-        string? safetyVideoLocalFilePath = null)
+        string? safetyVideoLocalFilePath = null,
+        string? boardingMusicDirectory = null)
     {
         Status = new SharedStatusViewModel();
         Dashboard = new DashboardViewModel(settings, Status);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
-        CabinPanel = new CabinControlPanelViewModel(settings, settingsStore, Status, safetyVideoLocalFilePath);
+        CabinPanel = new CabinControlPanelViewModel(
+            settings,
+            settingsStore,
+            Status,
+            safetyVideoLocalFilePath,
+            boardingMusicDirectory);
         Audio = new AudioViewModel(settings, settingsStore, Status);
         Performance = new PerformanceViewModel(settings, Status, logDirectory);
         Settings = new SettingsViewModel(settings, settingsStore, Status);

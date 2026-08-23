@@ -16,6 +16,8 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Fully coded CACP rendering derived from the ten supplied FF777 references, with reference-locked instrument and LCD geometry, live WPF controls, a clean bezel-only presentation, and darker pressed-key feedback.
 - British Airways 2024 safety-video test preview with embedded corner playback, stop and external-browser controls, and future-aircraft staging using the configured source.
 - BA-first native offline video playback with the private `BA_Safety_Video.mp4` input automatically copied into development and published builds when present.
+- Four stable British Airways Boarding Music program slots with native local playback, looping, live volume, and missing-recording feedback.
+- A credited CC BY 3.0 Philip Milman Flower Duet alternative for Boarding Music Program 4.
 - Safety-video, passenger-address, display, boarding-music, lighting, temperature, chime, door, and service controls in preview mode.
 - ICAO-based airline-logo resolution with BAW and NOZ starter assets and an offline letter fallback.
 - Metallic CABIN CONTROL sidebar treatment matched to the FreeFlight brand mark.
@@ -40,3 +42,4 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Replaced the light safety-video treatment with a 70% black panel overlay and centered white “Announcement in progress” text.
 - Removed the YouTube/WebView player and external-browser action; safety video playback is now strictly local MP4 inside the application.
 - Moved active video playback into the Safety Video card so it replaces the `LOCAL MP4` placeholder instead of opening a floating lower-right preview.
+- Kept application page views alive during navigation so active safety video and cabin audio continue uninterrupted in the background.

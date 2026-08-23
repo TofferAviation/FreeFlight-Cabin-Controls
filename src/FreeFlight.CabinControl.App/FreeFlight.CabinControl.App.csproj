@@ -24,4 +24,39 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\audio\boarding\BA_Boarding_Program_01_Dvorak.mp3')">
+    <Content Include="..\..\content-packs\private\british-airways\audio\boarding\BA_Boarding_Program_01_Dvorak.mp3">
+      <Link>content-packs\british-airways\audio\boarding\BA_Boarding_Program_01_Dvorak.mp3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\audio\boarding\BA_Boarding_Program_02_Brahms.mp3')">
+    <Content Include="..\..\content-packs\private\british-airways\audio\boarding\BA_Boarding_Program_02_Brahms.mp3">
+      <Link>content-packs\british-airways\audio\boarding\BA_Boarding_Program_02_Brahms.mp3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\audio\boarding\BA_Boarding_Program_03_Tchaikovsky.mp3')">
+    <Content Include="..\..\content-packs\private\british-airways\audio\boarding\BA_Boarding_Program_03_Tchaikovsky.mp3">
+      <Link>content-packs\british-airways\audio\boarding\BA_Boarding_Program_03_Tchaikovsky.mp3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\british-airways\audio\boarding\BA_Boarding_Program_04_Flower_Duet.mp3')">
+    <Content Include="..\..\content-packs\british-airways\audio\boarding\BA_Boarding_Program_04_Flower_Duet.mp3">
+      <Link>content-packs\british-airways\audio\boarding\BA_Boarding_Program_04_Flower_Duet.mp3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\british-airways\audio\boarding\ATTRIBUTION.md')">
+    <Content Include="..\..\content-packs\british-airways\audio\boarding\ATTRIBUTION.md">
+      <Link>content-packs\british-airways\audio\boarding\ATTRIBUTION.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

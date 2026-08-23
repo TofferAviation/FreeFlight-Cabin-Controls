@@ -33,6 +33,9 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private bool _displayPowerOn = true;
     private int _boardingMusicLevel;
     private int _selectedBoardingProgram = 1;
+    private bool _isBoardingMusicPlaying;
+    private Uri? _boardingMusicLocalSource;
+    private string _boardingMusicPreviewStatus = "Program 1 recording is not installed";
     private string _safetyVideoPreviewStatus = "Local BA_Safety_Video.mp4 is not installed";
     private bool _isSafetyVideoInProgress;
     private bool _hasLocalSafetyVideo;
@@ -43,18 +46,23 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         AppSettings settings,
         ISettingsStore settingsStore,
         SharedStatusViewModel status,
-        string? safetyVideoLocalFilePath = null)
+        string? safetyVideoLocalFilePath = null,
+        string? boardingMusicDirectory = null)
         : base("Cabin Area Control Panel", "FlightFactor 777 v2 cabin systems and media control")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _boardingMusicLevel = Math.Clamp((int)Math.Round(settings.BoardingMusicVolume / 10d), 1, 10);
+        BoardingMusicDirectory = boardingMusicDirectory ?? Path.Combine(
+            AppContext.BaseDirectory, "content-packs", "british-airways", "audio", "boarding");
         SafetyVideoLocalFilePath = safetyVideoLocalFilePath ?? Path.Combine(
             AppContext.BaseDirectory, "content-packs", "british-airways", "media", "BA_Safety_Video.mp4");
         _hasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
         _safetyVideoPreviewStatus = _hasLocalSafetyVideo
             ? "Built-in British Airways safety video ready"
             : "Local BA_Safety_Video.mp4 is not installed";
+        SelectFirstInstalledBoardingProgram();
+        RefreshSelectedBoardingProgram();
         Status = status;
 
         SelectPanelCommand = new RelayCommand(SelectPanel);
@@ -91,6 +99,42 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     public ObservableCollection<string> ActivityQueue { get; } = [];
 
     public string SafetyVideoTitle => "British Airways Safety Video 2024";
+
+    public string BoardingMusicDirectory { get; }
+
+    public string SelectedBoardingProgramTitle => GetBoardingProgram(SelectedBoardingProgram).Title;
+
+    public string SelectedBoardingProgramCredit => GetBoardingProgram(SelectedBoardingProgram).Credit;
+
+    public string SelectedBoardingProgramFilePath => Path.Combine(
+        BoardingMusicDirectory,
+        GetBoardingProgram(SelectedBoardingProgram).FileName);
+
+    public Uri? BoardingMusicLocalSource
+    {
+        get => _boardingMusicLocalSource;
+        private set => SetProperty(ref _boardingMusicLocalSource, value);
+    }
+
+    public bool HasSelectedBoardingMusic => BoardingMusicLocalSource is not null;
+
+    public bool IsBoardingMusicPlaying
+    {
+        get => _isBoardingMusicPlaying;
+        private set
+        {
+            if (SetProperty(ref _isBoardingMusicPlaying, value))
+            {
+                OnPropertyChanged(nameof(BoardingMusicStatus));
+            }
+        }
+    }
+
+    public string BoardingMusicPreviewStatus
+    {
+        get => _boardingMusicPreviewStatus;
+        private set => SetProperty(ref _boardingMusicPreviewStatus, value);
+    }
 
     public string SafetyVideoLocalFilePath { get; }
 
@@ -346,7 +390,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         }
     }
 
-    public string BoardingMusicStatus => BoardingMusicEnabled ? "ON" : "OFF";
+    public string BoardingMusicStatus => IsBoardingMusicPlaying ? "PLAYING" : "STOPPED";
 
     public int BoardingMusicLevel
     {
@@ -366,7 +410,18 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     public int SelectedBoardingProgram
     {
         get => _selectedBoardingProgram;
-        private set => SetProperty(ref _selectedBoardingProgram, value);
+        private set
+        {
+            if (!SetProperty(ref _selectedBoardingProgram, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(SelectedBoardingProgramTitle));
+            OnPropertyChanged(nameof(SelectedBoardingProgramCredit));
+            OnPropertyChanged(nameof(SelectedBoardingProgramFilePath));
+            RefreshSelectedBoardingProgram();
+        }
     }
 
     private void SelectPanel(object? parameter)
@@ -486,12 +541,26 @@ public sealed class CabinControlPanelViewModel : PageViewModel
                 LastAction = "Screen clean mode staged";
                 break;
             case "Music:On":
+                RefreshSelectedBoardingProgram();
+                if (!HasSelectedBoardingMusic)
+                {
+                    IsBoardingMusicPlaying = false;
+                    LastAction = $"Boarding music program {SelectedBoardingProgram} is not installed";
+                    break;
+                }
+
                 BoardingMusicEnabled = true;
-                LastAction = "Boarding music enabled";
+                IsBoardingMusicPlaying = true;
+                BoardingMusicPreviewStatus = $"Playing Program {SelectedBoardingProgram}";
+                LastAction = $"Boarding music program {SelectedBoardingProgram} started";
                 break;
             case "Music:Off":
+                IsBoardingMusicPlaying = false;
                 BoardingMusicEnabled = false;
-                LastAction = "Boarding music disabled";
+                BoardingMusicPreviewStatus = HasSelectedBoardingMusic
+                    ? $"Program {SelectedBoardingProgram} ready"
+                    : $"Program {SelectedBoardingProgram} recording is not installed";
+                LastAction = "Boarding music stopped";
                 break;
             case "Music:VolumeUp":
                 BoardingMusicLevel = Math.Clamp(BoardingMusicLevel + 1, 1, 10);
@@ -503,8 +572,17 @@ public sealed class CabinControlPanelViewModel : PageViewModel
                 break;
             case "Music:Program1":
             case "Music:Program2":
-                SelectedBoardingProgram = action.EndsWith('1') ? 1 : 2;
-                LastAction = $"Boarding music program {SelectedBoardingProgram} selected";
+            case "Music:Program3":
+            case "Music:Program4":
+                SelectedBoardingProgram = action[^1] - '0';
+                if (!HasSelectedBoardingMusic)
+                {
+                    IsBoardingMusicPlaying = false;
+                }
+
+                LastAction = HasSelectedBoardingMusic
+                    ? $"Boarding music program {SelectedBoardingProgram} selected and ready"
+                    : $"Boarding music program {SelectedBoardingProgram} selected; recording not installed";
                 break;
             default:
                 QueueEvent(action);
@@ -610,6 +688,64 @@ public sealed class CabinControlPanelViewModel : PageViewModel
             ? "Local safety video playback failed"
             : $"Local safety video playback failed: {details}";
     }
+
+    internal void ReportBoardingMusicPlaybackFailure(string? details)
+    {
+        IsBoardingMusicPlaying = false;
+        BoardingMusicPreviewStatus = $"Program {SelectedBoardingProgram} could not be played";
+        LastAction = string.IsNullOrWhiteSpace(details)
+            ? "Local boarding music playback failed"
+            : $"Local boarding music playback failed: {details}";
+    }
+
+    private void RefreshSelectedBoardingProgram()
+    {
+        var sourcePath = SelectedBoardingProgramFilePath;
+        BoardingMusicLocalSource = File.Exists(sourcePath)
+            ? new Uri(sourcePath, UriKind.Absolute)
+            : null;
+        OnPropertyChanged(nameof(HasSelectedBoardingMusic));
+        BoardingMusicPreviewStatus = HasSelectedBoardingMusic
+            ? $"Program {SelectedBoardingProgram} ready"
+            : $"Program {SelectedBoardingProgram} recording is not installed";
+    }
+
+    private void SelectFirstInstalledBoardingProgram()
+    {
+        for (var program = 1; program <= 4; program++)
+        {
+            var candidate = Path.Combine(BoardingMusicDirectory, GetBoardingProgram(program).FileName);
+            if (!File.Exists(candidate))
+            {
+                continue;
+            }
+
+            _selectedBoardingProgram = program;
+            return;
+        }
+    }
+
+    private static BoardingMusicProgram GetBoardingProgram(int program) => program switch
+    {
+        2 => new(
+            "BRAHMS — SYMPHONY NO. 3, III. POCO ALLEGRETTO",
+            "BA reference title — licensed recording required",
+            "BA_Boarding_Program_02_Brahms.mp3"),
+        3 => new(
+            "TCHAIKOVSKY — SERENADE FOR STRINGS, OP. 48: II. WALTZ",
+            "BA reference title — licensed recording required",
+            "BA_Boarding_Program_03_Tchaikovsky.mp3"),
+        4 => new(
+            "DELIBES — THE FLOWER DUET FROM LAKMÉ",
+            "Philip Milman recording — CC BY 3.0",
+            "BA_Boarding_Program_04_Flower_Duet.mp3"),
+        _ => new(
+            "DVOŘÁK — SERENADE FOR STRINGS IN E MAJOR, OP. 22",
+            "BA reference title — licensed recording required",
+            "BA_Boarding_Program_01_Dvorak.mp3")
+    };
+
+    private sealed record BoardingMusicProgram(string Title, string Credit, string FileName);
 
     private void MarkChanged() => SaveStatus = "Unsaved changes";
 

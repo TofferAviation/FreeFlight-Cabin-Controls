@@ -50,11 +50,21 @@ internal static class Program
             File.WriteAllBytes(localSafetyVideoPath, []);
         }
 
+        var boardingMusicDirectory = args.Length > 2
+            ? Path.GetFullPath(args[2])
+            : Path.Combine(AppContext.BaseDirectory, "content-packs", "british-airways", "audio", "boarding");
+        var flowerDuetPath = Path.Combine(boardingMusicDirectory, "BA_Boarding_Program_04_Flower_Duet.mp3");
+        if (File.Exists(flowerDuetPath))
+        {
+            VerifyLocalAudioCanOpen(flowerDuetPath);
+        }
+
         var missingMediaViewModel = new CabinControlPanelViewModel(
             new AppSettings(),
             new JsonSettingsStore(Path.Combine(outputDirectory, "missing-media-settings.json")),
             new SharedStatusViewModel(),
-            Path.Combine(outputDirectory, "missing-BA_Safety_Video.mp4"));
+            Path.Combine(outputDirectory, "missing-BA_Safety_Video.mp4"),
+            Path.Combine(outputDirectory, "missing-boarding-music"));
         missingMediaViewModel.StartSafetyVideoCommand.Execute(null);
         if (missingMediaViewModel.IsSafetyVideoInProgress || missingMediaViewModel.QueueDepth != 0 ||
             !missingMediaViewModel.SafetyVideoPreviewStatus.Contains("not installed", StringComparison.Ordinal))
@@ -66,7 +76,8 @@ internal static class Program
             new AppSettings(),
             new JsonSettingsStore(settingsPath),
             Path.Combine(outputDirectory, "logs"),
-            localSafetyVideoPath);
+            localSafetyVideoPath,
+            boardingMusicDirectory);
         var window = new CabinControlWindow
         {
             DataContext = viewModel,
@@ -177,12 +188,33 @@ internal static class Program
                 }
 
                 viewModel.CabinPanel.ExecuteActionCommand.Execute("PA:VolumeUp");
-                viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:Program2");
+                viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:Program3");
                 if (viewModel.CabinPanel.PaVolumeLevel != 6 ||
                     viewModel.CabinPanel.DisplayBrightness != 60 ||
-                    viewModel.CabinPanel.SelectedBoardingProgram != 2)
+                    viewModel.CabinPanel.SelectedBoardingProgram != 3 ||
+                    viewModel.CabinPanel.HasSelectedBoardingMusic)
                 {
                     throw new InvalidOperationException("Cabin panel controls did not update their local preview state.");
+                }
+
+                viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:Program4");
+                if (File.Exists(flowerDuetPath))
+                {
+                    if (viewModel.CabinPanel.SelectedBoardingProgram != 4 ||
+                        !viewModel.CabinPanel.HasSelectedBoardingMusic ||
+                        !viewModel.CabinPanel.SelectedBoardingProgramCredit.Contains("CC BY 3.0", StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException("The licensed Flower Duet boarding program was not resolved.");
+                    }
+
+                    viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:On");
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    if (!viewModel.CabinPanel.IsBoardingMusicPlaying)
+                    {
+                        throw new InvalidOperationException("Boarding Music Program 4 did not enter its playing state.");
+                    }
+
+                    viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:Off");
                 }
 
                 viewModel.CabinPanel.MainMenuCommand.Execute(null);
@@ -244,6 +276,26 @@ internal static class Program
                     floatingPreviewLabel is not null || stopSafetyVideoButton?.Visibility != Visibility.Visible)
                 {
                     throw new InvalidOperationException("Safety video playback did not replace the LOCAL MP4 card preview in place.");
+                }
+
+                if (args.Length > 1)
+                {
+                    var sourceBeforeNavigation = inlineVideoPlayer.Source;
+                    viewModel.NavigateCommand.Execute("Audio");
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    if (!viewModel.CabinPanel.IsSafetyVideoInProgress ||
+                        !inlineVideoPlayer.IsLoaded ||
+                        inlineVideoPlayer.Source != sourceBeforeNavigation)
+                    {
+                        throw new InvalidOperationException("Safety-video playback was interrupted by application navigation.");
+                    }
+
+                    viewModel.NavigateCommand.Execute("CabinPanel");
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    if (!viewModel.CabinPanel.IsSafetyVideoInProgress || inlineVideoPlayer.Source != sourceBeforeNavigation)
+                    {
+                        throw new InvalidOperationException("Safety-video playback was not preserved when returning to Cabin Panel.");
+                    }
                 }
 
                 Render(window, Path.Combine(outputDirectory, "cabinpanel-safety-video-in-progress.png"));
@@ -329,6 +381,51 @@ internal static class Program
         }
 
         Console.WriteLine($"Validated local MP4 playback: {path}");
+    }
+
+    private static void VerifyLocalAudioCanOpen(string path)
+    {
+        var opened = false;
+        string? failure = null;
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        var timeout = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(10)
+        };
+        var player = new MediaPlayer { Volume = 0 };
+        player.MediaOpened += (_, _) =>
+        {
+            opened = player.NaturalDuration.HasTimeSpan && player.NaturalDuration.TimeSpan > TimeSpan.Zero;
+            if (!opened)
+            {
+                failure = "Windows opened the file but did not detect an audio duration.";
+            }
+
+            frame.Continue = false;
+        };
+        player.MediaFailed += (_, eventArgs) =>
+        {
+            failure = eventArgs.ErrorException?.Message ?? "Windows media playback rejected the file.";
+            frame.Continue = false;
+        };
+        timeout.Tick += (_, _) =>
+        {
+            failure = "Timed out while Windows opened the local boarding-music file.";
+            frame.Continue = false;
+        };
+
+        player.Open(new Uri(path, UriKind.Absolute));
+        timeout.Start();
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+        timeout.Stop();
+        player.Close();
+
+        if (!opened)
+        {
+            throw new InvalidOperationException($"Local boarding-music validation failed: {failure}");
+        }
+
+        Console.WriteLine($"Validated local boarding-music playback: {path}");
     }
 
     private static T? FindVisualChild<T>(DependencyObject parent, Predicate<T> predicate)

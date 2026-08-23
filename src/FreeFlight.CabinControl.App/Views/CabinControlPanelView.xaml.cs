@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Windows.Media;
 using FreeFlight.CabinControl.App.ViewModels;
 
 namespace FreeFlight.CabinControl.App.Views;
@@ -6,6 +7,8 @@ namespace FreeFlight.CabinControl.App.Views;
 public partial class CabinControlPanelView
 {
     private CabinControlPanelViewModel? _attachedViewModel;
+    private readonly MediaPlayer _boardingMusicPlayer = new();
+    private Uri? _boardingMusicSource;
 
     public CabinControlPanelView()
     {
@@ -13,6 +16,8 @@ public partial class CabinControlPanelView
         Loaded += HandleLoaded;
         Unloaded += HandleUnloaded;
         DataContextChanged += HandleDataContextChanged;
+        _boardingMusicPlayer.MediaEnded += HandleBoardingMusicEnded;
+        _boardingMusicPlayer.MediaFailed += HandleBoardingMusicFailed;
     }
 
     private void HandleLoaded(object sender, System.Windows.RoutedEventArgs e)
@@ -24,6 +29,8 @@ public partial class CabinControlPanelView
     {
         SafetyVideoMediaElement.Stop();
         SafetyVideoMediaElement.Source = null;
+        _boardingMusicPlayer.Close();
+        _boardingMusicSource = null;
         AttachToViewModel(null);
     }
 
@@ -55,6 +62,7 @@ public partial class CabinControlPanelView
 
         _attachedViewModel.PropertyChanged += HandleViewModelPropertyChanged;
         UpdateLocalSafetyVideoPlayback();
+        UpdateBoardingMusicPlayback();
     }
 
     private void HandleViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -64,6 +72,50 @@ public partial class CabinControlPanelView
         {
             UpdateLocalSafetyVideoPlayback();
         }
+
+        if (e.PropertyName is nameof(CabinControlPanelViewModel.BoardingMusicLocalSource) or
+            nameof(CabinControlPanelViewModel.IsBoardingMusicPlaying) or
+            nameof(CabinControlPanelViewModel.BoardingMusicLevel))
+        {
+            UpdateBoardingMusicPlayback();
+        }
+    }
+
+    private void UpdateBoardingMusicPlayback()
+    {
+        var viewModel = _attachedViewModel;
+        _boardingMusicPlayer.Volume = Math.Clamp((viewModel?.BoardingMusicLevel ?? 0) / 10d, 0d, 1d);
+        if (viewModel?.IsBoardingMusicPlaying == true && viewModel.BoardingMusicLocalSource is not null)
+        {
+            if (_boardingMusicSource != viewModel.BoardingMusicLocalSource)
+            {
+                _boardingMusicSource = viewModel.BoardingMusicLocalSource;
+                _boardingMusicPlayer.Open(_boardingMusicSource);
+            }
+
+            _boardingMusicPlayer.Play();
+            return;
+        }
+
+        _boardingMusicPlayer.Stop();
+    }
+
+    private void HandleBoardingMusicEnded(object? sender, EventArgs e)
+    {
+        if (_attachedViewModel?.IsBoardingMusicPlaying != true)
+        {
+            return;
+        }
+
+        _boardingMusicPlayer.Position = TimeSpan.Zero;
+        _boardingMusicPlayer.Play();
+    }
+
+    private void HandleBoardingMusicFailed(object? sender, ExceptionEventArgs e)
+    {
+        _boardingMusicPlayer.Close();
+        _boardingMusicSource = null;
+        _attachedViewModel?.ReportBoardingMusicPlaybackFailure(e.ErrorException?.Message);
     }
 
     private void UpdateLocalSafetyVideoPlayback()

@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        xmlns:viewModels="clr-namespace:FreeFlight.CabinControl.App.ViewModels"
         xmlns:views="clr-namespace:FreeFlight.CabinControl.App.Views"
         mc:Ignorable="d"
         Title="FreeFlight Cabin Control"
@@ -23,27 +22,6 @@
                             GlassFrameThickness="0"
                             UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
-
-    <Window.Resources>
-        <DataTemplate DataType="{x:Type viewModels:DashboardViewModel}">
-            <views:DashboardView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type viewModels:AirlinersViewModel}">
-            <views:AirlinersView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type viewModels:CabinControlPanelViewModel}">
-            <views:CabinControlPanelView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type viewModels:AudioViewModel}">
-            <views:AudioView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type viewModels:PerformanceViewModel}">
-            <views:PerformanceView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type viewModels:SettingsViewModel}">
-            <views:SettingsView />
-        </DataTemplate>
-    </Window.Resources>
 
     <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
         <Grid>
@@ -156,9 +134,21 @@
                     <Button Style="{StaticResource CloseWindowButtonStyle}" Content="&#xE8BB;" Click="CloseButton_Click" ToolTip="Close" />
                 </StackPanel>
 
-                <ContentControl Grid.Row="1"
-                                Content="{Binding CurrentPage}"
-                                Margin="36,4,36,30" />
+                <!-- Keep page instances alive so long-running cabin media is not restarted by navigation. -->
+                <Grid Grid.Row="1" Margin="36,4,36,30">
+                    <views:DashboardView DataContext="{Binding Dashboard}"
+                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Dashboard}" />
+                    <views:AirlinersView DataContext="{Binding Airliners}"
+                                        Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Airliners}" />
+                    <views:CabinControlPanelView DataContext="{Binding CabinPanel}"
+                                                 Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=CabinPanel}" />
+                    <views:AudioView DataContext="{Binding Audio}"
+                                     Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Audio}" />
+                    <views:PerformanceView DataContext="{Binding Performance}"
+                                           Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Performance}" />
+                    <views:SettingsView DataContext="{Binding Settings}"
+                                        Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Settings}" />
+                </Grid>
             </Grid>
         </Grid>
     </Border>
