@@ -576,8 +576,8 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
         QueueEvent("Safety demonstration video");
         SafetyVideoLocalSource = new Uri(SafetyVideoLocalFilePath, UriKind.Absolute);
-        IsUsingLocalSafetyVideo = true;
         IsSafetyVideoInProgress = true;
+        IsUsingLocalSafetyVideo = true;
         SafetyVideoPreviewStatus = "Announcement in progress — local British Airways MP4";
         LastAction = Status.IsConnected
             ? "Safety video started and queued for the aircraft bridge"

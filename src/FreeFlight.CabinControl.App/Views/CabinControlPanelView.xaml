@@ -425,38 +425,38 @@
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                         <StackPanel><TextBlock Text="Safety Video" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="British Airways local MP4 source" Style="{StaticResource MutedTextStyle}" Margin="0,3,0,8" /></StackPanel>
-                        <Border Grid.Row="1" Height="148" Background="#020711" BorderBrush="#40526A" BorderThickness="1" CornerRadius="7" ClipToBounds="True">
+                        <Border Grid.Row="1" Tag="InlineSafetyVideoPreview" Height="148" Background="#020711" BorderBrush="#40526A" BorderThickness="1" CornerRadius="7" ClipToBounds="True">
                             <Grid><Border Background="#260F3158" />
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><Button Width="52" Height="52" Content="▶" FontSize="20" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartSafetyVideoCommand}" ToolTip="Play the local BA_Safety_Video.mp4" /><TextBlock Text="{Binding SafetyVideoTitle}" Foreground="White" FontWeight="SemiBold" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Width="230" Margin="0,7,0,0" /><TextBlock Text="LOCAL MP4" Foreground="#52B7FF" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,4,0,0" /></StackPanel>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsSafetyVideoInProgress}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></StackPanel.Style>
+                                    <Button Width="52" Height="52" Content="▶" FontSize="20" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartSafetyVideoCommand}" ToolTip="Play the local BA_Safety_Video.mp4" />
+                                    <TextBlock Text="{Binding SafetyVideoTitle}" Foreground="White" FontWeight="SemiBold" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Width="230" Margin="0,7,0,0" />
+                                    <TextBlock Text="LOCAL MP4" Foreground="#52B7FF" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <MediaElement x:Name="SafetyVideoMediaElement" Tag="InlineSafetyVideoPlayer"
+                                              LoadedBehavior="Manual" UnloadedBehavior="Manual"
+                                              Stretch="Uniform" Volume="0.80" ScrubbingEnabled="True"
+                                              MediaEnded="HandleLocalSafetyVideoEnded"
+                                              MediaFailed="HandleLocalSafetyVideoFailed"
+                                              Visibility="{Binding IsSafetyVideoInProgress, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             </Grid>
                         </Border>
-                        <StackPanel Grid.Row="2" Margin="0,6,0,3"><Button Style="{StaticResource PrimaryButtonStyle}" Content="Start Safety Video" Command="{Binding StartSafetyVideoCommand}" /><TextBlock Text="{Binding SafetyVideoPreviewStatus}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" /></StackPanel>
+                        <StackPanel Grid.Row="2" Margin="0,6,0,3">
+                            <Grid>
+                                <Button Content="Start Safety Video" Command="{Binding StartSafetyVideoCommand}">
+                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}"><Setter Property="Visibility" Value="Visible" /><Style.Triggers><DataTrigger Binding="{Binding IsSafetyVideoInProgress}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Button.Style>
+                                </Button>
+                                <Button Style="{StaticResource PrimaryButtonStyle}" Content="Stop Safety Video" Command="{Binding StopSafetyVideoCommand}"
+                                        Visibility="{Binding IsSafetyVideoInProgress, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </Grid>
+                            <TextBlock Text="{Binding SafetyVideoPreviewStatus}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" />
+                        </StackPanel>
                         <StackPanel Grid.Row="3"><Button Style="{StaticResource QueueButtonStyle}" Content="Stage boarding passenger address" Command="{Binding QueueCommand}" CommandParameter="Boarding passenger address" /></StackPanel>
                         <StackPanel Grid.Row="4" Margin="0,9,0,0"><Grid><TextBlock Text="BRIDGE QUEUE" Style="{StaticResource MutedTextStyle}" FontWeight="SemiBold" /><TextBlock Text="{Binding QueueDepth, StringFormat={}{0} staged}" HorizontalAlignment="Right" Foreground="#52B7FF" /></Grid><ListBox ItemsSource="{Binding ActivityQueue}" Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" Margin="0,4,0,0" /></StackPanel>
                         <StackPanel Grid.Row="5"><TextBlock Text="{Binding LastAction}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,4,0,7" /><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource SecondaryButtonStyle}" Content="Clear" Command="{Binding ClearQueueCommand}" Margin="0,0,5,0" /><Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Content="Save" Command="{Binding SaveCommand}" Margin="5,0,0,0" /></Grid></StackPanel>
                     </Grid>
                 </Border>
 
-                <Border Grid.ColumnSpan="3" Panel.ZIndex="30" Width="356" Height="236"
-                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,12"
-                        Background="#F21A1E24" BorderBrush="#8996A5" BorderThickness="1"
-                        CornerRadius="8" Padding="8"
-                        Visibility="{Binding IsSafetyVideoInProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="36" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBlock Text="Safety video preview" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="Stop" Command="{Binding StopSafetyVideoCommand}" Style="{StaticResource PrimaryButtonStyle}" Padding="12,3" />
-                        </StackPanel>
-                        <Border Grid.Row="1" Grid.ColumnSpan="2" Background="Black" BorderBrush="#344354" BorderThickness="1" CornerRadius="5" ClipToBounds="True">
-                            <MediaElement x:Name="SafetyVideoMediaElement" LoadedBehavior="Manual" UnloadedBehavior="Manual"
-                                          Stretch="Uniform" Volume="0.80" ScrubbingEnabled="True"
-                                          MediaEnded="HandleLocalSafetyVideoEnded"
-                                          MediaFailed="HandleLocalSafetyVideoFailed" />
-                        </Border>
-                    </Grid>
-                </Border>
             </Grid>
         </Grid>
     </ScrollViewer>

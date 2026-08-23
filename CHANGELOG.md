@@ -38,4 +38,5 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Replaced responsive approximations with fixed reference coordinates so the bezel, LCD, keys, rules, readouts, and navigation preserve the original proportions when uniformly scaled.
 - Added the unique operational pages from the readable B777 reference archive as code-only screens; the supplied PNG pages remain design references and are not runtime assets.
 - Replaced the light safety-video treatment with a 70% black panel overlay and centered white “Announcement in progress” text.
-- Removed the YouTube/WebView player and external-browser action; safety video playback is now strictly local MP4 in the lower-right preview.
+- Removed the YouTube/WebView player and external-browser action; safety video playback is now strictly local MP4 inside the application.
+- Moved active video playback into the Safety Video card so it replaces the `LOCAL MP4` placeholder instead of opening a floating lower-right preview.

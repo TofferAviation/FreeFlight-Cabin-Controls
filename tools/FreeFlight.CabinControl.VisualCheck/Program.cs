@@ -227,6 +227,25 @@ internal static class Program
                     throw new InvalidOperationException("The removed online-video action is still present in the Cabin Panel UI.");
                 }
 
+                var inlineVideoPlayer = FindVisualChild<MediaElement>(
+                    window,
+                    mediaElement => Equals(mediaElement.Tag, "InlineSafetyVideoPlayer"));
+                var inlinePreview = FindVisualChild<Border>(
+                    window,
+                    border => Equals(border.Tag, "InlineSafetyVideoPreview"));
+                var floatingPreviewLabel = FindVisualChild<TextBlock>(
+                    window,
+                    textBlock => textBlock.Text == "Safety video preview");
+                var stopSafetyVideoButton = FindVisualChild<Button>(
+                    window,
+                    button => Equals(button.Content, "Stop Safety Video"));
+                if (inlineVideoPlayer is null || inlineVideoPlayer.Visibility != Visibility.Visible ||
+                    inlinePreview is null || Math.Abs(inlinePreview.ActualHeight - 148d) > 1d ||
+                    floatingPreviewLabel is not null || stopSafetyVideoButton?.Visibility != Visibility.Visible)
+                {
+                    throw new InvalidOperationException("Safety video playback did not replace the LOCAL MP4 card preview in place.");
+                }
+
                 Render(window, Path.Combine(outputDirectory, "cabinpanel-safety-video-in-progress.png"));
                 viewModel.CabinPanel.StopSafetyVideoCommand.Execute(null);
                 if (viewModel.CabinPanel.IsSafetyVideoInProgress)
