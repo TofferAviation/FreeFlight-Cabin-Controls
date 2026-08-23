@@ -4,14 +4,15 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 
 ## Current simulator-free behavior
 
-- Uses a deterministic 256-seat FF777 preview profile.
-- Accepts a user-selected booked-passenger count from 1 to 256.
+- Uses a deterministic 219-position FF777 profile whose marker coordinates match the visible seat centres in the current cabin schematic.
+- Accepts a user-selected booked-passenger count from 1 to 219.
 - Starts with L2 open and L1 closed so single-door routing is immediately testable.
 - Routes every newly entering passenger through the only open door.
 - With both doors open, L1 handles First and forward Business while L2 handles the remaining cabin.
 - Holds new passengers when every door is closed, then resumes through whichever door opens.
 - Keeps passengers already inside the aircraft moving to their seats if an entry door closes.
-- Supports 1×, 2×, and 4× preview speeds, pause/resume, reset, progress, ETA, and recent activity.
+- Keeps moving passengers class-coloured, changes a passenger to orange while the seat is being occupied, and changes the marker to green only after the passenger is seated and secured.
+- Supports an optional real-operations pace targeting a 30–45 minute full one-door boarding, plus 1×, 2×, and 4× accelerated previews, pause/resume, reset, progress, ETA, and recent activity.
 
 ## Future bridge boundary
 

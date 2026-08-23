@@ -7,6 +7,7 @@ public sealed class PassengerBoardingEngine
     private readonly IReadOnlyList<CabinSeat> _cabinSeats = CreateFf777PreviewSeats();
     private readonly List<BoardingPassenger> _passengers = [];
     private readonly List<BoardingPassenger> _activePassengers = [];
+    private readonly List<BoardingPassenger> _occupyingPassengers = [];
     private readonly List<BoardingPassenger> _lastSeatedPassengers = [];
     private readonly HashSet<BoardingDoor> _openDoors = [];
     private int _nextPassengerIndex;
@@ -26,9 +27,13 @@ public sealed class PassengerBoardingEngine
 
     public int WalkingCount => _activePassengers.Count;
 
+    public int OccupyingCount => _occupyingPassengers.Count;
+
+    public int InCabinCount => WalkingCount + OccupyingCount;
+
     public int RemainingCount => Math.Max(0, TargetPassengerCount - BoardedCount);
 
-    public int WaitingCount => Math.Max(0, TargetPassengerCount - BoardedCount - WalkingCount);
+    public int WaitingCount => Math.Max(0, TargetPassengerCount - BoardedCount - InCabinCount);
 
     public int OpenDoorCount => _openDoors.Count;
 
@@ -106,7 +111,8 @@ public sealed class PassengerBoardingEngine
             return;
         }
 
-        var scaledSeconds = Math.Clamp(elapsed.TotalSeconds, 0d, 1d) * Math.Clamp(speedMultiplier, 0.25d, 8d);
+        var scaledSeconds = Math.Clamp(elapsed.TotalSeconds, 0d, 1d) * Math.Clamp(speedMultiplier, 0.05d, 8d);
+        SecureOccupiedPassengers(scaledSeconds);
         MoveActivePassengers(scaledSeconds);
         if (_boardedCount >= TargetPassengerCount)
         {
@@ -137,6 +143,7 @@ public sealed class PassengerBoardingEngine
     {
         _passengers.Clear();
         _activePassengers.Clear();
+        _occupyingPassengers.Clear();
         _lastSeatedPassengers.Clear();
         _nextPassengerIndex = 0;
         _boardedCount = 0;
@@ -214,8 +221,26 @@ public sealed class PassengerBoardingEngine
                 continue;
             }
 
-            passenger.MovementState = PassengerMovementState.Seated;
+            passenger.MovementState = PassengerMovementState.OccupyingSeat;
+            passenger.SecondsUntilSecured = 6d + ((passenger.Id % 5) * 1.5d);
             _activePassengers.RemoveAt(index);
+            _occupyingPassengers.Add(passenger);
+        }
+    }
+
+    private void SecureOccupiedPassengers(double elapsedSeconds)
+    {
+        for (var index = _occupyingPassengers.Count - 1; index >= 0; index--)
+        {
+            var passenger = _occupyingPassengers[index];
+            passenger.SecondsUntilSecured -= elapsedSeconds;
+            if (passenger.SecondsUntilSecured > 0d)
+            {
+                continue;
+            }
+
+            passenger.MovementState = PassengerMovementState.Seated;
+            _occupyingPassengers.RemoveAt(index);
             _boardedCount++;
             _lastSeatedPassengers.Add(passenger);
         }
@@ -257,28 +282,28 @@ public sealed class PassengerBoardingEngine
             PassengerCabinClass.First,
             firstRow: 1,
             rowCount: 4,
-            startX: 205d,
-            endX: 392d,
-            letters: ["A", "K"],
-            yPositions: [77d, 143d]);
+            startX: 304d,
+            endX: 403d,
+            letters: ["A", "D", "K"],
+            yPositions: [38d, 73d, 108d]);
         AddSeatBlock(
             seats,
             PassengerCabinClass.Business,
             firstRow: 5,
-            rowCount: 14,
-            startX: 445d,
-            endX: 595d,
-            letters: ["A", "D", "G", "K"],
-            yPositions: [69d, 92d, 130d, 153d]);
+            rowCount: 5,
+            startX: 447d,
+            endX: 565d,
+            letters: ["A", "D", "K"],
+            yPositions: [38d, 73d, 108d]);
         AddSeatBlock(
             seats,
             PassengerCabinClass.Economy,
-            firstRow: 19,
+            firstRow: 10,
             rowCount: 24,
             startX: 630d,
             endX: 890d,
             letters: ["A", "B", "C", "D", "F", "G", "H", "J"],
-            yPositions: [63d, 76d, 89d, 102d, 126d, 139d, 152d, 165d]);
+            yPositions: [30d, 43d, 56d, 69d, 84d, 97d, 110d, 123d]);
         return seats;
     }
 
@@ -300,7 +325,7 @@ public sealed class PassengerBoardingEngine
             for (var seatIndex = 0; seatIndex < letters.Count; seatIndex++)
             {
                 var y = yPositions[seatIndex];
-                var aisleY = y < 114d ? 108d : 118d;
+                var aisleY = y < 77d ? 76d : 77d;
                 seats.Add(new CabinSeat(
                     $"{rowNumber}{letters[seatIndex]}",
                     cabinClass,

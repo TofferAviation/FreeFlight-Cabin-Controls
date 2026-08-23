@@ -27,7 +27,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _bookedPassengerCount = _engine.TargetPassengerCount;
         SpeedOptions =
         [
-            new BoardingSpeedOption("1× Real-time", 1d),
+            new BoardingSpeedOption("Real Ops · 30–45 min", 0.06d),
+            new BoardingSpeedOption("1× Preview", 1d),
             new BoardingSpeedOption("2× Preview", 2d),
             new BoardingSpeedOption("4× Fast Preview", 4d)
         ];
@@ -143,6 +144,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     public int WalkingPassengerCount => _engine.WalkingCount;
 
+    public int OccupyingPassengerCount => _engine.OccupyingCount;
+
+    public int InCabinPassengerCount => _engine.InCabinCount;
+
     public int RemainingPassengerCount => _engine.RemainingCount;
 
     public int WaitingPassengerCount => _engine.WaitingCount;
@@ -213,7 +218,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 return "--:--";
             }
 
-            var passengersPerMinute = 70d * _engine.OpenDoorCount * SelectedSpeedOption.Multiplier;
+            var passengersPerMinute = (60d / 0.55d) * _engine.OpenDoorCount * SelectedSpeedOption.Multiplier;
             var remainingMinutes = _engine.RemainingCount / passengersPerMinute;
             var duration = TimeSpan.FromMinutes(remainingMinutes);
             return duration.TotalHours >= 1d
@@ -308,7 +313,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         if (_engine.State == BoardingRunState.Complete)
         {
             _animationTimer.Stop();
-            AddActivity($"Boarding complete — {_engine.BoardedCount} passengers seated");
+            AddActivity($"Boarding complete — {_engine.BoardedCount} passengers seated and secured");
         }
     }
 
@@ -350,11 +355,13 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         foreach (var passenger in _engine.LastSeatedPassengers.Where(passenger =>
                      _loggedPassengerIds.Add(passenger.Id)))
         {
-            AddActivity($"Passenger {passenger.Id:000} seated at {passenger.Seat.Number} via {passenger.Door}");
+            AddActivity($"Passenger {passenger.Id:000} seated and secured at {passenger.Seat.Number} via {passenger.Door}");
         }
 
         OnPropertyChanged(nameof(BoardedPassengerCount));
         OnPropertyChanged(nameof(WalkingPassengerCount));
+        OnPropertyChanged(nameof(OccupyingPassengerCount));
+        OnPropertyChanged(nameof(InCabinPassengerCount));
         OnPropertyChanged(nameof(RemainingPassengerCount));
         OnPropertyChanged(nameof(WaitingPassengerCount));
         OnPropertyChanged(nameof(BoardingProgress));
@@ -407,6 +414,8 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         PassengerId = passenger.Id;
         SeatNumber = passenger.Seat.Number;
         CabinClassName = passenger.Seat.CabinClass.ToString();
+        SeatX = passenger.Seat.X;
+        SeatY = passenger.Seat.Y;
         Update(passenger);
     }
 
@@ -415,6 +424,10 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     public string SeatNumber { get; }
 
     public string CabinClassName { get; }
+
+    public double SeatX { get; }
+
+    public double SeatY { get; }
 
     public string DoorLabel { get; private set; } = string.Empty;
 
@@ -457,6 +470,8 @@ public sealed class PassengerMarkerViewModel : ObservableObject
             }
 
             OnPropertyChanged(nameof(IsWalking));
+            OnPropertyChanged(nameof(IsOccupyingSeat));
+            OnPropertyChanged(nameof(IsSecured));
             OnPropertyChanged(nameof(MarkerSize));
             OnPropertyChanged(nameof(CanvasLeft));
             OnPropertyChanged(nameof(CanvasTop));
@@ -466,7 +481,11 @@ public sealed class PassengerMarkerViewModel : ObservableObject
 
     public bool IsWalking => MovementState == PassengerMovementState.Walking;
 
-    public double MarkerSize => IsWalking ? 10d : 6d;
+    public bool IsOccupyingSeat => MovementState == PassengerMovementState.OccupyingSeat;
+
+    public bool IsSecured => MovementState == PassengerMovementState.Seated;
+
+    public double MarkerSize => IsWalking ? 8d : 7d;
 
     public string ToolTip => $"Passenger {PassengerId:000} • Seat {SeatNumber} • {CabinClassName} • {DoorLabel} • {MovementState}";
 

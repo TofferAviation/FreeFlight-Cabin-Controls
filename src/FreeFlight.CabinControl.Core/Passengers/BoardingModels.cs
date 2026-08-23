@@ -26,6 +26,7 @@ public enum PassengerMovementState
 {
     Waiting,
     Walking,
+    OccupyingSeat,
     Seated
 }
 
@@ -60,4 +61,6 @@ public sealed class BoardingPassenger
     public CabinPoint Position { get; internal set; }
 
     internal Queue<CabinPoint> Waypoints { get; set; } = new();
+
+    internal double SecondsUntilSecured { get; set; }
 }

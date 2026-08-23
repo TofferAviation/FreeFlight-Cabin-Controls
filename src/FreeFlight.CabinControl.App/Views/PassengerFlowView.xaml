@@ -122,14 +122,14 @@
                     <StackPanel>
                         <TextBlock Text="SEATED" Style="{StaticResource MetricLabelStyle}" />
                         <TextBlock Text="{Binding BoardedPassengerCount}" Style="{StaticResource MetricValueStyle}" Foreground="#58E68A" />
-                        <TextBlock Text="Boarding complete" Style="{StaticResource MetricLabelStyle}" />
+                        <TextBlock Text="Seat belts secured" Style="{StaticResource MetricLabelStyle}" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Style="{StaticResource PassengerMetricCardStyle}" Margin="7,0">
                     <StackPanel>
                         <TextBlock Text="IN CABIN" Style="{StaticResource MetricLabelStyle}" />
-                        <TextBlock Text="{Binding WalkingPassengerCount}" Style="{StaticResource MetricValueStyle}" Foreground="#F0C64E" />
-                        <TextBlock Text="Walking to seats" Style="{StaticResource MetricLabelStyle}" />
+                        <TextBlock Text="{Binding InCabinPassengerCount}" Style="{StaticResource MetricValueStyle}" Foreground="#F0C64E" />
+                        <TextBlock Text="Walking / settling" Style="{StaticResource MetricLabelStyle}" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="3" Style="{StaticResource PassengerMetricCardStyle}" Margin="7,0">
@@ -235,6 +235,16 @@
                                                     <Setter TargetName="PassengerDot" Property="Opacity" Value="1" />
                                                     <Setter TargetName="WalkingRing" Property="Visibility" Value="Visible" />
                                                 </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsOccupyingSeat}" Value="True">
+                                                    <Setter TargetName="PassengerDot" Property="Fill" Value="#FF9D45" />
+                                                    <Setter TargetName="PassengerDot" Property="Stroke" Value="#FFE0BE" />
+                                                    <Setter TargetName="PassengerDot" Property="Opacity" Value="1" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsSecured}" Value="True">
+                                                    <Setter TargetName="PassengerDot" Property="Fill" Value="#58E68A" />
+                                                    <Setter TargetName="PassengerDot" Property="Stroke" Value="#D9FFE6" />
+                                                    <Setter TargetName="PassengerDot" Property="Opacity" Value="1" />
+                                                </DataTrigger>
                                             </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -260,9 +270,9 @@
                         <Grid Grid.Row="2">
                             <TextBlock Text="{Binding DoorRoutingSummary}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                <Ellipse Width="8" Height="8" Fill="#C978ED" Margin="0,0,5,0" /><TextBlock Text="First" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
-                                <Ellipse Width="8" Height="8" Fill="#2E90FF" Margin="0,0,5,0" /><TextBlock Text="Business" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
-                                <Ellipse Width="8" Height="8" Fill="#21CED8" Margin="0,0,5,0" /><TextBlock Text="Economy" Style="{StaticResource MutedTextStyle}" />
+                                <Ellipse Width="8" Height="8" Fill="#2E90FF" Margin="0,0,5,0" /><TextBlock Text="Walking" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
+                                <Ellipse Width="8" Height="8" Fill="#FF9D45" Margin="0,0,5,0" /><TextBlock Text="Occupying seat" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
+                                <Ellipse Width="8" Height="8" Fill="#58E68A" Margin="0,0,5,0" /><TextBlock Text="Secured" Style="{StaticResource MutedTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Grid>

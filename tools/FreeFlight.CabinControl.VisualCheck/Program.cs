@@ -142,6 +142,22 @@ internal static class Program
                     throw new InvalidOperationException("Passenger Flow did not initialize with the L2-only preview scenario.");
                 }
 
+                var realOperationsSpeed = viewModel.Passengers.SpeedOptions.Single(option => option.Multiplier == 0.06d);
+                viewModel.Passengers.SelectedSpeedOption = realOperationsSpeed;
+                var etaParts = viewModel.Passengers.BoardingEta.Split(':');
+                if (etaParts.Length != 2 ||
+                    !int.TryParse(etaParts[0], out var etaMinutes) ||
+                    !int.TryParse(etaParts[1], out var etaSeconds) ||
+                    etaMinutes + (etaSeconds / 60d) is < 30d or > 45d)
+                {
+                    throw new InvalidOperationException(
+                        $"Real Operations ETA was outside 30–45 minutes: {viewModel.Passengers.BoardingEta}.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-real-operations.png"));
+                viewModel.Passengers.SelectedSpeedOption = viewModel.Passengers.SpeedOptions.Single(option => option.Multiplier == 2d);
+
                 viewModel.Passengers.StartPauseCommand.Execute(null);
                 for (var index = 0; index < 12; index++)
                 {
@@ -150,10 +166,25 @@ internal static class Program
 
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 if (viewModel.Passengers.PassengerMarkers.Count == 0 ||
-                    viewModel.Passengers.BoardedPassengerCount + viewModel.Passengers.WalkingPassengerCount == 0 ||
+                    viewModel.Passengers.BoardedPassengerCount + viewModel.Passengers.InCabinPassengerCount == 0 ||
                     viewModel.Passengers.PassengerMarkers.Any(marker => marker.DoorLabel != "L2"))
                 {
                     throw new InvalidOperationException("L2-only Passenger Flow did not route every visible passenger through L2.");
+                }
+
+
+                if (viewModel.Passengers.PassengerMarkers
+                        .Where(marker => !marker.IsWalking)
+                        .Any(marker => Math.Abs(marker.X - marker.SeatX) > 0.001d ||
+                                       Math.Abs(marker.Y - marker.SeatY) > 0.001d))
+                {
+                    throw new InvalidOperationException("A passenger marker was not centred on its assigned seat.");
+                }
+
+                if (!viewModel.Passengers.PassengerMarkers.Any(marker => marker.IsOccupyingSeat) ||
+                    !viewModel.Passengers.PassengerMarkers.Any(marker => marker.IsSecured))
+                {
+                    throw new InvalidOperationException("Passenger Flow did not display both orange occupied and green secured seat states.");
                 }
 
                 Render(window, Path.Combine(outputDirectory, "passengers-l2-boarding.png"));
@@ -475,7 +506,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 26 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 27 visual checks to {outputDirectory}");
         return 0;
     }
 

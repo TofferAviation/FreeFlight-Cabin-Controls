@@ -11,6 +11,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Executable asset rejected", ExecutableAssetRejectedAsync),
     ("L2-only passenger routing", L2OnlyPassengerRoutingAsync),
     ("Boarding waits for an open door", BoardingWaitsForDoorAsync),
+    ("Passenger seat centres match the cabin layout", PassengerSeatCentresMatchLayoutAsync),
+    ("Passenger seat occupation becomes secured", PassengerSeatOccupationBecomesSecuredAsync),
     ("Passenger boarding completes", PassengerBoardingCompletesAsync)
 };
 
@@ -162,6 +164,50 @@ static Task PassengerBoardingCompletesAsync()
     return Task.CompletedTask;
 }
 
+static Task PassengerSeatCentresMatchLayoutAsync()
+{
+    var engine = new PassengerBoardingEngine(int.MaxValue);
+    AssertEqual(219, engine.Capacity, "The visual cabin capacity did not match its seat centres.");
+    AssertSeatCentre(engine, "1A", 304d, 38d);
+    AssertSeatCentre(engine, "4K", 403d, 108d);
+    AssertSeatCentre(engine, "5A", 447d, 38d);
+    AssertSeatCentre(engine, "9K", 565d, 108d);
+    AssertSeatCentre(engine, "10A", 630d, 30d);
+    AssertSeatCentre(engine, "33J", 890d, 123d);
+    return Task.CompletedTask;
+}
+
+static Task PassengerSeatOccupationBecomesSecuredAsync()
+{
+    var engine = new PassengerBoardingEngine(1);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    for (var index = 0; index < 30 && engine.OccupyingCount == 0; index++)
+    {
+        engine.Tick(TimeSpan.FromSeconds(0.1d), 4d);
+    }
+
+    var passenger = engine.Passengers.Single();
+    AssertEqual(PassengerMovementState.OccupyingSeat, passenger.MovementState,
+        "The passenger did not enter the orange seat-occupation state.");
+    AssertNear(passenger.Seat.X, passenger.Position.X, "The passenger was not centred horizontally in the seat.");
+    AssertNear(passenger.Seat.Y, passenger.Position.Y, "The passenger was not centred vertically in the seat.");
+    AssertEqual(0, engine.BoardedCount, "The passenger was counted as secured before fastening the seat belt.");
+
+    Advance(engine, seconds: 4d, speed: 4d);
+    AssertEqual(PassengerMovementState.Seated, passenger.MovementState,
+        "The passenger did not change from orange occupied to green secured.");
+    AssertEqual(1, engine.BoardedCount, "The secured passenger was not included in the seated count.");
+    return Task.CompletedTask;
+}
+
+static void AssertSeatCentre(PassengerBoardingEngine engine, string seatNumber, double x, double y)
+{
+    var seat = engine.Passengers.Single(passenger => passenger.Seat.Number == seatNumber).Seat;
+    AssertNear(x, seat.X, $"Seat {seatNumber} has the wrong horizontal centre.");
+    AssertNear(y, seat.Y, $"Seat {seatNumber} has the wrong vertical centre.");
+}
+
 static void Advance(PassengerBoardingEngine engine, double seconds, double speed)
 {
     var tickCount = (int)Math.Ceiling(seconds / 0.1d);
@@ -194,6 +240,14 @@ static void Assert(bool condition, string message)
 static void AssertEqual<T>(T expected, T actual, string message)
 {
     if (!EqualityComparer<T>.Default.Equals(expected, actual))
+    {
+        throw new InvalidOperationException($"{message} Expected '{expected}', got '{actual}'.");
+    }
+}
+
+static void AssertNear(double expected, double actual, string message)
+{
+    if (Math.Abs(expected - actual) > 0.001d)
     {
         throw new InvalidOperationException($"{message} Expected '{expected}', got '{actual}'.");
     }
