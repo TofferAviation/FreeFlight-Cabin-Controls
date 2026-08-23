@@ -16,6 +16,5 @@
     <Resource Include="Assets\Ff777CabinLayout.png" />
     <Resource Include="Assets\FreeFlightBrand.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
-    <Resource Include="Assets\CacpPages\*.png" />
   </ItemGroup>
 </Project>

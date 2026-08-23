@@ -5,46 +5,58 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignHeight="820" d:DesignWidth="1200">
     <UserControl.Resources>
-        <Style x:Key="CacpHotspotStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
+        <LinearGradientBrush x:Key="CacpBezelBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#343431" Offset="0" />
+            <GradientStop Color="#171816" Offset="0.52" />
+            <GradientStop Color="#252522" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CacpKeyBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#E7EBEF" Offset="0" />
+            <GradientStop Color="#B6C0CB" Offset="1" />
+        </LinearGradientBrush>
+        <Style x:Key="CacpKeyStyle" TargetType="Button">
+            <Setter Property="Margin" Value="7" />
+            <Setter Property="MinHeight" Value="57" />
+            <Setter Property="Padding" Value="9,5" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="HitZone" Background="Transparent" BorderBrush="Transparent" BorderThickness="3" CornerRadius="4">
-                            <TextBlock x:Name="PressedLabel" Text="{TemplateBinding Content}" Opacity="0" Foreground="#FFFDFC"
-                                       FontFamily="Consolas" FontSize="26" FontWeight="SemiBold" TextAlignment="Center"
-                                       TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border x:Name="Key" Background="{StaticResource CacpKeyBrush}" BorderBrush="#F8FAFC" BorderThickness="2" CornerRadius="2" Padding="{TemplateBinding Padding}">
+                            <Border.Effect><DropShadowEffect Color="#020304" BlurRadius="3" ShadowDepth="3" Opacity="0.85" /></Border.Effect>
+                            <TextBlock x:Name="Label" Text="{TemplateBinding Content}" Foreground="#263442" FontFamily="Consolas" FontSize="13" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="HitZone" Property="Background" Value="#12000000" />
-                                <Setter TargetName="HitZone" Property="BorderBrush" Value="#55747B83" />
-                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Key" Property="Background" Value="#D5DAE0" /></Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="HitZone" Property="Background" Value="#E85B6066" />
-                                <Setter TargetName="HitZone" Property="BorderBrush" Value="#EDEFF2F4" />
-                                <Setter TargetName="PressedLabel" Property="Opacity" Value="1" />
+                                <Setter TargetName="Key" Property="Background" Value="#646A71" />
+                                <Setter TargetName="Key" Property="BorderBrush" Value="#A9B0B8" />
+                                <Setter TargetName="Label" Property="Foreground" Value="#FFFDFB" />
+                                <Setter TargetName="Key" Property="RenderTransform"><Setter.Value><TranslateTransform Y="2" /></Setter.Value></Setter>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="CacpReadoutStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#A6F4D7" />
-            <Setter Property="FontFamily" Value="Consolas" />
-            <Setter Property="FontSize" Value="31" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="TextAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+        <Style x:Key="CacpNavStyle" TargetType="Button" BasedOn="{StaticResource CacpKeyStyle}">
+            <Setter Property="MinHeight" Value="42" /><Setter Property="Margin" Value="7,5" />
+        </Style>
+        <Style x:Key="CacpTitleStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#A8F2D9" /><Setter Property="FontFamily" Value="Consolas" /><Setter Property="FontSize" Value="22" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="HorizontalAlignment" Value="Center" /><Setter Property="Margin" Value="0,0,0,5" />
+        </Style>
+        <Style x:Key="CacpLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#D9E4E8" /><Setter Property="FontFamily" Value="Consolas" /><Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style x:Key="CacpValueStyle" TargetType="TextBlock" BasedOn="{StaticResource CacpLabelStyle}">
+            <Setter Property="Foreground" Value="#A8F2D9" /><Setter Property="FontSize" Value="20" /><Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="CacpPageStyle" TargetType="Grid">
+            <Setter Property="Margin" Value="8" />
         </Style>
         <Style x:Key="QueueButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
-            <Setter Property="Margin" Value="0,5,0,0" />
-            <Setter Property="MinHeight" Value="36" />
-            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,5,0,0" /><Setter Property="MinHeight" Value="36" /><Setter Property="HorizontalContentAlignment" Value="Left" />
         </Style>
     </UserControl.Resources>
 
@@ -58,146 +70,148 @@
 
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="306" /></Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Background="#090C11" BorderBrush="#3B4654" BorderThickness="1" CornerRadius="11" ClipToBounds="True">
-                    <Viewbox Stretch="Uniform">
-                        <Grid Width="1536" Height="1024">
-                            <!-- Main menu: the supplied FF777 render is the exact visual source. -->
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Main Menu}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/01_Main_Menu.png" Width="1536" Height="1024" />
-                                <Button Canvas.Left="430" Canvas.Top="319" Width="206" Height="91" Style="{StaticResource CacpHotspotStyle}" Content="LIGHTING&#x0a;CONTROL" Command="{Binding SelectPanelCommand}" CommandParameter="Lighting Control" />
-                                <Button Canvas.Left="658" Canvas.Top="319" Width="206" Height="92" Style="{StaticResource CacpHotspotStyle}" Content="SERVICE CALL /&#x0a;CHIME" Command="{Binding SelectPanelCommand}" CommandParameter="Service Call / Chime" />
-                                <Button Canvas.Left="431" Canvas.Top="426" Width="205" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="CABIN&#x0a;TEMPERATURE" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Temperature" />
-                                <Button Canvas.Left="658" Canvas.Top="428" Width="204" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="WATER / WASTE&#x0a;STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Water / Waste Status" />
-                                <Button Canvas.Left="431" Canvas.Top="533" Width="205" Height="90" Style="{StaticResource CacpHotspotStyle}" Content="PASSENGER&#x0a;ADDRESS" Command="{Binding SelectPanelCommand}" CommandParameter="Passenger Address" />
-                                <Button Canvas.Left="658" Canvas.Top="533" Width="204" Height="90" Style="{StaticResource CacpHotspotStyle}" Content="CABIN DOOR&#x0a;STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Door Status" />
-                                <Button Canvas.Left="431" Canvas.Top="641" Width="205" Height="91" Style="{StaticResource CacpHotspotStyle}" Content="DISPLAY&#x0a;CONTROLS" Command="{Binding SelectPanelCommand}" CommandParameter="Display Controls" />
-                                <Button Canvas.Left="658" Canvas.Top="642" Width="204" Height="91" Style="{StaticResource CacpHotspotStyle}" Content="BOARDING&#x0a;MUSIC" Command="{Binding SelectPanelCommand}" CommandParameter="Boarding Music" />
-                                <Button Canvas.Left="881" Canvas.Top="644" Width="206" Height="90" Style="{StaticResource CacpHotspotStyle}" Content="SPECIAL&#x0a;FUNCTIONS" Command="{Binding SelectPanelCommand}" CommandParameter="Special Functions" />
-                            </Canvas>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Lighting Control}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/02_Lighting_Control.png" Width="1536" Height="1024" />
-                                <Button Canvas.Left="432" Canvas.Top="321" Width="204" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="CABIN&#x0a;LIGHTING" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Cabin Lighting" />
-                                <Button Canvas.Left="654" Canvas.Top="321" Width="201" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="ENTRY WAY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Entry Way Lights" />
-                                <Button Canvas.Left="432" Canvas.Top="426" Width="204" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="READING&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Reading Lights" />
-                                <Button Canvas.Left="653" Canvas.Top="427" Width="202" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="GALLEY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Galley Lights" />
-                                <Button Canvas.Left="432" Canvas.Top="532" Width="204" Height="90" Style="{StaticResource CacpHotspotStyle}" Content="LAVATORY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Lavatory Lights" />
-                                <Button Canvas.Left="654" Canvas.Top="533" Width="201" Height="90" Style="{StaticResource CacpHotspotStyle}" Content="WORK&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Work Lights" />
-                                <Border Canvas.Left="918" Canvas.Top="448" Width="145" Height="51" Background="#FF2C455C"><TextBlock Text="{Binding SelectedLightingArea}" Style="{StaticResource CacpReadoutStyle}" FontSize="24" TextWrapping="Wrap" /></Border>
-                                <Button Canvas.Left="479" Canvas.Top="669" Width="248" Height="67" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="791" Canvas.Top="670" Width="256" Height="67" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                <!-- Fully coded panel: no photographic wall or raster CACP page is used. -->
+                <Border Grid.Column="0" Background="{StaticResource CacpBezelBrush}" BorderBrush="#555650" BorderThickness="2" CornerRadius="22" Padding="24,15">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="42" /><RowDefinition Height="*" /><RowDefinition Height="42" /></Grid.RowDefinitions>
+                        <TextBlock Text="C A B I N   A R E A   C O N T R O L   P A N E L" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="#AAA69E" />
+                        <Border Grid.Row="1" Margin="18,0" Background="#293D52" BorderBrush="#090B0C" BorderThickness="10" CornerRadius="7" Padding="6">
+                            <Border.Effect><DropShadowEffect Color="#000000" BlurRadius="7" ShadowDepth="2" Opacity="0.9" /></Border.Effect>
+                            <Grid>
+                                <!-- MAIN MENU -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Main Menu}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                                    <StackPanel><TextBlock Text="MAIN MENU" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="12,7,12,0">
+                                        <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <Button Style="{StaticResource CacpKeyStyle}" Content="LIGHTING&#x0a;CONTROL" Command="{Binding SelectPanelCommand}" CommandParameter="Lighting Control" />
+                                        <Button Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="SERVICE CALL /&#x0a;CHIME" Command="{Binding SelectPanelCommand}" CommandParameter="Service Call / Chime" />
+                                        <Button Grid.Row="1" Style="{StaticResource CacpKeyStyle}" Content="CABIN&#x0a;TEMPERATURE" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Temperature" />
+                                        <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="WATER / WASTE&#x0a;STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Water / Waste Status" />
+                                        <Button Grid.Row="2" Style="{StaticResource CacpKeyStyle}" Content="PASSENGER&#x0a;ADDRESS" Command="{Binding SelectPanelCommand}" CommandParameter="Passenger Address" />
+                                        <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="CABIN DOOR&#x0a;STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Door Status" />
+                                        <Button Grid.Row="3" Style="{StaticResource CacpKeyStyle}" Content="DISPLAY&#x0a;CONTROLS" Command="{Binding SelectPanelCommand}" CommandParameter="Display Controls" />
+                                        <Button Grid.Row="3" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="BOARDING&#x0a;MUSIC" Command="{Binding SelectPanelCommand}" CommandParameter="Boarding Music" />
+                                        <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource CacpKeyStyle}" Content="SPECIAL&#x0a;FUNCTIONS" Command="{Binding SelectPanelCommand}" CommandParameter="Special Functions" />
+                                    </Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Service Call / Chime}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/03_Service_Call_Chime.png" Width="1536" Height="1024" />
-                                <Border Canvas.Left="740" Canvas.Top="411" Width="128" Height="47" Background="#FF2C455C"><TextBlock Text="{Binding AttendantChimeStatus}" Style="{StaticResource CacpReadoutStyle}" FontSize="26" /></Border>
-                                <Button Canvas.Left="430" Canvas.Top="502" Width="205" Height="87" Style="{StaticResource CacpHotspotStyle}" Content="RESET CALLS" Command="{Binding ExecuteActionCommand}" CommandParameter="Calls:Reset" />
-                                <Button Canvas.Left="655" Canvas.Top="503" Width="205" Height="86" Style="{StaticResource CacpHotspotStyle}" Content="CHIME ON" Command="{Binding ExecuteActionCommand}" CommandParameter="Chime:On" />
-                                <Button Canvas.Left="881" Canvas.Top="503" Width="205" Height="87" Style="{StaticResource CacpHotspotStyle}" Content="CHIME OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="Chime:Off" />
-                                <Button Canvas.Left="431" Canvas.Top="675" Width="281" Height="70" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="794" Canvas.Top="677" Width="290" Height="69" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                                <!-- LIGHTING CONTROL -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Lighting Control}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <StackPanel><TextBlock Text="LIGHTING CONTROL" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="10,7"><Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <Grid><Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                            <Button Style="{StaticResource CacpKeyStyle}" Content="CABIN&#x0a;LIGHTING" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Cabin Lighting" /><Button Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="ENTRY WAY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Entry Way Lights" />
+                                            <Button Grid.Row="1" Style="{StaticResource CacpKeyStyle}" Content="READING&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Reading Lights" /><Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="GALLEY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Galley Lights" />
+                                            <Button Grid.Row="2" Style="{StaticResource CacpKeyStyle}" Content="LAVATORY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Lavatory Lights" /><Button Grid.Row="2" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="WORK&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Work Lights" />
+                                        </Grid>
+                                        <Border Grid.Column="1" BorderBrush="#A8F2D9" BorderThickness="2" CornerRadius="4" Margin="15,35,8,35"><StackPanel VerticalAlignment="Center"><TextBlock Text="CURRENT AREA" Style="{StaticResource CacpLabelStyle}" Foreground="#A8F2D9" FontSize="16" HorizontalAlignment="Center" /><TextBlock Text="—" Style="{StaticResource CacpValueStyle}" HorizontalAlignment="Center" /><TextBlock Text="{Binding SelectedLightingArea}" Style="{StaticResource CacpValueStyle}" FontSize="17" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center" /></StackPanel></Border>
+                                    </Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Cabin Temperature}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/04_Cabin_Temperature.png" Width="1536" Height="1024" />
-                                <Button Canvas.Left="432" Canvas.Top="335" Width="174" Height="74" Style="{StaticResource CacpHotspotStyle}" Content="ZONE 1" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Zone 1" />
-                                <Button Canvas.Left="432" Canvas.Top="441" Width="174" Height="74" Style="{StaticResource CacpHotspotStyle}" Content="ZONE 2" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Zone 2" />
-                                <Button Canvas.Left="432" Canvas.Top="547" Width="174" Height="74" Style="{StaticResource CacpHotspotStyle}" Content="ZONE 3" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Zone 3" />
-                                <Border Canvas.Left="631" Canvas.Top="351" Width="108" Height="49" Background="#FF2B4359"><TextBlock Text="{Binding Zone1TemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpReadoutStyle}" FontSize="38" /></Border>
-                                <Border Canvas.Left="631" Canvas.Top="457" Width="108" Height="49" Background="#FF2B4359"><TextBlock Text="{Binding Zone2TemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpReadoutStyle}" FontSize="38" /></Border>
-                                <Border Canvas.Left="631" Canvas.Top="563" Width="108" Height="49" Background="#FF2B4359"><TextBlock Text="{Binding Zone3TemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpReadoutStyle}" FontSize="38" /></Border>
-                                <Border Canvas.Left="867" Canvas.Top="362" Width="166" Height="70" Background="#FF2A4359"><TextBlock Text="{Binding SelectedTemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpReadoutStyle}" FontSize="55" /></Border>
-                                <Button Canvas.Left="815" Canvas.Top="446" Width="243" Height="70" Style="{StaticResource CacpHotspotStyle}" Content="▲  INCREASE" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Increase" />
-                                <Button Canvas.Left="815" Canvas.Top="532" Width="243" Height="70" Style="{StaticResource CacpHotspotStyle}" Content="▼  DECREASE" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Decrease" />
-                                <Button Canvas.Left="434" Canvas.Top="677" Width="298" Height="60" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="780" Canvas.Top="678" Width="289" Height="60" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                                <!-- SERVICE CALL / CHIME -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Service Call / Chime}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <StackPanel><TextBlock Text="SERVICE CALL / CHIME" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="20,12"><Grid.RowDefinitions><RowDefinition /><RowDefinition Height="2" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="PASSENGER CALLS" Style="{StaticResource CacpLabelStyle}" Margin="0,5" /><TextBlock Text="LAVATORY CALLS" Style="{StaticResource CacpLabelStyle}" Margin="0,5" /><TextBlock Text="ATTENDANT CHIME" Style="{StaticResource CacpLabelStyle}" Margin="0,5" /></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="ENABLED" Style="{StaticResource CacpValueStyle}" FontSize="15" Margin="0,5" /><TextBlock Text="ENABLED" Style="{StaticResource CacpValueStyle}" FontSize="15" Margin="0,5" /><TextBlock Text="{Binding AttendantChimeStatus}" Style="{StaticResource CacpValueStyle}" FontSize="15" Margin="0,5" /></StackPanel></Grid>
+                                        <Border Grid.Row="1" Background="#A8F2D9" />
+                                        <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpKeyStyle}" Content="RESET CALLS" Command="{Binding ExecuteActionCommand}" CommandParameter="Calls:Reset" /><Button Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="CHIME ON" Command="{Binding ExecuteActionCommand}" CommandParameter="Chime:On" /><Button Grid.Column="2" Style="{StaticResource CacpKeyStyle}" Content="CHIME OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="Chime:Off" /></Grid>
+                                        <TextBlock Grid.Row="3" Text="NO ACTIVE CALLS" Style="{StaticResource CacpLabelStyle}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                    </Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Water / Waste Status}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/05_Water_Waste_Status.png" Width="1536" Height="1024" />
-                                <Button Canvas.Left="501" Canvas.Top="578" Width="228" Height="82" Style="{StaticResource CacpHotspotStyle}" Content="LAVATORY&#x0a;STATUS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lavatory status" />
-                                <Button Canvas.Left="784" Canvas.Top="579" Width="226" Height="82" Style="{StaticResource CacpHotspotStyle}" Content="INOPERATIVE&#x0a;CONTROL" Command="{Binding ExecuteActionCommand}" CommandParameter="Inoperative control" />
-                                <Button Canvas.Left="432" Canvas.Top="687" Width="300" Height="57" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="777" Canvas.Top="690" Width="296" Height="56" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                                <!-- CABIN TEMPERATURE -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Cabin Temperature}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel><TextBlock Text="CABIN TEMPERATURE" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="16,8"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="2" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <Grid><Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="1.2*" /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpKeyStyle}" Content="ZONE 1" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Zone 1" /><TextBlock Grid.Column="1" Text="{Binding Zone1TemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpValueStyle}" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center" /><Button Grid.Row="1" Style="{StaticResource CacpKeyStyle}" Content="ZONE 2" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Zone 2" /><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Zone2TemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpValueStyle}" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center" /><Button Grid.Row="2" Style="{StaticResource CacpKeyStyle}" Content="ZONE 3" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Zone 3" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Zone3TemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpValueStyle}" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center" /></Grid>
+                                        <Border Grid.Column="1" Background="#A8F2D9" />
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="14,0,0,0"><TextBlock Text="SELECTED SET TEMPERATURE" Style="{StaticResource CacpLabelStyle}" Foreground="#A8F2D9" HorizontalAlignment="Center" /><TextBlock Text="{Binding SelectedTemperatureC, StringFormat={}{0}°C}" Style="{StaticResource CacpValueStyle}" FontSize="43" HorizontalAlignment="Center" Margin="0,4,0,6" /><Button Style="{StaticResource CacpKeyStyle}" Content="▲  INCREASE" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Increase" /><Button Style="{StaticResource CacpKeyStyle}" Content="▼  DECREASE" Command="{Binding ExecuteActionCommand}" CommandParameter="Temp:Decrease" /><TextBlock Text="CONTROL — AUTOMATIC" Style="{StaticResource CacpLabelStyle}" Foreground="#A8F2D9" HorizontalAlignment="Center" /></StackPanel>
+                                    </Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passenger Address}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/06_Passenger_Address.png" Width="1536" Height="1024" />
-                                <Border Canvas.Left="634" Canvas.Top="329" Width="62" Height="52" Background="#FF2A4359"><TextBlock Text="{Binding PaVolumeLevel}" Style="{StaticResource CacpReadoutStyle}" FontSize="34" /></Border>
-                                <Border Canvas.Left="626" Canvas.Top="438" Width="84" Height="51" Background="#FF2A4359"><TextBlock Text="{Binding AmbientNoiseSensorStatus}" Style="{StaticResource CacpReadoutStyle}" FontSize="30" /></Border>
-                                <Button Canvas.Left="723" Canvas.Top="320" Width="177" Height="87" Style="{StaticResource CacpHotspotStyle}" Content="VOLUME UP" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:VolumeUp" />
-                                <Button Canvas.Left="915" Canvas.Top="321" Width="179" Height="87" Style="{StaticResource CacpHotspotStyle}" Content="VOLUME DOWN" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:VolumeDown" />
-                                <Button Canvas.Left="723" Canvas.Top="429" Width="176" Height="86" Style="{StaticResource CacpHotspotStyle}" Content="SENSOR ON" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:SensorOn" />
-                                <Button Canvas.Left="915" Canvas.Top="430" Width="178" Height="86" Style="{StaticResource CacpHotspotStyle}" Content="SENSOR OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:SensorOff" />
-                                <Button Canvas.Left="422" Canvas.Top="686" Width="236" Height="61" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="831" Canvas.Top="690" Width="251" Height="61" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                                <!-- WATER / WASTE STATUS -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Water / Waste Status}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel><TextBlock Text="WATER / WASTE STATUS" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="20,10"><Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition Height="2" /><RowDefinition /><RowDefinition /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*" /><ColumnDefinition Width="2.2*" /><ColumnDefinition Width="0.6*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="POTABLE WATER" Style="{StaticResource CacpValueStyle}" FontSize="16" VerticalAlignment="Center" /><ProgressBar Grid.Column="1" Value="78" Foreground="#9BE8D1" Background="#192B3B" Height="22" Margin="8" /><TextBlock Grid.Column="2" Text="78%" Style="{StaticResource CacpValueStyle}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="1" Text="FWD WASTE" Style="{StaticResource CacpValueStyle}" FontSize="16" VerticalAlignment="Center" /><ProgressBar Grid.Row="1" Grid.Column="1" Value="22" Foreground="#9BE8D1" Background="#192B3B" Height="22" Margin="8" /><TextBlock Grid.Row="1" Grid.Column="2" Text="22%" Style="{StaticResource CacpValueStyle}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="2" Text="AFT WASTE" Style="{StaticResource CacpValueStyle}" FontSize="16" VerticalAlignment="Center" /><ProgressBar Grid.Row="2" Grid.Column="1" Value="31" Foreground="#9BE8D1" Background="#192B3B" Height="22" Margin="8" /><TextBlock Grid.Row="2" Grid.Column="2" Text="31%" Style="{StaticResource CacpValueStyle}" VerticalAlignment="Center" />
+                                        <Border Grid.Row="3" Grid.ColumnSpan="3" Background="#A8F2D9" />
+                                        <TextBlock Grid.Row="4" Grid.ColumnSpan="3" Text="SYSTEM NORMAL" Style="{StaticResource CacpValueStyle}" FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        <Grid Grid.Row="5" Grid.ColumnSpan="3"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpKeyStyle}" Content="LAVATORY&#x0a;STATUS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lavatory status" /><Button Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="INOPERATIVE&#x0a;CONTROL" Command="{Binding ExecuteActionCommand}" CommandParameter="Inoperative control" /></Grid>
+                                    </Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Cabin Door Status}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/07_Cabin_Door_Status.png" Width="1536" Height="1024" />
-                                <Border Canvas.Left="523" Canvas.Top="322" Width="130" Height="255" Background="#FF2B445A"><StackPanel><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="51" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="54" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="54" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="53" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="51" /></StackPanel></Border>
-                                <Border Canvas.Left="872" Canvas.Top="322" Width="130" Height="255" Background="#FF2B445A"><StackPanel><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="51" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="54" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="54" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="53" /><TextBlock Text="UNKNOWN" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="27" Height="51" /></StackPanel></Border>
-                                <Border Canvas.Left="586" Canvas.Top="620" Width="364" Height="48" Background="#FF2B445A"><TextBlock Text="TELEMETRY OFFLINE" Style="{StaticResource CacpReadoutStyle}" Foreground="#FFC866" FontSize="32" /></Border>
-                                <Button Canvas.Left="423" Canvas.Top="672" Width="250" Height="66" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="835" Canvas.Top="676" Width="249" Height="65" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                                <!-- PASSENGER ADDRESS -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passenger Address}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel><TextBlock Text="PASSENGER ADDRESS" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="16,12"><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*" /><ColumnDefinition Width="0.5*" /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                                        <TextBlock Text="PA VOLUME" Style="{StaticResource CacpValueStyle}" FontSize="17" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding PaVolumeLevel, StringFormat=—  {0}}" Style="{StaticResource CacpValueStyle}" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CacpKeyStyle}" Content="VOLUME UP" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:VolumeUp" /><Button Grid.Column="3" Style="{StaticResource CacpKeyStyle}" Content="VOLUME DOWN" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:VolumeDown" />
+                                        <TextBlock Grid.Row="1" Text="AMBIENT NOISE&#x0a;SENSOR" Style="{StaticResource CacpValueStyle}" FontSize="17" VerticalAlignment="Center" /><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding AmbientNoiseSensorStatus, StringFormat=—  {0}}" Style="{StaticResource CacpValueStyle}" VerticalAlignment="Center" /><Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CacpKeyStyle}" Content="SENSOR ON" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:SensorOn" /><Button Grid.Row="1" Grid.Column="3" Style="{StaticResource CacpKeyStyle}" Content="SENSOR OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="PA:SensorOff" />
+                                        <TextBlock Grid.Row="2" Text="AUTOMATIC&#x0a;VOLUME" Style="{StaticResource CacpValueStyle}" FontSize="17" VerticalAlignment="Center" /><TextBlock Grid.Row="2" Grid.Column="1" Text="—  ON" Style="{StaticResource CacpValueStyle}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="3" Text="PA SYSTEM STATUS" Style="{StaticResource CacpValueStyle}" FontSize="17" VerticalAlignment="Center" /><TextBlock Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" Text="PA SYSTEM NORMAL" Style="{StaticResource CacpLabelStyle}" FontSize="17" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Display Controls}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/08_Display_Controls.png" Width="1536" Height="1024" />
-                                <Button Canvas.Left="419" Canvas.Top="317" Width="180" Height="81" Style="{StaticResource CacpHotspotStyle}" Content="BRIGHTNESS&#x0a;UP" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:BrightnessUp" />
-                                <Button Canvas.Left="419" Canvas.Top="410" Width="180" Height="79" Style="{StaticResource CacpHotspotStyle}" Content="BRIGHTNESS&#x0a;DOWN" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:BrightnessDown" />
-                                <Button Canvas.Left="420" Canvas.Top="501" Width="179" Height="78" Style="{StaticResource CacpHotspotStyle}" Content="DAY MODE" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:Day" />
-                                <Button Canvas.Left="420" Canvas.Top="592" Width="179" Height="79" Style="{StaticResource CacpHotspotStyle}" Content="NIGHT MODE" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:Night" />
-                                <Button Canvas.Left="917" Canvas.Top="319" Width="177" Height="82" Style="{StaticResource CacpHotspotStyle}" Content="SCREEN&#x0a;CLEAN" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:ScreenClean" />
-                                <Button Canvas.Left="917" Canvas.Top="416" Width="177" Height="79" Style="{StaticResource CacpHotspotStyle}" Content="DISPLAY&#x0a;OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:Off" />
-                                <Border Canvas.Left="707" Canvas.Top="398" Width="105" Height="47" Background="#FF2A4359"><TextBlock Text="{Binding DisplayBrightness, StringFormat={}{0}%}" Style="{StaticResource CacpReadoutStyle}" FontSize="36" /></Border>
-                                <Border Canvas.Left="656" Canvas.Top="603" Width="223" Height="51" Background="#FF2A4359"><TextBlock Text="{Binding DisplayStatus}" Style="{StaticResource CacpReadoutStyle}" FontSize="27" /></Border>
-                                <Button Canvas.Left="420" Canvas.Top="684" Width="271" Height="59" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="818" Canvas.Top="686" Width="269" Height="59" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                                <!-- CABIN DOOR STATUS -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Cabin Door Status}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel><TextBlock Text="CABIN DOOR STATUS" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="55,12"><Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition Height="2" /><RowDefinition /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="1L" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Column="1" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" /><TextBlock Grid.Column="2" Text="1R" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Column="3" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" />
+                                        <TextBlock Grid.Row="1" Text="2L" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="1" Grid.Column="1" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" /><TextBlock Grid.Row="1" Grid.Column="2" Text="2R" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="1" Grid.Column="3" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" />
+                                        <TextBlock Grid.Row="2" Text="3L" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="2" Grid.Column="1" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" /><TextBlock Grid.Row="2" Grid.Column="2" Text="3R" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="2" Grid.Column="3" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" />
+                                        <TextBlock Grid.Row="3" Text="4L" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="3" Grid.Column="1" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" /><TextBlock Grid.Row="3" Grid.Column="2" Text="4R" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="3" Grid.Column="3" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" />
+                                        <TextBlock Grid.Row="4" Text="5L" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="4" Grid.Column="1" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" /><TextBlock Grid.Row="4" Grid.Column="2" Text="5R" Style="{StaticResource CacpLabelStyle}" FontSize="20" /><TextBlock Grid.Row="4" Grid.Column="3" Text="UNKNOWN" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="17" />
+                                        <Border Grid.Row="5" Grid.ColumnSpan="4" Background="#A8F2D9" /><TextBlock Grid.Row="6" Grid.ColumnSpan="4" Text="TELEMETRY OFFLINE" Style="{StaticResource CacpValueStyle}" Foreground="#FFC75C" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Boarding Music}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/09_Boarding_Music.png" Width="1536" Height="1024" />
-                                <Border Canvas.Left="695" Canvas.Top="312" Width="166" Height="146" Background="#FF2A4359"><StackPanel><TextBlock Text="{Binding BoardingMusicStatus, StringFormat=—  {0}}" Style="{StaticResource CacpReadoutStyle}" FontSize="27" Height="50" /><TextBlock Text="{Binding BoardingMusicLevel, StringFormat=—  {0}}" Style="{StaticResource CacpReadoutStyle}" FontSize="27" Height="50" /><TextBlock Text="{Binding SelectedBoardingProgram, StringFormat=—  PROGRAM {0}}" Style="{StaticResource CacpReadoutStyle}" FontSize="25" Height="46" /></StackPanel></Border>
-                                <Button Canvas.Left="435" Canvas.Top="473" Width="203" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="MUSIC ON" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:On" />
-                                <Button Canvas.Left="658" Canvas.Top="474" Width="202" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="VOLUME UP" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:VolumeUp" />
-                                <Button Canvas.Left="882" Canvas.Top="476" Width="196" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="PROGRAM 1" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:Program1" />
-                                <Button Canvas.Left="435" Canvas.Top="578" Width="203" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="MUSIC OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:Off" />
-                                <Button Canvas.Left="658" Canvas.Top="579" Width="202" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="VOLUME DOWN" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:VolumeDown" />
-                                <Button Canvas.Left="882" Canvas.Top="582" Width="196" Height="87" Style="{StaticResource CacpHotspotStyle}" Content="PROGRAM 2" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:Program2" />
-                                <Button Canvas.Left="434" Canvas.Top="697" Width="305" Height="48" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="774" Canvas.Top="699" Width="302" Height="48" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
+                                <!-- DISPLAY CONTROLS -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Display Controls}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel><TextBlock Text="DISPLAY CONTROLS" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="12,8"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="1.6*" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                        <StackPanel><Button Style="{StaticResource CacpKeyStyle}" Content="BRIGHTNESS&#x0a;UP" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:BrightnessUp" /><Button Style="{StaticResource CacpKeyStyle}" Content="BRIGHTNESS&#x0a;DOWN" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:BrightnessDown" /><Button Style="{StaticResource CacpKeyStyle}" Content="DAY MODE" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:Day" /><Button Style="{StaticResource CacpKeyStyle}" Content="NIGHT MODE" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:Night" /></StackPanel>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="18,0"><TextBlock Text="BRIGHTNESS" Style="{StaticResource CacpLabelStyle}" FontSize="18" HorizontalAlignment="Center" /><TextBlock Text="{Binding DisplayBrightness, StringFormat={}{0}%}" Style="{StaticResource CacpValueStyle}" FontSize="30" HorizontalAlignment="Center" /><Grid Height="28" Margin="0,6"><ProgressBar Value="{Binding DisplayBrightness, Mode=OneWay}" Foreground="#9BE8D1" Background="#192B3B" /><UniformGrid Columns="10" IsHitTestVisible="False"><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border BorderBrush="#D9EEF0" BorderThickness="0,0,1,0" /><Border /></UniformGrid></Grid><TextBlock Text="STATUS" Style="{StaticResource CacpLabelStyle}" FontSize="18" HorizontalAlignment="Center" Margin="0,25,0,3" /><Border Height="1" Background="#DDE8EA" /><TextBlock Text="{Binding DisplayStatus}" Style="{StaticResource CacpValueStyle}" FontSize="18" HorizontalAlignment="Center" Margin="0,6" /></StackPanel>
+                                        <StackPanel Grid.Column="2"><Button Style="{StaticResource CacpKeyStyle}" Content="SCREEN&#x0a;CLEAN" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:ScreenClean" /><Button Style="{StaticResource CacpKeyStyle}" Content="DISPLAY&#x0a;OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="Display:Off" /></StackPanel>
+                                    </Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
 
-                            <Canvas Width="1536" Height="1024" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Special Functions}">
-                                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/CacpPages/10_Special_Functions.png" Width="1536" Height="1024" />
-                                <Button Canvas.Left="430" Canvas.Top="319" Width="233" Height="91" Style="{StaticResource CacpHotspotStyle}" Content="CABIN READY" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin ready" />
-                                <Button Canvas.Left="687" Canvas.Top="320" Width="219" Height="91" Style="{StaticResource CacpHotspotStyle}" Content="CREW REST" Command="{Binding ExecuteActionCommand}" CommandParameter="Crew rest" />
-                                <Button Canvas.Left="430" Canvas.Top="426" Width="233" Height="90" Style="{StaticResource CacpHotspotStyle}" Content="SMOKING&#x0a;ASSIGNMENTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Smoking assignments" />
-                                <Button Canvas.Left="688" Canvas.Top="427" Width="217" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="SYSTEM&#x0a;MESSAGES" Command="{Binding ExecuteActionCommand}" CommandParameter="System messages" />
-                                <Button Canvas.Left="430" Canvas.Top="532" Width="233" Height="90" Style="{StaticResource CacpHotspotStyle}" Content="FUNCTION&#x0a;LOCKOUTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Function lockouts" />
-                                <Button Canvas.Left="687" Canvas.Top="535" Width="217" Height="89" Style="{StaticResource CacpHotspotStyle}" Content="CABIN STATUS" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin status" />
-                                <Button Canvas.Left="431" Canvas.Top="695" Width="210" Height="51" Style="{StaticResource CacpHotspotStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
-                                <Button Canvas.Left="659" Canvas.Top="696" Width="214" Height="51" Style="{StaticResource CacpHotspotStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
-                            </Canvas>
-                        </Grid>
-                    </Viewbox>
+                                <!-- BOARDING MUSIC -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Boarding Music}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel><TextBlock Text="BOARDING MUSIC" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="45,12,45,3"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="BOARDING MUSIC" Style="{StaticResource CacpLabelStyle}" Margin="0,3" /><TextBlock Text="VOLUME" Style="{StaticResource CacpLabelStyle}" Margin="0,3" /><TextBlock Text="SOURCE" Style="{StaticResource CacpLabelStyle}" Margin="0,3" /></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="{Binding BoardingMusicStatus, StringFormat=—  {0}}" Style="{StaticResource CacpValueStyle}" FontSize="15" Margin="0,3" /><TextBlock Text="{Binding BoardingMusicLevel, StringFormat=—  {0}}" Style="{StaticResource CacpValueStyle}" FontSize="15" Margin="0,3" /><TextBlock Text="{Binding SelectedBoardingProgram, StringFormat=—  PROGRAM {0}}" Style="{StaticResource CacpValueStyle}" FontSize="15" Margin="0,3" /></StackPanel></Grid>
+                                    <Grid Grid.Row="2" Margin="20,0"><Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpKeyStyle}" Content="MUSIC ON" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:On" /><Button Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="VOLUME UP" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:VolumeUp" /><Button Grid.Column="2" Style="{StaticResource CacpKeyStyle}" Content="PROGRAM 1" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:Program1" /><Button Grid.Row="1" Style="{StaticResource CacpKeyStyle}" Content="MUSIC OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:Off" /><Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="VOLUME DOWN" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:VolumeDown" /><Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CacpKeyStyle}" Content="PROGRAM 2" Command="{Binding ExecuteActionCommand}" CommandParameter="Music:Program2" /></Grid>
+                                    <Grid Grid.Row="3"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
+
+                                <!-- SPECIAL FUNCTIONS -->
+                                <Grid Style="{StaticResource CacpPageStyle}" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Special Functions}">
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><StackPanel><TextBlock Text="SPECIAL FUNCTIONS" Style="{StaticResource CacpTitleStyle}" /><Border Height="2" Background="#A8F2D9" /></StackPanel>
+                                    <Grid Grid.Row="1" Margin="16,8"><Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="1.15*" /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpKeyStyle}" Content="CABIN READY" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin ready" /><Button Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="CREW REST" Command="{Binding ExecuteActionCommand}" CommandParameter="Crew rest" /><Button Grid.Row="1" Style="{StaticResource CacpKeyStyle}" Content="SMOKING&#x0a;ASSIGNMENTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Smoking assignments" /><Button Grid.Row="1" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="SYSTEM&#x0a;MESSAGES" Command="{Binding ExecuteActionCommand}" CommandParameter="System messages" /><Button Grid.Row="2" Style="{StaticResource CacpKeyStyle}" Content="FUNCTION&#x0a;LOCKOUTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Function lockouts" /><Button Grid.Row="2" Grid.Column="1" Style="{StaticResource CacpKeyStyle}" Content="CABIN STATUS" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin status" /><Border Grid.Row="2" Grid.Column="2" BorderBrush="#A8F2D9" BorderThickness="1" Margin="10" Padding="8"><TextBlock Text="NO ACTIVE MESSAGES" Style="{StaticResource CacpLabelStyle}" Foreground="#A8F2D9" TextAlignment="Center" VerticalAlignment="Center" /></Border></Grid>
+                                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" /><Button Grid.Column="1" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" /></Grid>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                        <Grid Grid.Row="2" Margin="18,0"><TextBlock Text="BOEING 777" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" FontStyle="Italic" FontWeight="Bold" Foreground="#77766E" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"><Ellipse Width="8" Height="8" Fill="#55564F" Margin="0,0,6,0" /><Ellipse Width="8" Height="8" Fill="#30312D" Margin="0,0,18,0" /></StackPanel></Grid>
+                    </Grid>
                 </Border>
 
                 <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="14">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                         <StackPanel><TextBlock Text="Safety Video Test" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="British Airways first-release media source" Style="{StaticResource MutedTextStyle}" Margin="0,3,0,8" /></StackPanel>
-                        <Border Grid.Row="1" Height="148" Background="#020711" BorderBrush="#40526A" BorderThickness="1" CornerRadius="7" ClipToBounds="True">
-                            <Grid>
-                                <Image Source="{Binding SafetyVideoThumbnailUrl, Mode=OneWay}" Stretch="UniformToFill" Opacity="0.72" />
-                                <Border Background="#55000818" />
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Button Width="52" Height="52" Content="▶" FontSize="20" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding OpenSafetyVideoCommand}" ToolTip="Open the YouTube test preview" />
-                                    <TextBlock Text="{Binding SafetyVideoTitle}" Foreground="White" FontWeight="SemiBold" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Width="230" Margin="0,7,0,0" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
+                        <Border Grid.Row="1" Height="148" Background="#020711" BorderBrush="#40526A" BorderThickness="1" CornerRadius="7" ClipToBounds="True"><Grid><Image Source="{Binding SafetyVideoThumbnailUrl, Mode=OneWay}" Stretch="UniformToFill" Opacity="0.72" /><Border Background="#55000818" /><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><Button Width="52" Height="52" Content="▶" FontSize="20" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding OpenSafetyVideoCommand}" ToolTip="Open the YouTube test preview" /><TextBlock Text="{Binding SafetyVideoTitle}" Foreground="White" FontWeight="SemiBold" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Width="230" Margin="0,7,0,0" /></StackPanel></Grid></Border>
                         <StackPanel Grid.Row="2" Margin="0,6,0,3"><Button Style="{StaticResource PrimaryButtonStyle}" Content="Open YouTube Preview" Command="{Binding OpenSafetyVideoCommand}" /><TextBlock Text="{Binding SafetyVideoPreviewStatus}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" /></StackPanel>
                         <StackPanel Grid.Row="3"><Button Style="{StaticResource QueueButtonStyle}" Content="Stage safety video for aircraft" Command="{Binding QueueCommand}" CommandParameter="Safety demonstration video" /><Button Style="{StaticResource QueueButtonStyle}" Content="Stage boarding passenger address" Command="{Binding QueueCommand}" CommandParameter="Boarding passenger address" /></StackPanel>
                         <StackPanel Grid.Row="4" Margin="0,9,0,0"><Grid><TextBlock Text="BRIDGE QUEUE" Style="{StaticResource MutedTextStyle}" FontWeight="SemiBold" /><TextBlock Text="{Binding QueueDepth, StringFormat={}{0} staged}" HorizontalAlignment="Right" Foreground="#52B7FF" /></Grid><ListBox ItemsSource="{Binding ActivityQueue}" Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" Margin="0,4,0,0" /></StackPanel>
