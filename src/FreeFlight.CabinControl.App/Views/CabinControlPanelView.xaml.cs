@@ -89,4 +89,9 @@ public partial class CabinControlPanelView
     {
         _attachedViewModel?.StopSafetyVideoCommand.Execute(null);
     }
+
+    private void HandleLocalSafetyVideoFailed(object sender, System.Windows.ExceptionRoutedEventArgs e)
+    {
+        _attachedViewModel?.ReportSafetyVideoPlaybackFailure(e.ErrorException?.Message);
+    }
 }

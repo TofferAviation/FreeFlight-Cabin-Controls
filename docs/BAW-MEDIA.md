@@ -2,11 +2,11 @@
 
 The application has a stable private input slot for the British Airways safety video:
 
-`content-packs/private/british-airways/media/safety-video.mp4`
+`content-packs/private/british-airways/media/BA_Safety_Video.mp4`
 
 When that file exists, `dotnet build` and `dotnet publish` copy it into the application as:
 
-`content-packs/british-airways/media/safety-video.mp4`
+`content-packs/british-airways/media/BA_Safety_Video.mp4`
 
 The Cabin Area Control Panel detects the published file automatically and uses native offline playback in the lower-right preview. If it is absent, Start reports that the local MP4 is not installed; the application never opens or embeds YouTube.
 

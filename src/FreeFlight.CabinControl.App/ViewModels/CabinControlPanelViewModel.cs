@@ -33,7 +33,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private bool _displayPowerOn = true;
     private int _boardingMusicLevel;
     private int _selectedBoardingProgram = 1;
-    private string _safetyVideoPreviewStatus = "Local BA safety-video.mp4 is not installed";
+    private string _safetyVideoPreviewStatus = "Local BA_Safety_Video.mp4 is not installed";
     private bool _isSafetyVideoInProgress;
     private bool _hasLocalSafetyVideo;
     private bool _isUsingLocalSafetyVideo;
@@ -50,11 +50,11 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         _settingsStore = settingsStore;
         _boardingMusicLevel = Math.Clamp((int)Math.Round(settings.BoardingMusicVolume / 10d), 1, 10);
         SafetyVideoLocalFilePath = safetyVideoLocalFilePath ?? Path.Combine(
-            AppContext.BaseDirectory, "content-packs", "british-airways", "media", "safety-video.mp4");
+            AppContext.BaseDirectory, "content-packs", "british-airways", "media", "BA_Safety_Video.mp4");
         _hasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
         _safetyVideoPreviewStatus = _hasLocalSafetyVideo
             ? "Built-in British Airways safety video ready"
-            : "Local BA safety-video.mp4 is not installed";
+            : "Local BA_Safety_Video.mp4 is not installed";
         Status = status;
 
         SelectPanelCommand = new RelayCommand(SelectPanel);
@@ -569,7 +569,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         HasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
         if (!HasLocalSafetyVideo)
         {
-            SafetyVideoPreviewStatus = "Local BA safety-video.mp4 is not installed";
+            SafetyVideoPreviewStatus = "Local BA_Safety_Video.mp4 is not installed";
             LastAction = "Safety video could not start because the local MP4 is missing";
             return;
         }
@@ -596,8 +596,19 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         SafetyVideoLocalSource = null;
         SafetyVideoPreviewStatus = HasLocalSafetyVideo
             ? "Built-in British Airways safety video ready"
-            : "Local BA safety-video.mp4 is not installed";
+            : "Local BA_Safety_Video.mp4 is not installed";
         LastAction = "Stopped safety video test playback";
+    }
+
+    internal void ReportSafetyVideoPlaybackFailure(string? details)
+    {
+        IsSafetyVideoInProgress = false;
+        IsUsingLocalSafetyVideo = false;
+        SafetyVideoLocalSource = null;
+        SafetyVideoPreviewStatus = "BA_Safety_Video.mp4 could not be played";
+        LastAction = string.IsNullOrWhiteSpace(details)
+            ? "Local safety video playback failed"
+            : $"Local safety video playback failed: {details}";
     }
 
     private void MarkChanged() => SaveStatus = "Unsaved changes";

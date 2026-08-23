@@ -17,9 +17,9 @@
     <Resource Include="Assets\FreeFlightBrand.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
   </ItemGroup>
-  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\media\safety-video.mp4')">
-    <Content Include="..\..\content-packs\private\british-airways\media\safety-video.mp4">
-      <Link>content-packs\british-airways\media\safety-video.mp4</Link>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4')">
+    <Content Include="..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4">
+      <Link>content-packs\british-airways\media\BA_Safety_Video.mp4</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

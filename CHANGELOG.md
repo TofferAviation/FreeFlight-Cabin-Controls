@@ -15,7 +15,7 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Cabin Area Control Panel with a faithful CSCP-to-cabin-controls hierarchy, 15 coded FF777 operational screens, working page navigation, local control state, and a separate bridge-ready media queue.
 - Fully coded CACP rendering derived from the ten supplied FF777 references, with reference-locked instrument and LCD geometry, live WPF controls, a clean bezel-only presentation, and darker pressed-key feedback.
 - British Airways 2024 safety-video test preview with embedded corner playback, stop and external-browser controls, and future-aircraft staging using the configured source.
-- BA-first native offline video playback with an optional private `safety-video.mp4` input that is automatically copied into development and published builds when present.
+- BA-first native offline video playback with the private `BA_Safety_Video.mp4` input automatically copied into development and published builds when present.
 - Safety-video, passenger-address, display, boarding-music, lighting, temperature, chime, door, and service controls in preview mode.
 - ICAO-based airline-logo resolution with BAW and NOZ starter assets and an offline letter fallback.
 - Metallic CABIN CONTROL sidebar treatment matched to the FreeFlight brand mark.

@@ -38,14 +38,23 @@ internal static class Program
         }
 
         var settingsPath = Path.Combine(outputDirectory, "visual-check-settings.json");
-        var localSafetyVideoPath = Path.Combine(outputDirectory, "safety-video.mp4");
-        File.WriteAllBytes(localSafetyVideoPath, []);
+        var localSafetyVideoPath = args.Length > 1
+            ? Path.GetFullPath(args[1])
+            : Path.Combine(outputDirectory, "BA_Safety_Video.mp4");
+        if (args.Length > 1)
+        {
+            VerifyLocalVideoCanOpen(localSafetyVideoPath);
+        }
+        else
+        {
+            File.WriteAllBytes(localSafetyVideoPath, []);
+        }
 
         var missingMediaViewModel = new CabinControlPanelViewModel(
             new AppSettings(),
             new JsonSettingsStore(Path.Combine(outputDirectory, "missing-media-settings.json")),
             new SharedStatusViewModel(),
-            Path.Combine(outputDirectory, "missing-safety-video.mp4"));
+            Path.Combine(outputDirectory, "missing-BA_Safety_Video.mp4"));
         missingMediaViewModel.StartSafetyVideoCommand.Execute(null);
         if (missingMediaViewModel.IsSafetyVideoInProgress || missingMediaViewModel.QueueDepth != 0 ||
             !missingMediaViewModel.SafetyVideoPreviewStatus.Contains("not installed", StringComparison.Ordinal))
@@ -251,6 +260,56 @@ internal static class Program
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path);
         encoder.Save(stream);
+    }
+
+    private static void VerifyLocalVideoCanOpen(string path)
+    {
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException("The requested local safety-video test file was not found.", path);
+        }
+
+        var opened = false;
+        string? failure = null;
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        var timeout = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(10)
+        };
+        var player = new MediaPlayer { Volume = 0 };
+        player.MediaOpened += (_, _) =>
+        {
+            opened = player.NaturalVideoWidth > 0 && player.NaturalVideoHeight > 0;
+            if (!opened)
+            {
+                failure = "Windows opened the file but did not detect a video stream.";
+            }
+
+            frame.Continue = false;
+        };
+        player.MediaFailed += (_, eventArgs) =>
+        {
+            failure = eventArgs.ErrorException?.Message ?? "Windows media playback rejected the file.";
+            frame.Continue = false;
+        };
+        timeout.Tick += (_, _) =>
+        {
+            failure = "Timed out while Windows opened the local MP4.";
+            frame.Continue = false;
+        };
+
+        player.Open(new Uri(path, UriKind.Absolute));
+        timeout.Start();
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+        timeout.Stop();
+        player.Close();
+
+        if (!opened)
+        {
+            throw new InvalidOperationException($"Local safety-video playback validation failed: {failure}");
+        }
+
+        Console.WriteLine($"Validated local MP4 playback: {path}");
     }
 
     private static T? FindVisualChild<T>(DependencyObject parent, Predicate<T> predicate)
