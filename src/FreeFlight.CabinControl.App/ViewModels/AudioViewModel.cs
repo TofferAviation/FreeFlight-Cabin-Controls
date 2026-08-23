@@ -1,6 +1,9 @@
+using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Persistence;
 
@@ -10,16 +13,27 @@ public sealed class AudioViewModel : PageViewModel
 {
     private readonly AppSettings _settings;
     private readonly ISettingsStore _settingsStore;
+    private readonly IAudioOutputDeviceService _audioOutputDeviceService;
+    private bool _isRefreshingOutputDevices;
+    private AudioOutputDevice? _selectedOutputDevice;
+    private string _outputDeviceStatus = "Detecting Windows playback devices...";
     private string _saveStatus = "Changes are stored locally";
 
-    public AudioViewModel(AppSettings settings, ISettingsStore settingsStore, SharedStatusViewModel status)
+    public AudioViewModel(
+        AppSettings settings,
+        ISettingsStore settingsStore,
+        SharedStatusViewModel status,
+        IAudioOutputDeviceService? audioOutputDeviceService = null)
         : base("Audio Control", "Cabin soundscape and announcement management")
     {
         _settings = settings;
         _settingsStore = settingsStore;
+        _audioOutputDeviceService = audioOutputDeviceService ?? new AudioOutputDeviceService();
         Status = status;
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
         PreviewCommand = new RelayCommand(_ => ShowPreviewUnavailable());
+        RefreshOutputDevicesCommand = new RelayCommand(_ => RefreshOutputDevices());
+        RefreshOutputDevices();
     }
 
     public SharedStatusViewModel Status { get; }
@@ -28,10 +42,37 @@ public sealed class AudioViewModel : PageViewModel
 
     public ICommand PreviewCommand { get; }
 
+    public ICommand RefreshOutputDevicesCommand { get; }
+
+    public ObservableCollection<AudioOutputDevice> OutputDevices { get; } = [];
+
     public IReadOnlyList<string> AudioProfiles { get; } =
         ["Balanced Cabin", "Quiet Cruise", "Immersive Cabin"];
 
-    public string OutputRoute => "X-Plane interior bus (bridge required)";
+    public AudioOutputDevice? SelectedOutputDevice
+    {
+        get => _selectedOutputDevice;
+        set
+        {
+            if (!SetProperty(ref _selectedOutputDevice, value) || value is null)
+            {
+                return;
+            }
+
+            _settings.AudioOutputDeviceId = value.Id;
+            _settings.AudioOutputDeviceName = value.Name;
+            if (!_isRefreshingOutputDevices)
+            {
+                SaveStatus = "Output selection changed; save the audio profile to keep it";
+            }
+        }
+    }
+
+    public string OutputDeviceStatus
+    {
+        get => _outputDeviceStatus;
+        private set => SetProperty(ref _outputDeviceStatus, value);
+    }
 
     public string NowPlaying => "No audio playing";
 
@@ -185,6 +226,39 @@ public sealed class AudioViewModel : PageViewModel
     {
         await _settingsStore.SaveAsync(_settings);
         SaveStatus = $"Audio profile saved at {DateTime.Now:t}";
+    }
+
+    private void RefreshOutputDevices()
+    {
+        _isRefreshingOutputDevices = true;
+        OutputDevices.Clear();
+        var systemDefault = new AudioOutputDevice(string.Empty, "System default (follows Windows)", false);
+        OutputDevices.Add(systemDefault);
+
+        try
+        {
+            var devices = _audioOutputDeviceService.GetActiveOutputDevices();
+            foreach (var device in devices)
+            {
+                OutputDevices.Add(device);
+            }
+
+            SelectedOutputDevice = OutputDevices.FirstOrDefault(device =>
+                string.Equals(device.Id, _settings.AudioOutputDeviceId, StringComparison.OrdinalIgnoreCase))
+                ?? systemDefault;
+            OutputDeviceStatus = devices.Count == 0
+                ? "No fixed endpoints found; following the Windows default"
+                : $"{devices.Count} active Windows playback device{(devices.Count == 1 ? string.Empty : "s")}";
+        }
+        catch (Exception exception) when (exception is COMException or InvalidCastException)
+        {
+            SelectedOutputDevice = systemDefault;
+            OutputDeviceStatus = "Following the Windows default; fixed endpoints unavailable";
+        }
+        finally
+        {
+            _isRefreshingOutputDevices = false;
+        }
     }
 
     private static void ShowPreviewUnavailable() => MessageBox.Show(

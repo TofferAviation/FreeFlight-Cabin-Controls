@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using FreeFlight.CabinControl.App.ViewModels;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Persistence;
 using CabinControlApplication = FreeFlight.CabinControl.App.App;
@@ -22,6 +23,16 @@ internal static class Program
 
         var application = new CabinControlApplication();
         application.InitializeComponent();
+
+        try
+        {
+            var playbackDevices = new AudioOutputDeviceService().GetActiveOutputDevices();
+            Console.WriteLine($"Detected {playbackDevices.Count} active Windows playback endpoints for the visual check.");
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"Windows playback endpoint enumeration unavailable in this session: {exception.Message}");
+        }
 
         var settingsPath = Path.Combine(outputDirectory, "visual-check-settings.json");
         var viewModel = new MainWindowViewModel(
@@ -43,7 +54,7 @@ internal static class Program
         window.Show();
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
-        foreach (var page in new[] { "Audio", "Performance", "Settings" })
+        foreach (var page in new[] { "Airliners", "Audio", "Performance", "Settings" })
         {
             viewModel.NavigateCommand.Execute(page);
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
@@ -52,7 +63,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered four visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered five visual checks to {outputDirectory}");
         return 0;
     }
 

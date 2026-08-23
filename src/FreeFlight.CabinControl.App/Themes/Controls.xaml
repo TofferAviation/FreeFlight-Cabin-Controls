@@ -4,6 +4,7 @@
     <infra:InverseBooleanConverter x:Key="InverseBooleanConverter" />
     <infra:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     <infra:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter" />
+    <infra:StringEqualsConverter x:Key="StringEqualsConverter" />
 
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />

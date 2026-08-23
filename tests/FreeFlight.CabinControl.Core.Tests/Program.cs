@@ -41,7 +41,20 @@ static async Task SettingsRoundTripAsync()
         {
             UserDisplayName = "Test User",
             MasterVolume = 63,
-            ActiveAirlinePackId = "test.airline"
+            AudioOutputDeviceId = "test-endpoint",
+            AudioOutputDeviceName = "Test speakers",
+            ActiveAirlinePackId = "test.airline",
+            ActiveAirlineId = "custom.tst",
+            CustomAirlineProfiles =
+            [
+                new CustomAirlineProfileSettings
+                {
+                    Id = "custom.tst",
+                    Name = "Test Virtual",
+                    Icao = "TST",
+                    SoundPackName = "Test pack"
+                }
+            ]
         };
 
         await store.SaveAsync(expected);
@@ -49,7 +62,10 @@ static async Task SettingsRoundTripAsync()
 
         AssertEqual("Test User", actual.UserDisplayName, "Display name was not persisted.");
         AssertEqual(63, actual.MasterVolume, "Master volume was not persisted.");
+        AssertEqual("test-endpoint", actual.AudioOutputDeviceId, "Audio endpoint id was not persisted.");
         AssertEqual("test.airline", actual.ActiveAirlinePackId, "Airline pack id was not persisted.");
+        AssertEqual("custom.tst", actual.ActiveAirlineId, "Active airline id was not persisted.");
+        AssertEqual("Test Virtual", actual.CustomAirlineProfiles.Single().Name, "Custom airline was not persisted.");
     }
     finally
     {

@@ -64,7 +64,7 @@
                                    Style="{StaticResource MutedTextStyle}" />
                     </StackPanel>
 
-                    <Viewbox Grid.Row="1" Stretch="Uniform" Margin="8,0">
+                    <Viewbox Grid.Row="1" Stretch="Uniform" Margin="8,0" Visibility="Collapsed">
                         <Canvas Width="1080" Height="150">
                             <Path Stroke="#EDF4FC" StrokeThickness="2.2" Fill="#140B1B2C"
                                   Data="M 18,76 C 48,30 105,19 166,17 L 963,17 C 1016,22 1050,42 1062,75 C 1050,108 1016,128 963,133 L 166,133 C 105,131 48,120 18,76 Z" />
@@ -145,7 +145,17 @@
                         </Canvas>
                     </Viewbox>
 
-                    <Grid Grid.Row="2" Margin="70,0">
+                    <Border Grid.Row="1" Grid.RowSpan="2" Margin="0,-2,0,0" ClipToBounds="True">
+                        <Border.Background>
+                            <ImageBrush ImageSource="pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png"
+                                        Viewbox="0,62,1033,192"
+                                        ViewboxUnits="Absolute"
+                                        Stretch="Uniform"
+                                        AlignmentY="Center" />
+                        </Border.Background>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="70,0" Visibility="Collapsed">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150" />
                             <ColumnDefinition Width="150" />

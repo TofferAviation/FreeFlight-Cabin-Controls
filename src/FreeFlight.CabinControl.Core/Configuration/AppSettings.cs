@@ -46,7 +46,15 @@ public sealed class AppSettings
 
     public string AudioProfile { get; set; } = "Balanced Cabin";
 
+    public string AudioOutputDeviceId { get; set; } = string.Empty;
+
+    public string AudioOutputDeviceName { get; set; } = "System default";
+
     public string ActiveAirlinePackId { get; set; } = DefaultAirlinePackId;
+
+    public string ActiveAirlineId { get; set; } = "freeflight.virtual";
+
+    public List<CustomAirlineProfileSettings> CustomAirlineProfiles { get; set; } = [];
 
     public string Theme { get; set; } = "FreeFlight Dark";
 

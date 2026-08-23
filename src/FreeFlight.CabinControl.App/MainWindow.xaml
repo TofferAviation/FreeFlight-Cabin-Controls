@@ -28,6 +28,9 @@
         <DataTemplate DataType="{x:Type viewModels:DashboardViewModel}">
             <views:DashboardView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:AirlinersViewModel}">
+            <views:AirlinersView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:AudioViewModel}">
             <views:AudioView />
         </DataTemplate>
@@ -61,54 +64,51 @@
                         <RowDefinition Height="54" />
                     </Grid.RowDefinitions>
 
-                    <Grid Margin="28,30,24,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="42" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Canvas Width="36" Height="44" VerticalAlignment="Top" Margin="0,3,0,0">
-                            <Polygon Points="2,37 12,37 25,13 16,13" Fill="#1781FF" />
-                            <Polygon Points="13,37 23,37 34,18 25,18" Fill="#1469DC" />
-                            <Polygon Points="22,18 29,18 36,5 29,5" Fill="#268EFF" />
-                        </Canvas>
-                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                            <TextBlock Text="FreeFlight"
-                                       FontFamily="Segoe UI Variable Display, Segoe UI"
-                                       FontSize="28"
-                                       FontWeight="Bold"
-                                       FontStyle="Italic"
-                                       Foreground="White" />
-                            <TextBlock Text="C A B I N   C O N T R O L"
-                                       Margin="1,3,0,0"
-                                       FontSize="11"
-                                       Foreground="{StaticResource TextSecondaryBrush}" />
-                        </StackPanel>
-                    </Grid>
+                    <StackPanel Margin="26,15,24,14">
+                        <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/FreeFlightBrand.png"
+                               Width="202"
+                               Height="93"
+                               Stretch="Uniform" />
+                        <TextBlock Text="C A B I N   C O N T R O L"
+                                   Margin="15,-4,0,0"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
 
                     <StackPanel Grid.Row="1" VerticalAlignment="Top" Margin="0,8,0,0">
                         <RadioButton Style="{StaticResource NavRadioStyle}"
                                      Content="Dashboard"
                                      Tag="&#xE80F;"
                                      GroupName="Navigation"
-                                     IsChecked="True"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dashboard, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Dashboard" />
+                        <RadioButton Style="{StaticResource NavRadioStyle}"
+                                     Content="Airliners"
+                                     Tag="&#xE709;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Airliners, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="Airliners" />
                         <RadioButton Style="{StaticResource NavRadioStyle}"
                                      Content="Audio"
                                      Tag="&#xE767;"
                                      GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Audio, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Audio" />
                         <RadioButton Style="{StaticResource NavRadioStyle}"
                                      Content="Performance"
                                      Tag="&#xE9D2;"
                                      GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Performance, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Performance" />
                         <RadioButton Style="{StaticResource NavRadioStyle}"
                                      Content="Settings"
                                      Tag="&#xE713;"
                                      GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Settings, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Settings" />
                     </StackPanel>

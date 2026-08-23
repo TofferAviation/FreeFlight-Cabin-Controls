@@ -6,7 +6,11 @@ FreeFlight Cabin Control is a Windows desktop application and planned X-Plane 12
 
 Version `0.1.0-dev` is the first application-shell milestone. It provides:
 
-- the approved Dashboard, Audio, Performance, and Settings navigation;
+- Dashboard, Airliners, Audio, Performance, and Settings navigation;
+- the detailed FlightFactor 777 v2 cabin-layout reference on the Dashboard;
+- a searchable local airline catalog with persistent selection and custom airline profiles;
+- a safe vAMSYS authorization entry point, pending an approved Pilot API client registration;
+- enumeration and persistent selection of active Windows playback endpoints;
 - honest disconnected/preview states until an X-Plane bridge exists;
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;
@@ -14,7 +18,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`;
 - no bundled third-party airline media.
 
-The X-Plane plugin, FlightFactor integration, audio playback, and in-aircraft screens are not implemented in this baseline.
+The X-Plane plugin, FlightFactor integration, audio playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline.
 
 ## Build
 

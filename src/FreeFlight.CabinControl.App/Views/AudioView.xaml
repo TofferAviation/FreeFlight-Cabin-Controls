@@ -40,11 +40,34 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="1.02*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="42" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="40" /><RowDefinition Height="52" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                         <TextBlock Text="Master Audio" Style="{StaticResource SectionTitleStyle}" />
                         <Grid Grid.Row="1">
-                            <TextBlock Text="Output Routing" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding OutputRoute}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" />
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="112" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="42" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="Output Device" Style="{StaticResource MutedTextStyle}" />
+                                <TextBlock Text="{Binding OutputDeviceStatus}" Foreground="{StaticResource TextMutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding OutputDevices}"
+                                      SelectedItem="{Binding SelectedOutputDevice}"
+                                      DisplayMemberPath="DisplayName"
+                                      ToolTip="Select the Windows playback device used by FreeFlight" />
+                            <Button Grid.Column="2"
+                                    Width="34"
+                                    Height="34"
+                                    MinHeight="0"
+                                    Margin="8,0,0,0"
+                                    Padding="0"
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    FontFamily="Segoe Fluent Icons"
+                                    Content="&#xE72C;"
+                                    Command="{Binding RefreshOutputDevicesCommand}"
+                                    ToolTip="Refresh Windows playback devices" />
                         </Grid>
                         <Grid Grid.Row="2">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="34" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /><ColumnDefinition Width="86" /></Grid.ColumnDefinitions>

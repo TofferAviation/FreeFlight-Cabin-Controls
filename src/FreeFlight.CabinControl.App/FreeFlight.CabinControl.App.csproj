@@ -12,4 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Assets\Ff777CabinLayout.png" />
+    <Resource Include="Assets\FreeFlightBrand.png" />
+  </ItemGroup>
 </Project>
