@@ -41,6 +41,9 @@ static async Task SettingsRoundTripAsync()
         {
             UserDisplayName = "Test User",
             MasterVolume = 63,
+            SeatbackDisplaysEnabled = false,
+            CabinLightingMode = "Night",
+            CabinTargetTemperatureC = 21.5,
             AudioOutputDeviceId = "test-endpoint",
             AudioOutputDeviceName = "Test speakers",
             ActiveAirlinePackId = "test.airline",
@@ -62,6 +65,9 @@ static async Task SettingsRoundTripAsync()
 
         AssertEqual("Test User", actual.UserDisplayName, "Display name was not persisted.");
         AssertEqual(63, actual.MasterVolume, "Master volume was not persisted.");
+        AssertEqual(false, actual.SeatbackDisplaysEnabled, "Display state was not persisted.");
+        AssertEqual("Night", actual.CabinLightingMode, "Cabin lighting mode was not persisted.");
+        AssertEqual(21.5, actual.CabinTargetTemperatureC, "Cabin temperature was not persisted.");
         AssertEqual("test-endpoint", actual.AudioOutputDeviceId, "Audio endpoint id was not persisted.");
         AssertEqual("test.airline", actual.ActiveAirlinePackId, "Airline pack id was not persisted.");
         AssertEqual("custom.tst", actual.ActiveAirlineId, "Active airline id was not persisted.");

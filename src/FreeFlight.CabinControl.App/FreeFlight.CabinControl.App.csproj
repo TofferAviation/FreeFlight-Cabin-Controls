@@ -15,5 +15,6 @@
   <ItemGroup>
     <Resource Include="Assets\Ff777CabinLayout.png" />
     <Resource Include="Assets\FreeFlightBrand.png" />
+    <Resource Include="Assets\AirlineLogos\*.png" />
   </ItemGroup>
 </Project>

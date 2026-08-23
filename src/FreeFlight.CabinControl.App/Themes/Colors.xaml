@@ -36,6 +36,13 @@
         <GradientStop Color="#1986FF" Offset="0" />
         <GradientStop Color="#0849C5" Offset="1" />
     </LinearGradientBrush>
+    <LinearGradientBrush x:Key="MetallicBrandTextBrush" StartPoint="0,0" EndPoint="1,0.35">
+        <GradientStop Color="#59B8FF" Offset="0" />
+        <GradientStop Color="#F5F8FC" Offset="0.33" />
+        <GradientStop Color="#F4B84D" Offset="0.52" />
+        <GradientStop Color="#FFFFFF" Offset="0.68" />
+        <GradientStop Color="#178CFF" Offset="1" />
+    </LinearGradientBrush>
     <RadialGradientBrush x:Key="AmbientGlowBrush" Center="0.72,0.78" GradientOrigin="0.72,0.78" RadiusX="0.65" RadiusY="0.65">
         <GradientStop Color="#16214D93" Offset="0" />
         <GradientStop Color="#00122040" Offset="0.42" />

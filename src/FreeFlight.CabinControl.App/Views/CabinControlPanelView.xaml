@@ -1,0 +1,219 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.CabinControlPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="820"
+             d:DesignWidth="1200">
+    <UserControl.Resources>
+        <LinearGradientBrush x:Key="CacpKeyBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#EDF1F4" Offset="0" />
+            <GradientStop Color="#AAB4C0" Offset="1" />
+        </LinearGradientBrush>
+        <Style x:Key="CacpMenuButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="7" />
+            <Setter Property="MinHeight" Value="62" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Background" Value="{StaticResource CacpKeyBrush}" />
+            <Setter Property="BorderBrush" Value="#F5F8FA" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Foreground" Value="#263241" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Key"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#030609" BlurRadius="3" ShadowDepth="3" Opacity="0.8" />
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Key" Property="Background" Value="#F8FBFD" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Key" Property="RenderTransform"><Setter.Value><TranslateTransform Y="2" /></Setter.Value></Setter></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PanelActionButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="14,5" />
+            <Setter Property="Margin" Value="0,5,0,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style x:Key="PanelLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="Foreground" Value="#B7FFE3" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="16" />
+                <RowDefinition Height="620" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="2" Background="#242422" BorderBrush="#52534F" BorderThickness="2" CornerRadius="18" Padding="20,16">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition Height="*" /><RowDefinition Height="32" /></Grid.RowDefinitions>
+                    <TextBlock Text="CABIN AREA CONTROL PANEL"
+                               HorizontalAlignment="Center"
+                               FontFamily="Segoe UI Variable Display, Segoe UI"
+                               FontWeight="SemiBold"
+                               FontSize="18"
+                               Foreground="#AAA79F" />
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.18*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="0.82*" /></Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0" Background="#172332" BorderBrush="#070A0F" BorderThickness="10" CornerRadius="8" Padding="14">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="52" /><RowDefinition Height="*" /><RowDefinition Height="34" /></Grid.RowDefinitions>
+                                <TextBlock Text="MAIN MENU"
+                                           FontFamily="Consolas"
+                                           FontSize="25"
+                                           FontWeight="Bold"
+                                           Foreground="#B7FFE3"
+                                           HorizontalAlignment="Center" />
+                                <Rectangle Height="2" Fill="#B7FFE3" VerticalAlignment="Bottom" />
+
+                                <Grid Grid.Row="1" Margin="0,6,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Row="0" Grid.Column="0" Content="LIGHTING&#x0a;CONTROL" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Lighting Control" />
+                                    <Button Grid.Row="0" Grid.Column="1" Content="SERVICE CALL /&#x0a;CHIME" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Service Call / Chime" />
+                                    <Button Grid.Row="1" Grid.Column="0" Content="CABIN&#x0a;TEMPERATURE" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Temperature" />
+                                    <Button Grid.Row="1" Grid.Column="1" Content="WATER / WASTE&#x0a;STATUS" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Water / Waste Status" />
+                                    <Button Grid.Row="2" Grid.Column="0" Content="PASSENGER&#x0a;ADDRESS" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Passenger Address" />
+                                    <Button Grid.Row="2" Grid.Column="1" Content="CABIN DOOR&#x0a;STATUS" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Door Status" />
+                                    <Button Grid.Row="3" Grid.Column="0" Content="DISPLAY&#x0a;CONTROLS" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Display Controls" />
+                                    <Button Grid.Row="3" Grid.Column="1" Content="BOARDING&#x0a;MUSIC" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Boarding Music" />
+                                    <Button Grid.Row="3" Grid.Column="2" Content="SPECIAL&#x0a;FUNCTIONS" Style="{StaticResource CacpMenuButtonStyle}" Command="{Binding SelectPanelCommand}" CommandParameter="Special Functions" />
+                                </Grid>
+
+                                <TextBlock Grid.Row="2" Text="777 CABIN SYSTEMS  •  APP PREVIEW" Style="{StaticResource PanelLabelStyle}" Foreground="#76998E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Column="2" Background="#172332" BorderBrush="#070A0F" BorderThickness="10" CornerRadius="8" Padding="16,13">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="44" /><RowDefinition Height="*" /><RowDefinition Height="116" /></Grid.RowDefinitions>
+                                <Grid>
+                                    <TextBlock Text="{Binding SelectedPanel}" FontFamily="Consolas" FontSize="19" FontWeight="Bold" Foreground="#B7FFE3" VerticalAlignment="Center" />
+                                    <TextBlock Text="SELECTED" Style="{StaticResource PanelLabelStyle}" Foreground="#76998E" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                </Grid>
+                                <Rectangle Height="2" Fill="#B7FFE3" VerticalAlignment="Bottom" />
+
+                                <Grid Grid.Row="1" Margin="0,12,0,8">
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Lighting Control}">
+                                        <TextBlock Text="CABIN LIGHTING SCENE" Style="{StaticResource PanelLabelStyle}" />
+                                        <ComboBox ItemsSource="{Binding LightingModes}" SelectedItem="{Binding CabinLightingMode}" Margin="0,8,0,0" />
+                                        <TextBlock Text="Lighting commands will be translated by the future FF777 bridge." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Service Call / Chime}">
+                                        <TextBlock Text="SERVICE CALLS" Style="{StaticResource PanelLabelStyle}" />
+                                        <Button Content="Play cabin chime" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin chime" />
+                                        <Button Content="Call all flight attendants" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding ExecuteActionCommand}" CommandParameter="All-attendant service call" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Cabin Temperature}">
+                                        <TextBlock Text="TARGET CABIN TEMPERATURE" Style="{StaticResource PanelLabelStyle}" />
+                                        <TextBlock Text="{Binding CabinTargetTemperatureC, StringFormat={}{0:F1} °C}" Foreground="#52B7FF" FontSize="28" Margin="0,10,0,0" />
+                                        <Slider Minimum="18" Maximum="27" Value="{Binding CabinTargetTemperatureC}" Margin="0,12,0,0" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Water / Waste Status}">
+                                        <TextBlock Text="PREVIEW VALUES — TELEMETRY OFFLINE" Style="{StaticResource PanelLabelStyle}" />
+                                        <TextBlock Text="Potable water  78%" Margin="0,14,0,4" /><ProgressBar Value="78" Height="11" />
+                                        <TextBlock Text="Waste tanks  24%" Margin="0,15,0,4" /><ProgressBar Value="24" Height="11" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passenger Address}">
+                                        <Grid Margin="0,0,0,4"><TextBlock Text="AUTOMATIC EVENT PLAYBACK" Style="{StaticResource PanelLabelStyle}" /><ToggleButton IsChecked="{Binding AutomaticAnnouncementsEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                        <Button Content="Queue safety demonstration video" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding QueueCommand}" CommandParameter="Safety demonstration video" />
+                                        <Button Content="Queue boarding announcement" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding QueueCommand}" CommandParameter="Boarding passenger announcement" />
+                                        <Button Content="Queue arrival announcement" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding QueueCommand}" CommandParameter="Arrival passenger announcement" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Cabin Door Status}">
+                                        <TextBlock Text="DOOR TELEMETRY OFFLINE" Style="{StaticResource PanelLabelStyle}" />
+                                        <UniformGrid Columns="2" Margin="0,12,0,0">
+                                            <TextBlock Text="1L  UNKNOWN" Foreground="{StaticResource WarningBrush}" Margin="0,5" /><TextBlock Text="1R  UNKNOWN" Foreground="{StaticResource WarningBrush}" Margin="0,5" />
+                                            <TextBlock Text="2L  UNKNOWN" Foreground="{StaticResource WarningBrush}" Margin="0,5" /><TextBlock Text="2R  UNKNOWN" Foreground="{StaticResource WarningBrush}" Margin="0,5" />
+                                            <TextBlock Text="4L  UNKNOWN" Foreground="{StaticResource WarningBrush}" Margin="0,5" /><TextBlock Text="4R  UNKNOWN" Foreground="{StaticResource WarningBrush}" Margin="0,5" />
+                                        </UniformGrid>
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Display Controls}">
+                                        <Grid Margin="0,0,0,4"><TextBlock Text="SEATBACK DISPLAYS" Style="{StaticResource PanelLabelStyle}" /><ToggleButton IsChecked="{Binding SeatbackDisplaysEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                        <Button Content="Broadcast safety video" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding QueueCommand}" CommandParameter="Safety video to all seatback displays" />
+                                        <Button Content="Return all displays to IFE" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding ExecuteActionCommand}" CommandParameter="Return displays to IFE" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Boarding Music}">
+                                        <Grid><TextBlock Text="BOARDING MUSIC" Style="{StaticResource PanelLabelStyle}" /><ToggleButton IsChecked="{Binding BoardingMusicEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                        <Slider Minimum="0" Maximum="100" Value="{Binding BoardingMusicVolume}" Margin="0,12,0,4" />
+                                        <TextBlock Text="{Binding BoardingMusicVolume, StringFormat=Volume: {0}%}" Foreground="#52B7FF" />
+                                        <Button Content="Queue configured boarding playlist" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding QueueCommand}" CommandParameter="Boarding music playlist" />
+                                    </StackPanel>
+
+                                    <StackPanel Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Special Functions}">
+                                        <TextBlock Text="SYSTEM FUNCTIONS" Style="{StaticResource PanelLabelStyle}" />
+                                        <Button Content="Clear cabin event queue" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding ClearQueueCommand}" />
+                                        <Button Content="Rescan aircraft bridge" Style="{StaticResource PanelActionButtonStyle}" Command="{Binding ExecuteActionCommand}" CommandParameter="Rescan aircraft bridge" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Border Grid.Row="2" Background="#101A27" BorderBrush="#34465B" BorderThickness="1" CornerRadius="5" Padding="11,8">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="20" /><RowDefinition Height="*" /><RowDefinition Height="30" /></Grid.RowDefinitions>
+                                        <Grid>
+                                            <TextBlock Text="CABIN EVENT QUEUE" Style="{StaticResource PanelLabelStyle}" FontSize="11" />
+                                            <TextBlock Text="{Binding QueueDepth, StringFormat=DEPTH {0}}" Foreground="#52B7FF" FontFamily="Consolas" HorizontalAlignment="Right" />
+                                        </Grid>
+                                        <TextBlock Grid.Row="1" Text="{Binding LastAction}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                        <Grid Grid.Row="2">
+                                            <TextBlock Text="{Binding SaveStatus}" Foreground="{StaticResource TextMutedBrush}" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <Button Content="Save" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding SaveCommand}" HorizontalAlignment="Right" MinHeight="26" Padding="12,3" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock Grid.Row="2" Text="BOEING 777 DEVELOPMENT PANEL  •  FUTURE AIRCRAFT PANELS WILL USE THIS HOST" HorizontalAlignment="Center" VerticalAlignment="Bottom" Foreground="#85837D" FontStyle="Italic" FontWeight="SemiBold" />
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

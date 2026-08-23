@@ -31,6 +31,9 @@
         <DataTemplate DataType="{x:Type viewModels:AirlinersViewModel}">
             <views:AirlinersView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type viewModels:CabinControlPanelViewModel}">
+            <views:CabinControlPanelView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type viewModels:AudioViewModel}">
             <views:AudioView />
         </DataTemplate>
@@ -70,9 +73,16 @@
                                Height="93"
                                Stretch="Uniform" />
                         <TextBlock Text="C A B I N   C O N T R O L"
-                                   Margin="15,-4,0,0"
-                                   FontSize="11"
-                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                                   Margin="12,-5,0,0"
+                                   FontFamily="Segoe UI Variable Display, Segoe UI"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   FontStyle="Italic"
+                                   Foreground="{StaticResource MetallicBrandTextBrush}">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#258DFF" BlurRadius="7" ShadowDepth="0" Opacity="0.42" />
+                            </TextBlock.Effect>
+                        </TextBlock>
                     </StackPanel>
 
                     <StackPanel Grid.Row="1" VerticalAlignment="Top" Margin="0,8,0,0">
@@ -90,6 +100,14 @@
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Airliners, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Airliners" />
+                        <RadioButton Style="{StaticResource NavRadioStyle}"
+                                     Content="Cabin Panel"
+                                     Tag="&#xE7F4;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=CabinPanel, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="CabinPanel"
+                                     ToolTip="Cabin Area Control Panel" />
                         <RadioButton Style="{StaticResource NavRadioStyle}"
                                      Content="Audio"
                                      Tag="&#xE767;"

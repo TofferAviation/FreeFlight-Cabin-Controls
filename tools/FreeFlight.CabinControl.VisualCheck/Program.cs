@@ -54,16 +54,36 @@ internal static class Program
         window.Show();
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
-        foreach (var page in new[] { "Airliners", "Audio", "Performance", "Settings" })
+        foreach (var page in new[] { "Airliners", "CabinPanel", "Audio", "Performance", "Settings" })
         {
             viewModel.NavigateCommand.Execute(page);
+            if (page == "Airliners")
+            {
+                var britishAirways = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "BAW");
+                var norwegian = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "NOZ");
+                if (!britishAirways.HasLogo || !norwegian.HasLogo)
+                {
+                    throw new InvalidOperationException("Expected BAW and NOZ ICAO logo mappings were not resolved.");
+                }
+
+                viewModel.Airliners.SelectAirlineCommand.Execute(britishAirways);
+            }
+            else if (page == "CabinPanel")
+            {
+                viewModel.CabinPanel.QueueCommand.Execute("Safety demonstration video");
+                if (viewModel.CabinPanel.QueueDepth != 1)
+                {
+                    throw new InvalidOperationException("Cabin panel event queue did not accept a safety video event.");
+                }
+            }
+
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             Render(window, Path.Combine(outputDirectory, $"{page.ToLowerInvariant()}.png"));
         }
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered five visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered six visual checks to {outputDirectory}");
         return 0;
     }
 

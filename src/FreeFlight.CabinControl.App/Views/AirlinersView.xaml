@@ -50,8 +50,28 @@
                             <ColumnDefinition Width="1.25*" />
                             <ColumnDefinition Width="0.62*" />
                         </Grid.ColumnDefinitions>
-                        <Border Width="82" Height="72" CornerRadius="9" HorizontalAlignment="Left" Background="#102E5C" BorderBrush="#2487FF" BorderThickness="1">
-                            <TextBlock Text="{Binding ActiveAirline.Icao}" FontSize="22" FontStyle="Italic" FontWeight="Bold" Foreground="#5BA9FF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border Width="92" Height="72" CornerRadius="9" HorizontalAlignment="Left" BorderBrush="#2487FF" BorderThickness="1">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="#EEF3FA" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ActiveAirline.HasLogo}" Value="False">
+                                            <Setter Property="Background" Value="#102E5C" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Image Source="{Binding ActiveAirline.LogoSource}" Margin="8" Stretch="Uniform" Visibility="{Binding ActiveAirline.HasLogo, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                <TextBlock Text="{Binding ActiveAirline.Icao}" FontSize="22" FontStyle="Italic" FontWeight="Bold" Foreground="#5BA9FF" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers><DataTrigger Binding="{Binding ActiveAirline.HasLogo}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="{Binding ActiveAirline.Name}" FontSize="22" FontWeight="SemiBold" />
@@ -132,8 +152,28 @@
                                         <Grid.RowDefinitions><RowDefinition Height="72" /><RowDefinition Height="1" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                                         <Grid>
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="64" /><ColumnDefinition Width="*" /><ColumnDefinition Width="64" /></Grid.ColumnDefinitions>
-                                            <Border Width="50" Height="58" CornerRadius="7" Background="#102E5C" BorderBrush="#2B87EE" BorderThickness="1" HorizontalAlignment="Left">
-                                                <TextBlock Text="{Binding Icao}" FontSize="13" FontWeight="SemiBold" Foreground="#5CAEFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <Border Width="56" Height="58" CornerRadius="7" BorderBrush="#2B87EE" BorderThickness="1" HorizontalAlignment="Left">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#EEF3FA" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasLogo}" Value="False">
+                                                                <Setter Property="Background" Value="#102E5C" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Image Source="{Binding LogoSource}" Margin="5" Stretch="Uniform" Visibility="{Binding HasLogo, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                    <TextBlock Text="{Binding Icao}" FontSize="13" FontWeight="SemiBold" Foreground="#5CAEFF" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                <Style.Triggers><DataTrigger Binding="{Binding HasLogo}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
                                             </Border>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

@@ -1,4 +1,5 @@
 using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
 
@@ -21,6 +22,10 @@ public sealed class AirlineProfileViewModel(
     public string Type { get; } = type;
 
     public string SoundPack { get; } = soundPack;
+
+    public string? LogoSource { get; } = AirlineLogoCatalog.Resolve(icao);
+
+    public bool HasLogo => LogoSource is not null;
 
     public bool IsInstalled { get; } = isInstalled;
 

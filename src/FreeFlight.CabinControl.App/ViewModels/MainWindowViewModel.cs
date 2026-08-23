@@ -15,6 +15,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Status = new SharedStatusViewModel();
         Dashboard = new DashboardViewModel(settings, Status);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
+        CabinPanel = new CabinControlPanelViewModel(settings, settingsStore, Status);
         Audio = new AudioViewModel(settings, settingsStore, Status);
         Performance = new PerformanceViewModel(settings, Status, logDirectory);
         Settings = new SettingsViewModel(settings, settingsStore, Status);
@@ -27,6 +28,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public DashboardViewModel Dashboard { get; }
 
     public AirlinersViewModel Airliners { get; }
+
+    public CabinControlPanelViewModel CabinPanel { get; }
 
     public AudioViewModel Audio { get; }
 
@@ -64,6 +67,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         CurrentPage = destination switch
         {
             "Airliners" => Airliners,
+            "CabinPanel" => CabinPanel,
             "Audio" => Audio,
             "Performance" => Performance,
             "Settings" => Settings,

@@ -98,6 +98,7 @@ public sealed class AirlinersViewModel : PageViewModel
         {
         new("freeflight.virtual", "FreeFlight Virtual", "FFV", "Virtual Airline", "FreeFlight Cabin Pack", true),
         new("british-airways", "British Airways", "BAW", "Real-world", "British Airways 777 pack", false),
+        new("norwegian", "Norwegian", "NOZ", "Real-world", "Norwegian Cabin Pack", false),
         new("nordic-air", "Nordic Air", "NDA", "Real-world", "Nordic Air Cabin Pack", false),
         new("british-atlantic", "British Atlantic", "BAT", "Real-world", "British Atlantic Pack", false),
         new("emirates-sky", "Emirates Sky", "EMS", "Real-world", "Emirates Sky Pack", false),

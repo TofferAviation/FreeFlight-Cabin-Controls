@@ -30,6 +30,8 @@ public sealed class AppSettings
 
     public bool AircraftEventsEnabled { get; set; } = true;
 
+    public bool SeatbackDisplaysEnabled { get; set; } = true;
+
     public int MasterVolume { get; set; } = 78;
 
     public int PassengerAmbienceVolume { get; set; } = 72;
@@ -45,6 +47,10 @@ public sealed class AppSettings
     public int AircraftEventsVolume { get; set; } = 70;
 
     public string AudioProfile { get; set; } = "Balanced Cabin";
+
+    public string CabinLightingMode { get; set; } = "Cruise";
+
+    public double CabinTargetTemperatureC { get; set; } = 22;
 
     public string AudioOutputDeviceId { get; set; } = string.Empty;
 
