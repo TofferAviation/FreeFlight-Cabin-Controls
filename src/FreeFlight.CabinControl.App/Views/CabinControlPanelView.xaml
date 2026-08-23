@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              mc:Ignorable="d" d:DesignHeight="820" d:DesignWidth="1200"
              TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
     <UserControl.Resources>
@@ -93,7 +94,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="14" /><ColumnDefinition Width="306" /></Grid.ColumnDefinitions>
 
                 <!-- Fixed reference geometry: 1040 x 812 panel with a 732 x 512 live LCD. -->
-                <Viewbox Grid.Column="0" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Viewbox x:Name="CacpPanelViewbox" Grid.Column="0" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Canvas Width="1040" Height="812">
                         <Border Canvas.Left="0" Canvas.Top="0" Width="1040" Height="812" Background="#090A09" BorderBrush="#50504B" BorderThickness="3" CornerRadius="29" />
                         <Border Canvas.Left="7" Canvas.Top="7" Width="1026" Height="798" Background="{StaticResource CacpBezelBrush}" BorderBrush="#181916" BorderThickness="3" CornerRadius="25" />
@@ -108,28 +109,43 @@
                         <Grid Canvas.Left="162" Canvas.Top="142" Width="716" Height="512" ClipToBounds="True" Background="{StaticResource CacpScreenBrush}">
                             <Grid.Effect><DropShadowEffect Color="#4B86A8" BlurRadius="10" ShadowDepth="0" Opacity="0.20" /></Grid.Effect>
 
-                            <!-- MAIN MENU -->
-                            <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Main Menu}">
-                                <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="MAIN MENU" Style="{StaticResource CacpTitleStyle}" />
+                            <!-- CSCP MAIN MENU -->
+                            <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=CSCP Main Menu}">
+                                <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="CSCP MAIN MENU" Style="{StaticResource CacpTitleStyle}" />
                                 <Border Canvas.Left="0" Canvas.Top="54" Width="716" Height="3" Background="#A6EBD8" />
-                                <Button Canvas.Left="31" Canvas.Top="78" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="LIGHTING&#x0a;CONTROL" Command="{Binding SelectPanelCommand}" CommandParameter="Lighting Control" />
-                                <Button Canvas.Left="260" Canvas.Top="78" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="SERVICE CALL /&#x0a;CHIME" Command="{Binding SelectPanelCommand}" CommandParameter="Service Call / Chime" />
-                                <Button Canvas.Left="31" Canvas.Top="184" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="CABIN&#x0a;TEMPERATURE" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Temperature" />
-                                <Button Canvas.Left="260" Canvas.Top="184" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="WATER / WASTE&#x0a;STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Water / Waste Status" />
-                                <Button Canvas.Left="31" Canvas.Top="290" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="PASSENGER&#x0a;ADDRESS" Command="{Binding SelectPanelCommand}" CommandParameter="Passenger Address" />
-                                <Button Canvas.Left="260" Canvas.Top="290" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="CABIN DOOR&#x0a;STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Door Status" />
-                                <Button Canvas.Left="31" Canvas.Top="396" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="DISPLAY&#x0a;CONTROLS" Command="{Binding SelectPanelCommand}" CommandParameter="Display Controls" />
-                                <Button Canvas.Left="260" Canvas.Top="396" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="BOARDING&#x0a;MUSIC" Command="{Binding SelectPanelCommand}" CommandParameter="Boarding Music" />
-                                <Button Canvas.Left="489" Canvas.Top="396" Width="211" Height="91" Style="{StaticResource CacpKeyStyle}" Content="SPECIAL&#x0a;FUNCTIONS" Command="{Binding SelectPanelCommand}" CommandParameter="Special Functions" />
+                                <Button Canvas.Left="51" Canvas.Top="226" Width="289" Height="69" Style="{StaticResource CacpKeyStyle}" Content="CABIN CONTROLS" Command="{Binding SelectPanelCommand}" CommandParameter="Main Menu" />
+                                <Button Canvas.Left="379" Canvas.Top="226" Width="289" Height="69" Style="{StaticResource CacpKeyStyle}" Content="CABIN MAINTENANCE" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin maintenance" />
+                                <Border Canvas.Left="0" Canvas.Top="444" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="47" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
+                                <Button Canvas.Left="399" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
+                            </Canvas>
+
+                            <!-- CABIN CONTROLS MAIN MENU -->
+                            <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Main Menu}">
+                                <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="CABIN CONTROLS MAIN MENU" Style="{StaticResource CacpTitleStyle}" FontSize="34" />
+                                <Border Canvas.Left="0" Canvas.Top="54" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="51" Canvas.Top="86" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="LIGHTING" Command="{Binding SelectPanelCommand}" CommandParameter="Lighting Control" />
+                                <Button Canvas.Left="379" Canvas.Top="86" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="SERVICE CALL / CHIME" Command="{Binding SelectPanelCommand}" CommandParameter="Service Call / Chime" />
+                                <Button Canvas.Left="51" Canvas.Top="158" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="CABIN TEMPERATURE" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Temperature" />
+                                <Button Canvas.Left="379" Canvas.Top="158" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="WATER / WASTE STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Water / Waste Status" />
+                                <Button Canvas.Left="51" Canvas.Top="229" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="PASSENGER ADDRESS" Command="{Binding SelectPanelCommand}" CommandParameter="Passenger Address" />
+                                <Button Canvas.Left="379" Canvas.Top="229" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="CABIN DOOR STATUS" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Door Status" />
+                                <Button Canvas.Left="51" Canvas.Top="300" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="DISPLAY CONTROLS" Command="{Binding SelectPanelCommand}" CommandParameter="Display Controls" />
+                                <Button Canvas.Left="379" Canvas.Top="300" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="BOARDING MUSIC" Command="{Binding SelectPanelCommand}" CommandParameter="Boarding Music" />
+                                <Button Canvas.Left="51" Canvas.Top="371" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="SPECIAL FUNCTIONS" Command="{Binding SelectPanelCommand}" CommandParameter="Special Functions" />
+                                <Button Canvas.Left="379" Canvas.Top="371" Width="289" Height="62" Style="{StaticResource CacpKeyStyle}" Content="PANEL OVERRIDE" Command="{Binding SelectPanelCommand}" CommandParameter="System Pop-up Windows" />
+                                <Border Canvas.Left="0" Canvas.Top="444" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="47" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
+                                <Button Canvas.Left="399" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
                             </Canvas>
 
                             <!-- LIGHTING CONTROL -->
                             <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Lighting Control}">
                                 <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="LIGHTING CONTROL" Style="{StaticResource CacpTitleStyle}" />
                                 <Border Canvas.Left="0" Canvas.Top="54" Width="716" Height="3" Background="#A6EBD8" />
-                                <Button Canvas.Left="32" Canvas.Top="78" Width="210" Height="91" Style="{StaticResource CacpKeyStyle}" Content="CABIN&#x0a;LIGHTING" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Cabin Lighting" />
-                                <Button Canvas.Left="258" Canvas.Top="78" Width="207" Height="91" Style="{StaticResource CacpKeyStyle}" Content="ENTRY WAY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Entry Way Lights" />
-                                <Button Canvas.Left="32" Canvas.Top="184" Width="210" Height="91" Style="{StaticResource CacpKeyStyle}" Content="READING&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Reading Lights" />
+                                <Button Canvas.Left="32" Canvas.Top="78" Width="210" Height="91" Style="{StaticResource CacpKeyStyle}" Content="CABIN&#x0a;LIGHTING" Command="{Binding SelectPanelCommand}" CommandParameter="Cabin Lighting" />
+                                <Button Canvas.Left="258" Canvas.Top="78" Width="207" Height="91" Style="{StaticResource CacpKeyStyle}" Content="ENTRY WAY&#x0a;LIGHTS" Command="{Binding SelectPanelCommand}" CommandParameter="Entry Way Lights" />
+                                <Button Canvas.Left="32" Canvas.Top="184" Width="210" Height="91" Style="{StaticResource CacpKeyStyle}" Content="READING&#x0a;LIGHTS" Command="{Binding SelectPanelCommand}" CommandParameter="Reading Lights" />
                                 <Button Canvas.Left="258" Canvas.Top="184" Width="207" Height="91" Style="{StaticResource CacpKeyStyle}" Content="GALLEY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Galley Lights" />
                                 <Button Canvas.Left="32" Canvas.Top="290" Width="210" Height="91" Style="{StaticResource CacpKeyStyle}" Content="LAVATORY&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Lavatory Lights" />
                                 <Button Canvas.Left="258" Canvas.Top="290" Width="207" Height="91" Style="{StaticResource CacpKeyStyle}" Content="WORK&#x0a;LIGHTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Lighting:Work Lights" />
@@ -143,6 +159,53 @@
                                 <Border Canvas.Left="8" Canvas.Top="412" Width="716" Height="3" Background="#A6EBD8" />
                                 <Button Canvas.Left="82" Canvas.Top="427" Width="251" Height="67" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
                                 <Button Canvas.Left="406" Canvas.Top="427" Width="262" Height="67" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
+                            </Canvas>
+
+                            <!-- CABIN LIGHTING -->
+                            <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Cabin Lighting}">
+                                <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="CABIN LIGHTING" Style="{StaticResource CacpTitleStyle}" />
+                                <Border Canvas.Left="0" Canvas.Top="54" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="51" Canvas.Top="108" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="AREA: ALL CABIN" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:All Cabin" />
+                                <Button Canvas.Left="379" Canvas.Top="108" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="SCENE: BOARDING" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:Boarding" />
+                                <Button Canvas.Left="51" Canvas.Top="185" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="HIGH" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:High" />
+                                <Button Canvas.Left="379" Canvas.Top="185" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="MEDIUM" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:Medium" />
+                                <Button Canvas.Left="51" Canvas.Top="262" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="LOW" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:Low" />
+                                <Button Canvas.Left="379" Canvas.Top="262" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:Off" />
+                                <Button Canvas.Left="51" Canvas.Top="339" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="HOLD SCENE" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:Hold Scene" />
+                                <Button Canvas.Left="379" Canvas.Top="339" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="RESUME SCENE" Command="{Binding ExecuteActionCommand}" CommandParameter="CabinLighting:Resume Scene" />
+                                <Border Canvas.Left="0" Canvas.Top="444" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="47" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
+                                <Button Canvas.Left="399" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
+                            </Canvas>
+
+                            <!-- ENTRY WAY LIGHTS -->
+                            <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Entry Way Lights}">
+                                <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="ENTRY WAY LIGHTS" Style="{StaticResource CacpTitleStyle}" />
+                                <Border Canvas.Left="0" Canvas.Top="54" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="51" Canvas.Top="148" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="AREA: FORWARD ENTRY" Command="{Binding ExecuteActionCommand}" CommandParameter="EntryLights:Forward" />
+                                <Button Canvas.Left="379" Canvas.Top="148" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="AREA: AFT ENTRY" Command="{Binding ExecuteActionCommand}" CommandParameter="EntryLights:Aft" />
+                                <Button Canvas.Left="51" Canvas.Top="225" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="ENTRY ON" Command="{Binding ExecuteActionCommand}" CommandParameter="EntryLights:On" />
+                                <Button Canvas.Left="379" Canvas.Top="225" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="ENTRY OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="EntryLights:Off" />
+                                <Button Canvas.Left="51" Canvas.Top="302" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="WORK ON" Command="{Binding ExecuteActionCommand}" CommandParameter="EntryLights:Work On" />
+                                <Button Canvas.Left="379" Canvas.Top="302" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="WORK OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="EntryLights:Work Off" />
+                                <Border Canvas.Left="0" Canvas.Top="444" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="47" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
+                                <Button Canvas.Left="399" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
+                            </Canvas>
+
+                            <!-- READING LIGHTS -->
+                            <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Reading Lights}">
+                                <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="READING LIGHTS" Style="{StaticResource CacpTitleStyle}" />
+                                <Border Canvas.Left="0" Canvas.Top="54" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="51" Canvas.Top="148" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="AREA: ALL CABIN" Command="{Binding ExecuteActionCommand}" CommandParameter="ReadingLights:All Cabin" />
+                                <Button Canvas.Left="379" Canvas.Top="148" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="AREA SELECTION" Command="{Binding ExecuteActionCommand}" CommandParameter="ReadingLights:Area Selection" />
+                                <Button Canvas.Left="51" Canvas.Top="225" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="READING LIGHTS ON" Command="{Binding ExecuteActionCommand}" CommandParameter="ReadingLights:On" />
+                                <Button Canvas.Left="379" Canvas.Top="225" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="READING LIGHTS OFF" Command="{Binding ExecuteActionCommand}" CommandParameter="ReadingLights:Off" />
+                                <Button Canvas.Left="51" Canvas.Top="302" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="RESET SELECTION" Command="{Binding ExecuteActionCommand}" CommandParameter="ReadingLights:Reset Selection" />
+                                <Button Canvas.Left="379" Canvas.Top="302" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="PANEL OVERRIDE" Command="{Binding SelectPanelCommand}" CommandParameter="System Pop-up Windows" />
+                                <Border Canvas.Left="0" Canvas.Top="444" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="47" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
+                                <Button Canvas.Left="399" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
                             </Canvas>
 
                             <!-- SERVICE CALL / CHIME -->
@@ -269,7 +332,11 @@
                                         <Border BorderBrush="#D7E4E8" BorderThickness="0,0,1,0" /><Border BorderBrush="#D7E4E8" BorderThickness="0,0,1,0" /><Border BorderBrush="#D7E4E8" BorderThickness="0,0,1,0" /><Border />
                                     </UniformGrid>
                                 </Grid>
-                                <Path Canvas.Left="399" Canvas.Top="272" Data="M 0,14 L 9,0 L 18,14 Z" Fill="#E7ECEE" />
+                                <Path Tag="BrightnessPointer" Canvas.Top="272" Data="M 0,14 L 9,0 L 18,14 Z" Fill="#E7ECEE">
+                                    <Canvas.Left>
+                                        <Binding Path="DisplayBrightness" Converter="{StaticResource PercentageToPositionConverter}" ConverterParameter="234,492" />
+                                    </Canvas.Left>
+                                </Path>
                                 <TextBlock Canvas.Left="224" Canvas.Top="326" Width="282" Height="40" Text="STATUS" Style="{StaticResource CacpLabelStyle}" FontSize="20" TextAlignment="Center" />
                                 <Border Canvas.Left="252" Canvas.Top="365" Width="226" Height="2" Background="#D9E4E7" />
                                 <TextBlock Canvas.Left="224" Canvas.Top="371" Width="282" Height="43" Text="{Binding DisplayStatus}" Style="{StaticResource CacpValueStyle}" FontSize="20" TextAlignment="Center" />
@@ -305,7 +372,7 @@
                                 <Button Canvas.Left="31" Canvas.Top="78" Width="236" Height="91" Style="{StaticResource CacpKeyStyle}" Content="CABIN READY" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin ready" />
                                 <Button Canvas.Left="291" Canvas.Top="78" Width="222" Height="91" Style="{StaticResource CacpKeyStyle}" Content="CREW REST" Command="{Binding ExecuteActionCommand}" CommandParameter="Crew rest" />
                                 <Button Canvas.Left="31" Canvas.Top="184" Width="236" Height="91" Style="{StaticResource CacpKeyStyle}" Content="SMOKING&#x0a;ASSIGNMENTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Smoking assignments" />
-                                <Button Canvas.Left="291" Canvas.Top="184" Width="222" Height="91" Style="{StaticResource CacpKeyStyle}" Content="SYSTEM&#x0a;MESSAGES" Command="{Binding ExecuteActionCommand}" CommandParameter="System messages" />
+                                <Button Canvas.Left="291" Canvas.Top="184" Width="222" Height="91" Style="{StaticResource CacpKeyStyle}" Content="SYSTEM&#x0a;MESSAGES" Command="{Binding SelectPanelCommand}" CommandParameter="System Pop-up Windows" />
                                 <Button Canvas.Left="31" Canvas.Top="290" Width="236" Height="91" Style="{StaticResource CacpKeyStyle}" Content="FUNCTION&#x0a;LOCKOUTS" Command="{Binding ExecuteActionCommand}" CommandParameter="Function lockouts" />
                                 <Button Canvas.Left="291" Canvas.Top="290" Width="222" Height="91" Style="{StaticResource CacpKeyStyle}" Content="CABIN STATUS" Command="{Binding ExecuteActionCommand}" CommandParameter="Cabin status" />
                                 <Border Canvas.Left="388" Canvas.Top="393" Width="300" Height="54" BorderBrush="#A6EBD8" BorderThickness="2">
@@ -313,6 +380,21 @@
                                 </Border>
                                 <Button Canvas.Left="32" Canvas.Top="452" Width="216" Height="56" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
                                 <Button Canvas.Left="262" Canvas.Top="452" Width="221" Height="56" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
+                            </Canvas>
+
+                            <!-- SYSTEM POP-UP WINDOWS -->
+                            <Canvas Width="716" Height="512" Visibility="{Binding SelectedPanel, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=System Pop-up Windows}">
+                                <TextBlock Canvas.Left="0" Canvas.Top="4" Width="716" Height="51" Text="SYSTEM POP-UP WINDOWS" Style="{StaticResource CacpTitleStyle}" FontSize="35" />
+                                <Border Canvas.Left="0" Canvas.Top="54" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="51" Canvas.Top="148" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="ALERT MESSAGES" Command="{Binding ExecuteActionCommand}" CommandParameter="SystemMessages:Alerts" />
+                                <Button Canvas.Left="379" Canvas.Top="148" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="FUNCTION LOCKOUT" Command="{Binding ExecuteActionCommand}" CommandParameter="SystemMessages:Function Lockout" />
+                                <Button Canvas.Left="51" Canvas.Top="225" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="ERROR MESSAGES" Command="{Binding ExecuteActionCommand}" CommandParameter="SystemMessages:Errors" />
+                                <Button Canvas.Left="379" Canvas.Top="225" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="CLEAR MESSAGE" Command="{Binding ExecuteActionCommand}" CommandParameter="SystemMessages:Clear" />
+                                <Button Canvas.Left="51" Canvas.Top="302" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="LAVATORY SMOKE" Command="{Binding ExecuteActionCommand}" CommandParameter="SystemMessages:Lavatory Smoke" />
+                                <Button Canvas.Left="379" Canvas.Top="302" Width="289" Height="68" Style="{StaticResource CacpKeyStyle}" Content="LOW POTABLE WATER" Command="{Binding ExecuteActionCommand}" CommandParameter="SystemMessages:Low Potable Water" />
+                                <Border Canvas.Left="0" Canvas.Top="444" Width="716" Height="3" Background="#A6EBD8" />
+                                <Button Canvas.Left="47" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="MAIN MENU" Command="{Binding MainMenuCommand}" />
+                                <Button Canvas.Left="399" Canvas.Top="455" Width="272" Height="47" Style="{StaticResource CacpNavStyle}" Content="PREVIOUS MENU" Command="{Binding PreviousMenuCommand}" />
                             </Canvas>
                         </Grid>
 
@@ -330,19 +412,53 @@
                     </Canvas>
                 </Viewbox>
 
+                <Border Grid.Column="0" Panel.ZIndex="10"
+                        Width="{Binding ActualWidth, ElementName=CacpPanelViewbox}"
+                        Height="{Binding ActualHeight, ElementName=CacpPanelViewbox}"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="#B3808080" CornerRadius="22"
+                        Visibility="{Binding IsSafetyVideoInProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border Width="56" Height="56" CornerRadius="28" Background="#CC20252B" Margin="0,0,0,15">
+                            <TextBlock Text="▶" Foreground="White" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4,0,0,0" />
+                        </Border>
+                        <TextBlock Text="Safety video in progress" Foreground="White" FontSize="28" FontWeight="SemiBold" />
+                        <TextBlock Text="Test playback is shown in the lower-right corner" Foreground="#F2FFFFFF" FontSize="14" HorizontalAlignment="Center" Margin="0,7,0,0" />
+                    </StackPanel>
+                </Border>
+
                 <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="14">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                         <StackPanel><TextBlock Text="Safety Video Test" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="British Airways first-release media source" Style="{StaticResource MutedTextStyle}" Margin="0,3,0,8" /></StackPanel>
                         <Border Grid.Row="1" Height="148" Background="#020711" BorderBrush="#40526A" BorderThickness="1" CornerRadius="7" ClipToBounds="True">
                             <Grid><Image Source="{Binding SafetyVideoThumbnailUrl, Mode=OneWay}" Stretch="UniformToFill" Opacity="0.72" /><Border Background="#55000818" />
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><Button Width="52" Height="52" Content="▶" FontSize="20" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding OpenSafetyVideoCommand}" ToolTip="Open the YouTube test preview" /><TextBlock Text="{Binding SafetyVideoTitle}" Foreground="White" FontWeight="SemiBold" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Width="230" Margin="0,7,0,0" /></StackPanel>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><Button Width="52" Height="52" Content="▶" FontSize="20" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding StartSafetyVideoCommand}" ToolTip="Start the in-app safety video test" /><TextBlock Text="{Binding SafetyVideoTitle}" Foreground="White" FontWeight="SemiBold" FontSize="12" TextAlignment="Center" TextWrapping="Wrap" Width="230" Margin="0,7,0,0" /></StackPanel>
                             </Grid>
                         </Border>
-                        <StackPanel Grid.Row="2" Margin="0,6,0,3"><Button Style="{StaticResource PrimaryButtonStyle}" Content="Open YouTube Preview" Command="{Binding OpenSafetyVideoCommand}" /><TextBlock Text="{Binding SafetyVideoPreviewStatus}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" /></StackPanel>
-                        <StackPanel Grid.Row="3"><Button Style="{StaticResource QueueButtonStyle}" Content="Stage safety video for aircraft" Command="{Binding QueueCommand}" CommandParameter="Safety demonstration video" /><Button Style="{StaticResource QueueButtonStyle}" Content="Stage boarding passenger address" Command="{Binding QueueCommand}" CommandParameter="Boarding passenger address" /></StackPanel>
+                        <StackPanel Grid.Row="2" Margin="0,6,0,3"><Button Style="{StaticResource PrimaryButtonStyle}" Content="Start Safety Video" Command="{Binding StartSafetyVideoCommand}" /><TextBlock Text="{Binding SafetyVideoPreviewStatus}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" /></StackPanel>
+                        <StackPanel Grid.Row="3"><Button Style="{StaticResource QueueButtonStyle}" Content="Stage boarding passenger address" Command="{Binding QueueCommand}" CommandParameter="Boarding passenger address" /></StackPanel>
                         <StackPanel Grid.Row="4" Margin="0,9,0,0"><Grid><TextBlock Text="BRIDGE QUEUE" Style="{StaticResource MutedTextStyle}" FontWeight="SemiBold" /><TextBlock Text="{Binding QueueDepth, StringFormat={}{0} staged}" HorizontalAlignment="Right" Foreground="#52B7FF" /></Grid><ListBox ItemsSource="{Binding ActivityQueue}" Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextPrimaryBrush}" FontSize="12" Margin="0,4,0,0" /></StackPanel>
                         <StackPanel Grid.Row="5"><TextBlock Text="{Binding LastAction}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,4,0,7" /><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><Button Style="{StaticResource SecondaryButtonStyle}" Content="Clear" Command="{Binding ClearQueueCommand}" Margin="0,0,5,0" /><Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Content="Save" Command="{Binding SaveCommand}" Margin="5,0,0,0" /></Grid></StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.ColumnSpan="3" Panel.ZIndex="30" Width="356" Height="236"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,12,12"
+                        Background="#F21A1E24" BorderBrush="#8996A5" BorderThickness="1"
+                        CornerRadius="8" Padding="8"
+                        Visibility="{Binding IsSafetyVideoInProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="36" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="Safety video test" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Open externally" Command="{Binding OpenSafetyVideoCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="9,3" Margin="0,0,6,0" />
+                            <Button Content="Stop" Command="{Binding StopSafetyVideoCommand}" Style="{StaticResource PrimaryButtonStyle}" Padding="12,3" />
+                        </StackPanel>
+                        <Border Grid.Row="1" Grid.ColumnSpan="2" Background="Black" BorderBrush="#344354" BorderThickness="1" CornerRadius="5" ClipToBounds="True">
+                            <wv2:WebView2 x:Name="SafetyVideoWebView" />
+                        </Border>
                     </Grid>
                 </Border>
             </Grid>

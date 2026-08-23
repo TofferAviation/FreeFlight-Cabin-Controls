@@ -85,6 +85,7 @@ internal static class Program
 
             if (page == "CabinPanel")
             {
+                viewModel.CabinPanel.SelectPanelCommand.Execute("Main Menu");
                 var displayControlsButton = FindVisualChild<Button>(
                     window,
                     button => Equals(button.CommandParameter, "Display Controls"));
@@ -104,7 +105,12 @@ internal static class Program
                 viewModel.CabinPanel.MainMenuCommand.Execute(null);
                 var panelPages = new[]
                 {
+                    (Name: "CSCP Main Menu", Slug: "cscp-main-menu"),
+                    (Name: "Main Menu", Slug: "cabin-controls-main-menu"),
                     (Name: "Lighting Control", Slug: "lighting"),
+                    (Name: "Cabin Lighting", Slug: "cabin-lighting"),
+                    (Name: "Entry Way Lights", Slug: "entry-way-lights"),
+                    (Name: "Reading Lights", Slug: "reading-lights"),
                     (Name: "Service Call / Chime", Slug: "service-call-chime"),
                     (Name: "Cabin Temperature", Slug: "temperature"),
                     (Name: "Water / Waste Status", Slug: "water-waste"),
@@ -112,7 +118,8 @@ internal static class Program
                     (Name: "Cabin Door Status", Slug: "door-status"),
                     (Name: "Display Controls", Slug: "display-controls"),
                     (Name: "Boarding Music", Slug: "boarding-music"),
-                    (Name: "Special Functions", Slug: "special-functions")
+                    (Name: "Special Functions", Slug: "special-functions"),
+                    (Name: "System Pop-up Windows", Slug: "system-pop-up-windows")
                 };
 
                 foreach (var panelPage in panelPages)
@@ -127,8 +134,24 @@ internal static class Program
                     Render(window, Path.Combine(outputDirectory, $"cabinpanel-{panelPage.Slug}.png"));
                 }
 
-                viewModel.CabinPanel.ExecuteActionCommand.Execute("PA:VolumeUp");
+                var brightnessPointer = FindVisualChild<System.Windows.Shapes.Path>(
+                    window,
+                    path => Equals(path.Tag, "BrightnessPointer"));
+                if (brightnessPointer is null)
+                {
+                    throw new InvalidOperationException("Could not resolve the Display Controls brightness pointer.");
+                }
+
+                var pointerAtSeventy = Canvas.GetLeft(brightnessPointer);
                 viewModel.CabinPanel.ExecuteActionCommand.Execute("Display:BrightnessDown");
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                var pointerAtSixty = Canvas.GetLeft(brightnessPointer);
+                if (double.IsNaN(pointerAtSeventy) || double.IsNaN(pointerAtSixty) || pointerAtSixty >= pointerAtSeventy)
+                {
+                    throw new InvalidOperationException("The Display Controls pointer did not follow the brightness value.");
+                }
+
+                viewModel.CabinPanel.ExecuteActionCommand.Execute("PA:VolumeUp");
                 viewModel.CabinPanel.ExecuteActionCommand.Execute("Music:Program2");
                 if (viewModel.CabinPanel.PaVolumeLevel != 6 ||
                     viewModel.CabinPanel.DisplayBrightness != 60 ||
@@ -138,16 +161,31 @@ internal static class Program
                 }
 
                 viewModel.CabinPanel.MainMenuCommand.Execute(null);
-                if (viewModel.CabinPanel.SelectedPanel != "Main Menu")
+                if (viewModel.CabinPanel.SelectedPanel != "CSCP Main Menu")
                 {
                     throw new InvalidOperationException("Cabin panel did not return to its main menu.");
+                }
+
+                viewModel.CabinPanel.StartSafetyVideoCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                if (!viewModel.CabinPanel.IsSafetyVideoInProgress ||
+                    !viewModel.CabinPanel.SafetyVideoEmbedSource.AbsoluteUri.Contains("youtube-nocookie.com", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The safety video test did not enter its in-progress state.");
+                }
+
+                Render(window, Path.Combine(outputDirectory, "cabinpanel-safety-video-in-progress.png"));
+                viewModel.CabinPanel.StopSafetyVideoCommand.Execute(null);
+                if (viewModel.CabinPanel.IsSafetyVideoInProgress)
+                {
+                    throw new InvalidOperationException("The safety video test did not leave its in-progress state.");
                 }
             }
         }
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 15 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 22 visual checks to {outputDirectory}");
         return 0;
     }
 

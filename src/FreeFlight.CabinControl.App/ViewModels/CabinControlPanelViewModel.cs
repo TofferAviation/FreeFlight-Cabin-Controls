@@ -11,8 +11,8 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 {
     private readonly AppSettings _settings;
     private readonly ISettingsStore _settingsStore;
-    private string _selectedPanel = "Main Menu";
-    private string _previousPanel = "Main Menu";
+    private string _selectedPanel = "CSCP Main Menu";
+    private string _previousPanel = "CSCP Main Menu";
     private string _lastAction = "Panel ready — aircraft bridge offline";
     private string _saveStatus = "Changes are stored locally";
     private int _queueDepth;
@@ -34,6 +34,8 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private int _boardingMusicLevel;
     private int _selectedBoardingProgram = 1;
     private string _safetyVideoPreviewStatus = "YouTube preview — aircraft playback awaits the X-Plane bridge";
+    private bool _isSafetyVideoInProgress;
+    private Uri _safetyVideoEmbedSource = new("about:blank", UriKind.Absolute);
 
     public CabinControlPanelViewModel(
         AppSettings settings,
@@ -51,6 +53,8 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         PreviousMenuCommand = new RelayCommand(_ => NavigateToPreviousMenu());
         ExecuteActionCommand = new RelayCommand(ExecuteAction);
         QueueCommand = new RelayCommand(QueueEvent);
+        StartSafetyVideoCommand = new RelayCommand(_ => StartSafetyVideo());
+        StopSafetyVideoCommand = new RelayCommand(_ => StopSafetyVideo());
         OpenSafetyVideoCommand = new RelayCommand(_ => OpenSafetyVideoPreview());
         ClearQueueCommand = new RelayCommand(_ => ClearQueue());
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
@@ -68,6 +72,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     public ICommand QueueCommand { get; }
 
+    public ICommand StartSafetyVideoCommand { get; }
+
+    public ICommand StopSafetyVideoCommand { get; }
+
     public ICommand OpenSafetyVideoCommand { get; }
 
     public ICommand ClearQueueCommand { get; }
@@ -81,6 +89,18 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     public string SafetyVideoThumbnailUrl => "https://i.ytimg.com/vi/ssVe0FaBhUU/hqdefault.jpg";
 
     public string SafetyVideoTitle => "British Airways Safety Video 2024";
+
+    public bool IsSafetyVideoInProgress
+    {
+        get => _isSafetyVideoInProgress;
+        private set => SetProperty(ref _isSafetyVideoInProgress, value);
+    }
+
+    public Uri SafetyVideoEmbedSource
+    {
+        get => _safetyVideoEmbedSource;
+        private set => SetProperty(ref _safetyVideoEmbedSource, value);
+    }
 
     public string SafetyVideoPreviewStatus
     {
@@ -347,13 +367,13 @@ public sealed class CabinControlPanelViewModel : PageViewModel
 
     private void NavigateToMainMenu()
     {
-        if (SelectedPanel == "Main Menu")
+        if (SelectedPanel == "CSCP Main Menu")
         {
             return;
         }
 
         PreviousPanel = SelectedPanel;
-        SelectedPanel = "Main Menu";
+        SelectedPanel = "CSCP Main Menu";
         LastAction = "Returned to main menu";
     }
 
@@ -361,7 +381,7 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     {
         var destination = PreviousPanel;
         PreviousPanel = SelectedPanel;
-        SelectedPanel = string.IsNullOrWhiteSpace(destination) ? "Main Menu" : destination;
+        SelectedPanel = string.IsNullOrWhiteSpace(destination) ? "CSCP Main Menu" : destination;
         LastAction = $"Returned to {SelectedPanel}";
     }
 
@@ -521,6 +541,37 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         ActivityQueue.Clear();
         QueueDepth = 0;
         LastAction = "Media and command queue cleared";
+    }
+
+    private void StartSafetyVideo()
+    {
+        if (IsSafetyVideoInProgress)
+        {
+            return;
+        }
+
+        QueueEvent("Safety demonstration video");
+        SafetyVideoEmbedSource = new Uri(
+            "https://www.youtube-nocookie.com/embed/ssVe0FaBhUU?autoplay=1&mute=1&controls=1&rel=0&playsinline=1",
+            UriKind.Absolute);
+        IsSafetyVideoInProgress = true;
+        SafetyVideoPreviewStatus = "Safety video in progress — in-app test playback is muted initially";
+        LastAction = Status.IsConnected
+            ? "Safety video started and queued for the aircraft bridge"
+            : "Safety video test started; aircraft playback remains staged locally";
+    }
+
+    private void StopSafetyVideo()
+    {
+        if (!IsSafetyVideoInProgress)
+        {
+            return;
+        }
+
+        IsSafetyVideoInProgress = false;
+        SafetyVideoEmbedSource = new Uri("about:blank", UriKind.Absolute);
+        SafetyVideoPreviewStatus = "Safety video test stopped — aircraft playback awaits the X-Plane bridge";
+        LastAction = "Stopped safety video test playback";
     }
 
     private void OpenSafetyVideoPreview()

@@ -5,6 +5,7 @@
     <infra:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     <infra:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter" />
     <infra:StringEqualsConverter x:Key="StringEqualsConverter" />
+    <infra:PercentageToPositionConverter x:Key="PercentageToPositionConverter" />
 
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
