@@ -81,41 +81,60 @@
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Dashboard" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
-                                     Content="Gate Desk"
-                                     Tag="&#xE716;"
-                                     GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=GateDesk, Mode=OneWay}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="GateDesk" />
-                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
-                                     Content="Passenger Manifest"
-                                     Tag="&#xE8A5;"
-                                     GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=PassengerManifest, Mode=OneWay}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="PassengerManifest" />
-                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
-                                     Content="Boarding Passes"
-                                     Tag="&#xE8C7;"
-                                     GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=BoardingPasses, Mode=OneWay}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="BoardingPasses" />
-                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
-                                     Content="Cabin"
-                                     Tag="&#xE7C8;"
-                                     GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Passengers, Mode=OneWay}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Passengers"
-                                     ToolTip="Live cabin and passenger flow" />
-                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Settings"
                                      Tag="&#xE713;"
                                      GroupName="Navigation"
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Settings, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Settings" />
+
+                        <TextBlock Text="GATE OPERATIONS" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="{Binding GateLogin.NavigationLabel}"
+                                     Tag="&#xE77B;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=GateLogin, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="GateLogin" />
+                        <StackPanel Visibility="{Binding GateLogin.IsAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                         Content="Gate Desk"
+                                         Tag="&#xE716;"
+                                         GroupName="Navigation"
+                                         Margin="22,1,8,1"
+                                         Padding="14,0"
+                                         IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=GateDesk, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="GateDesk" />
+                            <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                         Content="Passenger Manifest"
+                                         Tag="&#xE8A5;"
+                                         GroupName="Navigation"
+                                         Margin="22,1,8,1"
+                                         Padding="14,0"
+                                         IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=PassengerManifest, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="PassengerManifest" />
+                            <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                         Content="Boarding Passes"
+                                         Tag="&#xE8C7;"
+                                         GroupName="Navigation"
+                                         Margin="22,1,8,1"
+                                         Padding="14,0"
+                                         IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=BoardingPasses, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="BoardingPasses" />
+                            <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                         Content="Cabin"
+                                         Tag="&#xE7C8;"
+                                         GroupName="Navigation"
+                                         Margin="22,1,8,1"
+                                         Padding="14,0"
+                                         IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Passengers, Mode=OneWay}"
+                                         Command="{Binding NavigateCommand}"
+                                         CommandParameter="Passengers"
+                                         ToolTip="Live cabin and passenger flow" />
+                        </StackPanel>
 
                         <TextBlock Text="CABIN SYSTEMS" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
@@ -197,6 +216,8 @@
 
                 <!-- Keep page instances alive so long-running cabin media is not restarted by navigation. -->
                 <Grid Grid.Row="1" Margin="20,12,20,20">
+                    <views:GateLoginView DataContext="{Binding GateLogin}"
+                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=GateLogin}" />
                     <views:DashboardView DataContext="{Binding Dashboard}"
                                          Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Dashboard}" />
                     <views:AirlinersView DataContext="{Binding Airliners}"

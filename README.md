@@ -7,6 +7,7 @@ FreeFlight Cabin Control is a Windows desktop application and planned X-Plane 12
 Version `0.1.0-dev` is the first application-shell milestone. It provides:
 
 - operational Overview, Gate Desk, Passenger Manifest, Boarding Passes, Cabin, Settings, Airliners, Cabin Area Control Panel, Audio, and Diagnostics navigation;
+- a local dummy staff-login page with a live operations clock, station selector, non-persistent preview credentials, a signed-in session screen, and a locked Gate Operations navigation group that reveals Gate Desk, Passenger Manifest, Boarding Passes, and Cabin only after sign-in;
 - a shared gate-operations model: opening and closing the gate, checking in a passenger, loading baggage, printing a preview boarding pass, and boarding from the Gate Desk all update the same manifest and live cabin state;
 - a coded British Airways-style thermal boarding-pass preview with monochrome coupon typography, a perforated passenger stub, unique stacked barcode, booking reference, ticket number, sequence number, seat, group, and class-correct First, Club World, World Traveller Plus, or World Traveller label for every fictional passenger;
 - a searchable operational manifest with live check-in, boarding, baggage, and assistance states plus a private detail pane for the selected fictional passenger;

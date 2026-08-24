@@ -16,6 +16,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private readonly AppSettings _settings;
     private readonly PassengerFlowViewModel _passengers;
     private readonly IOperationsClock _operationsClock;
+    private readonly Func<bool> _hasGateAccess;
     private readonly DispatcherTimer _clockTimer;
     private readonly Dictionary<int, GatePassengerViewModel> _passengersById = [];
     private GatePassengerViewModel? _selectedPassenger;
@@ -28,12 +29,14 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public GateOperationsViewModel(
         AppSettings settings,
         PassengerFlowViewModel passengers,
-        IOperationsClock operationsClock)
+        IOperationsClock operationsClock,
+        Func<bool>? hasGateAccess = null)
         : base("Overview", "Gate preparation, boarding readiness, and live passenger operations")
     {
         _settings = settings;
         _passengers = passengers;
         _operationsClock = operationsClock;
+        _hasGateAccess = hasGateAccess ?? (() => true);
         CabinFilters = ["All Passengers", "First", "Club World", "World Traveller Plus", "World Traveller"];
         TimelineEvents =
         [
@@ -209,7 +212,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string GateStatusColor => IsGateOpen ? "#58E68A" : "#F0C64E";
     public string GateActionLabel => IsGateOpen ? "Close Gate" : "Open Gate";
     public string GateActionGlyph => IsGateOpen ? "\uE77A" : "\uE7C8";
-    public bool CanBoardPassengers => IsGateOpen && (!_gateHasClosed || _settings.ManualGateOverride);
+    public bool CanBoardPassengers => _hasGateAccess() && IsGateOpen && (!_gateHasClosed || _settings.ManualGateOverride);
     public string ReadinessGateStatus => IsGateOpen
         ? $"DEP {OriginIata} {GateNumber} open · ARR {DestinationIata} {ArrivalGateNumber}"
         : $"DEP {OriginIata} {GateNumber} → ARR {DestinationIata} {ArrivalGateNumber}";
@@ -289,6 +292,15 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         RefreshTimelineEvents();
     }
 
+    public void ApplyGateAccessState()
+    {
+        OnPropertyChanged(nameof(CanBoardPassengers));
+        if (!_hasGateAccess())
+        {
+            OperationMessage = "Gate workspace locked. Sign in through Gate Login to continue operations.";
+        }
+    }
+
     public void Dispose()
     {
         _clockTimer.Stop();
@@ -300,6 +312,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void ToggleGate()
     {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
         if (IsGateOpen)
         {
             IsGateOpen = false;
@@ -323,6 +340,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void StartManageBoarding()
     {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
         if (!CanBoardPassengers)
         {
             OperationMessage = _gateHasClosed && _settings.PreventBoardingAfterGateClose
@@ -354,6 +376,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void CheckInPassenger(object? parameter)
     {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
         if (ResolvePassenger(parameter) is not { } passenger)
         {
             return;
@@ -368,6 +395,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void BoardPassenger(object? parameter)
     {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
         if (ResolvePassenger(parameter) is not { } passenger)
         {
             return;
@@ -399,6 +431,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void ToggleBagLoaded(object? parameter)
     {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
         if (ResolvePassenger(parameter) is not { } passenger || passenger.CheckedBags == 0)
         {
             return;
@@ -411,6 +448,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void PrintBoardingPass(object? parameter)
     {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
         if (ResolvePassenger(parameter) is not { } passenger)
         {
             return;
@@ -425,6 +467,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void MarkBoardingPassIssued(object? parameter)
     {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
         if (ResolvePassenger(parameter) is not { } passenger)
         {
             return;
@@ -443,6 +490,17 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     }
 
     private void HandleImportError(Exception exception) => OperationMessage = exception.Message;
+
+    private bool RequireGateAccess()
+    {
+        if (_hasGateAccess())
+        {
+            return true;
+        }
+
+        OperationMessage = "Gate workspace locked. Sign in through Gate Login to continue operations.";
+        return false;
+    }
 
     private GatePassengerViewModel? ResolvePassenger(object? parameter) => parameter switch
     {

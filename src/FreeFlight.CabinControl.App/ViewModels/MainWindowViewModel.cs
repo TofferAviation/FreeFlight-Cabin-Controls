@@ -25,9 +25,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _settings = settings;
         var resolvedOperationsClock = operationsClock ?? new LocalOperationsClock();
         Status = new SharedStatusViewModel();
+        GateLogin = new GateLoginViewModel(settings, resolvedOperationsClock);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
-        Operations = new GateOperationsViewModel(settings, Passengers, resolvedOperationsClock);
+        Operations = new GateOperationsViewModel(settings, Passengers, resolvedOperationsClock, () => GateLogin.IsAuthenticated);
         Dashboard = Operations;
         CabinPanel = new CabinControlPanelViewModel(
             settings,
@@ -40,9 +41,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Settings = new SettingsViewModel(settings, settingsStore, Status);
         _currentPage = Dashboard;
         NavigateCommand = new RelayCommand(Navigate);
+        GateLogin.SignedIn += HandleGateSignedIn;
+        GateLogin.SignedOut += HandleGateSignedOut;
     }
 
     public SharedStatusViewModel Status { get; }
+
+    public GateLoginViewModel GateLogin { get; }
 
     public GateOperationsViewModel Operations { get; }
 
@@ -76,6 +81,9 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        GateLogin.SignedIn -= HandleGateSignedIn;
+        GateLogin.SignedOut -= HandleGateSignedOut;
+        GateLogin.Dispose();
         Audio.Dispose();
         Operations.Dispose();
         Passengers.Dispose();
@@ -87,6 +95,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     {
         if (parameter is not string destination)
         {
+            return;
+        }
+
+        if (IsGateWorkspacePage(destination) && !GateLogin.IsAuthenticated)
+        {
+            CurrentPage = GateLogin;
+            ActivePage = "GateLogin";
             return;
         }
 
@@ -103,6 +118,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         CurrentPage = destination switch
         {
+            "GateLogin" => GateLogin,
             "GateDesk" => Operations,
             "PassengerManifest" => Operations,
             "BoardingPasses" => Operations,
@@ -116,4 +132,20 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         };
         ActivePage = destination;
     }
+
+    private void HandleGateSignedIn(object? sender, EventArgs e)
+    {
+        Operations.ApplyGateAccessState();
+        Navigate("GateDesk");
+    }
+
+    private void HandleGateSignedOut(object? sender, EventArgs e)
+    {
+        Operations.ApplyGateAccessState();
+        CurrentPage = GateLogin;
+        ActivePage = "GateLogin";
+    }
+
+    private static bool IsGateWorkspacePage(string destination) => destination is
+        "GateDesk" or "PassengerManifest" or "BoardingPasses" or "Passengers";
 }

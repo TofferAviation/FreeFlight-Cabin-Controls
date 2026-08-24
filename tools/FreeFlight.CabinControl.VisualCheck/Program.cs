@@ -131,6 +131,30 @@ internal static class Program
 
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
+        viewModel.NavigateCommand.Execute("GateDesk");
+        viewModel.Operations.ToggleGateCommand.Execute(null);
+        if (viewModel.ActivePage != "GateLogin" ||
+            viewModel.CurrentPage != viewModel.GateLogin ||
+            viewModel.GateLogin.IsAuthenticated ||
+            viewModel.Operations.IsGateOpen)
+        {
+            throw new InvalidOperationException("The signed-out gate workspace was not locked behind Gate Login.");
+        }
+
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+        Render(window, Path.Combine(outputDirectory, "gate-login.png"));
+        viewModel.GateLogin.EmployeeId = "FF042";
+        viewModel.GateLogin.Password = "preview";
+        viewModel.GateLogin.SignInCommand.Execute(null);
+        if (!viewModel.GateLogin.IsAuthenticated || viewModel.ActivePage != "GateDesk")
+        {
+            throw new InvalidOperationException("The dummy gate login did not unlock the gate workspace.");
+        }
+
+        viewModel.NavigateCommand.Execute("GateLogin");
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+        Render(window, Path.Combine(outputDirectory, "gate-session.png"));
+
         foreach (var page in new[]
                  {
                      "GateDesk", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "CabinPanel",
