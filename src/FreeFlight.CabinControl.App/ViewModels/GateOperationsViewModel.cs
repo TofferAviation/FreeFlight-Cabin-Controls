@@ -168,6 +168,8 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string ReadinessGateStatus => IsGateOpen ? $"Gate {GateNumber} open for passengers" : $"Gate {GateNumber} assigned";
 
     public string ScheduledDeparture => NormalizeTime(_settings.ScheduledDepartureLocal, "18:30");
+    public string FlightDateShort => DateTime.Today.ToString("ddMMM", CultureInfo.InvariantCulture).ToUpperInvariant();
+    public string FlightDateLong => DateTime.Today.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
     public string GateOpensAt => OffsetDeparture(-60);
     public string BoardingBeginsAt => OffsetDeparture(-_settings.BoardingStartMinutesBeforeDeparture);
     public string FinalBoardingAt => OffsetDeparture(-_settings.FinalBoardingMinutesBeforeDeparture);
@@ -187,6 +189,8 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(GateNumber));
         OnPropertyChanged(nameof(GateHeader));
         OnPropertyChanged(nameof(ScheduledDeparture));
+        OnPropertyChanged(nameof(FlightDateShort));
+        OnPropertyChanged(nameof(FlightDateLong));
         OnPropertyChanged(nameof(GateOpensAt));
         OnPropertyChanged(nameof(BoardingBeginsAt));
         OnPropertyChanged(nameof(FinalBoardingAt));
@@ -527,6 +531,7 @@ public sealed class GatePassengerViewModel : ObservableObject
 {
     private readonly PassengerManifestEntryViewModel _source;
     private IReadOnlyList<TicketQrCell>? _qrCells;
+    private IReadOnlyList<TicketBarcodeCell>? _boardingBarcodeCells;
     private bool _isCheckedIn;
     private bool _isBagLoaded;
     private bool _isBoarded;
@@ -600,6 +605,8 @@ public sealed class GatePassengerViewModel : ObservableObject
     public string Phone { get; }
     public IReadOnlyList<TicketQrCell> QrCells => _qrCells ??=
         BuildQrCells($"{BookingReference}|{SeatNumber}|{TicketNumber}|{SequenceNumber}");
+    public IReadOnlyList<TicketBarcodeCell> BoardingBarcodeCells => _boardingBarcodeCells ??=
+        BuildBoardingBarcodeCells($"{BookingReference}|{SeatNumber}|{TicketNumber}|{SequenceNumber}");
 
     public bool IsCheckedIn
     {
@@ -712,6 +719,27 @@ public sealed class GatePassengerViewModel : ObservableObject
         return cells;
     }
 
+    private static IReadOnlyList<TicketBarcodeCell> BuildBoardingBarcodeCells(string value)
+    {
+        const int rows = 9;
+        const int columns = 58;
+        var seed = value.Aggregate(23, (current, character) => unchecked((current * 37) + character));
+        var random = new Random(seed);
+        var cells = new List<TicketBarcodeCell>(rows * columns);
+        for (var row = 0; row < rows; row++)
+        {
+            for (var column = 0; column < columns; column++)
+            {
+                var startGuard = column is 0 or 1 or 3;
+                var stopGuard = column is columns - 1 or columns - 2 or columns - 4;
+                var rowMarker = column == 5 + (row % 3) || column == columns - 7 - (row % 2);
+                cells.Add(new TicketBarcodeCell(startGuard || stopGuard || rowMarker || random.Next(100) < 43));
+            }
+        }
+
+        return cells;
+    }
+
     private static bool IsFinderCell(int row, int column, int startRow, int startColumn)
     {
         var localRow = row - startRow;
@@ -727,3 +755,5 @@ public sealed class GatePassengerViewModel : ObservableObject
 }
 
 public sealed record TicketQrCell(bool IsDark);
+
+public sealed record TicketBarcodeCell(bool IsDark);

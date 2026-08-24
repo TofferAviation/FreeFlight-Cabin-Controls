@@ -10,7 +10,7 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Dashboard, Audio, Performance, and Settings application shell.
 - New operational Overview, Gate Desk, Passenger Manifest, Boarding Passes, and gate-focused Settings pages based on one shared passenger and gate state rather than disconnected mock screens.
 - Gate opening/closing, passenger check-in, baggage state, preview printing, and single-passenger boarding controls; Gate Desk boarding places the selected passenger directly into their assigned live-cabin seat and prevents duplicate boarding.
-- Per-passenger British Airways-style boarding passes with unique fictional ticket data, deterministic QR patterns, booking references, sequence numbers, seats and groups, plus cabin-correct First, Club World, World Traveller Plus, and World Traveller branding.
+- Per-passenger British Airways-style thermal boarding passes with monochrome coupon typography, perforated passenger stubs, unique deterministic stacked barcodes, fictional ticket data, booking references, sequence numbers, seats and groups, plus cabin-correct First, Club World, World Traveller Plus, and World Traveller labels.
 - Searchable and filterable manifest views with live check-in, boarding, baggage, and assistance state plus selected-passenger operational details.
 - Persistent gate timing, route, generation seed, boarding-rule, preview-printer, sound-alert, and archive settings.
 - Airliners page with search, filters, persistent airline selection, and custom local profiles.

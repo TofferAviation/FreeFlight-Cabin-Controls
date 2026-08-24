@@ -172,7 +172,7 @@ internal static class Program
                 var firstPassenger = tickets.First(passenger => passenger.CabinMarketingName == "First");
                 var economyPassenger = tickets.First(passenger => passenger.CabinMarketingName == "World Traveller");
                 if (firstPassenger.CabinMarketingName == economyPassenger.CabinMarketingName ||
-                    firstPassenger.QrCells.SequenceEqual(economyPassenger.QrCells))
+                    firstPassenger.BoardingBarcodeCells.SequenceEqual(economyPassenger.BoardingBarcodeCells))
                 {
                     throw new InvalidOperationException("Passenger cabin branding or ticket QR data was not passenger-specific.");
                 }

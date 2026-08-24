@@ -8,7 +8,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 
 - operational Overview, Gate Desk, Passenger Manifest, Boarding Passes, Cabin, Settings, Airliners, Cabin Area Control Panel, Audio, and Diagnostics navigation;
 - a shared gate-operations model: opening and closing the gate, checking in a passenger, loading baggage, printing a preview boarding pass, and boarding from the Gate Desk all update the same manifest and live cabin state;
-- a coded British Airways-style boarding-pass preview with a unique booking reference, ticket number, sequence number, seat, group, deterministic QR pattern, and class-correct First, Club World, World Traveller Plus, or World Traveller label for every fictional passenger;
+- a coded British Airways-style thermal boarding-pass preview with monochrome coupon typography, a perforated passenger stub, unique stacked barcode, booking reference, ticket number, sequence number, seat, group, and class-correct First, Club World, World Traveller Plus, or World Traveller label for every fictional passenger;
 - a searchable operational manifest with live check-in, boarding, baggage, and assistance states plus a private detail pane for the selected fictional passenger;
 - a gate-focused Settings screen for SimBrief, automatic timing, boarding rules, deterministic passenger generation, preview printers, sound alerts, and flight defaults;
 - a functional flight-readiness Overview with timeline, passenger and baggage totals, cabin distribution, SimBrief import, and gate controls;
