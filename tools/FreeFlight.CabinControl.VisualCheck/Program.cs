@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using FreeFlight.CabinControl.App.ViewModels;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Operations;
 using FreeFlight.CabinControl.Core.Persistence;
 using CabinControlApplication = FreeFlight.CabinControl.App.App;
 using CabinControlWindow = FreeFlight.CabinControl.App.MainWindow;
@@ -92,13 +93,16 @@ internal static class Program
         }
 
         Console.WriteLine("Creating the application view model.");
+        var fixedClockTime = new DateTimeOffset(
+            new DateTime(2026, 8, 25, 17, 50, 0, DateTimeKind.Local));
         var viewModel = new MainWindowViewModel(
             new AppSettings(),
             new JsonSettingsStore(settingsPath),
             Path.Combine(outputDirectory, "logs"),
             localSafetyVideoPath,
             boardingMusicDirectory,
-            new FakeSimBriefClient());
+            new FakeSimBriefClient(),
+            new FixedOperationsClock(fixedClockTime));
         Console.WriteLine("Application view model created; constructing the window.");
         var window = new CabinControlWindow
         {
@@ -116,6 +120,15 @@ internal static class Program
         Console.WriteLine("Opening the application window for visual verification.");
         window.Show();
         Console.WriteLine("Application window opened; rendering Overview.");
+        if (viewModel.Operations.CurrentClockTime != "17:50:00" ||
+            viewModel.Operations.ClockSourceLabel != "LOCAL TIME" ||
+            viewModel.Operations.TurnaroundStartsAt != "17:30" ||
+            viewModel.Operations.GateOpensAt != "17:35" ||
+            viewModel.Operations.BoardingBeginsAt != "17:45")
+        {
+            throw new InvalidOperationException("The local operations clock or fallback turnaround schedule was not initialized correctly.");
+        }
+
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
         foreach (var page in new[]
@@ -425,6 +438,7 @@ internal static class Program
                 viewModel.Passengers.SyncSimBriefAsync().GetAwaiter().GetResult();
                 if (viewModel.Passengers.BookedPassengerCount != 302 ||
                     !viewModel.Passengers.SimBriefFlightSummary.Contains("BAW123", StringComparison.Ordinal) ||
+                    !viewModel.Passengers.SimBriefFlightSummary.Contains("18:30", StringComparison.Ordinal) ||
                     viewModel.Passengers.MappedPassengerCount != 302 ||
                     viewModel.Passengers.UnmappedPassengerCount != 0 ||
                     viewModel.Passengers.PassengerManifest.Count != 302 ||
@@ -434,6 +448,25 @@ internal static class Program
                 {
                     throw new InvalidOperationException("SimBrief OFP did not retain priority over the mapped cabin capacity.");
                 }
+
+                viewModel.Operations.RefreshOperationalClock();
+                var activeTimelineEvent = viewModel.Operations.TimelineEvents.Single(timelineEvent =>
+                    timelineEvent.State == FlightTimelineEventState.Current);
+                if (viewModel.Operations.ScheduleSourceLabel != "SIMBRIEF DEPARTURE" ||
+                    viewModel.Operations.ScheduledDeparture != "18:30" ||
+                    viewModel.Operations.TurnaroundStartsAt != "17:30" ||
+                    viewModel.Operations.GateOpensAt != "17:35" ||
+                    viewModel.Operations.BoardingBeginsAt != "17:45" ||
+                    viewModel.Operations.GateClosesAt != "18:28" ||
+                    activeTimelineEvent.Label != "Boarding")
+                {
+                    throw new InvalidOperationException("The SimBrief departure did not drive the live turnaround timeline.");
+                }
+
+                viewModel.NavigateCommand.Execute("Dashboard");
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "dashboard-simbrief-timeline.png"));
+                viewModel.NavigateCommand.Execute("Passengers");
 
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 Render(window, Path.Combine(outputDirectory, "passengers-simbrief-synced.png"));
@@ -1006,7 +1039,15 @@ internal static class Program
                 "BAW123",
                 "EGLL",
                 "KJFK",
+                new DateTimeOffset(new DateTime(2026, 8, 25, 18, 30, 0, DateTimeKind.Local)).ToUniversalTime(),
                 DateTimeOffset.UtcNow));
         }
+    }
+
+    private sealed class FixedOperationsClock(DateTimeOffset now) : IOperationsClock
+    {
+        public DateTimeOffset Now { get; } = now;
+
+        public string SourceLabel => "LOCAL TIME";
     }
 }

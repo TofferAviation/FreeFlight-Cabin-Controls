@@ -2,10 +2,13 @@ using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Content;
 using FreeFlight.CabinControl.Core.Persistence;
 using FreeFlight.CabinControl.Core.Passengers;
+using FreeFlight.CabinControl.Core.Operations;
 
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("Settings round-trip", SettingsRoundTripAsync),
+    ("Turnaround schedule calculates from departure", TurnaroundScheduleCalculatesFromDepartureAsync),
+    ("Turnaround schedule follows the operations clock", TurnaroundScheduleFollowsClockAsync),
     ("Valid airline pack", ValidAirlinePackAsync),
     ("Traversal asset rejected", TraversalAssetRejectedAsync),
     ("Executable asset rejected", ExecutableAssetRejectedAsync),
@@ -74,6 +77,7 @@ static async Task SettingsRoundTripAsync()
             GateDestinationIata = "LAX",
             GateNumber = "C65",
             ScheduledDepartureLocal = "14:25",
+            TurnaroundMinutes = 75,
             AutomaticGateTiming = false,
             BoardingStartMinutesBeforeDeparture = 60,
             FinalBoardingMinutesBeforeDeparture = 10,
@@ -122,6 +126,7 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("LAX", actual.GateDestinationIata, "Gate route was not persisted.");
         AssertEqual("C65", actual.GateNumber, "Gate number was not persisted.");
         AssertEqual("14:25", actual.ScheduledDepartureLocal, "Departure time was not persisted.");
+        AssertEqual(75, actual.TurnaroundMinutes, "Turnaround duration was not persisted.");
         AssertEqual(false, actual.AutomaticGateTiming, "Automatic gate timing was not persisted.");
         AssertEqual(60, actual.BoardingStartMinutesBeforeDeparture, "Boarding timing was not persisted.");
         AssertEqual(3, actual.GateCloseMinutesBeforeDeparture, "Gate close timing was not persisted.");
@@ -141,6 +146,34 @@ static async Task SettingsRoundTripAsync()
             Directory.Delete(directory, true);
         }
     }
+}
+
+static Task TurnaroundScheduleCalculatesFromDepartureAsync()
+{
+    var departure = new DateTimeOffset(2026, 8, 25, 0, 30, 0, TimeSpan.FromHours(2));
+    var schedule = FlightTurnaroundSchedule.Create(departure, 60, 45, 5, 2);
+
+    AssertEqual(departure.AddMinutes(-60), schedule.TurnaroundStart, "Turnaround did not begin one hour before departure.");
+    AssertEqual(departure.AddMinutes(-55), schedule.GateOpen, "Gate opening was not calculated from the boarding window.");
+    AssertEqual(departure.AddMinutes(-45), schedule.BoardingStart, "Boarding start was not calculated from departure.");
+    AssertEqual(departure.AddMinutes(-5), schedule.FinalBoarding, "Final boarding was not calculated from departure.");
+    AssertEqual(departure.AddMinutes(-2), schedule.GateClose, "Gate close was not calculated from departure.");
+    AssertEqual(new DateTimeOffset(2026, 8, 24, 23, 30, 0, TimeSpan.FromHours(2)), schedule.TurnaroundStart, "Midnight rollover was not preserved.");
+    return Task.CompletedTask;
+}
+
+static Task TurnaroundScheduleFollowsClockAsync()
+{
+    var departure = new DateTimeOffset(2026, 8, 25, 18, 30, 0, TimeSpan.FromHours(2));
+    var schedule = FlightTurnaroundSchedule.Create(departure, 60, 45, 5, 2);
+
+    AssertEqual(TurnaroundStage.AwaitingTurnaround, schedule.GetStage(departure.AddMinutes(-61)), "Early clock time selected the wrong stage.");
+    AssertEqual(TurnaroundStage.Turnaround, schedule.GetStage(departure.AddMinutes(-58)), "Turnaround stage did not activate.");
+    AssertEqual(TurnaroundStage.GateOpen, schedule.GetStage(departure.AddMinutes(-50)), "Gate-open stage did not activate.");
+    AssertEqual(TurnaroundStage.Boarding, schedule.GetStage(departure.AddMinutes(-30)), "Boarding stage did not activate.");
+    AssertEqual(TurnaroundStage.GateClosing, schedule.GetStage(departure.AddMinutes(-1)), "Gate-closing stage did not activate.");
+    AssertEqual(TurnaroundStage.Departure, schedule.GetStage(departure), "Departure stage did not activate.");
+    return Task.CompletedTask;
 }
 
 static Task ValidAirlinePackAsync()

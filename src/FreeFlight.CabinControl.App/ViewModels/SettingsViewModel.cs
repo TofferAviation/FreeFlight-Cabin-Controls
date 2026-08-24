@@ -56,6 +56,8 @@ public sealed class SettingsViewModel : PageViewModel
 
     public IReadOnlyList<int> BoardingStartOffsets { get; } = [60, 45, 30, 20];
 
+    public IReadOnlyList<int> TurnaroundDurations { get; } = [45, 60, 75, 90];
+
     public IReadOnlyList<int> FinalBoardingOffsets { get; } = [10, 5, 3];
 
     public IReadOnlyList<int> GateCloseOffsets { get; } = [5, 3, 2, 1];
@@ -217,6 +219,12 @@ public sealed class SettingsViewModel : PageViewModel
         set => SetSetting(value, current => _settings.AutomaticGateTiming = current);
     }
 
+    public int TurnaroundMinutes
+    {
+        get => _settings.TurnaroundMinutes;
+        set => SetSetting(value, current => _settings.TurnaroundMinutes = current);
+    }
+
     public int BoardingStartMinutesBeforeDeparture
     {
         get => _settings.BoardingStartMinutesBeforeDeparture;
@@ -363,6 +371,7 @@ public sealed class SettingsViewModel : PageViewModel
         GateDestinationIata = defaults.GateDestinationIata;
         GateNumber = defaults.GateNumber;
         ScheduledDepartureLocal = defaults.ScheduledDepartureLocal;
+        TurnaroundMinutes = defaults.TurnaroundMinutes;
         AutomaticGateTiming = defaults.AutomaticGateTiming;
         BoardingStartMinutesBeforeDeparture = defaults.BoardingStartMinutesBeforeDeparture;
         FinalBoardingMinutesBeforeDeparture = defaults.FinalBoardingMinutesBeforeDeparture;

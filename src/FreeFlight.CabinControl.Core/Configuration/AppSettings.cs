@@ -90,6 +90,8 @@ public sealed class AppSettings
 
     public string ScheduledDepartureLocal { get; set; } = "18:30";
 
+    public int TurnaroundMinutes { get; set; } = 60;
+
     public bool AutomaticGateTiming { get; set; } = true;
 
     public int BoardingStartMinutesBeforeDeparture { get; set; } = 45;

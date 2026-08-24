@@ -3,8 +3,10 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Operations;
 using FreeFlight.CabinControl.Core.Passengers;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
@@ -13,6 +15,8 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 {
     private readonly AppSettings _settings;
     private readonly PassengerFlowViewModel _passengers;
+    private readonly IOperationsClock _operationsClock;
+    private readonly DispatcherTimer _clockTimer;
     private readonly Dictionary<int, GatePassengerViewModel> _passengersById = [];
     private GatePassengerViewModel? _selectedPassenger;
     private string _searchText = string.Empty;
@@ -21,12 +25,25 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private bool _gateHasClosed;
     private string _operationMessage = "Flight and passenger data are ready for gate preparation.";
 
-    public GateOperationsViewModel(AppSettings settings, PassengerFlowViewModel passengers)
+    public GateOperationsViewModel(
+        AppSettings settings,
+        PassengerFlowViewModel passengers,
+        IOperationsClock operationsClock)
         : base("Overview", "Gate preparation, boarding readiness, and live passenger operations")
     {
         _settings = settings;
         _passengers = passengers;
+        _operationsClock = operationsClock;
         CabinFilters = ["All Passengers", "First", "Club World", "World Traveller Plus", "World Traveller"];
+        TimelineEvents =
+        [
+            new FlightTimelineEventViewModel("Flight Loaded", "\uE8F1"),
+            new FlightTimelineEventViewModel("Turnaround Start", "\uE823"),
+            new FlightTimelineEventViewModel("Gate Open", "\uE7C8"),
+            new FlightTimelineEventViewModel("Boarding", "\uE716"),
+            new FlightTimelineEventViewModel("Gate Closed", "\uE785"),
+            new FlightTimelineEventViewModel("Departure", "\uE709")
+        ];
         ToggleGateCommand = new RelayCommand(_ => ToggleGate());
         StartManageBoardingCommand = new RelayCommand(_ => StartManageBoarding());
         SelectPassengerCommand = new RelayCommand(SelectPassenger);
@@ -39,12 +56,20 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
         _passengers.PassengerManifest.CollectionChanged += HandleManifestCollectionChanged;
         _passengers.PropertyChanged += HandlePassengerFlowPropertyChanged;
+        _clockTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _clockTimer.Tick += HandleClockTick;
         RebuildPassengerRecords();
+        RefreshOperationalClock();
+        _clockTimer.Start();
     }
 
     public PassengerFlowViewModel PassengerFlow => _passengers;
     public ObservableCollection<GatePassengerViewModel> PassengerRecords { get; } = [];
     public ObservableCollection<GatePassengerViewModel> VisiblePassengers { get; } = [];
+    public ObservableCollection<FlightTimelineEventViewModel> TimelineEvents { get; }
     public IReadOnlyList<string> CabinFilters { get; }
     public ICommand ToggleGateCommand { get; }
     public ICommand StartManageBoardingCommand { get; }
@@ -167,13 +192,41 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public bool CanBoardPassengers => IsGateOpen && (!_gateHasClosed || _settings.ManualGateOverride);
     public string ReadinessGateStatus => IsGateOpen ? $"Gate {GateNumber} open for passengers" : $"Gate {GateNumber} assigned";
 
-    public string ScheduledDeparture => NormalizeTime(_settings.ScheduledDepartureLocal, "18:30");
-    public string FlightDateShort => DateTime.Today.ToString("ddMMM", CultureInfo.InvariantCulture).ToUpperInvariant();
-    public string FlightDateLong => DateTime.Today.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
-    public string GateOpensAt => OffsetDeparture(-60);
-    public string BoardingBeginsAt => OffsetDeparture(-_settings.BoardingStartMinutesBeforeDeparture);
-    public string FinalBoardingAt => OffsetDeparture(-_settings.FinalBoardingMinutesBeforeDeparture);
-    public string GateClosesAt => OffsetDeparture(-_settings.GateCloseMinutesBeforeDeparture);
+    public DateTimeOffset ScheduledDepartureMoment => ResolveScheduledDeparture();
+    public FlightTurnaroundSchedule TurnaroundSchedule => FlightTurnaroundSchedule.Create(
+        ScheduledDepartureMoment,
+        _settings.TurnaroundMinutes,
+        _settings.BoardingStartMinutesBeforeDeparture,
+        _settings.FinalBoardingMinutesBeforeDeparture,
+        _settings.GateCloseMinutesBeforeDeparture);
+    public string CurrentClockTime => _operationsClock.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+    public string CurrentClockDate => _operationsClock.Now.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
+    public string ClockSourceLabel => _operationsClock.SourceLabel;
+    public string ScheduleSourceLabel => IsSimBriefSynced ? "SIMBRIEF DEPARTURE" : "SETTINGS FALLBACK";
+    public string ScheduledDeparture => FormatTime(TurnaroundSchedule.Departure);
+    public string FlightDateShort => TurnaroundSchedule.Departure.ToString("ddMMM", CultureInfo.InvariantCulture).ToUpperInvariant();
+    public string FlightDateLong => TurnaroundSchedule.Departure.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
+    public string TurnaroundStartsAt => FormatTime(TurnaroundSchedule.TurnaroundStart);
+    public string GateOpensAt => FormatTime(TurnaroundSchedule.GateOpen);
+    public string BoardingBeginsAt => FormatTime(TurnaroundSchedule.BoardingStart);
+    public string FinalBoardingAt => FormatTime(TurnaroundSchedule.FinalBoarding);
+    public string GateClosesAt => FormatTime(TurnaroundSchedule.GateClose);
+    public string TurnaroundSummary => $"{_settings.TurnaroundMinutes} MIN TURNAROUND";
+    public string TimelinePhaseLabel => TurnaroundSchedule.GetStage(_operationsClock.Now) switch
+    {
+        TurnaroundStage.AwaitingTurnaround => "AWAITING TURNAROUND",
+        TurnaroundStage.Turnaround => "TURNAROUND IN PROGRESS",
+        TurnaroundStage.GateOpen => "GATE OPEN WINDOW",
+        TurnaroundStage.Boarding => "BOARDING WINDOW",
+        TurnaroundStage.GateClosing => "GATE CLOSING",
+        _ => "DEPARTURE DUE"
+    };
+    public string TimelinePhaseColor => TurnaroundSchedule.GetStage(_operationsClock.Now) switch
+    {
+        TurnaroundStage.Turnaround or TurnaroundStage.GateOpen or TurnaroundStage.Boarding => "#58E68A",
+        TurnaroundStage.GateClosing or TurnaroundStage.Departure => "#F0C64E",
+        _ => "#63B9FF"
+    };
 
     public int UnissuedBoardingPasses => PassengerRecords.Count(passenger => passenger.BoardingPassStatus == "Unissued");
     public int ReadyBoardingPasses => PassengerRecords.Count(passenger => passenger.BoardingPassStatus == "Ready to Print");
@@ -188,19 +241,29 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(RouteSummary));
         OnPropertyChanged(nameof(GateNumber));
         OnPropertyChanged(nameof(GateHeader));
+        OnPropertyChanged(nameof(ScheduledDepartureMoment));
+        OnPropertyChanged(nameof(TurnaroundSchedule));
         OnPropertyChanged(nameof(ScheduledDeparture));
         OnPropertyChanged(nameof(FlightDateShort));
         OnPropertyChanged(nameof(FlightDateLong));
+        OnPropertyChanged(nameof(TurnaroundStartsAt));
         OnPropertyChanged(nameof(GateOpensAt));
         OnPropertyChanged(nameof(BoardingBeginsAt));
         OnPropertyChanged(nameof(FinalBoardingAt));
         OnPropertyChanged(nameof(GateClosesAt));
+        OnPropertyChanged(nameof(TurnaroundSummary));
+        OnPropertyChanged(nameof(ScheduleSourceLabel));
+        OnPropertyChanged(nameof(TimelinePhaseLabel));
+        OnPropertyChanged(nameof(TimelinePhaseColor));
         OnPropertyChanged(nameof(CanBoardPassengers));
         OnPropertyChanged(nameof(ReadinessGateStatus));
+        RefreshTimelineEvents();
     }
 
     public void Dispose()
     {
+        _clockTimer.Stop();
+        _clockTimer.Tick -= HandleClockTick;
         _passengers.PassengerManifest.CollectionChanged -= HandleManifestCollectionChanged;
         _passengers.PropertyChanged -= HandlePassengerFlowPropertyChanged;
         GC.SuppressFinalize(this);
@@ -447,6 +510,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
                  nameof(PassengerFlowViewModel.ImportedFlightNumber) or
                  nameof(PassengerFlowViewModel.ImportedOrigin) or
                  nameof(PassengerFlowViewModel.ImportedDestination) or
+                 nameof(PassengerFlowViewModel.ImportedScheduledDepartureLocal) or
                  nameof(PassengerFlowViewModel.LastSimBriefSyncTime))
         {
             ApplySettings();
@@ -494,18 +558,78 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(ReprintBoardingPasses));
     }
 
-    private string OffsetDeparture(int minutes)
+    public void RefreshOperationalClock()
     {
-        var departure = TimeOnly.TryParse(ScheduledDeparture, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
-            ? parsed
-            : new TimeOnly(18, 30);
-        return departure.AddMinutes(minutes).ToString("HH:mm", CultureInfo.InvariantCulture);
+        OnPropertyChanged(nameof(CurrentClockTime));
+        OnPropertyChanged(nameof(CurrentClockDate));
+        OnPropertyChanged(nameof(ClockSourceLabel));
+        OnPropertyChanged(nameof(TimelinePhaseLabel));
+        OnPropertyChanged(nameof(TimelinePhaseColor));
+        RefreshTimelineEvents();
     }
 
-    private static string NormalizeTime(string value, string fallback) =>
-        TimeOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
-            ? parsed.ToString("HH:mm", CultureInfo.InvariantCulture)
-            : fallback;
+    private void HandleClockTick(object? sender, EventArgs e) => RefreshOperationalClock();
+
+    private void RefreshTimelineEvents()
+    {
+        var schedule = TurnaroundSchedule;
+        var stage = schedule.GetStage(_operationsClock.Now);
+        var activeIndex = stage switch
+        {
+            TurnaroundStage.AwaitingTurnaround or TurnaroundStage.Turnaround => 1,
+            TurnaroundStage.GateOpen => 2,
+            TurnaroundStage.Boarding => 3,
+            TurnaroundStage.GateClosing => 4,
+            _ => 5
+        };
+
+        TimelineEvents[0].Update(
+            SimBriefImportLabel,
+            IsSimBriefSynced
+                ? FlightTimelineEventState.Complete
+                : stage == TurnaroundStage.AwaitingTurnaround
+                    ? FlightTimelineEventState.Current
+                    : FlightTimelineEventState.Pending);
+        TimelineEvents[1].Update(FormatTime(schedule.TurnaroundStart), TimelineState(1, activeIndex));
+        TimelineEvents[2].Update(FormatTime(schedule.GateOpen), TimelineState(2, activeIndex));
+        TimelineEvents[3].Update(FormatTime(schedule.BoardingStart), TimelineState(3, activeIndex));
+        TimelineEvents[4].Update(FormatTime(schedule.GateClose), TimelineState(4, activeIndex));
+        TimelineEvents[5].Update(FormatTime(schedule.Departure), TimelineState(5, activeIndex));
+    }
+
+    private DateTimeOffset ResolveScheduledDeparture()
+    {
+        if (_passengers.ImportedScheduledDepartureLocal is { } importedDeparture)
+        {
+            return importedDeparture;
+        }
+
+        var fallback = TimeOnly.TryParse(
+            _settings.ScheduledDepartureLocal,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out var parsed)
+            ? parsed
+            : new TimeOnly(18, 30);
+        var current = _operationsClock.Now;
+        return new DateTimeOffset(
+            current.Year,
+            current.Month,
+            current.Day,
+            fallback.Hour,
+            fallback.Minute,
+            0,
+            current.Offset);
+    }
+
+    private static FlightTimelineEventState TimelineState(int index, int activeIndex) => index < activeIndex
+        ? FlightTimelineEventState.Complete
+        : index == activeIndex
+            ? FlightTimelineEventState.Current
+            : FlightTimelineEventState.Pending;
+
+    private static string FormatTime(DateTimeOffset value) =>
+        value.ToString("HH:mm", CultureInfo.InvariantCulture);
 
     private static int Percentage(int value, int total) => total <= 0 ? 0 : (int)Math.Round(value * 100d / total);
 
@@ -525,6 +649,81 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         "LGW" => "London Gatwick",
         _ => iata
     };
+}
+
+public enum FlightTimelineEventState
+{
+    Pending,
+    Current,
+    Complete
+}
+
+public sealed class FlightTimelineEventViewModel : ObservableObject
+{
+    private string _timeLabel = "--:--";
+    private FlightTimelineEventState _state;
+
+    public FlightTimelineEventViewModel(string label, string glyph)
+    {
+        Label = label;
+        Glyph = glyph;
+    }
+
+    public string Label { get; }
+    public string Glyph { get; }
+
+    public string TimeLabel
+    {
+        get => _timeLabel;
+        private set => SetProperty(ref _timeLabel, value);
+    }
+
+    public FlightTimelineEventState State
+    {
+        get => _state;
+        private set
+        {
+            if (!SetProperty(ref _state, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(DisplayGlyph));
+            OnPropertyChanged(nameof(MarkerBackground));
+            OnPropertyChanged(nameof(MarkerBorderBrush));
+            OnPropertyChanged(nameof(MarkerForeground));
+            OnPropertyChanged(nameof(MarkerBorderThickness));
+            OnPropertyChanged(nameof(TimeForeground));
+        }
+    }
+
+    public string DisplayGlyph => State == FlightTimelineEventState.Complete ? "\uE73E" : Glyph;
+    public string MarkerBackground => State switch
+    {
+        FlightTimelineEventState.Complete => "#245F2A",
+        FlightTimelineEventState.Current => "#16345A",
+        _ => "#26364D"
+    };
+    public string MarkerBorderBrush => State switch
+    {
+        FlightTimelineEventState.Complete => "#397842",
+        FlightTimelineEventState.Current => "#63B9FF",
+        _ => "#354961"
+    };
+    public string MarkerForeground => State switch
+    {
+        FlightTimelineEventState.Complete => "#70E05B",
+        FlightTimelineEventState.Current => "#8FC8FF",
+        _ => "#8DA0B8"
+    };
+    public double MarkerBorderThickness => State == FlightTimelineEventState.Current ? 2d : 1d;
+    public string TimeForeground => State == FlightTimelineEventState.Current ? "#FFFFFF" : "#8DA0B8";
+
+    public void Update(string timeLabel, FlightTimelineEventState state)
+    {
+        TimeLabel = timeLabel;
+        State = state;
+    }
 }
 
 public sealed class GatePassengerViewModel : ObservableObject

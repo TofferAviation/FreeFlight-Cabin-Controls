@@ -2,6 +2,7 @@ using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Operations;
 using FreeFlight.CabinControl.Core.Persistence;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
@@ -18,13 +19,15 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         string logDirectory,
         string? safetyVideoLocalFilePath = null,
         string? boardingMusicDirectory = null,
-        ISimBriefClient? simBriefClient = null)
+        ISimBriefClient? simBriefClient = null,
+        IOperationsClock? operationsClock = null)
     {
         _settings = settings;
+        var resolvedOperationsClock = operationsClock ?? new LocalOperationsClock();
         Status = new SharedStatusViewModel();
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
-        Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient);
-        Operations = new GateOperationsViewModel(settings, Passengers);
+        Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
+        Operations = new GateOperationsViewModel(settings, Passengers, resolvedOperationsClock);
         Dashboard = Operations;
         CabinPanel = new CabinControlPanelViewModel(
             settings,

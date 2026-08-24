@@ -9,6 +9,7 @@ public sealed record SimBriefFlightSummary(
     string FlightNumber,
     string Origin,
     string Destination,
+    DateTimeOffset? ScheduledDepartureUtc,
     DateTimeOffset? GeneratedAtUtc);
 
 public interface ISimBriefClient
@@ -63,6 +64,8 @@ public sealed class SimBriefClient : ISimBriefClient
             flightLabel,
             ReadString(root, "origin", "icao_code"),
             ReadString(root, "destination", "icao_code"),
+            ReadUnixTimestamp(root, "times", "est_out") ??
+            ReadUnixTimestamp(root, "times", "sched_out"),
             ReadUnixTimestamp(root, "params", "time_generated"));
     }
 

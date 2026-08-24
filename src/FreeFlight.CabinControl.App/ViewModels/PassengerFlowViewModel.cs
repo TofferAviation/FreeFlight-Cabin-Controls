@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows.Input;
 using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Operations;
 using FreeFlight.CabinControl.Core.Passengers;
 using FreeFlight.CabinControl.Core.Persistence;
 
@@ -14,6 +16,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private readonly AppSettings _settings;
     private readonly ISettingsStore? _settingsStore;
     private readonly ISimBriefClient _simBriefClient;
+    private readonly IOperationsClock _operationsClock;
     private PassengerBoardingEngine _engine;
     private readonly DispatcherTimer _animationTimer;
     private readonly Dictionary<int, PassengerMarkerViewModel> _markersByPassengerId = [];
@@ -34,19 +37,22 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private string _importedFlightNumber = string.Empty;
     private string _importedOrigin = string.Empty;
     private string _importedDestination = string.Empty;
-    private DateTime? _lastSimBriefSyncTime;
+    private DateTimeOffset? _importedScheduledDepartureLocal;
+    private DateTimeOffset? _lastSimBriefSyncTime;
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
 
     public PassengerFlowViewModel(
         AppSettings settings,
         SharedStatusViewModel status,
         ISettingsStore? settingsStore = null,
-        ISimBriefClient? simBriefClient = null)
+        ISimBriefClient? simBriefClient = null,
+        IOperationsClock? operationsClock = null)
         : base("Passenger Flow", "Simulator-free 777 boarding, deboarding and passenger manifest")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _simBriefClient = simBriefClient ?? new SimBriefClient();
+        _operationsClock = operationsClock ?? new LocalOperationsClock();
         _selectedCabinLayoutProfile = CabinLayoutProfileCatalog.Resolve(settings.PassengerCabinLayoutId);
         _settings.PassengerCabinLayoutId = _selectedCabinLayoutProfile.Id;
         _simBriefPilotId = settings.SimBriefPilotId;
@@ -343,7 +349,13 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         private set => SetProperty(ref _importedDestination, value);
     }
 
-    public DateTime? LastSimBriefSyncTime
+    public DateTimeOffset? ImportedScheduledDepartureLocal
+    {
+        get => _importedScheduledDepartureLocal;
+        private set => SetProperty(ref _importedScheduledDepartureLocal, value);
+    }
+
+    public DateTimeOffset? LastSimBriefSyncTime
     {
         get => _lastSimBriefSyncTime;
         private set
@@ -506,7 +518,13 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             ImportedFlightNumber = summary.FlightNumber;
             ImportedOrigin = summary.Origin;
             ImportedDestination = summary.Destination;
-            LastSimBriefSyncTime = DateTime.Now;
+            ImportedScheduledDepartureLocal = summary.ScheduledDepartureUtc?.ToLocalTime();
+            if (ImportedScheduledDepartureLocal is { } scheduledDeparture)
+            {
+                _settings.ScheduledDepartureLocal = scheduledDeparture.ToString("HH:mm", CultureInfo.InvariantCulture);
+            }
+
+            LastSimBriefSyncTime = _operationsClock.Now;
             ApplyBookedPassengerCount(passengerCount, simBriefPriority: true);
             _settings.SimBriefPilotId = SimBriefPilotId.Trim();
             SimBriefFlightSummary = BuildFlightSummary(summary);
@@ -858,7 +876,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         var route = string.IsNullOrWhiteSpace(summary.Origin) && string.IsNullOrWhiteSpace(summary.Destination)
             ? string.Empty
             : $"{summary.Origin} → {summary.Destination}";
-        return string.Join(" · ", new[] { summary.FlightNumber, route }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        var departure = summary.ScheduledDepartureUtc?.ToLocalTime().ToString("dd MMM · HH:mm", CultureInfo.InvariantCulture);
+        return string.Join(
+            " · ",
+            new[] { summary.FlightNumber, route, departure }.Where(part => !string.IsNullOrWhiteSpace(part)));
     }
 
     private void AddActivity(string message)
