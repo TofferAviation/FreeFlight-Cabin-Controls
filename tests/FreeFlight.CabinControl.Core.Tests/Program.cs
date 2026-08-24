@@ -16,7 +16,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Boarding waits for an open door", BoardingWaitsForDoorAsync),
     ("Passenger seat centres match the cabin layout", PassengerSeatCentresMatchLayoutAsync),
     ("Passenger seat occupation becomes secured", PassengerSeatOccupationBecomesSecuredAsync),
-    ("Passenger boarding completes", PassengerBoardingCompletesAsync)
+    ("Passenger boarding completes", PassengerBoardingCompletesAsync),
+    ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
+    ("Passenger deboarding completes", PassengerDeboardingCompletesAsync)
 };
 
 var failures = new List<string>();
@@ -59,6 +61,8 @@ static async Task SettingsRoundTripAsync()
             ActiveAirlineId = "custom.tst",
             PassengerPreviewBookedCount = 196,
             PassengerPreviewSpeed = 4d,
+            SimBriefPilotId = "123456",
+            SimBriefAutoSync = true,
             CustomAirlineProfiles =
             [
                 new CustomAirlineProfileSettings
@@ -84,6 +88,8 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("custom.tst", actual.ActiveAirlineId, "Active airline id was not persisted.");
         AssertEqual(196, actual.PassengerPreviewBookedCount, "Preview passenger count was not persisted.");
         AssertEqual(4d, actual.PassengerPreviewSpeed, "Preview boarding speed was not persisted.");
+        AssertEqual("123456", actual.SimBriefPilotId, "SimBrief Pilot ID was not persisted.");
+        AssertEqual(true, actual.SimBriefAutoSync, "SimBrief auto-sync preference was not persisted.");
         AssertEqual("Test Virtual", actual.CustomAirlineProfiles.Single().Name, "Custom airline was not persisted.");
     }
     finally
@@ -264,6 +270,54 @@ static Task PassengerSeatOccupationBecomesSecuredAsync()
     AssertEqual(PassengerMovementState.Seated, passenger.MovementState,
         "The passenger did not change from orange occupied to green secured.");
     AssertEqual(1, engine.BoardedCount, "The secured passenger was not included in the seated count.");
+    return Task.CompletedTask;
+}
+
+static Task PassengerProfilesAreCompleteAndUniqueAsync()
+{
+    var firstEngine = new PassengerBoardingEngine(80);
+    var secondEngine = new PassengerBoardingEngine(80);
+    Assert(firstEngine.Passengers.All(passenger =>
+            !string.IsNullOrWhiteSpace(passenger.Profile.FullName) &&
+            passenger.Profile.Age is >= 18 and <= 82 &&
+            !string.IsNullOrWhiteSpace(passenger.Profile.Nationality) &&
+            !string.IsNullOrWhiteSpace(passenger.Profile.BookingReference)),
+        "One or more passenger profiles were incomplete.");
+    AssertEqual(80, firstEngine.Passengers.Select(passenger => passenger.Profile.BookingReference).Distinct().Count(),
+        "Booking references were not unique within the manifest.");
+    Assert(firstEngine.Passengers.Zip(secondEngine.Passengers).All(pair =>
+            pair.First.Profile == pair.Second.Profile && pair.First.Seat == pair.Second.Seat),
+        "The same preview load did not generate a stable deterministic manifest.");
+    return Task.CompletedTask;
+}
+
+static Task PassengerDeboardingCompletesAsync()
+{
+    var engine = new PassengerBoardingEngine(36);
+    engine.SetDoorOpen(BoardingDoor.L1, true);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    Advance(engine, seconds: 30d, speed: 8d);
+    AssertEqual(BoardingRunState.Complete, engine.State, "Boarding did not complete before the deboarding test.");
+
+    engine.StartDeboarding();
+    AssertEqual(PassengerOperation.Deboarding, engine.Operation, "The passenger operation did not switch to deboarding.");
+    Advance(engine, seconds: 30d, speed: 8d);
+
+    AssertEqual(BoardingRunState.DeboardingComplete, engine.State, "The deboarding run did not complete.");
+    AssertEqual(36, engine.DeboardedCount, "The deboarded count did not match the manifest.");
+    AssertEqual(0, engine.BoardedCount, "Passengers remained counted as seated after deboarding.");
+    AssertEqual(0, engine.OnBoardCount, "Passengers remained onboard after deboarding.");
+    Assert(engine.Passengers.All(passenger => passenger.MovementState == PassengerMovementState.Deboarded),
+        "One or more passengers did not reach the deboarded state.");
+    Assert(engine.Passengers
+            .Where(passenger => passenger.Seat.CabinClass == PassengerCabinClass.First)
+            .All(passenger => passenger.Door == BoardingDoor.L1),
+        "A First passenger did not deboard through L1 with both doors open.");
+    Assert(engine.Passengers
+            .Where(passenger => passenger.Seat.CabinClass is PassengerCabinClass.Business or PassengerCabinClass.Economy)
+            .All(passenger => passenger.Door == BoardingDoor.L2),
+        "A Business or Economy passenger did not deboard through L2 with both doors open.");
     return Task.CompletedTask;
 }
 

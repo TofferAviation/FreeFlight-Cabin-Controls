@@ -9,9 +9,13 @@ public sealed class PassengerBoardingEngine
     private readonly List<BoardingPassenger> _activePassengers = [];
     private readonly List<BoardingPassenger> _occupyingPassengers = [];
     private readonly List<BoardingPassenger> _lastSeatedPassengers = [];
+    private readonly List<BoardingPassenger> _lastDeboardedPassengers = [];
+    private readonly List<BoardingPassenger> _deboardingQueue = [];
     private readonly HashSet<BoardingDoor> _openDoors = [];
     private int _nextPassengerIndex;
+    private int _nextDeboardingPassengerIndex;
     private int _boardedCount;
+    private int _deboardedCount;
     private double _spawnAccumulator;
 
     public PassengerBoardingEngine(int targetPassengerCount = 228)
@@ -24,6 +28,10 @@ public sealed class PassengerBoardingEngine
     public int TargetPassengerCount { get; private set; }
 
     public int BoardedCount => _boardedCount;
+
+    public int DeboardedCount => _deboardedCount;
+
+    public int OnBoardCount => Math.Max(0, TargetPassengerCount - DeboardedCount);
 
     public int WalkingCount => _activePassengers.Count;
 
@@ -41,11 +49,19 @@ public sealed class PassengerBoardingEngine
         ? 0d
         : BoardedCount / (double)TargetPassengerCount;
 
+    public double DeboardingProgress => TargetPassengerCount == 0
+        ? 0d
+        : DeboardedCount / (double)TargetPassengerCount;
+
     public BoardingRunState State { get; private set; } = BoardingRunState.Ready;
+
+    public PassengerOperation Operation { get; private set; } = PassengerOperation.Boarding;
 
     public IReadOnlyList<BoardingPassenger> Passengers => _passengers;
 
     public IReadOnlyList<BoardingPassenger> LastSeatedPassengers => _lastSeatedPassengers;
+
+    public IReadOnlyList<BoardingPassenger> LastDeboardedPassengers => _lastDeboardedPassengers;
 
     public IReadOnlyCollection<BoardingDoor> OpenDoors => _openDoors;
 
@@ -70,9 +86,11 @@ public sealed class PassengerBoardingEngine
 
         if (State == BoardingRunState.WaitingForDoor && _openDoors.Count > 0)
         {
-            State = BoardingRunState.Boarding;
+            State = Operation == PassengerOperation.Boarding
+                ? BoardingRunState.Boarding
+                : BoardingRunState.Deboarding;
         }
-        else if (State == BoardingRunState.Boarding && _openDoors.Count == 0)
+        else if ((State is BoardingRunState.Boarding or BoardingRunState.Deboarding) && _openDoors.Count == 0)
         {
             State = BoardingRunState.WaitingForDoor;
         }
@@ -80,19 +98,48 @@ public sealed class PassengerBoardingEngine
 
     public void Start()
     {
-        if (State == BoardingRunState.Complete)
+        if (State is BoardingRunState.Complete or BoardingRunState.DeboardingComplete)
         {
             return;
         }
 
         State = _openDoors.Count > 0
-            ? BoardingRunState.Boarding
+            ? Operation == PassengerOperation.Boarding
+                ? BoardingRunState.Boarding
+                : BoardingRunState.Deboarding
+            : BoardingRunState.WaitingForDoor;
+    }
+
+    public void StartDeboarding()
+    {
+        if (State != BoardingRunState.Complete)
+        {
+            return;
+        }
+
+        Operation = PassengerOperation.Deboarding;
+        _activePassengers.Clear();
+        _occupyingPassengers.Clear();
+        _deboardingQueue.Clear();
+        _deboardingQueue.AddRange(_passengers
+            .OrderBy(passenger => passenger.Seat.CabinClass == PassengerCabinClass.First ? 0 : 1)
+            .ThenBy(passenger => Math.Abs(
+                passenger.Seat.X - GetDoorEntryPoint(
+                    passenger.Seat.CabinClass == PassengerCabinClass.First
+                        ? BoardingDoor.L1
+                        : BoardingDoor.L2).X))
+            .ThenBy(passenger => passenger.BoardingGroup));
+        _nextDeboardingPassengerIndex = 0;
+        _deboardedCount = 0;
+        _spawnAccumulator = 0d;
+        State = _openDoors.Count > 0
+            ? BoardingRunState.Deboarding
             : BoardingRunState.WaitingForDoor;
     }
 
     public void Pause()
     {
-        if (State is BoardingRunState.Boarding or BoardingRunState.WaitingForDoor)
+        if (State is BoardingRunState.Boarding or BoardingRunState.Deboarding or BoardingRunState.WaitingForDoor)
         {
             State = BoardingRunState.Paused;
         }
@@ -106,12 +153,20 @@ public sealed class PassengerBoardingEngine
     public void Tick(TimeSpan elapsed, double speedMultiplier = 1d)
     {
         _lastSeatedPassengers.Clear();
-        if (State is BoardingRunState.Ready or BoardingRunState.Paused or BoardingRunState.Complete)
+        _lastDeboardedPassengers.Clear();
+        if (State is BoardingRunState.Ready or BoardingRunState.Paused or
+            BoardingRunState.Complete or BoardingRunState.DeboardingComplete)
         {
             return;
         }
 
         var scaledSeconds = Math.Clamp(elapsed.TotalSeconds, 0d, 1d) * Math.Clamp(speedMultiplier, 0.05d, 8d);
+        if (Operation == PassengerOperation.Deboarding)
+        {
+            TickDeboarding(scaledSeconds);
+            return;
+        }
+
         SecureOccupiedPassengers(scaledSeconds);
         MoveActivePassengers(scaledSeconds);
         if (_boardedCount >= TargetPassengerCount)
@@ -145,9 +200,14 @@ public sealed class PassengerBoardingEngine
         _activePassengers.Clear();
         _occupyingPassengers.Clear();
         _lastSeatedPassengers.Clear();
+        _lastDeboardedPassengers.Clear();
+        _deboardingQueue.Clear();
         _nextPassengerIndex = 0;
+        _nextDeboardingPassengerIndex = 0;
         _boardedCount = 0;
+        _deboardedCount = 0;
         _spawnAccumulator = 0d;
+        Operation = PassengerOperation.Boarding;
 
         var random = new Random(777_000 + TargetPassengerCount);
         var selectedSeats = _cabinSeats
@@ -166,7 +226,12 @@ public sealed class PassengerBoardingEngine
         for (var index = 0; index < selectedSeats.Count; index++)
         {
             var item = selectedSeats[index];
-            _passengers.Add(new BoardingPassenger(index + 1, item.Seat, item.Group));
+            var passengerId = index + 1;
+            _passengers.Add(new BoardingPassenger(
+                passengerId,
+                item.Seat,
+                item.Group,
+                CreatePassengerProfile(passengerId, item.Seat)));
         }
 
         State = BoardingRunState.Ready;
@@ -186,6 +251,52 @@ public sealed class PassengerBoardingEngine
             new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
             new CabinPoint(passenger.Seat.X, passenger.Seat.Y)
         ]);
+        _activePassengers.Add(passenger);
+    }
+
+    private void TickDeboarding(double scaledSeconds)
+    {
+        MoveActivePassengers(scaledSeconds);
+        if (_deboardedCount >= TargetPassengerCount)
+        {
+            State = BoardingRunState.DeboardingComplete;
+            return;
+        }
+
+        if (_openDoors.Count == 0)
+        {
+            State = BoardingRunState.WaitingForDoor;
+            return;
+        }
+
+        State = BoardingRunState.Deboarding;
+        _spawnAccumulator += scaledSeconds;
+        var spawnInterval = BaseSpawnIntervalSeconds / _openDoors.Count;
+        var activeLimit = _openDoors.Count * 8;
+        while (_spawnAccumulator >= spawnInterval &&
+               _nextDeboardingPassengerIndex < _deboardingQueue.Count &&
+               _activePassengers.Count < activeLimit)
+        {
+            SpawnDeboardingPassenger(_deboardingQueue[_nextDeboardingPassengerIndex++]);
+            _spawnAccumulator -= spawnInterval;
+        }
+    }
+
+    private void SpawnDeboardingPassenger(BoardingPassenger passenger)
+    {
+        var door = SelectDoor(passenger);
+        var exit = GetDoorEntryPoint(door);
+        passenger.Door = door;
+        passenger.MovementState = PassengerMovementState.Walking;
+        passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
+        passenger.Waypoints = new Queue<CabinPoint>(
+        [
+            new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
+            new CabinPoint(exit.X, passenger.Seat.AisleY),
+            new CabinPoint(exit.X, 166d),
+            exit
+        ]);
+        _boardedCount = Math.Max(0, _boardedCount - 1);
         _activePassengers.Add(passenger);
     }
 
@@ -218,6 +329,15 @@ public sealed class PassengerBoardingEngine
 
             if (passenger.Waypoints.Count > 0)
             {
+                continue;
+            }
+
+            if (Operation == PassengerOperation.Deboarding)
+            {
+                passenger.MovementState = PassengerMovementState.Deboarded;
+                _activePassengers.RemoveAt(index);
+                _deboardedCount++;
+                _lastDeboardedPassengers.Add(passenger);
                 continue;
             }
 
@@ -273,6 +393,68 @@ public sealed class PassengerBoardingEngine
         PassengerCabinClass.Economy when seat.X > 710d => 5,
         _ => 6
     };
+
+    private static PassengerProfile CreatePassengerProfile(int passengerId, CabinSeat seat)
+    {
+        var identityIndex = passengerId - 1;
+        var firstName = FirstNames[identityIndex % FirstNames.Length];
+        var lastName = LastNames[((identityIndex / FirstNames.Length) + (identityIndex * 5)) % LastNames.Length];
+        var seed = 777_000 + (passengerId * 97) + seat.Number.Sum(character => character * 13);
+        var random = new Random(seed);
+        var tier = seat.CabinClass switch
+        {
+            PassengerCabinClass.First => FrequentFlyerTiers[random.Next(2, FrequentFlyerTiers.Length)],
+            PassengerCabinClass.Business => FrequentFlyerTiers[random.Next(1, FrequentFlyerTiers.Length)],
+            _ => FrequentFlyerTiers[random.Next(FrequentFlyerTiers.Length)]
+        };
+        var assistance = random.Next(18) switch
+        {
+            0 => "Wheelchair assistance",
+            1 => "Priority boarding",
+            2 => "Dietary note on booking",
+            _ => "None"
+        };
+        var bookingNumber = Math.Abs((passengerId * 173) + seed) % 10_000;
+        return new PassengerProfile(
+            $"{firstName} {lastName}",
+            random.Next(18, 83),
+            Nationalities[random.Next(Nationalities.Length)],
+            TravelPurposes[random.Next(TravelPurposes.Length)],
+            tier,
+            random.Next(0, 3),
+            assistance,
+            $"FF{bookingNumber:0000}");
+    }
+
+    private static readonly string[] FirstNames =
+    [
+        "Alex", "Amelia", "Arthur", "Ava", "Benjamin", "Charlotte", "Daniel", "Ella",
+        "Ethan", "Freya", "George", "Grace", "Hannah", "Henry", "Isla", "Jack",
+        "James", "Leo", "Lily", "Maya", "Noah", "Oliver", "Ruby", "Sophie"
+    ];
+
+    private static readonly string[] LastNames =
+    [
+        "Andersen", "Bennett", "Campbell", "Davies", "Evans", "Fischer", "Garcia", "Hansen",
+        "Ivanov", "Johansson", "Khan", "Lewis", "Martin", "Nielsen", "Olsen", "Patel",
+        "Roberts", "Schmidt", "Taylor", "Walker", "Wilson", "Young", "Zhang", "Moreau"
+    ];
+
+    private static readonly string[] Nationalities =
+    [
+        "British", "Norwegian", "Swedish", "Danish", "German", "French", "Spanish", "Italian",
+        "Dutch", "Irish", "Canadian", "American", "Australian", "Japanese", "Indian", "Brazilian"
+    ];
+
+    private static readonly string[] TravelPurposes =
+    [
+        "Business", "Holiday", "Visiting family", "Weekend break", "Study", "Connecting journey"
+    ];
+
+    private static readonly string[] FrequentFlyerTiers =
+    [
+        "None", "Blue", "Bronze", "Silver", "Gold"
+    ];
 
     private static IReadOnlyList<CabinSeat> CreateFf777PreviewSeats()
     {

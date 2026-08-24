@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Persistence;
 
@@ -15,12 +16,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         ISettingsStore settingsStore,
         string logDirectory,
         string? safetyVideoLocalFilePath = null,
-        string? boardingMusicDirectory = null)
+        string? boardingMusicDirectory = null,
+        ISimBriefClient? simBriefClient = null)
     {
         Status = new SharedStatusViewModel();
         Dashboard = new DashboardViewModel(settings, Status);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
-        Passengers = new PassengerFlowViewModel(settings, Status);
+        Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient);
         CabinPanel = new CabinControlPanelViewModel(
             settings,
             settingsStore,

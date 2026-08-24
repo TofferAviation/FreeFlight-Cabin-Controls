@@ -9,7 +9,9 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - Dashboard, Airliners, Cabin Area Control Panel, Audio, Performance, and Settings navigation;
 - the detailed FlightFactor 777 v2 cabin-layout reference on the Dashboard;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
-- an original simulator-free Passenger Flow page with seat-centred FF777 passenger markers, orange occupying-seat and green secured states, boarding-ticket-based L1/L2 routing, two-aisle passenger movement, adjustable loads, an optional 30–45 minute real-operations pace, accelerated previews, progress, ETA, pause/resume, and live rerouting when doors change;
+- an original simulator-free Passenger Flow page with seat-centred FF777 passenger markers, complete boarding and deboarding runs, boarding-ticket-based L1/L2 routing, two-aisle movement, an optional 30–45 minute real-operations pace, accelerated previews, progress, ETA, pause/resume, and live rerouting when doors change;
+- a full passenger manifest with deterministic fictional names and profiles, live operational status, seat and booking details revealed only when a passenger dot or manifest row is selected;
+- optional SimBrief latest-OFP import using the user's numeric Pilot ID, synchronizing passenger count, flight number, and route without storing a SimBrief password;
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;
 - a fully coded Cabin Area Control Panel built on reference-locked 1040×812 instrument geometry and a 716×512 live LCD coordinate system, with a CSCP hierarchy and 15 live operational screens that preserve the supplied FF777 proportions without using the page renders at runtime;
 - a British Airways 2024 safety-video mode with a 70% black “Announcement in progress” overlay, local MP4 playback directly inside the Safety Video card, future-aircraft queue staging, and no browser or YouTube dependency;
@@ -27,7 +29,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
 - no bundled photographic CACP page renders or airline safety video; the boarding alternatives and limited identifying wordmarks are distributed only under their separately documented licences.
 
-The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Passenger Flow therefore uses manual L1/L2 door controls today; a future aircraft adapter will replace those inputs with live telemetry without replacing the boarding engine.
+The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Passenger Flow therefore uses manual L1/L2 door controls today; SimBrief supplies only OFP-level flight and passenger-count data, and a future aircraft adapter will replace manual door inputs with live telemetry without replacing the passenger engine.
 
 ## Build
 

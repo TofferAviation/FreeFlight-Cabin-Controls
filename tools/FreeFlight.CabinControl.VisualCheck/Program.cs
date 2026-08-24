@@ -93,7 +93,8 @@ internal static class Program
             new JsonSettingsStore(settingsPath),
             Path.Combine(outputDirectory, "logs"),
             localSafetyVideoPath,
-            boardingMusicDirectory);
+            boardingMusicDirectory,
+            new FakeSimBriefClient());
         var window = new CabinControlWindow
         {
             DataContext = viewModel,
@@ -230,6 +231,76 @@ internal static class Program
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 Render(window, Path.Combine(outputDirectory, "passengers-ticket-and-aisle-routing.png"));
                 viewModel.Passengers.StartPauseCommand.Execute(null);
+
+                viewModel.Passengers.ResetCommand.Execute(null);
+                viewModel.Passengers.BookedPassengerCount = 36;
+                viewModel.Passengers.L1DoorOpen = true;
+                viewModel.Passengers.L2DoorOpen = true;
+                viewModel.Passengers.SelectedSpeedOption = viewModel.Passengers.SpeedOptions.Single(option => option.Multiplier == 4d);
+                viewModel.Passengers.StartPauseCommand.Execute(null);
+                for (var index = 0; index < 300 &&
+                     viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete; index++)
+                {
+                    viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                }
+
+                if (viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete ||
+                    viewModel.Passengers.PassengerManifest.Count != 36)
+                {
+                    throw new InvalidOperationException("Passenger Flow did not complete boarding with a full 36-person manifest.");
+                }
+
+                viewModel.Passengers.OpenManifestCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-manifest.png"));
+
+                viewModel.Passengers.SelectPassengerCommand.Execute(viewModel.Passengers.PassengerManifest[0].PassengerId);
+                if (!viewModel.Passengers.IsPassengerDetailsOpen ||
+                    string.IsNullOrWhiteSpace(viewModel.Passengers.SelectedPassenger?.FullName))
+                {
+                    throw new InvalidOperationException("Passenger profile did not open from the manifest.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-profile.png"));
+                viewModel.Passengers.ClosePassengerDetailsCommand.Execute(null);
+                viewModel.Passengers.CloseManifestCommand.Execute(null);
+
+                viewModel.Passengers.StartPauseCommand.Execute(null);
+                viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.25d));
+
+                if (viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Deboarding ||
+                    !viewModel.Passengers.PassengerMarkers.Any(marker => marker.IsWalking))
+                {
+                    throw new InvalidOperationException("Passenger Flow did not begin visible deboarding movement.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-deboarding.png"));
+                for (var index = 0; index < 300 &&
+                     viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.DeboardingComplete; index++)
+                {
+                    viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                }
+
+                if (viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.DeboardingComplete ||
+                    viewModel.Passengers.DeboardedPassengerCount != 36 ||
+                    viewModel.Passengers.PassengerMarkers.Count != 0)
+                {
+                    throw new InvalidOperationException("Passenger Flow did not finish with an empty cabin.");
+                }
+
+                viewModel.Passengers.SimBriefPilotId = "123456";
+                viewModel.Passengers.SyncSimBriefAsync().GetAwaiter().GetResult();
+                if (viewModel.Passengers.BookedPassengerCount != 123 ||
+                    !viewModel.Passengers.SimBriefFlightSummary.Contains("BAW123", StringComparison.Ordinal) ||
+                    viewModel.Passengers.PassengerManifest.Count != 123)
+                {
+                    throw new InvalidOperationException("SimBrief OFP sync did not rebuild the passenger manifest.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-simbrief-synced.png"));
             }
             else if (page == "CabinPanel")
             {
@@ -560,7 +631,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 28 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 32 visual checks to {outputDirectory}");
         return 0;
     }
 
@@ -698,5 +769,25 @@ internal static class Program
         }
 
         return null;
+    }
+
+    private sealed class FakeSimBriefClient : ISimBriefClient
+    {
+        public Task<SimBriefFlightSummary> FetchLatestOfpAsync(
+            string pilotId,
+            CancellationToken cancellationToken = default)
+        {
+            if (pilotId != "123456")
+            {
+                throw new InvalidOperationException("The visual-check SimBrief Pilot ID was unexpected.");
+            }
+
+            return Task.FromResult(new SimBriefFlightSummary(
+                123,
+                "BAW123",
+                "EGLL",
+                "KJFK",
+                DateTimeOffset.UtcNow));
+        }
     }
 }

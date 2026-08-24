@@ -73,4 +73,8 @@ public sealed class AppSettings
     public int PassengerPreviewBookedCount { get; set; } = 228;
 
     public double PassengerPreviewSpeed { get; set; } = 2d;
+
+    public string SimBriefPilotId { get; set; } = string.Empty;
+
+    public bool SimBriefAutoSync { get; set; }
 }

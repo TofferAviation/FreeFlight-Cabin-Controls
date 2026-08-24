@@ -10,9 +10,17 @@ public enum BoardingRunState
 {
     Ready,
     Boarding,
+    Deboarding,
     Paused,
     WaitingForDoor,
-    Complete
+    Complete,
+    DeboardingComplete
+}
+
+public enum PassengerOperation
+{
+    Boarding,
+    Deboarding
 }
 
 public enum PassengerCabinClass
@@ -27,7 +35,8 @@ public enum PassengerMovementState
     Waiting,
     Walking,
     OccupyingSeat,
-    Seated
+    Seated,
+    Deboarded
 }
 
 public readonly record struct CabinPoint(double X, double Y);
@@ -39,13 +48,24 @@ public sealed record CabinSeat(
     double Y,
     double AisleY);
 
+public sealed record PassengerProfile(
+    string FullName,
+    int Age,
+    string Nationality,
+    string TravelPurpose,
+    string FrequentFlyerTier,
+    int CheckedBags,
+    string Assistance,
+    string BookingReference);
+
 public sealed class BoardingPassenger
 {
-    internal BoardingPassenger(int id, CabinSeat seat, int boardingGroup)
+    internal BoardingPassenger(int id, CabinSeat seat, int boardingGroup, PassengerProfile profile)
     {
         Id = id;
         Seat = seat;
         BoardingGroup = boardingGroup;
+        Profile = profile;
     }
 
     public int Id { get; }
@@ -53,6 +73,8 @@ public sealed class BoardingPassenger
     public CabinSeat Seat { get; }
 
     public int BoardingGroup { get; }
+
+    public PassengerProfile Profile { get; }
 
     public BoardingDoor? Door { get; internal set; }
 
