@@ -89,9 +89,9 @@ internal static class PassengerCabinLayouts
             startX,
             endX,
             ["A", "E", "F", "K"],
-            [163d, 119d, 87d, 43d],
-            70d,
-            137d);
+            [136d, 110d, 91d, 66d],
+            81d,
+            121d);
 
     private static void AddTwoFourTwoRows(
         ICollection<CabinSeat> seats,
@@ -106,9 +106,9 @@ internal static class PassengerCabinLayouts
             startX,
             endX,
             ["A", "B", "D", "E", "F", "G", "J", "K"],
-            [169d, 153d, 126d, 112d, 97d, 83d, 58d, 43d],
-            70d,
-            137d);
+            [138d, 129d, 113d, 105d, 97d, 89d, 74d, 66d],
+            81d,
+            121d);
 
     private static void AddThreeFourThreeRows(
         ICollection<CabinSeat> seats,
@@ -122,9 +122,9 @@ internal static class PassengerCabinLayouts
             startX,
             endX,
             ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K"],
-            [172d, 158d, 144d, 125d, 111d, 97d, 83d, 63d, 49d, 35d],
-            70d,
-            137d);
+            [140d, 132d, 124d, 113d, 105d, 97d, 89d, 77d, 69d, 61d],
+            81d,
+            121d);
 
     private static void AddRows(
         ICollection<CabinSeat> seats,

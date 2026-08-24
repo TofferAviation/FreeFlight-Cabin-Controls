@@ -51,6 +51,11 @@
         <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
     </Style>
 
+    <Style x:Key="MetricLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
     <Style x:Key="CardStyle" TargetType="Border">
         <Setter Property="Background" Value="#99071426" />
         <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />

@@ -62,7 +62,7 @@ internal static class Program
         };
         foreach (var boardingMusicPath in boardingMusicPaths)
         {
-            if (File.Exists(boardingMusicPath))
+            if (args.Length > 2 && File.Exists(boardingMusicPath))
             {
                 VerifyLocalAudioCanOpen(boardingMusicPath);
             }
@@ -75,19 +75,23 @@ internal static class Program
         var tchaikovskyPath = boardingMusicPaths[2];
         var flowerDuetPath = boardingMusicPaths[3];
 
+        Console.WriteLine("Verifying missing-media behavior.");
         var missingMediaViewModel = new CabinControlPanelViewModel(
             new AppSettings(),
             new JsonSettingsStore(Path.Combine(outputDirectory, "missing-media-settings.json")),
             new SharedStatusViewModel(),
             Path.Combine(outputDirectory, "missing-BA_Safety_Video.mp4"),
             Path.Combine(outputDirectory, "missing-boarding-music"));
+        Console.WriteLine("Missing-media view model created.");
         missingMediaViewModel.StartSafetyVideoCommand.Execute(null);
+        Console.WriteLine("Missing-media command completed.");
         if (missingMediaViewModel.IsSafetyVideoInProgress || missingMediaViewModel.QueueDepth != 0 ||
             !missingMediaViewModel.SafetyVideoPreviewStatus.Contains("not installed", StringComparison.Ordinal))
         {
             throw new InvalidOperationException("Missing local safety media did not remain safely stopped.");
         }
 
+        Console.WriteLine("Creating the application view model.");
         var viewModel = new MainWindowViewModel(
             new AppSettings(),
             new JsonSettingsStore(settingsPath),
@@ -95,6 +99,7 @@ internal static class Program
             localSafetyVideoPath,
             boardingMusicDirectory,
             new FakeSimBriefClient());
+        Console.WriteLine("Application view model created; constructing the window.");
         var window = new CabinControlWindow
         {
             DataContext = viewModel,
@@ -106,14 +111,75 @@ internal static class Program
             ShowActivated = false,
             ShowInTaskbar = false
         };
+        Console.WriteLine("Application window constructed.");
 
+        Console.WriteLine("Opening the application window for visual verification.");
         window.Show();
+        Console.WriteLine("Application window opened; rendering Overview.");
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
-        foreach (var page in new[] { "Airliners", "Passengers", "CabinPanel", "Audio", "Performance", "Settings" })
+        foreach (var page in new[]
+                 {
+                     "GateDesk", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "CabinPanel",
+                     "Audio", "Performance", "Settings"
+                 })
         {
             viewModel.NavigateCommand.Execute(page);
-            if (page == "Airliners")
+            if (page == "GateDesk")
+            {
+                var passenger = viewModel.Operations.PassengerRecords.First();
+                var boardedBefore = viewModel.Operations.BoardedPassengers;
+                viewModel.Operations.ToggleGateCommand.Execute(null);
+                viewModel.Operations.SelectPassengerCommand.Execute(passenger);
+                viewModel.Operations.CheckInPassengerCommand.Execute(passenger);
+                viewModel.Operations.PrintBoardingPassCommand.Execute(passenger);
+                viewModel.Operations.BoardPassengerCommand.Execute(passenger);
+                if (!viewModel.Operations.IsGateOpen ||
+                    !passenger.IsCheckedIn ||
+                    !passenger.IsBoarded ||
+                    passenger.BoardingPassStatus != "Printed" ||
+                    viewModel.Operations.BoardedPassengers != boardedBefore + 1 ||
+                    viewModel.Passengers.BoardedPassengerCount != boardedBefore + 1)
+                {
+                    throw new InvalidOperationException(
+                        "Gate Desk check-in, print, and cabin boarding did not update their shared passenger state.");
+                }
+            }
+            else if (page == "PassengerManifest")
+            {
+                var passenger = viewModel.Operations.PassengerRecords.Skip(5).First();
+                viewModel.Operations.SelectPassengerCommand.Execute(passenger);
+                viewModel.Operations.SearchText = passenger.BookingReference;
+                if (viewModel.Operations.VisiblePassengers.Count != 1 ||
+                    viewModel.Operations.SelectedPassenger != passenger ||
+                    string.IsNullOrWhiteSpace(passenger.DocumentNumber) ||
+                    string.IsNullOrWhiteSpace(passenger.Email))
+                {
+                    throw new InvalidOperationException("Passenger Manifest filtering or passenger detail selection failed.");
+                }
+
+                viewModel.Operations.SearchText = string.Empty;
+            }
+            else if (page == "BoardingPasses")
+            {
+                var tickets = viewModel.Operations.PassengerRecords;
+                if (tickets.Select(passenger => passenger.TicketNumber).Distinct().Count() != tickets.Count ||
+                    tickets.Select(passenger => passenger.BookingReference).Distinct().Count() != tickets.Count)
+                {
+                    throw new InvalidOperationException("Boarding passes did not receive unique ticket identities.");
+                }
+
+                var firstPassenger = tickets.First(passenger => passenger.CabinMarketingName == "First");
+                var economyPassenger = tickets.First(passenger => passenger.CabinMarketingName == "World Traveller");
+                if (firstPassenger.CabinMarketingName == economyPassenger.CabinMarketingName ||
+                    firstPassenger.QrCells.SequenceEqual(economyPassenger.QrCells))
+                {
+                    throw new InvalidOperationException("Passenger cabin branding or ticket QR data was not passenger-specific.");
+                }
+
+                viewModel.Operations.SelectPassengerCommand.Execute(firstPassenger);
+            }
+            else if (page == "Airliners")
             {
                 var britishAirways = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "BAW");
                 var norwegian = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "NOZ");
@@ -144,7 +210,29 @@ internal static class Program
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             Render(window, Path.Combine(outputDirectory, $"{page.ToLowerInvariant()}.png"));
 
-            if (page == "Passengers")
+            if (page == "GateDesk")
+            {
+                viewModel.Passengers.ResetCommand.Execute(null);
+                if (viewModel.Operations.IsGateOpen)
+                {
+                    viewModel.Operations.ToggleGateCommand.Execute(null);
+                }
+            }
+            else if (page == "BoardingPasses")
+            {
+                var clubWorldPassenger = viewModel.Operations.PassengerRecords
+                    .First(passenger => passenger.CabinMarketingName == "Club World");
+                viewModel.Operations.SelectPassengerCommand.Execute(clubWorldPassenger);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "boardingpasses-club-world.png"));
+
+                var economyPassenger = viewModel.Operations.PassengerRecords
+                    .First(passenger => passenger.CabinMarketingName == "World Traveller");
+                viewModel.Operations.SelectPassengerCommand.Execute(economyPassenger);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "boardingpasses-world-traveller.png"));
+            }
+            else if (page == "Passengers")
             {
                 if (viewModel.Passengers.L1DoorOpen || !viewModel.Passengers.L2DoorOpen)
                 {
@@ -737,7 +825,8 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 38 visual checks to {outputDirectory}");
+        var renderedChecks = Directory.EnumerateFiles(outputDirectory, "*.png", SearchOption.TopDirectoryOnly).Count();
+        Console.WriteLine($"Rendered {renderedChecks} visual checks to {outputDirectory}");
         return 0;
     }
 

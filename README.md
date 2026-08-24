@@ -6,9 +6,13 @@ FreeFlight Cabin Control is a Windows desktop application and planned X-Plane 12
 
 Version `0.1.0-dev` is the first application-shell milestone. It provides:
 
-- Dashboard, Airliners, Passenger Flow, Cabin Area Control Panel, Audio, Performance, and Settings navigation;
-- the detailed FlightFactor 777 v2 cabin-layout reference on the Dashboard;
-- three operational cabin-layout choices shared by Aircraft Settings and Passenger Flow: the 311-position FlightFactor 777 v2 cabin, 280-position British Airways 777-200ER, and 266-position British Airways 777-300, all rendered horizontally with the nose left and tail right;
+- operational Overview, Gate Desk, Passenger Manifest, Boarding Passes, Cabin, Settings, Airliners, Cabin Area Control Panel, Audio, and Diagnostics navigation;
+- a shared gate-operations model: opening and closing the gate, checking in a passenger, loading baggage, printing a preview boarding pass, and boarding from the Gate Desk all update the same manifest and live cabin state;
+- a coded British Airways-style boarding-pass preview with a unique booking reference, ticket number, sequence number, seat, group, deterministic QR pattern, and class-correct First, Club World, World Traveller Plus, or World Traveller label for every fictional passenger;
+- a searchable operational manifest with live check-in, boarding, baggage, and assistance states plus a private detail pane for the selected fictional passenger;
+- a gate-focused Settings screen for SimBrief, automatic timing, boarding rules, deterministic passenger generation, preview printers, sound alerts, and flight defaults;
+- a functional flight-readiness Overview with timeline, passenger and baggage totals, cabin distribution, SimBrief import, and gate controls;
+- three operational cabin-layout choices shared by Settings and Cabin: the 311-position FlightFactor 777 v2 cabin, 280-position British Airways 777-200ER, and 266-position British Airways 777-300, all rendered horizontally with the nose left and tail right and without distorting their source aspect ratio;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
 - an original simulator-free Passenger Flow page with profile-specific seat coordinates, mixed partial-load allocation, boarding-group calls with randomized within-group flow, varied passenger walking and entry timing, congestion slowdowns, complete boarding/deboarding, boarding-ticket-based L1/L2 routing, two-aisle movement, optional 30–45 minute real operations, accelerated previews, and a selected passenger's destination-seat highlight;
 - a full passenger manifest with deterministic fictional names and profiles, live operational status, seat and booking details revealed only when a passenger dot or manifest row is selected;
@@ -30,7 +34,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
 - no bundled photographic CACP page renders or airline safety video; the boarding alternatives and limited identifying wordmarks are distributed only under their separately documented licences.
 
-The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Passenger Flow therefore uses manual L1/L2 door controls today; SimBrief supplies only OFP-level flight and passenger-count data, and a future aircraft adapter will replace manual doors and layout selection with live aircraft telemetry without replacing the passenger engine.
+The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, physical gate-printer adapter, and in-aircraft screens are not implemented in this baseline. Boarding-pass and bag-tag printing is an explicitly labelled local preview. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Passenger Flow therefore uses manual L1/L2 door controls today; SimBrief supplies only OFP-level flight and passenger-count data, and a future aircraft adapter will replace manual doors and layout selection with live aircraft telemetry without replacing the passenger or gate engine.
 
 ## Build
 

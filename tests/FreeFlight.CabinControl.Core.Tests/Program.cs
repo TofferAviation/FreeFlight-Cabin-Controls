@@ -22,7 +22,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger deboarding completes", PassengerDeboardingCompletesAsync),
     ("British Airways cabin layouts map official seats", BritishAirwaysCabinLayoutsMapSeatsAsync),
     ("British Airways layouts board and deboard", BritishAirwaysLayoutsOperateAsync),
-    ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync)
+    ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync),
+    ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync)
 };
 
 var failures = new List<string>();
@@ -68,6 +69,27 @@ static async Task SettingsRoundTripAsync()
             PassengerCabinLayoutId = "british-airways.777-300",
             SimBriefPilotId = "123456",
             SimBriefAutoSync = true,
+            GateFlightNumber = "BA281",
+            GateOriginIata = "LHR",
+            GateDestinationIata = "LAX",
+            GateNumber = "C65",
+            ScheduledDepartureLocal = "14:25",
+            AutomaticGateTiming = false,
+            BoardingStartMinutesBeforeDeparture = 60,
+            FinalBoardingMinutesBeforeDeparture = 10,
+            GateCloseMinutesBeforeDeparture = 3,
+            ManualGateOverride = true,
+            PassengerNameRegionMix = "Europe",
+            PassengerGenerationSeed = 456789,
+            BoardingGroupOrder = "Outside In",
+            SpecialAssistanceBoardsFirst = false,
+            PreventBoardingAfterGateClose = false,
+            BoardingPassPrinter = "Test boarding printer",
+            BagTagPrinter = "Test bag printer",
+            SoundAlerts = false,
+            BoardingCallChime = "Silent",
+            AutoArchiveCompletedFlights = false,
+            ArchiveCompletedFlightsAfterDays = 90,
             CustomAirlineProfiles =
             [
                 new CustomAirlineProfileSettings
@@ -96,6 +118,20 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("british-airways.777-300", actual.PassengerCabinLayoutId, "Cabin layout selection was not persisted.");
         AssertEqual("123456", actual.SimBriefPilotId, "SimBrief Pilot ID was not persisted.");
         AssertEqual(true, actual.SimBriefAutoSync, "SimBrief auto-sync preference was not persisted.");
+        AssertEqual("BA281", actual.GateFlightNumber, "Gate flight number was not persisted.");
+        AssertEqual("LAX", actual.GateDestinationIata, "Gate route was not persisted.");
+        AssertEqual("C65", actual.GateNumber, "Gate number was not persisted.");
+        AssertEqual("14:25", actual.ScheduledDepartureLocal, "Departure time was not persisted.");
+        AssertEqual(false, actual.AutomaticGateTiming, "Automatic gate timing was not persisted.");
+        AssertEqual(60, actual.BoardingStartMinutesBeforeDeparture, "Boarding timing was not persisted.");
+        AssertEqual(3, actual.GateCloseMinutesBeforeDeparture, "Gate close timing was not persisted.");
+        AssertEqual(true, actual.ManualGateOverride, "Manual gate override was not persisted.");
+        AssertEqual("Europe", actual.PassengerNameRegionMix, "Passenger region mix was not persisted.");
+        AssertEqual(456789, actual.PassengerGenerationSeed, "Passenger seed was not persisted.");
+        AssertEqual("Outside In", actual.BoardingGroupOrder, "Boarding group order was not persisted.");
+        AssertEqual("Test boarding printer", actual.BoardingPassPrinter, "Boarding-pass printer was not persisted.");
+        AssertEqual("Silent", actual.BoardingCallChime, "Boarding chime was not persisted.");
+        AssertEqual(90, actual.ArchiveCompletedFlightsAfterDays, "Archive retention was not persisted.");
         AssertEqual("Test Virtual", actual.CustomAirlineProfiles.Single().Name, "Custom airline was not persisted.");
     }
     finally
@@ -331,15 +367,15 @@ static Task BritishAirwaysCabinLayoutsMapSeatsAsync()
 {
     var twoHundred = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777200Er);
     AssertEqual(280, twoHundred.Capacity, "The British Airways 777-200ER mapped capacity is incorrect.");
-    AssertSeatCentre(twoHundred, "1A", 72d, 163d);
-    AssertSeatCentre(twoHundred, "40K", 985d, 43d);
+    AssertSeatCentre(twoHundred, "1A", 72d, 136d);
+    AssertSeatCentre(twoHundred, "40K", 985d, 66d);
     Assert(twoHundred.BoardingGroups.SequenceEqual(Enumerable.Range(1, 8)),
         "The British Airways 777-200ER did not create boarding groups 1–8.");
 
     var threeHundred = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777300);
     AssertEqual(266, threeHundred.Capacity, "The British Airways 777-300 mapped capacity is incorrect.");
-    AssertSeatCentre(threeHundred, "1A", 76d, 163d);
-    AssertSeatCentre(threeHundred, "44K", 992d, 43d);
+    AssertSeatCentre(threeHundred, "1A", 76d, 136d);
+    AssertSeatCentre(threeHundred, "44K", 992d, 66d);
     Assert(threeHundred.BoardingGroups.SequenceEqual(Enumerable.Range(1, 8)),
         "The British Airways 777-300 did not create boarding groups 1–8.");
     return Task.CompletedTask;
@@ -392,6 +428,27 @@ static Task PartialLoadsDistributeTicketsAsync()
             $"Boarding Group {group.Key} was assigned in a rigid front-to-back or back-to-front sequence.");
     }
 
+    return Task.CompletedTask;
+}
+
+static Task GateDeskBoardingUpdatesCabinAsync()
+{
+    var engine = new PassengerBoardingEngine(24, PassengerCabinLayout.BritishAirways777200Er);
+    var selected = engine.Passengers[17];
+    Assert(engine.TryBoardPassenger(selected.Id), "The gate desk could not board an eligible passenger.");
+    AssertEqual(PassengerMovementState.Seated, selected.MovementState,
+        "Gate desk boarding did not place the passenger in the assigned seat.");
+    AssertNear(selected.Seat.X, selected.Position.X, "Gate desk boarding used the wrong horizontal seat coordinate.");
+    AssertNear(selected.Seat.Y, selected.Position.Y, "Gate desk boarding used the wrong vertical seat coordinate.");
+    AssertEqual(1, engine.BoardedCount, "Gate desk boarding did not update the cabin count.");
+    Assert(!engine.TryBoardPassenger(selected.Id), "The same passenger was boarded twice.");
+
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    Advance(engine, seconds: 60d, speed: 8d);
+    AssertEqual(BoardingRunState.Complete, engine.State,
+        "Normal boarding did not complete after a passenger was boarded from the gate desk.");
+    AssertEqual(24, engine.BoardedCount, "The final count was incorrect after gate desk boarding.");
     return Task.CompletedTask;
 }
 

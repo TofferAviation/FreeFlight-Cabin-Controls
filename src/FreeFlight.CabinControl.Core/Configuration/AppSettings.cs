@@ -79,4 +79,46 @@ public sealed class AppSettings
     public string SimBriefPilotId { get; set; } = string.Empty;
 
     public bool SimBriefAutoSync { get; set; }
+
+    public string GateFlightNumber { get; set; } = "BA117";
+
+    public string GateOriginIata { get; set; } = "LHR";
+
+    public string GateDestinationIata { get; set; } = "JFK";
+
+    public string GateNumber { get; set; } = "B42";
+
+    public string ScheduledDepartureLocal { get; set; } = "18:30";
+
+    public bool AutomaticGateTiming { get; set; } = true;
+
+    public int BoardingStartMinutesBeforeDeparture { get; set; } = 45;
+
+    public int FinalBoardingMinutesBeforeDeparture { get; set; } = 5;
+
+    public int GateCloseMinutesBeforeDeparture { get; set; } = 2;
+
+    public bool ManualGateOverride { get; set; }
+
+    public string PassengerNameRegionMix { get; set; } = "Global Mix (Default)";
+
+    public int PassengerGenerationSeed { get; set; } = 112233;
+
+    public string BoardingGroupOrder { get; set; } = "Groups by Cabin (1 → 8)";
+
+    public bool SpecialAssistanceBoardsFirst { get; set; } = true;
+
+    public bool PreventBoardingAfterGateClose { get; set; } = true;
+
+    public string BoardingPassPrinter { get; set; } = "Zebra ZD620 (Preview)";
+
+    public string BagTagPrinter { get; set; } = "Zebra ZD420 (Preview)";
+
+    public bool SoundAlerts { get; set; } = true;
+
+    public string BoardingCallChime { get; set; } = "British Airways";
+
+    public bool AutoArchiveCompletedFlights { get; set; } = true;
+
+    public int ArchiveCompletedFlightsAfterDays { get; set; } = 30;
 }

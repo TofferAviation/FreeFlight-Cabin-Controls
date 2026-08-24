@@ -253,7 +253,9 @@
                                         <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
                                                     Viewbox="0,0,1,0.60"
                                                     ViewboxUnits="RelativeToBoundingBox"
-                                                    Stretch="Fill" />
+                                                    Stretch="Uniform"
+                                                    AlignmentX="Center"
+                                                    AlignmentY="Center" />
                                     </Border.Background>
                                 </Border>
 

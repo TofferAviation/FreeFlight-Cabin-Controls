@@ -8,10 +8,15 @@ All notable changes are recorded here. Filenames remain stable between releases.
 
 - Initial .NET 10 WPF application foundation.
 - Dashboard, Audio, Performance, and Settings application shell.
+- New operational Overview, Gate Desk, Passenger Manifest, Boarding Passes, and gate-focused Settings pages based on one shared passenger and gate state rather than disconnected mock screens.
+- Gate opening/closing, passenger check-in, baggage state, preview printing, and single-passenger boarding controls; Gate Desk boarding places the selected passenger directly into their assigned live-cabin seat and prevents duplicate boarding.
+- Per-passenger British Airways-style boarding passes with unique fictional ticket data, deterministic QR patterns, booking references, sequence numbers, seats and groups, plus cabin-correct First, Club World, World Traveller Plus, and World Traveller branding.
+- Searchable and filterable manifest views with live check-in, boarding, baggage, and assistance state plus selected-passenger operational details.
+- Persistent gate timing, route, generation seed, boarding-rule, preview-printer, sound-alert, and archive settings.
 - Airliners page with search, filters, persistent airline selection, and custom local profiles.
 - Passenger Flow page with a simulator-free seat-aligned FF777 preview, animated passenger movement, configurable manifests, L1/L2 routing, boarding groups, progress/ETA, pause/resume/reset, and live door rerouting.
 - Three stable cabin-layout profile IDs in Aircraft Settings: the operational FlightFactor 777 v2 cabin and private British Airways 777-200ER/777-300 seat-map references, with readable scrollable previews and persisted manual selection ahead of adapter-driven auto-matching.
-- Passenger Flow now shares the cabin-layout selector and displays both British Airways maps horizontally in the Live Cabin card, with the aircraft front on the left and tail on the right. Reference layouts pause live operations rather than applying incorrect FlightFactor passenger coordinates.
+- Passenger Flow shares the cabin-layout selector and displays both British Airways maps horizontally in the Live Cabin card, with the aircraft front on the left and tail on the right. All three layouts now drive their own operational passenger coordinates.
 - Passenger markers now land at the visual centre of each schematic seat, turn orange while the passenger settles in, and turn green once seated and secured; a 30–45 minute real-operations pace is available alongside accelerated previews.
 - Two-door boarding now follows the assigned ticket cabin (First via L1, Business/Economy via L2), while single-door operation routes everyone through the available door; passenger paths now use separate upper and lower aisle lanes.
 - Complete deboarding operations with live passenger movement, L1/L2 ticket routing, progress, ETA, pause/resume, and an empty-cabin completion state.
@@ -48,6 +53,8 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - The Display Controls pointer now tracks every brightness change across the progress bar.
 - Diagnostic logging now falls back safely when the normal log file is locked or inaccessible, preventing the error handler itself from causing native Windows exception `0xe0434352`.
 - Settings storage now selects the first writable location across Local AppData, Roaming AppData, and the temporary directory, avoiding startup dialogs when a profile folder has unusable permissions.
+- Added the missing application-wide metric-label style and corrected the Gate Desk progress binding to one-way, preventing the redesigned application from failing during window startup.
+- British Airways horizontal seat maps now use uniform, aspect-preserving viewport scaling instead of stretching to the Live Cabin card.
 
 ### Changed
 

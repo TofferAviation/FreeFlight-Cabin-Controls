@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using System.Runtime.CompilerServices;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Passengers;
@@ -13,6 +14,8 @@ public sealed class SettingsViewModel : PageViewModel
     private readonly ISettingsStore _settingsStore;
     private string _selectedSection = "General";
     private string _saveStatus = "No unsaved changes";
+    private string _boardingPassPrinterStatus = "Preview printer ready";
+    private string _bagTagPrinterStatus = "Preview printer ready";
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
 
     public SettingsViewModel(AppSettings settings, ISettingsStore settingsStore, SharedStatusViewModel status)
@@ -28,6 +31,9 @@ public sealed class SettingsViewModel : PageViewModel
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
         RestoreDefaultsCommand = new RelayCommand(_ => RestoreDefaults());
         SelectSectionCommand = new RelayCommand(SelectSection);
+        TestBoardingPassPrinterCommand = new RelayCommand(_ => BoardingPassPrinterStatus = $"Test page queued at {DateTime.Now:HH:mm}");
+        TestBagTagPrinterCommand = new RelayCommand(_ => BagTagPrinterStatus = $"Test tag queued at {DateTime.Now:HH:mm}");
+        RandomizePassengerSeedCommand = new RelayCommand(_ => PassengerGenerationSeed = Random.Shared.Next(100000, 999999));
     }
 
     public SharedStatusViewModel Status { get; }
@@ -38,13 +44,43 @@ public sealed class SettingsViewModel : PageViewModel
 
     public ICommand SelectSectionCommand { get; }
 
+    public ICommand TestBoardingPassPrinterCommand { get; }
+
+    public ICommand TestBagTagPrinterCommand { get; }
+
+    public ICommand RandomizePassengerSeedCommand { get; }
+
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
 
     public IReadOnlyList<string> Themes { get; } = ["FreeFlight Dark"];
 
+    public IReadOnlyList<int> BoardingStartOffsets { get; } = [60, 45, 30, 20];
+
+    public IReadOnlyList<int> FinalBoardingOffsets { get; } = [10, 5, 3];
+
+    public IReadOnlyList<int> GateCloseOffsets { get; } = [5, 3, 2, 1];
+
+    public IReadOnlyList<string> NameRegionMixes { get; } = ["Global Mix (Default)", "Europe", "North America", "Asia Pacific"];
+
+    public IReadOnlyList<string> BoardingGroupOrders { get; } = ["Groups by Cabin (1 → 8)", "Back to Front", "Outside In"];
+
+    public IReadOnlyList<string> BoardingCallChimes { get; } = ["British Airways", "FreeFlight Standard", "Silent"];
+
     public IReadOnlyList<CabinLayoutProfileOption> CabinLayoutProfiles => CabinLayoutProfileCatalog.All;
 
     public string Version => "v0.1.0-dev";
+
+    public string BoardingPassPrinterStatus
+    {
+        get => _boardingPassPrinterStatus;
+        private set => SetProperty(ref _boardingPassPrinterStatus, value);
+    }
+
+    public string BagTagPrinterStatus
+    {
+        get => _bagTagPrinterStatus;
+        private set => SetProperty(ref _bagTagPrinterStatus, value);
+    }
 
     public string SelectedSection
     {
@@ -139,6 +175,138 @@ public sealed class SettingsViewModel : PageViewModel
 
     public string ActiveAirlinePackName => "FreeFlight Generic";
 
+    public string SimBriefPilotId
+    {
+        get => _settings.SimBriefPilotId;
+        set => SetSetting(value.Trim(), current => _settings.SimBriefPilotId = current);
+    }
+
+    public string GateFlightNumber
+    {
+        get => _settings.GateFlightNumber;
+        set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.GateFlightNumber = current);
+    }
+
+    public string GateOriginIata
+    {
+        get => _settings.GateOriginIata;
+        set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.GateOriginIata = current);
+    }
+
+    public string GateDestinationIata
+    {
+        get => _settings.GateDestinationIata;
+        set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.GateDestinationIata = current);
+    }
+
+    public string GateNumber
+    {
+        get => _settings.GateNumber;
+        set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.GateNumber = current);
+    }
+
+    public string ScheduledDepartureLocal
+    {
+        get => _settings.ScheduledDepartureLocal;
+        set => SetSetting(value.Trim(), current => _settings.ScheduledDepartureLocal = current);
+    }
+
+    public bool AutomaticGateTiming
+    {
+        get => _settings.AutomaticGateTiming;
+        set => SetSetting(value, current => _settings.AutomaticGateTiming = current);
+    }
+
+    public int BoardingStartMinutesBeforeDeparture
+    {
+        get => _settings.BoardingStartMinutesBeforeDeparture;
+        set => SetSetting(value, current => _settings.BoardingStartMinutesBeforeDeparture = current);
+    }
+
+    public int FinalBoardingMinutesBeforeDeparture
+    {
+        get => _settings.FinalBoardingMinutesBeforeDeparture;
+        set => SetSetting(value, current => _settings.FinalBoardingMinutesBeforeDeparture = current);
+    }
+
+    public int GateCloseMinutesBeforeDeparture
+    {
+        get => _settings.GateCloseMinutesBeforeDeparture;
+        set => SetSetting(value, current => _settings.GateCloseMinutesBeforeDeparture = current);
+    }
+
+    public bool ManualGateOverride
+    {
+        get => _settings.ManualGateOverride;
+        set => SetSetting(value, current => _settings.ManualGateOverride = current);
+    }
+
+    public string PassengerNameRegionMix
+    {
+        get => _settings.PassengerNameRegionMix;
+        set => SetSetting(value, current => _settings.PassengerNameRegionMix = current);
+    }
+
+    public int PassengerGenerationSeed
+    {
+        get => _settings.PassengerGenerationSeed;
+        set => SetSetting(value, current => _settings.PassengerGenerationSeed = current);
+    }
+
+    public string BoardingGroupOrder
+    {
+        get => _settings.BoardingGroupOrder;
+        set => SetSetting(value, current => _settings.BoardingGroupOrder = current);
+    }
+
+    public bool SpecialAssistanceBoardsFirst
+    {
+        get => _settings.SpecialAssistanceBoardsFirst;
+        set => SetSetting(value, current => _settings.SpecialAssistanceBoardsFirst = current);
+    }
+
+    public bool PreventBoardingAfterGateClose
+    {
+        get => _settings.PreventBoardingAfterGateClose;
+        set => SetSetting(value, current => _settings.PreventBoardingAfterGateClose = current);
+    }
+
+    public string BoardingPassPrinter
+    {
+        get => _settings.BoardingPassPrinter;
+        set => SetSetting(value, current => _settings.BoardingPassPrinter = current);
+    }
+
+    public string BagTagPrinter
+    {
+        get => _settings.BagTagPrinter;
+        set => SetSetting(value, current => _settings.BagTagPrinter = current);
+    }
+
+    public bool SoundAlerts
+    {
+        get => _settings.SoundAlerts;
+        set => SetSetting(value, current => _settings.SoundAlerts = current);
+    }
+
+    public string BoardingCallChime
+    {
+        get => _settings.BoardingCallChime;
+        set => SetSetting(value, current => _settings.BoardingCallChime = current);
+    }
+
+    public bool AutoArchiveCompletedFlights
+    {
+        get => _settings.AutoArchiveCompletedFlights;
+        set => SetSetting(value, current => _settings.AutoArchiveCompletedFlights = current);
+    }
+
+    public int ArchiveCompletedFlightsAfterDays
+    {
+        get => _settings.ArchiveCompletedFlightsAfterDays;
+        set => SetSetting(value, current => _settings.ArchiveCompletedFlightsAfterDays = current);
+    }
+
     public CabinLayoutProfileOption SelectedCabinLayoutProfile
     {
         get => _selectedCabinLayoutProfile;
@@ -189,7 +357,36 @@ public sealed class SettingsViewModel : PageViewModel
         UiScalePercent = defaults.UiScalePercent;
         SelectedCabinLayoutProfile = CabinLayoutProfiles.Single(profile =>
             profile.Id == defaults.PassengerCabinLayoutId);
+        SimBriefPilotId = defaults.SimBriefPilotId;
+        GateFlightNumber = defaults.GateFlightNumber;
+        GateOriginIata = defaults.GateOriginIata;
+        GateDestinationIata = defaults.GateDestinationIata;
+        GateNumber = defaults.GateNumber;
+        ScheduledDepartureLocal = defaults.ScheduledDepartureLocal;
+        AutomaticGateTiming = defaults.AutomaticGateTiming;
+        BoardingStartMinutesBeforeDeparture = defaults.BoardingStartMinutesBeforeDeparture;
+        FinalBoardingMinutesBeforeDeparture = defaults.FinalBoardingMinutesBeforeDeparture;
+        GateCloseMinutesBeforeDeparture = defaults.GateCloseMinutesBeforeDeparture;
+        ManualGateOverride = defaults.ManualGateOverride;
+        PassengerNameRegionMix = defaults.PassengerNameRegionMix;
+        PassengerGenerationSeed = defaults.PassengerGenerationSeed;
+        BoardingGroupOrder = defaults.BoardingGroupOrder;
+        SpecialAssistanceBoardsFirst = defaults.SpecialAssistanceBoardsFirst;
+        PreventBoardingAfterGateClose = defaults.PreventBoardingAfterGateClose;
+        BoardingPassPrinter = defaults.BoardingPassPrinter;
+        BagTagPrinter = defaults.BagTagPrinter;
+        SoundAlerts = defaults.SoundAlerts;
+        BoardingCallChime = defaults.BoardingCallChime;
+        AutoArchiveCompletedFlights = defaults.AutoArchiveCompletedFlights;
+        ArchiveCompletedFlightsAfterDays = defaults.ArchiveCompletedFlightsAfterDays;
         SaveStatus = "Defaults restored; choose Save Changes to keep them";
+    }
+
+    private void SetSetting<T>(T value, Action<T> apply, [CallerMemberName] string? propertyName = null)
+    {
+        apply(value);
+        OnPropertyChanged(propertyName);
+        MarkDirty();
     }
 
     private void MarkDirty() => SaveStatus = "Unsaved changes";

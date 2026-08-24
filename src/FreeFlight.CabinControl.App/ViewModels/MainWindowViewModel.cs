@@ -22,9 +22,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     {
         _settings = settings;
         Status = new SharedStatusViewModel();
-        Dashboard = new DashboardViewModel(settings, Status);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient);
+        Operations = new GateOperationsViewModel(settings, Passengers);
+        Dashboard = Operations;
         CabinPanel = new CabinControlPanelViewModel(
             settings,
             settingsStore,
@@ -40,7 +41,9 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public SharedStatusViewModel Status { get; }
 
-    public DashboardViewModel Dashboard { get; }
+    public GateOperationsViewModel Operations { get; }
+
+    public GateOperationsViewModel Dashboard { get; }
 
     public AirlinersViewModel Airliners { get; }
 
@@ -71,6 +74,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         Audio.Dispose();
+        Operations.Dispose();
         Passengers.Dispose();
         Performance.Dispose();
         GC.SuppressFinalize(this);
@@ -92,8 +96,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             Settings.ApplyCabinLayoutSelection(_settings.PassengerCabinLayoutId);
         }
 
+        Operations.ApplySettings();
+
         CurrentPage = destination switch
         {
+            "GateDesk" => Operations,
+            "PassengerManifest" => Operations,
+            "BoardingPasses" => Operations,
             "Airliners" => Airliners,
             "Passengers" => Passengers,
             "CabinPanel" => CabinPanel,

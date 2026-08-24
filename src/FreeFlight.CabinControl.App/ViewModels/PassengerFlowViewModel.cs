@@ -31,6 +31,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private string _simBriefFlightSummary = "No SimBrief flight imported";
     private bool _isSimBriefSyncing;
     private bool _hasSimBriefFlight;
+    private string _importedFlightNumber = string.Empty;
+    private string _importedOrigin = string.Empty;
+    private string _importedDestination = string.Empty;
+    private DateTime? _lastSimBriefSyncTime;
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
 
     public PassengerFlowViewModel(
@@ -321,6 +325,40 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         }
     }
 
+    public string ImportedFlightNumber
+    {
+        get => _importedFlightNumber;
+        private set => SetProperty(ref _importedFlightNumber, value);
+    }
+
+    public string ImportedOrigin
+    {
+        get => _importedOrigin;
+        private set => SetProperty(ref _importedOrigin, value);
+    }
+
+    public string ImportedDestination
+    {
+        get => _importedDestination;
+        private set => SetProperty(ref _importedDestination, value);
+    }
+
+    public DateTime? LastSimBriefSyncTime
+    {
+        get => _lastSimBriefSyncTime;
+        private set
+        {
+            if (SetProperty(ref _lastSimBriefSyncTime, value))
+            {
+                OnPropertyChanged(nameof(LastSimBriefSyncLabel));
+            }
+        }
+    }
+
+    public string LastSimBriefSyncLabel => LastSimBriefSyncTime is null
+        ? "Not imported in this session"
+        : $"Imported {LastSimBriefSyncTime:HH:mm}";
+
     public string BoardingGroupStatus => _engine.State switch
     {
         BoardingRunState.Ready => $"NEXT · GROUP {_engine.CurrentBoardingGroup}",
@@ -439,6 +477,17 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         RefreshFromEngine();
     }
 
+    public bool BoardPassengerFromGate(int passengerId)
+    {
+        var boarded = _engine.TryBoardPassenger(passengerId);
+        if (boarded)
+        {
+            RefreshFromEngine();
+        }
+
+        return boarded;
+    }
+
     public async Task SyncSimBriefAsync()
     {
         if (!CanEditPassengerLoad)
@@ -454,6 +503,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             var summary = await _simBriefClient.FetchLatestOfpAsync(SimBriefPilotId);
             var passengerCount = Math.Max(1, summary.PassengerCount);
             HasSimBriefFlight = true;
+            ImportedFlightNumber = summary.FlightNumber;
+            ImportedOrigin = summary.Origin;
+            ImportedDestination = summary.Destination;
+            LastSimBriefSyncTime = DateTime.Now;
             ApplyBookedPassengerCount(passengerCount, simBriefPriority: true);
             _settings.SimBriefPilotId = SimBriefPilotId.Trim();
             SimBriefFlightSummary = BuildFlightSummary(summary);

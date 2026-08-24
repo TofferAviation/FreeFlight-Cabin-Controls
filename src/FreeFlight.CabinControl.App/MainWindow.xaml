@@ -22,6 +22,14 @@
                             GlassFrameThickness="0"
                             UseAeroCaptionButtons="False" />
     </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="CompactNavRadioStyle" TargetType="RadioButton" BasedOn="{StaticResource NavRadioStyle}">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Margin" Value="8,2" />
+            <Setter Property="Padding" Value="17,0" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+    </Window.Resources>
 
     <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
         <Grid>
@@ -40,15 +48,15 @@
                     BorderThickness="0,0,1,0">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="152" />
+                        <RowDefinition Height="132" />
                         <RowDefinition Height="*" />
                         <RowDefinition Height="54" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel Margin="26,15,24,14">
+                    <StackPanel Margin="26,8,24,8">
                         <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/FreeFlightBrand.png"
-                               Width="202"
-                               Height="93"
+                               Width="185"
+                               Height="82"
                                Stretch="Uniform" />
                         <TextBlock Text="C A B I N   C O N T R O L"
                                    Margin="12,-5,0,0"
@@ -63,30 +71,61 @@
                         </TextBlock>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" VerticalAlignment="Top" Margin="0,8,0,0">
-                        <RadioButton Style="{StaticResource NavRadioStyle}"
-                                     Content="Dashboard"
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel VerticalAlignment="Top" Margin="0,5,0,0">
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Overview"
                                      Tag="&#xE80F;"
                                      GroupName="Navigation"
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dashboard, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Dashboard" />
-                        <RadioButton Style="{StaticResource NavRadioStyle}"
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Gate Desk"
+                                     Tag="&#xE716;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=GateDesk, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="GateDesk" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Passenger Manifest"
+                                     Tag="&#xE8A5;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=PassengerManifest, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="PassengerManifest" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Boarding Passes"
+                                     Tag="&#xE8C7;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=BoardingPasses, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="BoardingPasses" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Cabin"
+                                     Tag="&#xE7C8;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Passengers, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="Passengers"
+                                     ToolTip="Live cabin and passenger flow" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Settings"
+                                     Tag="&#xE713;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Settings, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="Settings" />
+
+                        <TextBlock Text="CABIN SYSTEMS" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Airliners"
                                      Tag="&#xE709;"
                                      GroupName="Navigation"
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Airliners, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Airliners" />
-                        <RadioButton Style="{StaticResource NavRadioStyle}"
-                                     Content="Passengers"
-                                     Tag="&#xE716;"
-                                     GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Passengers, Mode=OneWay}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Passengers"
-                                     ToolTip="Passenger Flow preview" />
-                        <RadioButton Style="{StaticResource NavRadioStyle}"
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Cabin Panel"
                                      Tag="&#xE7F4;"
                                      GroupName="Navigation"
@@ -94,28 +133,22 @@
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="CabinPanel"
                                      ToolTip="Cabin Area Control Panel" />
-                        <RadioButton Style="{StaticResource NavRadioStyle}"
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Audio"
                                      Tag="&#xE767;"
                                      GroupName="Navigation"
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Audio, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Audio" />
-                        <RadioButton Style="{StaticResource NavRadioStyle}"
-                                     Content="Performance"
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Diagnostics"
                                      Tag="&#xE9D2;"
                                      GroupName="Navigation"
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Performance, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Performance" />
-                        <RadioButton Style="{StaticResource NavRadioStyle}"
-                                     Content="Settings"
-                                     Tag="&#xE713;"
-                                     GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Settings, Mode=OneWay}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Settings" />
                     </StackPanel>
+                    </ScrollViewer>
 
                     <TextBlock Grid.Row="2"
                                Text="v0.1.0-dev"
@@ -128,9 +161,23 @@
 
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="42" />
+                    <RowDefinition Height="82" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="#9A061326" BorderBrush="#263A52" BorderThickness="0,0,0,1">
+                    <Grid Margin="20,0,145,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="270" /><ColumnDefinition Width="1" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="140" /><ColumnDefinition Width="1" /><ColumnDefinition Width="195" /><ColumnDefinition Width="215" /></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/BAW.png" Width="55" Height="42" Stretch="Uniform" /><TextBlock Text="BRITISH AIRWAYS" FontFamily="Georgia" FontSize="19" FontWeight="Bold" VerticalAlignment="Center" Margin="9,0,0,0" /></StackPanel>
+                        <Rectangle Grid.Column="1" Fill="#263A52" Margin="0,14" />
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0"><TextBlock Text="{Binding Operations.FlightNumber}" FontSize="21" FontWeight="SemiBold" /><TextBlock Text="{Binding Operations.RouteSummary}" Style="{StaticResource MutedTextStyle}" /></StackPanel>
+                        <Rectangle Grid.Column="3" Fill="#263A52" Margin="0,14" />
+                        <TextBlock Grid.Column="4" Text="{Binding Operations.GateHeader}" FontSize="17" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        <Rectangle Grid.Column="5" Fill="#263A52" Margin="0,14" />
+                        <TextBlock Grid.Column="6" Text="{Binding Operations.AircraftName}" FontSize="16" VerticalAlignment="Center" Margin="20,0" />
+                        <StackPanel Grid.Column="7" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding Operations.SimBriefConnectionLabel}" FontSize="15" HorizontalAlignment="Right" /><TextBlock Text="{Binding Operations.SimBriefImportLabel}" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Right" /></StackPanel>
+                    </Grid>
+                </Border>
 
                 <StackPanel Grid.Row="0"
                             Orientation="Horizontal"
@@ -143,7 +190,7 @@
                 </StackPanel>
 
                 <!-- Keep page instances alive so long-running cabin media is not restarted by navigation. -->
-                <Grid Grid.Row="1" Margin="36,4,36,30">
+                <Grid Grid.Row="1" Margin="20,12,20,20">
                     <views:DashboardView DataContext="{Binding Dashboard}"
                                          Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Dashboard}" />
                     <views:AirlinersView DataContext="{Binding Airliners}"
@@ -158,6 +205,12 @@
                                            Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Performance}" />
                     <views:SettingsView DataContext="{Binding Settings}"
                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Settings}" />
+                    <views:GateDeskView DataContext="{Binding Operations}"
+                                        Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=GateDesk}" />
+                    <views:PassengerManifestView DataContext="{Binding Operations}"
+                                                 Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=PassengerManifest}" />
+                    <views:BoardingPassesView DataContext="{Binding Operations}"
+                                              Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=BoardingPasses}" />
                 </Grid>
             </Grid>
         </Grid>

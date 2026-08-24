@@ -175,6 +175,36 @@ public sealed class PassengerBoardingEngine
         InitializeManifest();
     }
 
+    public bool TryBoardPassenger(int passengerId)
+    {
+        if (Operation != PassengerOperation.Boarding)
+        {
+            return false;
+        }
+
+        var passenger = _passengers.FirstOrDefault(candidate => candidate.Id == passengerId);
+        if (passenger is null || passenger.MovementState == PassengerMovementState.Seated)
+        {
+            return false;
+        }
+
+        _activePassengers.Remove(passenger);
+        _occupyingPassengers.Remove(passenger);
+        passenger.Door ??= SelectDoor(passenger);
+        passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
+        passenger.Waypoints.Clear();
+        passenger.MovementState = PassengerMovementState.Seated;
+        passenger.SecondsUntilSecured = 0d;
+        _boardedCount++;
+        _lastSeatedPassengers.Add(passenger);
+        if (_boardedCount >= TargetPassengerCount)
+        {
+            State = BoardingRunState.Complete;
+        }
+
+        return true;
+    }
+
     public void Tick(TimeSpan elapsed, double speedMultiplier = 1d)
     {
         _lastSeatedPassengers.Clear();
@@ -208,6 +238,7 @@ public sealed class PassengerBoardingEngine
 
         State = BoardingRunState.Boarding;
         _spawnAccumulator += scaledSeconds;
+        SkipAlreadyProcessedPassengers();
         var spawnInterval = _nextPassengerIndex < _passengers.Count
             ? GetSpawnInterval(_passengers[_nextPassengerIndex]) / _openDoors.Count
             : BaseSpawnIntervalSeconds;
@@ -227,9 +258,19 @@ public sealed class PassengerBoardingEngine
         {
             SpawnPassenger(_passengers[_nextPassengerIndex++]);
             _spawnAccumulator -= spawnInterval;
+            SkipAlreadyProcessedPassengers();
             spawnInterval = _nextPassengerIndex < _passengers.Count
                 ? GetSpawnInterval(_passengers[_nextPassengerIndex]) / _openDoors.Count
                 : BaseSpawnIntervalSeconds;
+        }
+    }
+
+    private void SkipAlreadyProcessedPassengers()
+    {
+        while (_nextPassengerIndex < _passengers.Count &&
+               _passengers[_nextPassengerIndex].MovementState != PassengerMovementState.Waiting)
+        {
+            _nextPassengerIndex++;
         }
     }
 

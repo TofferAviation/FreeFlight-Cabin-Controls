@@ -6,6 +6,10 @@
 
 The Windows application owns configuration, cabin state, passenger simulation, content-pack selection, scheduling, diagnostics, and the operator interface.
 
+The gate-operations view model is the shared presentation boundary for Overview, Gate Desk, Passenger Manifest, and Boarding Passes. It wraps the core passenger engine instead of copying passenger records per page. A passenger boarded from the Gate Desk is therefore placed in the same assigned seat used by Cabin, while SimBrief manifest rebuilds propagate to every gate page.
+
+Boarding-pass identities and personal details are deterministic fictional preview data generated locally from a user-controlled seed. The current printer controls update a simulated print state only. A future Windows printer adapter must sit behind a separate service boundary so UI state and passenger logic do not depend on printer drivers.
+
 ### X-Plane bridge plugin
 
 The future native C++ plugin will own X-Plane SDK access, simulator dataref sampling, X-Plane audio-bus playback, and simulator-side screen rendering. It must remain lightweight and must not block X-Plane's main thread.
