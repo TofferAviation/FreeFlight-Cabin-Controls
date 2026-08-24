@@ -197,7 +197,10 @@
                         <Rectangle Grid.Column="1" Fill="#263A52" Margin="0,14" />
                         <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0"><TextBlock Text="{Binding Operations.FlightNumber}" FontSize="21" FontWeight="SemiBold" /><TextBlock Text="{Binding Operations.RouteSummary}" Style="{StaticResource MutedTextStyle}" /></StackPanel>
                         <Rectangle Grid.Column="3" Fill="#263A52" Margin="0,14" />
-                        <TextBlock Grid.Column="4" Text="{Binding Operations.GateHeader}" FontSize="13" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="GATE" Tag="GateHeaderLabel" FontSize="9" FontWeight="SemiBold" Foreground="#7F93AA" HorizontalAlignment="Center" />
+                            <TextBlock Text="{Binding Operations.GateHeader}" FontSize="13" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                        </StackPanel>
                         <Rectangle Grid.Column="5" Fill="#263A52" Margin="0,14" />
                         <TextBlock Grid.Column="6" Text="{Binding Operations.AircraftName}" FontSize="16" VerticalAlignment="Center" Margin="20,0" />
                         <StackPanel Grid.Column="7" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding Operations.SimBriefConnectionLabel}" FontSize="15" HorizontalAlignment="Right" /><TextBlock Text="{Binding Operations.SimBriefImportLabel}" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Right" /></StackPanel>

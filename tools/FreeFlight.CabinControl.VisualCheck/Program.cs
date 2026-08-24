@@ -131,6 +131,21 @@ internal static class Program
 
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
+        var dashboardView = FindVisualChild<FreeFlight.CabinControl.App.Views.DashboardView>(window, _ => true);
+        var overviewGateToggle = dashboardView is null
+            ? null
+            : FindVisualChild<Button>(dashboardView, button =>
+                ReferenceEquals(button.Command, viewModel.Operations.ToggleGateCommand));
+        var gateWorkspaceButton = dashboardView is null
+            ? null
+            : FindVisualChild<Button>(dashboardView, button => Equals(button.CommandParameter, "GateDesk"));
+        var gateHeaderLabel = FindVisualChild<TextBlock>(window, textBlock => Equals(textBlock.Tag, "GateHeaderLabel"));
+        if (dashboardView is null || overviewGateToggle is not null || gateWorkspaceButton is null ||
+            gateHeaderLabel?.Text != "GATE")
+        {
+            throw new InvalidOperationException("Overview still exposes a gate-state action or the route gate header is incomplete.");
+        }
+
         viewModel.NavigateCommand.Execute("GateDesk");
         viewModel.Operations.ToggleGateCommand.Execute(null);
         if (viewModel.ActivePage != "GateLogin" ||
