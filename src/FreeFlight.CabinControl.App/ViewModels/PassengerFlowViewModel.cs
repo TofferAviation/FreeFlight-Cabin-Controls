@@ -30,6 +30,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private string _simBriefStatus = "Enter your numeric SimBrief Pilot ID to import the latest OFP.";
     private string _simBriefFlightSummary = "No SimBrief flight imported";
     private bool _isSimBriefSyncing;
+    private bool _hasSimBriefFlight;
 
     public PassengerFlowViewModel(
         AppSettings settings,
@@ -45,7 +46,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _simBriefAutoSync = settings.SimBriefAutoSync;
         Status = status;
         _engine = new PassengerBoardingEngine(settings.PassengerPreviewBookedCount);
-        _bookedPassengerCount = _engine.TargetPassengerCount;
+        _bookedPassengerCount = Math.Max(1, settings.PassengerPreviewBookedCount);
         SpeedOptions =
         [
             new BoardingSpeedOption("Real Ops · 30–45 min", 0.06d),
@@ -95,29 +96,28 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public ObservableCollection<string> ActivityLog { get; } = [];
     public IReadOnlyList<BoardingSpeedOption> SpeedOptions { get; }
     public int CabinCapacity => _engine.Capacity;
+    public int MappedPassengerCount => _engine.TargetPassengerCount;
+    public int UnmappedPassengerCount => Math.Max(0, BookedPassengerCount - MappedPassengerCount);
+    public bool HasCapacityOverflow => UnmappedPassengerCount > 0;
+    public int PassengerInputMaximum => Math.Max(CabinCapacity, BookedPassengerCount);
+    public string CapacitySummary => HasCapacityOverflow
+        ? $"{MappedPassengerCount} mapped · {UnmappedPassengerCount} unmapped"
+        : $"of {CabinCapacity} seats";
+    public string ManifestSummary => HasCapacityOverflow
+        ? $"{MappedPassengerCount} mapped passengers · {BookedPassengerCount} booked by SimBrief · {UnmappedPassengerCount} awaiting a compatible cabin layout"
+        : $"{PassengerManifest.Count} passengers · ordered by boarding group";
 
     public int BookedPassengerCount
     {
         get => _bookedPassengerCount;
         set
         {
-            if (!CanEditPassengerLoad)
+            if (!CanAdjustPassengerLoad)
             {
                 return;
             }
 
-            var clamped = Math.Clamp(value, 1, CabinCapacity);
-            if (!SetProperty(ref _bookedPassengerCount, clamped))
-            {
-                return;
-            }
-
-            _settings.PassengerPreviewBookedCount = clamped;
-            _engine.ConfigurePassengerCount(clamped);
-            ClearPassengerVisuals();
-            RebuildManifest();
-            AddActivity($"Manifest changed to {clamped} booked passengers");
-            RefreshFromEngine();
+            ApplyBookedPassengerCount(value, simBriefPriority: false);
         }
     }
 
@@ -245,19 +245,54 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         : "Walking / settling";
     public int RemainingPassengerCount => _engine.Operation == PassengerOperation.Deboarding
         ? _engine.OnBoardCount
-        : _engine.RemainingCount;
+        : _engine.RemainingCount + UnmappedPassengerCount;
     public int WaitingPassengerCount => _engine.WaitingCount;
     public string WaitingPassengerSummary => _engine.Operation == PassengerOperation.Deboarding
         ? $"{_engine.DeboardedCount} off aircraft"
-        : $"{_engine.WaitingCount} outside";
+        : $"{_engine.WaitingCount + UnmappedPassengerCount} outside";
     public double OperationProgress => (_engine.Operation == PassengerOperation.Deboarding
         ? _engine.DeboardingProgress
         : _engine.Progress) * 100d;
     public double BoardingProgress => OperationProgress;
     public string OperationProgressLabel => _engine.Operation == PassengerOperation.Deboarding
         ? "DEBOARDING PROGRESS"
-        : "BOARDING PROGRESS";
+        : HasCapacityOverflow ? "MAPPED BOARDING PROGRESS" : "BOARDING PROGRESS";
     public BoardingRunState BoardingState => _engine.State;
+    public int CurrentBoardingGroup => _engine.CurrentBoardingGroup;
+
+    public bool HasSimBriefFlight
+    {
+        get => _hasSimBriefFlight;
+        private set
+        {
+            if (SetProperty(ref _hasSimBriefFlight, value))
+            {
+                OnPropertyChanged(nameof(CanAdjustPassengerLoad));
+                OnPropertyChanged(nameof(PassengerLoadSourceLabel));
+            }
+        }
+    }
+
+    public string BoardingGroupStatus => _engine.State switch
+    {
+        BoardingRunState.Ready => $"NEXT · GROUP {_engine.CurrentBoardingGroup}",
+        BoardingRunState.Boarding => $"GROUP {_engine.CurrentBoardingGroup} BOARDING",
+        BoardingRunState.Paused when _engine.Operation == PassengerOperation.Boarding => $"GROUP {_engine.CurrentBoardingGroup} PAUSED",
+        BoardingRunState.WaitingForDoor when _engine.Operation == PassengerOperation.Boarding => $"GROUP {_engine.CurrentBoardingGroup} HELD",
+        BoardingRunState.Complete => "ALL MAPPED GROUPS BOARDED",
+        BoardingRunState.Deboarding => "DEBOARDING",
+        BoardingRunState.Paused => "DEBOARDING PAUSED",
+        BoardingRunState.WaitingForDoor => "DEBOARDING HELD",
+        BoardingRunState.DeboardingComplete => "CABIN EMPTY",
+        _ => "BOARDING GROUPS READY"
+    };
+
+    public string BoardingGroupDetail => _engine.State switch
+    {
+        BoardingRunState.Complete => $"{MappedPassengerCount} mapped passengers boarded",
+        BoardingRunState.Deboarding or BoardingRunState.DeboardingComplete => $"{_engine.OnBoardCount} passengers still onboard",
+        _ => $"{_engine.WaitingInCurrentBoardingGroup} waiting in Group {_engine.CurrentBoardingGroup}"
+    };
 
     public string BoardingStateLabel => _engine.State switch
     {
@@ -296,6 +331,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ? "\uE769"
         : "\uE768";
     public bool CanEditPassengerLoad => _engine.State is BoardingRunState.Ready or BoardingRunState.DeboardingComplete;
+    public bool CanAdjustPassengerLoad => CanEditPassengerLoad && !HasSimBriefFlight;
+    public string PassengerLoadSourceLabel => HasSimBriefFlight ? "SIMBRIEF PRIORITY" : "MANUAL LOAD";
 
     public string ActiveDoorSummary => _engine.OpenDoorCount switch
     {
@@ -366,12 +403,13 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         try
         {
             var summary = await _simBriefClient.FetchLatestOfpAsync(SimBriefPilotId);
-            var passengerCount = Math.Clamp(summary.PassengerCount, 1, CabinCapacity);
-            BookedPassengerCount = passengerCount;
+            var passengerCount = Math.Max(1, summary.PassengerCount);
+            HasSimBriefFlight = true;
+            ApplyBookedPassengerCount(passengerCount, simBriefPriority: true);
             _settings.SimBriefPilotId = SimBriefPilotId.Trim();
             SimBriefFlightSummary = BuildFlightSummary(summary);
-            SimBriefStatus = summary.PassengerCount > CabinCapacity
-                ? $"Imported {summary.PassengerCount} passengers; limited to the FF777 preview capacity of {CabinCapacity}."
+            SimBriefStatus = passengerCount > CabinCapacity
+                ? $"Synced {passengerCount} planned passengers. {MappedPassengerCount} have mapped seats; {UnmappedPassengerCount} require a compatible cabin layout."
                 : $"Synced {passengerCount} passengers from the latest OFP.";
             AddActivity($"SimBrief sync — {SimBriefFlightSummary} — {passengerCount} passengers");
             await SaveSettingsQuietlyAsync();
@@ -458,10 +496,36 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void SetLoadPreset(object? parameter)
     {
-        if (CanEditPassengerLoad && parameter is string text && int.TryParse(text, out var percentage))
+        if (CanAdjustPassengerLoad && parameter is string text && int.TryParse(text, out var percentage))
         {
             BookedPassengerCount = Math.Max(1, (int)Math.Round(CabinCapacity * (percentage / 100d)));
         }
+    }
+
+    private void ApplyBookedPassengerCount(int value, bool simBriefPriority)
+    {
+        var bookedCount = simBriefPriority
+            ? Math.Max(1, value)
+            : Math.Clamp(value, 1, CabinCapacity);
+        if (!SetProperty(ref _bookedPassengerCount, bookedCount, nameof(BookedPassengerCount)))
+        {
+            return;
+        }
+
+        _settings.PassengerPreviewBookedCount = bookedCount;
+        _engine.ConfigurePassengerCount(Math.Min(bookedCount, CabinCapacity));
+        ClearPassengerVisuals();
+        RebuildManifest();
+        AddActivity(simBriefPriority
+            ? $"SimBrief set the booked load to {bookedCount} passengers"
+            : $"Manifest changed to {bookedCount} booked passengers");
+        OnPropertyChanged(nameof(MappedPassengerCount));
+        OnPropertyChanged(nameof(UnmappedPassengerCount));
+        OnPropertyChanged(nameof(HasCapacityOverflow));
+        OnPropertyChanged(nameof(PassengerInputMaximum));
+        OnPropertyChanged(nameof(CapacitySummary));
+        OnPropertyChanged(nameof(ManifestSummary));
+        RefreshFromEngine();
     }
 
     private void SelectPassenger(object? parameter)
@@ -513,7 +577,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         PassengerManifest.Clear();
         _manifestByPassengerId.Clear();
-        foreach (var passenger in _engine.Passengers.OrderBy(passenger => passenger.Seat.Number, SeatNumberComparer.Instance))
+        foreach (var passenger in _engine.Passengers
+                     .OrderBy(passenger => passenger.BoardingGroup)
+                     .ThenBy(passenger => passenger.Id))
         {
             var entry = new PassengerManifestEntryViewModel(passenger);
             PassengerManifest.Add(entry);
@@ -582,17 +648,22 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(BoardingProgress));
         OnPropertyChanged(nameof(OperationProgressLabel));
         OnPropertyChanged(nameof(BoardingState));
+        OnPropertyChanged(nameof(CurrentBoardingGroup));
+        OnPropertyChanged(nameof(BoardingGroupStatus));
+        OnPropertyChanged(nameof(BoardingGroupDetail));
         OnPropertyChanged(nameof(BoardingStateLabel));
         OnPropertyChanged(nameof(BoardingStateColor));
         OnPropertyChanged(nameof(PrimaryActionLabel));
         OnPropertyChanged(nameof(PrimaryActionGlyph));
         OnPropertyChanged(nameof(CanEditPassengerLoad));
+        OnPropertyChanged(nameof(CanAdjustPassengerLoad));
         OnPropertyChanged(nameof(ActiveDoorSummary));
         OnPropertyChanged(nameof(DoorRoutingSummary));
         OnPropertyChanged(nameof(OperationEta));
         OnPropertyChanged(nameof(BoardingEta));
         OnPropertyChanged(nameof(L1PassengerCount));
         OnPropertyChanged(nameof(L2PassengerCount));
+        OnPropertyChanged(nameof(ManifestSummary));
     }
 
     private void ClearPassengerVisuals()
@@ -662,6 +733,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         FullName = passenger.Profile.FullName;
         SeatNumber = passenger.Seat.Number;
         CabinClassName = passenger.Seat.CabinClass.ToString();
+        BoardingGroup = passenger.BoardingGroup;
         SeatX = passenger.Seat.X;
         SeatY = passenger.Seat.Y;
     }
@@ -670,6 +742,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     public string FullName { get; }
     public string SeatNumber { get; }
     public string CabinClassName { get; }
+    public int BoardingGroup { get; }
     public double SeatX { get; }
     public double SeatY { get; }
     public string DoorLabel { get; private set; } = string.Empty;
@@ -725,7 +798,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     public bool IsOccupyingSeat => MovementState == PassengerMovementState.OccupyingSeat;
     public bool IsSecured => MovementState == PassengerMovementState.Seated;
     public double MarkerSize => IsWalking ? 9d : 8d;
-    public string ToolTip => $"{FullName} • Seat {SeatNumber} • {CabinClassName} • {DoorLabel} • " +
+    public string ToolTip => $"{FullName} • Seat {SeatNumber} • Group {BoardingGroup} • {CabinClassName} • {DoorLabel} • " +
                              (_operation == PassengerOperation.Deboarding && IsWalking ? "Walking to exit" : MovementState);
 
     public void Update(BoardingPassenger passenger, PassengerOperation operation)

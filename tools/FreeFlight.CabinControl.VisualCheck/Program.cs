@@ -221,6 +221,7 @@ internal static class Program
                     .ToArray();
                 if (!ticketRoutedPassengers.Any(marker => marker.CabinClassName == "First") ||
                     !ticketRoutedPassengers.Any(marker => marker.CabinClassName != "First") ||
+                    !ticketRoutedPassengers.Any(marker => marker.BoardingGroup == viewModel.Passengers.CurrentBoardingGroup) ||
                     ticketRoutedPassengers.Any(marker =>
                         marker.DoorLabel != (marker.CabinClassName == "First" ? "L1" : "L2")))
                 {
@@ -248,6 +249,16 @@ internal static class Program
                     viewModel.Passengers.PassengerManifest.Count != 36)
                 {
                     throw new InvalidOperationException("Passenger Flow did not complete boarding with a full 36-person manifest.");
+                }
+
+                var manifestOrder = viewModel.Passengers.PassengerManifest
+                    .Select(passenger => (passenger.BoardingGroup, passenger.PassengerId))
+                    .ToArray();
+                if (!manifestOrder.SequenceEqual(manifestOrder
+                        .OrderBy(passenger => passenger.BoardingGroup)
+                        .ThenBy(passenger => passenger.PassengerId)))
+                {
+                    throw new InvalidOperationException("Passenger manifest was not sorted by boarding group and passenger number.");
                 }
 
                 viewModel.Passengers.OpenManifestCommand.Execute(null);
@@ -292,11 +303,16 @@ internal static class Program
 
                 viewModel.Passengers.SimBriefPilotId = "123456";
                 viewModel.Passengers.SyncSimBriefAsync().GetAwaiter().GetResult();
-                if (viewModel.Passengers.BookedPassengerCount != 123 ||
+                if (viewModel.Passengers.BookedPassengerCount != 302 ||
                     !viewModel.Passengers.SimBriefFlightSummary.Contains("BAW123", StringComparison.Ordinal) ||
-                    viewModel.Passengers.PassengerManifest.Count != 123)
+                    viewModel.Passengers.MappedPassengerCount != 219 ||
+                    viewModel.Passengers.UnmappedPassengerCount != 83 ||
+                    viewModel.Passengers.PassengerManifest.Count != 219 ||
+                    viewModel.Passengers.PassengerManifest.First().BoardingGroup != 1 ||
+                    viewModel.Passengers.PassengerManifest.Last().BoardingGroup != 8 ||
+                    viewModel.Passengers.CanAdjustPassengerLoad)
                 {
-                    throw new InvalidOperationException("SimBrief OFP sync did not rebuild the passenger manifest.");
+                    throw new InvalidOperationException("SimBrief OFP did not retain priority over the mapped cabin capacity.");
                 }
 
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
@@ -783,7 +799,7 @@ internal static class Program
             }
 
             return Task.FromResult(new SimBriefFlightSummary(
-                123,
+                302,
                 "BAW123",
                 "EGLL",
                 "KJFK",

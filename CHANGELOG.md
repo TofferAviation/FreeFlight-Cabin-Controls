@@ -15,6 +15,7 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Complete deboarding operations with live passenger movement, L1/L2 ticket routing, progress, ETA, pause/resume, and an empty-cabin completion state.
 - A full interactive passenger manifest with deterministic fictional names and profiles, seat assignments, booking references, baggage, assistance notes, loyalty tiers, and live boarding/deboarding status; personal details stay hidden until a passenger is selected.
 - Optional SimBrief latest-OFP sync using a numeric Pilot ID, importing passenger count, flight number, origin, and destination while persisting the user's sync preference.
+- Ordered boarding calls from Group 1 through Group 8, an active-group status tab, strict group sequencing, and group-first manifest sorting.
 - Master Audio now scales the real safety-video and boarding-music output, with animated left/right VU meters that respond to playback activity and effective output volume.
 - Windows playback-endpoint discovery and output-device selection.
 - FlightFactor 777 v2 cabin-layout reference and transparent FreeFlight sidebar branding.
@@ -39,6 +40,7 @@ All notable changes are recorded here. Filenames remain stable between releases.
 
 ### Fixed
 
+- SimBrief planned passenger counts now remain authoritative instead of being silently clamped to the 219-seat visual map. Any difference is reported as unmapped passengers requiring a compatible cabin layout.
 - Display-brightness telemetry is now one-way UI data, preventing the CACP Display Controls page from attempting to write to a read-only property.
 - The Display Controls pointer now tracks every brightness change across the progress bar.
 - Diagnostic logging now falls back safely when the normal log file is locked or inaccessible, preventing the error handler itself from causing native Windows exception `0xe0434352`.

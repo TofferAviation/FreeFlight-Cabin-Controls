@@ -130,7 +130,7 @@
                     <StackPanel>
                         <TextBlock Text="BOOKED" Style="{StaticResource MetricLabelStyle}" />
                         <TextBlock Text="{Binding BookedPassengerCount}" Style="{StaticResource MetricValueStyle}" />
-                        <TextBlock Text="{Binding CabinCapacity, StringFormat=of {0} seats}" Style="{StaticResource MetricLabelStyle}" />
+                        <TextBlock Text="{Binding CapacitySummary}" Style="{StaticResource MetricLabelStyle}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource PassengerMetricCardStyle}" Margin="7,0">
@@ -193,6 +193,25 @@
                                 </Border>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Border Background="#332A1020"
+                                        BorderBrush="#F0C64E"
+                                        BorderThickness="1"
+                                        CornerRadius="11"
+                                        Padding="11,3"
+                                        Margin="0,0,10,0"
+                                        ToolTip="{Binding BoardingGroupDetail}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding BoardingGroupStatus}"
+                                                   Foreground="#F0C64E"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding BoardingGroupDetail}"
+                                                   Foreground="#C6B56F"
+                                                   FontSize="8"
+                                                   HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </Border>
                                 <Button Content="Open Manifest"
                                         Command="{Binding OpenManifestCommand}"
                                         Style="{StaticResource SecondaryButtonStyle}"
@@ -328,22 +347,25 @@
 
                         <Grid Grid.Row="1">
                             <Grid.RowDefinitions><RowDefinition Height="30" /><RowDefinition /></Grid.RowDefinitions>
-                            <TextBlock Text="Booked passengers" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Booked passengers" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding PassengerLoadSourceLabel}" Foreground="#55AEFF" FontSize="9" FontWeight="SemiBold" Margin="9,0,0,0" VerticalAlignment="Center" />
+                            </StackPanel>
                             <TextBlock Text="{Binding BookedPassengerCount}" HorizontalAlignment="Right" FontSize="18" Foreground="#55AEFF" />
                             <Slider Grid.Row="1"
                                     Minimum="1"
-                                    Maximum="{Binding CabinCapacity}"
+                                    Maximum="{Binding PassengerInputMaximum}"
                                     TickFrequency="1"
                                     IsSnapToTickEnabled="True"
-                                    IsEnabled="{Binding CanEditPassengerLoad}"
+                                    IsEnabled="{Binding CanAdjustPassengerLoad}"
                                     Value="{Binding BookedPassengerCount}" />
                         </Grid>
 
                         <Grid Grid.Row="2" Margin="0,4,0,8">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Content="50%" Command="{Binding SetLoadPresetCommand}" CommandParameter="50" IsEnabled="{Binding CanEditPassengerLoad}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="8,4" Margin="0,0,4,0" />
-                            <Button Grid.Column="1" Content="75%" Command="{Binding SetLoadPresetCommand}" CommandParameter="75" IsEnabled="{Binding CanEditPassengerLoad}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="8,4" Margin="4,0" />
-                            <Button Grid.Column="2" Content="100%" Command="{Binding SetLoadPresetCommand}" CommandParameter="100" IsEnabled="{Binding CanEditPassengerLoad}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="8,4" Margin="4,0,0,0" />
+                            <Button Grid.Column="0" Content="50%" Command="{Binding SetLoadPresetCommand}" CommandParameter="50" IsEnabled="{Binding CanAdjustPassengerLoad}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="8,4" Margin="0,0,4,0" />
+                            <Button Grid.Column="1" Content="75%" Command="{Binding SetLoadPresetCommand}" CommandParameter="75" IsEnabled="{Binding CanAdjustPassengerLoad}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="8,4" Margin="4,0" />
+                            <Button Grid.Column="2" Content="100%" Command="{Binding SetLoadPresetCommand}" CommandParameter="100" IsEnabled="{Binding CanAdjustPassengerLoad}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="8,4" Margin="4,0,0,0" />
                         </Grid>
 
                         <Grid Grid.Row="3">
@@ -470,7 +492,7 @@
                 <Grid>
                     <StackPanel>
                         <TextBlock Text="Passenger Manifest" FontSize="25" FontWeight="SemiBold" />
-                        <TextBlock Text="Select a passenger to view their fictional preview profile" Style="{StaticResource MutedTextStyle}" FontSize="11" />
+                        <TextBlock Text="{Binding ManifestSummary}" Style="{StaticResource MutedTextStyle}" FontSize="11" />
                     </StackPanel>
                     <Button Content="Close"
                             Command="{Binding CloseManifestCommand}"

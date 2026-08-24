@@ -18,6 +18,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger seat occupation becomes secured", PassengerSeatOccupationBecomesSecuredAsync),
     ("Passenger boarding completes", PassengerBoardingCompletesAsync),
     ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
+    ("Boarding groups run in numeric order", BoardingGroupsRunInNumericOrderAsync),
     ("Passenger deboarding completes", PassengerDeboardingCompletesAsync)
 };
 
@@ -318,6 +319,43 @@ static Task PassengerDeboardingCompletesAsync()
             .Where(passenger => passenger.Seat.CabinClass is PassengerCabinClass.Business or PassengerCabinClass.Economy)
             .All(passenger => passenger.Door == BoardingDoor.L2),
         "A Business or Economy passenger did not deboard through L2 with both doors open.");
+    return Task.CompletedTask;
+}
+
+static Task BoardingGroupsRunInNumericOrderAsync()
+{
+    var engine = new PassengerBoardingEngine(int.MaxValue);
+    Assert(engine.BoardingGroups.SequenceEqual(Enumerable.Range(1, 8)),
+        $"Expected boarding groups 1–8, got {string.Join(", ", engine.BoardingGroups)}.");
+    AssertEqual(1, engine.CurrentBoardingGroup, "The first boarding call was not Group 1.");
+
+    engine.SetDoorOpen(BoardingDoor.L1, true);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    var previousGroup = engine.CurrentBoardingGroup;
+    for (var index = 0; index < 400 && engine.State != BoardingRunState.Complete; index++)
+    {
+        engine.Tick(TimeSpan.FromSeconds(0.1d), 8d);
+        Assert(engine.CurrentBoardingGroup >= previousGroup,
+            "The active boarding group moved backwards.");
+        previousGroup = engine.CurrentBoardingGroup;
+
+        var firstWaitingGroup = engine.Passengers
+            .Where(passenger => passenger.MovementState == PassengerMovementState.Waiting)
+            .Select(passenger => passenger.BoardingGroup)
+            .DefaultIfEmpty(int.MaxValue)
+            .Min();
+        var latestStartedGroup = engine.Passengers
+            .Where(passenger => passenger.MovementState != PassengerMovementState.Waiting)
+            .Select(passenger => passenger.BoardingGroup)
+            .DefaultIfEmpty(0)
+            .Max();
+        Assert(latestStartedGroup <= firstWaitingGroup,
+            $"Group {latestStartedGroup} started while Group {firstWaitingGroup} was still waiting.");
+    }
+
+    AssertEqual(BoardingRunState.Complete, engine.State, "Ordered group boarding did not complete.");
+    AssertEqual(8, engine.CurrentBoardingGroup, "The final boarding call was not Group 8.");
     return Task.CompletedTask;
 }
 

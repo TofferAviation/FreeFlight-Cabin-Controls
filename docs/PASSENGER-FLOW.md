@@ -5,7 +5,7 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 ## Current simulator-free behavior
 
 - Uses a deterministic 219-position FF777 profile whose marker coordinates match the visible seat centres in the current cabin schematic.
-- Accepts a user-selected booked-passenger count from 1 to 219.
+- Accepts a user-selected mapped-passenger count from 1 to 219, while preserving a larger authoritative booked count imported from SimBrief.
 - Starts with L2 open and L1 closed so single-door routing is immediately testable.
 - Routes every newly entering passenger through the only open door.
 - With both doors open, the assigned cabin on the passenger's boarding ticket controls the entry: First uses L1 while Business and Economy use L2.
@@ -15,6 +15,7 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 - Keeps passengers already inside the aircraft moving to their seats if an entry door closes.
 - Keeps moving passengers class-coloured, changes a passenger to orange while the seat is being occupied, and changes the marker to green only after the passenger is seated and secured.
 - Supports an optional real-operations pace targeting a 30–45 minute full one-door boarding, plus 1×, 2×, and 4× accelerated previews, pause/resume, reset, progress, ETA, and recent activity.
+- Calls and releases boarding groups in numeric order from 1 through 8. The live cabin header shows the group currently boarding, and the manifest sorts by group before passenger number.
 - Turns the primary action into **Start Deboarding** after boarding completes. Passengers leave their assigned seats through the same two aisle lanes, First routes to L1 when both doors are open, and Business/Economy routes to L2. Closing every door holds the operation until a door reopens.
 - Generates a stable fictional profile for every preview passenger, including a name, age, nationality, purpose of travel, Executive Club tier, checked-bag count, assistance note, and booking reference.
 - Provides a complete scrollable manifest with live status. A passenger's extended information is hidden until the passenger dot or manifest row is selected.
@@ -24,7 +25,7 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 
 The desktop application reads the latest generated OFP from SimBrief's documented fetcher with JSON output. The user enters the numeric Pilot ID shown in SimBrief Account Settings. A manual **Sync OFP** action is always available, and optional auto-sync runs when the Passenger Flow view model starts.
 
-Only operational OFP data is consumed. SimBrief does not provide the real-world passenger identities used here; the manifest profiles remain deterministic fictional preview records. An imported passenger count above the current 219-seat visual capacity is visibly limited to 219.
+Only operational OFP data is consumed. SimBrief does not provide the real-world passenger identities used here; the manifest profiles remain deterministic fictional preview records. An imported passenger count above the current 219-seat visual capacity remains the authoritative **Booked** value. The application maps 219 passengers to the current schematic and clearly reports the remainder as unmapped until a compatible higher-capacity cabin layout is installed.
 
 ## Future bridge boundary
 

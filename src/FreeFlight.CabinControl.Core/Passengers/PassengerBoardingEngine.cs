@@ -16,6 +16,7 @@ public sealed class PassengerBoardingEngine
     private int _nextDeboardingPassengerIndex;
     private int _boardedCount;
     private int _deboardedCount;
+    private int _currentBoardingGroup;
     private double _spawnAccumulator;
 
     public PassengerBoardingEngine(int targetPassengerCount = 228)
@@ -44,6 +45,18 @@ public sealed class PassengerBoardingEngine
     public int WaitingCount => Math.Max(0, TargetPassengerCount - BoardedCount - InCabinCount);
 
     public int OpenDoorCount => _openDoors.Count;
+
+    public int CurrentBoardingGroup => _currentBoardingGroup;
+
+    public int WaitingInCurrentBoardingGroup => _passengers.Count(passenger =>
+        passenger.BoardingGroup == CurrentBoardingGroup &&
+        passenger.MovementState == PassengerMovementState.Waiting);
+
+    public IReadOnlyList<int> BoardingGroups => _passengers
+        .Select(passenger => passenger.BoardingGroup)
+        .Distinct()
+        .Order()
+        .ToArray();
 
     public double Progress => TargetPassengerCount == 0
         ? 0d
@@ -185,8 +198,17 @@ public sealed class PassengerBoardingEngine
         _spawnAccumulator += scaledSeconds;
         var spawnInterval = BaseSpawnIntervalSeconds / _openDoors.Count;
         var activeLimit = _openDoors.Count * 8;
+        if (_nextPassengerIndex < _passengers.Count &&
+            _passengers[_nextPassengerIndex].BoardingGroup != _currentBoardingGroup &&
+            _spawnAccumulator >= spawnInterval &&
+            _activePassengers.Count < activeLimit)
+        {
+            _currentBoardingGroup = _passengers[_nextPassengerIndex].BoardingGroup;
+        }
+
         while (_spawnAccumulator >= spawnInterval &&
                _nextPassengerIndex < _passengers.Count &&
+               _passengers[_nextPassengerIndex].BoardingGroup == _currentBoardingGroup &&
                _activePassengers.Count < activeLimit)
         {
             SpawnPassenger(_passengers[_nextPassengerIndex++]);
@@ -206,6 +228,7 @@ public sealed class PassengerBoardingEngine
         _nextDeboardingPassengerIndex = 0;
         _boardedCount = 0;
         _deboardedCount = 0;
+        _currentBoardingGroup = 0;
         _spawnAccumulator = 0d;
         Operation = PassengerOperation.Boarding;
 
@@ -233,6 +256,8 @@ public sealed class PassengerBoardingEngine
                 item.Group,
                 CreatePassengerProfile(passengerId, item.Seat)));
         }
+
+        _currentBoardingGroup = _passengers.Count == 0 ? 0 : _passengers[0].BoardingGroup;
 
         State = BoardingRunState.Ready;
     }
@@ -389,9 +414,11 @@ public sealed class PassengerBoardingEngine
         PassengerCabinClass.First => 1,
         PassengerCabinClass.Business when seat.X < 520d => 2,
         PassengerCabinClass.Business => 3,
-        PassengerCabinClass.Economy when seat.X > 800d => 4,
-        PassengerCabinClass.Economy when seat.X > 710d => 5,
-        _ => 6
+        PassengerCabinClass.Economy when seat.X >= 850d => 4,
+        PassengerCabinClass.Economy when seat.X >= 800d => 5,
+        PassengerCabinClass.Economy when seat.X >= 750d => 6,
+        PassengerCabinClass.Economy when seat.X >= 700d => 7,
+        _ => 8
     };
 
     private static PassengerProfile CreatePassengerProfile(int passengerId, CabinSeat seat)

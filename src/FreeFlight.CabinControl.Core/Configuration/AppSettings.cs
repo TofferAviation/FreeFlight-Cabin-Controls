@@ -70,7 +70,7 @@ public sealed class AppSettings
 
     public string PerformanceMode { get; set; } = "Balanced";
 
-    public int PassengerPreviewBookedCount { get; set; } = 228;
+    public int PassengerPreviewBookedCount { get; set; } = 219;
 
     public double PassengerPreviewSpeed { get; set; } = 2d;
 
