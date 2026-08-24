@@ -452,6 +452,14 @@ internal static class Program
                 viewModel.Operations.RefreshOperationalClock();
                 var activeTimelineEvent = viewModel.Operations.TimelineEvents.Single(timelineEvent =>
                     timelineEvent.State == FlightTimelineEventState.Current);
+                if (viewModel.Operations.DetectedAircraftIcao != "B77W" ||
+                    !viewModel.Operations.GateAssignment.IsAutomatic ||
+                    (!viewModel.Operations.GateNumber.StartsWith('B') &&
+                     !viewModel.Operations.GateNumber.StartsWith('C')))
+                {
+                    throw new InvalidOperationException("The SimBrief aircraft did not receive an automatic Heathrow T5 wide-body gate.");
+                }
+
                 if (viewModel.Operations.ScheduleSourceLabel != "SIMBRIEF DEPARTURE" ||
                     viewModel.Operations.ScheduledDeparture != "18:30" ||
                     viewModel.Operations.TurnaroundStartsAt != "17:30" ||
@@ -1039,6 +1047,7 @@ internal static class Program
                 "BAW123",
                 "EGLL",
                 "KJFK",
+                "B77W",
                 new DateTimeOffset(new DateTime(2026, 8, 25, 18, 30, 0, DateTimeKind.Local)).ToUniversalTime(),
                 DateTimeOffset.UtcNow));
         }

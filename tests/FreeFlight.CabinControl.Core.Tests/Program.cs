@@ -9,6 +9,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Settings round-trip", SettingsRoundTripAsync),
     ("Turnaround schedule calculates from departure", TurnaroundScheduleCalculatesFromDepartureAsync),
     ("Turnaround schedule follows the operations clock", TurnaroundScheduleFollowsClockAsync),
+    ("Heavy aircraft receive deterministic T5 B or C gates", HeavyAircraftReceiveDeterministicGateAsync),
+    ("Narrow-body aircraft receive T5 A gates", NarrowBodyAircraftReceiveAGateAsync),
+    ("Unsupported airports retain the manual gate", UnsupportedAirportRetainsManualGateAsync),
     ("Valid airline pack", ValidAirlinePackAsync),
     ("Traversal asset rejected", TraversalAssetRejectedAsync),
     ("Executable asset rejected", ExecutableAssetRejectedAsync),
@@ -76,6 +79,7 @@ static async Task SettingsRoundTripAsync()
             GateOriginIata = "LHR",
             GateDestinationIata = "LAX",
             GateNumber = "C65",
+            AutomaticGateAssignment = false,
             ScheduledDepartureLocal = "14:25",
             TurnaroundMinutes = 75,
             AutomaticGateTiming = false,
@@ -125,6 +129,7 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("BA281", actual.GateFlightNumber, "Gate flight number was not persisted.");
         AssertEqual("LAX", actual.GateDestinationIata, "Gate route was not persisted.");
         AssertEqual("C65", actual.GateNumber, "Gate number was not persisted.");
+        AssertEqual(false, actual.AutomaticGateAssignment, "Automatic gate assignment was not persisted.");
         AssertEqual("14:25", actual.ScheduledDepartureLocal, "Departure time was not persisted.");
         AssertEqual(75, actual.TurnaroundMinutes, "Turnaround duration was not persisted.");
         AssertEqual(false, actual.AutomaticGateTiming, "Automatic gate timing was not persisted.");
@@ -146,6 +151,48 @@ static async Task SettingsRoundTripAsync()
             Directory.Delete(directory, true);
         }
     }
+}
+
+static Task HeavyAircraftReceiveDeterministicGateAsync()
+{
+    var departure = new DateTimeOffset(2026, 8, 25, 18, 30, 0, TimeSpan.FromHours(2));
+    var first = AircraftGateAssignmentService.Assign("LHR", "B77W", "BA117", departure, "A4", true);
+    var second = AircraftGateAssignmentService.Assign("EGLL", "B77W", "BA117", departure, "A4", true);
+
+    Assert(first.GateNumber.StartsWith('B') || first.GateNumber.StartsWith('C'), "A Boeing 777 was not assigned to a T5 B/C gate.");
+    AssertEqual(first.GateNumber, second.GateNumber, "The same flight did not retain its deterministic gate.");
+    AssertEqual(AircraftGateCategory.WideBody, first.AircraftCategory, "A Boeing 777 was not classified as wide-body/heavy.");
+    return Task.CompletedTask;
+}
+
+static Task NarrowBodyAircraftReceiveAGateAsync()
+{
+    var assignment = AircraftGateAssignmentService.Assign(
+        "LHR",
+        "A320",
+        "BA281",
+        new DateTimeOffset(2026, 8, 25, 14, 25, 0, TimeSpan.FromHours(2)),
+        "B42",
+        true);
+
+    Assert(assignment.GateNumber.StartsWith('A'), "An Airbus A320 was not assigned to a T5 A gate.");
+    AssertEqual(AircraftGateCategory.NarrowBody, assignment.AircraftCategory, "An Airbus A320 was not classified as narrow-body.");
+    return Task.CompletedTask;
+}
+
+static Task UnsupportedAirportRetainsManualGateAsync()
+{
+    var assignment = AircraftGateAssignmentService.Assign(
+        "OSL",
+        "B77W",
+        "BA761",
+        DateTimeOffset.Now,
+        "D12",
+        true);
+
+    AssertEqual("D12", assignment.GateNumber, "An airport without a gate profile did not retain the manual fallback.");
+    AssertEqual(false, assignment.IsAutomatic, "An unsupported airport was incorrectly marked as automatically assigned.");
+    return Task.CompletedTask;
 }
 
 static Task TurnaroundScheduleCalculatesFromDepartureAsync()

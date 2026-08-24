@@ -88,6 +88,8 @@ public sealed class AppSettings
 
     public string GateNumber { get; set; } = "B42";
 
+    public bool AutomaticGateAssignment { get; set; } = true;
+
     public string ScheduledDepartureLocal { get; set; } = "18:30";
 
     public int TurnaroundMinutes { get; set; } = 60;

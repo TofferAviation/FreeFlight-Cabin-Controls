@@ -9,6 +9,7 @@ public sealed record SimBriefFlightSummary(
     string FlightNumber,
     string Origin,
     string Destination,
+    string AircraftIcao,
     DateTimeOffset? ScheduledDepartureUtc,
     DateTimeOffset? GeneratedAtUtc);
 
@@ -64,9 +65,28 @@ public sealed class SimBriefClient : ISimBriefClient
             flightLabel,
             ReadString(root, "origin", "icao_code"),
             ReadString(root, "destination", "icao_code"),
+            ReadAircraftIcao(root),
             ReadUnixTimestamp(root, "times", "est_out") ??
             ReadUnixTimestamp(root, "times", "sched_out"),
             ReadUnixTimestamp(root, "params", "time_generated"));
+    }
+
+    private static string ReadAircraftIcao(JsonElement root)
+    {
+        foreach (var candidate in new[]
+                 {
+                     ReadString(root, "aircraft", "icaocode"),
+                     ReadString(root, "aircraft", "icao_code"),
+                     ReadString(root, "general", "icao_aircraft")
+                 })
+        {
+            if (!string.IsNullOrWhiteSpace(candidate))
+            {
+                return candidate.Trim().ToUpperInvariant();
+            }
+        }
+
+        return string.Empty;
     }
 
     private static int ReadRequiredInt(JsonElement root, string sectionName, string propertyName)

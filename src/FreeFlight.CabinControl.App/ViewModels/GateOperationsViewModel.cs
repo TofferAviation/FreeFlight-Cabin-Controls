@@ -146,14 +146,25 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         ? _settings.GateDestinationIata
         : NormalizeAirport(_passengers.ImportedDestination);
     public string RouteSummary => $"{AirportName(OriginIata)}  →  {AirportName(DestinationIata)}";
-    public string GateNumber => _settings.GateNumber;
+    public string DetectedAircraftIcao => string.IsNullOrWhiteSpace(_passengers.ImportedAircraftIcao)
+        ? _passengers.SelectedCabinLayoutProfile.Layout switch
+        {
+            PassengerCabinLayout.BritishAirways777200Er => "B772",
+            PassengerCabinLayout.BritishAirways777300 => "B77W",
+            _ => "B77W"
+        }
+        : _passengers.ImportedAircraftIcao;
+    public AircraftGateAssignment GateAssignment => AircraftGateAssignmentService.Assign(
+        OriginIata,
+        DetectedAircraftIcao,
+        FlightNumber,
+        ScheduledDepartureMoment,
+        _settings.GateNumber,
+        _settings.AutomaticGateAssignment);
+    public string GateNumber => GateAssignment.GateNumber;
     public string GateHeader => $"Gate {GateNumber}";
-    public string AircraftName => _passengers.SelectedCabinLayoutProfile.Layout switch
-    {
-        PassengerCabinLayout.BritishAirways777200Er => "Boeing 777-200ER",
-        PassengerCabinLayout.BritishAirways777300 => "Boeing 777-300",
-        _ => "FlightFactor 777 v2"
-    };
+    public string GateAssignmentSummary => GateAssignment.Summary;
+    public string AircraftName => AircraftGateAssignmentService.DescribeAircraft(DetectedAircraftIcao);
     public bool IsSimBriefSynced => _passengers.HasSimBriefFlight;
     public string SimBriefConnectionLabel => IsSimBriefSynced ? "SimBrief Synced" : "SimBrief Ready";
     public string SimBriefImportLabel => _passengers.LastSimBriefSyncLabel;
@@ -190,7 +201,9 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string GateActionLabel => IsGateOpen ? "Close Gate" : "Open Gate";
     public string GateActionGlyph => IsGateOpen ? "\uE77A" : "\uE7C8";
     public bool CanBoardPassengers => IsGateOpen && (!_gateHasClosed || _settings.ManualGateOverride);
-    public string ReadinessGateStatus => IsGateOpen ? $"Gate {GateNumber} open for passengers" : $"Gate {GateNumber} assigned";
+    public string ReadinessGateStatus => IsGateOpen
+        ? $"Gate {GateNumber} open · {GateAssignment.Concourse}"
+        : $"Gate {GateNumber} assigned · {GateAssignmentSummary}";
 
     public DateTimeOffset ScheduledDepartureMoment => ResolveScheduledDeparture();
     public FlightTurnaroundSchedule TurnaroundSchedule => FlightTurnaroundSchedule.Create(
@@ -239,8 +252,12 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(OriginIata));
         OnPropertyChanged(nameof(DestinationIata));
         OnPropertyChanged(nameof(RouteSummary));
+        OnPropertyChanged(nameof(DetectedAircraftIcao));
+        OnPropertyChanged(nameof(GateAssignment));
         OnPropertyChanged(nameof(GateNumber));
         OnPropertyChanged(nameof(GateHeader));
+        OnPropertyChanged(nameof(GateAssignmentSummary));
+        OnPropertyChanged(nameof(AircraftName));
         OnPropertyChanged(nameof(ScheduledDepartureMoment));
         OnPropertyChanged(nameof(TurnaroundSchedule));
         OnPropertyChanged(nameof(ScheduledDeparture));
@@ -510,6 +527,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
                  nameof(PassengerFlowViewModel.ImportedFlightNumber) or
                  nameof(PassengerFlowViewModel.ImportedOrigin) or
                  nameof(PassengerFlowViewModel.ImportedDestination) or
+                 nameof(PassengerFlowViewModel.ImportedAircraftIcao) or
                  nameof(PassengerFlowViewModel.ImportedScheduledDepartureLocal) or
                  nameof(PassengerFlowViewModel.LastSimBriefSyncTime))
         {
@@ -520,7 +538,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         }
         else if (e.PropertyName == nameof(PassengerFlowViewModel.SelectedCabinLayoutProfile))
         {
-            OnPropertyChanged(nameof(AircraftName));
+            ApplySettings();
         }
     }
 

@@ -37,6 +37,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private string _importedFlightNumber = string.Empty;
     private string _importedOrigin = string.Empty;
     private string _importedDestination = string.Empty;
+    private string _importedAircraftIcao = string.Empty;
     private DateTimeOffset? _importedScheduledDepartureLocal;
     private DateTimeOffset? _lastSimBriefSyncTime;
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
@@ -349,6 +350,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         private set => SetProperty(ref _importedDestination, value);
     }
 
+    public string ImportedAircraftIcao
+    {
+        get => _importedAircraftIcao;
+        private set => SetProperty(ref _importedAircraftIcao, value);
+    }
+
     public DateTimeOffset? ImportedScheduledDepartureLocal
     {
         get => _importedScheduledDepartureLocal;
@@ -518,6 +525,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             ImportedFlightNumber = summary.FlightNumber;
             ImportedOrigin = summary.Origin;
             ImportedDestination = summary.Destination;
+            ImportedAircraftIcao = summary.AircraftIcao;
             ImportedScheduledDepartureLocal = summary.ScheduledDepartureUtc?.ToLocalTime();
             if (ImportedScheduledDepartureLocal is { } scheduledDeparture)
             {
@@ -879,7 +887,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         var departure = summary.ScheduledDepartureUtc?.ToLocalTime().ToString("dd MMM · HH:mm", CultureInfo.InvariantCulture);
         return string.Join(
             " · ",
-            new[] { summary.FlightNumber, route, departure }.Where(part => !string.IsNullOrWhiteSpace(part)));
+            new[] { summary.FlightNumber, route, summary.AircraftIcao, departure }.Where(part => !string.IsNullOrWhiteSpace(part)));
     }
 
     private void AddActivity(string message)
