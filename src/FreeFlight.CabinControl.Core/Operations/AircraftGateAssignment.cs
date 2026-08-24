@@ -38,6 +38,26 @@ public static class AircraftGateAssignmentService
         "C57", "C58", "C60", "C61", "C62", "C63", "C64", "C65", "C66"
     ];
 
+    private static readonly string[] JfkTerminal8StandardGates =
+    [
+        "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
+    ];
+
+    private static readonly string[] JfkTerminal8WideBodyGates =
+    [
+        "12", "14", "16", "18", "20", "31", "33", "35", "37", "39", "41", "42", "44", "46", "47"
+    ];
+
+    private static readonly string[] OsloInternationalStandardGates =
+    [
+        "D1", "D3", "D4", "D5", "D6", "D7", "D8", "D9", "E2", "E8", "E9", "E11"
+    ];
+
+    private static readonly string[] OsloInternationalWideBodyGates =
+    [
+        "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F26", "F28", "F31", "F32", "F33", "F34"
+    ];
+
     private static readonly string[] RegionalPrefixes = ["AT4", "AT7", "DH8", "E17", "E19", "CRJ"];
     private static readonly string[] NarrowBodyPrefixes = ["A20", "A21", "A31", "A32", "B73", "B75", "B38", "B39", "B3M", "BCS"];
     private static readonly string[] WideBodyPrefixes = ["A30", "A33", "A34", "A35", "A38", "B74", "B76", "B77", "B78"];
@@ -62,29 +82,22 @@ public static class AircraftGateAssignmentService
         }
 
         var airport = NormalizeAirport(airportCode);
-        if (airport is not ("LHR" or "EGLL"))
+        var category = ClassifyAircraft(aircraftIcao);
+        var gates = ResolveGatePool(airport, category);
+        if (gates is null)
         {
             return new AircraftGateAssignment(
                 fallbackGate,
                 "Airport profile pending",
-                ClassifyAircraft(aircraftIcao),
+                category,
                 false,
                 $"No automatic profile for {airport}");
         }
 
-        var category = ClassifyAircraft(aircraftIcao);
-        var gates = category == AircraftGateCategory.WideBody
-            ? HeathrowTerminal5WideBodyGates
-            : HeathrowTerminal5AGates;
         var gate = gates[StableIndex(
             $"{airport}|{aircraftIcao.Trim().ToUpperInvariant()}|{flightNumber.Trim().ToUpperInvariant()}|{departure:yyyyMMdd}",
             gates.Length)];
-        var concourse = gate[0] switch
-        {
-            'B' => "Heathrow T5B",
-            'C' => "Heathrow T5C",
-            _ => "Heathrow T5A"
-        };
+        var concourse = DescribeConcourse(airport, gate);
         var reason = category == AircraftGateCategory.WideBody
             ? "wide-body / heavy stand profile"
             : category == AircraftGateCategory.Regional
@@ -95,6 +108,35 @@ public static class AircraftGateAssignmentService
 
         return new AircraftGateAssignment(gate, concourse, category, true, reason);
     }
+
+    private static string[]? ResolveGatePool(string airport, AircraftGateCategory category) => airport switch
+    {
+        "LHR" => category == AircraftGateCategory.WideBody
+            ? HeathrowTerminal5WideBodyGates
+            : HeathrowTerminal5AGates,
+        "JFK" => category == AircraftGateCategory.WideBody
+            ? JfkTerminal8WideBodyGates
+            : JfkTerminal8StandardGates,
+        "OSL" => category == AircraftGateCategory.WideBody
+            ? OsloInternationalWideBodyGates
+            : OsloInternationalStandardGates,
+        _ => null
+    };
+
+    private static string DescribeConcourse(string airport, string gate) => airport switch
+    {
+        "LHR" => gate[0] switch
+        {
+            'B' => "Heathrow T5B",
+            'C' => "Heathrow T5C",
+            _ => "Heathrow T5A"
+        },
+        "JFK" => int.TryParse(gate, out var number) && number >= 31
+            ? "JFK Terminal 8 · Concourse C"
+            : "JFK Terminal 8 · Concourse B",
+        "OSL" => $"Oslo international · {gate[0]} gates",
+        _ => airport
+    };
 
     public static AircraftGateCategory ClassifyAircraft(string aircraftIcao)
     {
@@ -154,6 +196,8 @@ public static class AircraftGateAssignmentService
     private static string NormalizeAirport(string value) => value.Trim().ToUpperInvariant() switch
     {
         "EGLL" => "LHR",
+        "KJFK" => "JFK",
+        "ENGM" => "OSL",
         var airport when airport.Length > 0 => airport,
         _ => "UNKNOWN"
     };

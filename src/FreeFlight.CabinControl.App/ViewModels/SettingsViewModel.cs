@@ -207,6 +207,12 @@ public sealed class SettingsViewModel : PageViewModel
         set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.GateNumber = current);
     }
 
+    public string ArrivalGateNumber
+    {
+        get => _settings.ArrivalGateNumber;
+        set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.ArrivalGateNumber = current);
+    }
+
     public bool AutomaticGateAssignment
     {
         get => _settings.AutomaticGateAssignment;
@@ -376,6 +382,7 @@ public sealed class SettingsViewModel : PageViewModel
         GateOriginIata = defaults.GateOriginIata;
         GateDestinationIata = defaults.GateDestinationIata;
         GateNumber = defaults.GateNumber;
+        ArrivalGateNumber = defaults.ArrivalGateNumber;
         AutomaticGateAssignment = defaults.AutomaticGateAssignment;
         ScheduledDepartureLocal = defaults.ScheduledDepartureLocal;
         TurnaroundMinutes = defaults.TurnaroundMinutes;

@@ -11,6 +11,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Turnaround schedule follows the operations clock", TurnaroundScheduleFollowsClockAsync),
     ("Heavy aircraft receive deterministic T5 B or C gates", HeavyAircraftReceiveDeterministicGateAsync),
     ("Narrow-body aircraft receive T5 A gates", NarrowBodyAircraftReceiveAGateAsync),
+    ("JFK and Oslo arrival profiles use valid terminal gates", DestinationAirportProfilesAssignValidGatesAsync),
     ("Unsupported airports retain the manual gate", UnsupportedAirportRetainsManualGateAsync),
     ("Valid airline pack", ValidAirlinePackAsync),
     ("Traversal asset rejected", TraversalAssetRejectedAsync),
@@ -79,6 +80,7 @@ static async Task SettingsRoundTripAsync()
             GateOriginIata = "LHR",
             GateDestinationIata = "LAX",
             GateNumber = "C65",
+            ArrivalGateNumber = "F28",
             AutomaticGateAssignment = false,
             ScheduledDepartureLocal = "14:25",
             TurnaroundMinutes = 75,
@@ -129,6 +131,7 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("BA281", actual.GateFlightNumber, "Gate flight number was not persisted.");
         AssertEqual("LAX", actual.GateDestinationIata, "Gate route was not persisted.");
         AssertEqual("C65", actual.GateNumber, "Gate number was not persisted.");
+        AssertEqual("F28", actual.ArrivalGateNumber, "Arrival gate number was not persisted.");
         AssertEqual(false, actual.AutomaticGateAssignment, "Automatic gate assignment was not persisted.");
         AssertEqual("14:25", actual.ScheduledDepartureLocal, "Departure time was not persisted.");
         AssertEqual(75, actual.TurnaroundMinutes, "Turnaround duration was not persisted.");
@@ -180,10 +183,27 @@ static Task NarrowBodyAircraftReceiveAGateAsync()
     return Task.CompletedTask;
 }
 
+static Task DestinationAirportProfilesAssignValidGatesAsync()
+{
+    var departure = new DateTimeOffset(2026, 8, 25, 18, 30, 0, TimeSpan.FromHours(2));
+    var jfkWideBody = AircraftGateAssignmentService.Assign("KJFK", "B77W", "BA117", departure, "D4", true);
+    var osloNarrowBody = AircraftGateAssignmentService.Assign("ENGM", "A320", "BA761", departure, "D4", true);
+    var osloWideBody = AircraftGateAssignmentService.Assign("OSL", "B77W", "BA761", departure, "D4", true);
+
+    Assert(jfkWideBody.IsAutomatic && int.TryParse(jfkWideBody.GateNumber, out var jfkGate) &&
+           ((jfkGate >= 12 && jfkGate <= 20) || (jfkGate >= 31 && jfkGate <= 47)),
+        "A wide-body arrival at JFK was not assigned to the Terminal 8 wide-body pool.");
+    Assert(osloNarrowBody.GateNumber.StartsWith('D') || osloNarrowBody.GateNumber.StartsWith('E'),
+        "A narrow-body international arrival at Oslo was not assigned to a D/E gate.");
+    Assert(osloWideBody.GateNumber.StartsWith('F'),
+        "A wide-body international arrival at Oslo was not assigned to an F gate.");
+    return Task.CompletedTask;
+}
+
 static Task UnsupportedAirportRetainsManualGateAsync()
 {
     var assignment = AircraftGateAssignmentService.Assign(
-        "OSL",
+        "CPH",
         "B77W",
         "BA761",
         DateTimeOffset.Now,

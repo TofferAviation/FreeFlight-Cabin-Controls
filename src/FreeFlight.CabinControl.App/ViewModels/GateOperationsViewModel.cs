@@ -154,16 +154,25 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             _ => "B77W"
         }
         : _passengers.ImportedAircraftIcao;
-    public AircraftGateAssignment GateAssignment => AircraftGateAssignmentService.Assign(
+    public AircraftGateAssignment DepartureGateAssignment => AircraftGateAssignmentService.Assign(
         OriginIata,
         DetectedAircraftIcao,
         FlightNumber,
         ScheduledDepartureMoment,
         _settings.GateNumber,
         _settings.AutomaticGateAssignment);
-    public string GateNumber => GateAssignment.GateNumber;
-    public string GateHeader => $"Gate {GateNumber}";
-    public string GateAssignmentSummary => GateAssignment.Summary;
+    public AircraftGateAssignment ArrivalGateAssignment => AircraftGateAssignmentService.Assign(
+        DestinationIata,
+        DetectedAircraftIcao,
+        FlightNumber,
+        ScheduledDepartureMoment,
+        _settings.ArrivalGateNumber,
+        _settings.AutomaticGateAssignment);
+    public AircraftGateAssignment GateAssignment => DepartureGateAssignment;
+    public string GateNumber => DepartureGateAssignment.GateNumber;
+    public string ArrivalGateNumber => ArrivalGateAssignment.GateNumber;
+    public string GateHeader => $"DEP {GateNumber}  →  ARR {ArrivalGateNumber}";
+    public string GateAssignmentSummary => DepartureGateAssignment.Summary;
     public string AircraftName => AircraftGateAssignmentService.DescribeAircraft(DetectedAircraftIcao);
     public bool IsSimBriefSynced => _passengers.HasSimBriefFlight;
     public string SimBriefConnectionLabel => IsSimBriefSynced ? "SimBrief Synced" : "SimBrief Ready";
@@ -202,8 +211,8 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string GateActionGlyph => IsGateOpen ? "\uE77A" : "\uE7C8";
     public bool CanBoardPassengers => IsGateOpen && (!_gateHasClosed || _settings.ManualGateOverride);
     public string ReadinessGateStatus => IsGateOpen
-        ? $"Gate {GateNumber} open · {GateAssignment.Concourse}"
-        : $"Gate {GateNumber} assigned · {GateAssignmentSummary}";
+        ? $"DEP {OriginIata} {GateNumber} open · ARR {DestinationIata} {ArrivalGateNumber}"
+        : $"DEP {OriginIata} {GateNumber} → ARR {DestinationIata} {ArrivalGateNumber}";
 
     public DateTimeOffset ScheduledDepartureMoment => ResolveScheduledDeparture();
     public FlightTurnaroundSchedule TurnaroundSchedule => FlightTurnaroundSchedule.Create(
@@ -253,8 +262,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(DestinationIata));
         OnPropertyChanged(nameof(RouteSummary));
         OnPropertyChanged(nameof(DetectedAircraftIcao));
+        OnPropertyChanged(nameof(DepartureGateAssignment));
+        OnPropertyChanged(nameof(ArrivalGateAssignment));
         OnPropertyChanged(nameof(GateAssignment));
         OnPropertyChanged(nameof(GateNumber));
+        OnPropertyChanged(nameof(ArrivalGateNumber));
         OnPropertyChanged(nameof(GateHeader));
         OnPropertyChanged(nameof(GateAssignmentSummary));
         OnPropertyChanged(nameof(AircraftName));

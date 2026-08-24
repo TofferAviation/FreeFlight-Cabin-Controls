@@ -455,9 +455,14 @@ internal static class Program
                 if (viewModel.Operations.DetectedAircraftIcao != "B77W" ||
                     !viewModel.Operations.GateAssignment.IsAutomatic ||
                     (!viewModel.Operations.GateNumber.StartsWith('B') &&
-                     !viewModel.Operations.GateNumber.StartsWith('C')))
+                     !viewModel.Operations.GateNumber.StartsWith('C')) ||
+                    !viewModel.Operations.ArrivalGateAssignment.IsAutomatic ||
+                    !int.TryParse(viewModel.Operations.ArrivalGateNumber, out var arrivalGate) ||
+                    arrivalGate is < 12 or > 47 ||
+                    !viewModel.Operations.GateHeader.Contains("DEP", StringComparison.Ordinal) ||
+                    !viewModel.Operations.GateHeader.Contains("ARR", StringComparison.Ordinal))
                 {
-                    throw new InvalidOperationException("The SimBrief aircraft did not receive an automatic Heathrow T5 wide-body gate.");
+                    throw new InvalidOperationException("The SimBrief route did not receive automatic departure and arrival gates.");
                 }
 
                 if (viewModel.Operations.ScheduleSourceLabel != "SIMBRIEF DEPARTURE" ||
