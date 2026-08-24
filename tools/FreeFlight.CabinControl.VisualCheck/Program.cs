@@ -344,13 +344,49 @@ internal static class Program
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 Render(window, Path.Combine(outputDirectory, "passengers-simbrief-302-boarded.png"));
 
-                foreach (var profile in viewModel.Passengers.CabinLayoutProfiles.Where(profile => !profile.IsOperational))
+                foreach (var layoutCheck in new[]
+                         {
+                             (Id: "british-airways.777-200er", Capacity: 280),
+                             (Id: "british-airways.777-300", Capacity: 266)
+                         })
                 {
+                    var profile = viewModel.Passengers.CabinLayoutProfiles.Single(profile => profile.Id == layoutCheck.Id);
                     viewModel.Passengers.SelectedCabinLayoutProfile = profile;
-                    if (!viewModel.Passengers.IsReferenceCabinLayout ||
-                        !profile.LivePreviewUri.Contains("Horizontal", StringComparison.Ordinal))
+                    if (!viewModel.Passengers.IsOperationalCabinLayout ||
+                        viewModel.Passengers.IsReferenceCabinLayout ||
+                        !viewModel.Passengers.IsAirlineCabinLayout ||
+                        !profile.LivePreviewUri.Contains("Horizontal", StringComparison.Ordinal) ||
+                        viewModel.Passengers.CabinCapacity != layoutCheck.Capacity ||
+                        viewModel.Passengers.MappedPassengerCount != layoutCheck.Capacity)
                     {
-                        throw new InvalidOperationException("A British Airways layout did not select its horizontal live-preview asset.");
+                        throw new InvalidOperationException($"{profile.Name} did not activate its operational seat-coordinate profile.");
+                    }
+
+                    viewModel.Passengers.L1DoorOpen = true;
+                    viewModel.Passengers.L2DoorOpen = true;
+                    viewModel.Passengers.StartPauseCommand.Execute(null);
+                    for (var index = 0; index < 8; index++)
+                    {
+                        viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                    }
+
+                    var marker = viewModel.Passengers.PassengerMarkers.FirstOrDefault();
+                    if (marker is null || viewModel.Passengers.BoardingState !=
+                            FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Boarding)
+                    {
+                        throw new InvalidOperationException($"{profile.Name} did not start visible passenger boarding.");
+                    }
+
+                    viewModel.Passengers.SelectPassengerCommand.Execute(marker);
+                    var selectedPassenger = viewModel.Passengers.SelectedPassenger;
+                    if (!viewModel.Passengers.IsSeatHighlightVisible ||
+                        viewModel.Passengers.IsPassengerDetailsOpen ||
+                        selectedPassenger is null ||
+                        selectedPassenger.SeatNumber != marker.SeatNumber ||
+                        Math.Abs(selectedPassenger.SeatX - marker.SeatX) > 0.001d ||
+                        Math.Abs(selectedPassenger.SeatY - marker.SeatY) > 0.001d)
+                    {
+                        throw new InvalidOperationException($"{profile.Name} did not highlight the selected passenger's ticketed seat.");
                     }
 
                     window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
@@ -359,7 +395,7 @@ internal static class Program
                 }
 
                 viewModel.Passengers.SelectedCabinLayoutProfile =
-                    viewModel.Passengers.CabinLayoutProfiles.Single(profile => profile.IsOperational);
+                    viewModel.Passengers.CabinLayoutProfiles.Single(profile => profile.Id == "flightfactor.777v2");
             }
             else if (page == "CabinPanel")
             {

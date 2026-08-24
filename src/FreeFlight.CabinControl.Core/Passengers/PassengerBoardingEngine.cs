@@ -4,7 +4,8 @@ public sealed class PassengerBoardingEngine
 {
     private const double PassengerWalkingSpeed = 205d;
     private const double BaseSpawnIntervalSeconds = 0.55d;
-    private readonly IReadOnlyList<CabinSeat> _cabinSeats = CreateFf777PreviewSeats();
+    private readonly PassengerCabinLayoutDefinition _layoutDefinition;
+    private readonly IReadOnlyList<CabinSeat> _cabinSeats;
     private readonly List<BoardingPassenger> _passengers = [];
     private readonly List<BoardingPassenger> _activePassengers = [];
     private readonly List<BoardingPassenger> _occupyingPassengers = [];
@@ -19,10 +20,16 @@ public sealed class PassengerBoardingEngine
     private int _currentBoardingGroup;
     private double _spawnAccumulator;
 
-    public PassengerBoardingEngine(int targetPassengerCount = 228)
+    public PassengerBoardingEngine(
+        int targetPassengerCount = 228,
+        PassengerCabinLayout layout = PassengerCabinLayout.FlightFactor777V2)
     {
+        _layoutDefinition = PassengerCabinLayouts.Create(layout);
+        _cabinSeats = _layoutDefinition.Seats;
         ConfigurePassengerCount(targetPassengerCount);
     }
+
+    public PassengerCabinLayout Layout => _layoutDefinition.Layout;
 
     public int Capacity => _cabinSeats.Count;
 
@@ -134,14 +141,19 @@ public sealed class PassengerBoardingEngine
         _activePassengers.Clear();
         _occupyingPassengers.Clear();
         _deboardingQueue.Clear();
+        var random = new Random(778_300 + TargetPassengerCount + ((int)Layout * 997));
         _deboardingQueue.AddRange(_passengers
-            .OrderBy(passenger => passenger.Seat.CabinClass == PassengerCabinClass.First ? 0 : 1)
-            .ThenBy(passenger => Math.Abs(
-                passenger.Seat.X - GetDoorEntryPoint(
-                    passenger.Seat.CabinClass == PassengerCabinClass.First
-                        ? BoardingDoor.L1
-                        : BoardingDoor.L2).X))
-            .ThenBy(passenger => passenger.BoardingGroup));
+            .Select(passenger => new
+            {
+                Passenger = passenger,
+                Score = Math.Abs(
+                    passenger.Seat.X - GetDoorEntryPoint(
+                        passenger.Seat.CabinClass == PassengerCabinClass.First
+                            ? BoardingDoor.L1
+                            : BoardingDoor.L2).X) + (random.NextDouble() * 220d)
+            })
+            .OrderBy(item => item.Score)
+            .Select(item => item.Passenger));
         _nextDeboardingPassengerIndex = 0;
         _deboardedCount = 0;
         _spawnAccumulator = 0d;
@@ -196,7 +208,9 @@ public sealed class PassengerBoardingEngine
 
         State = BoardingRunState.Boarding;
         _spawnAccumulator += scaledSeconds;
-        var spawnInterval = BaseSpawnIntervalSeconds / _openDoors.Count;
+        var spawnInterval = _nextPassengerIndex < _passengers.Count
+            ? GetSpawnInterval(_passengers[_nextPassengerIndex]) / _openDoors.Count
+            : BaseSpawnIntervalSeconds;
         var activeLimit = _openDoors.Count * 8;
         if (_nextPassengerIndex < _passengers.Count &&
             _passengers[_nextPassengerIndex].BoardingGroup != _currentBoardingGroup &&
@@ -213,6 +227,9 @@ public sealed class PassengerBoardingEngine
         {
             SpawnPassenger(_passengers[_nextPassengerIndex++]);
             _spawnAccumulator -= spawnInterval;
+            spawnInterval = _nextPassengerIndex < _passengers.Count
+                ? GetSpawnInterval(_passengers[_nextPassengerIndex]) / _openDoors.Count
+                : BaseSpawnIntervalSeconds;
         }
     }
 
@@ -296,7 +313,9 @@ public sealed class PassengerBoardingEngine
 
         State = BoardingRunState.Deboarding;
         _spawnAccumulator += scaledSeconds;
-        var spawnInterval = BaseSpawnIntervalSeconds / _openDoors.Count;
+        var spawnInterval = _nextDeboardingPassengerIndex < _deboardingQueue.Count
+            ? GetSpawnInterval(_deboardingQueue[_nextDeboardingPassengerIndex]) / _openDoors.Count
+            : BaseSpawnIntervalSeconds;
         var activeLimit = _openDoors.Count * 8;
         while (_spawnAccumulator >= spawnInterval &&
                _nextDeboardingPassengerIndex < _deboardingQueue.Count &&
@@ -304,6 +323,9 @@ public sealed class PassengerBoardingEngine
         {
             SpawnDeboardingPassenger(_deboardingQueue[_nextDeboardingPassengerIndex++]);
             _spawnAccumulator -= spawnInterval;
+            spawnInterval = _nextDeboardingPassengerIndex < _deboardingQueue.Count
+                ? GetSpawnInterval(_deboardingQueue[_nextDeboardingPassengerIndex]) / _openDoors.Count
+                : BaseSpawnIntervalSeconds;
         }
     }
 
@@ -330,7 +352,8 @@ public sealed class PassengerBoardingEngine
         for (var index = _activePassengers.Count - 1; index >= 0; index--)
         {
             var passenger = _activePassengers[index];
-            var remainingDistance = PassengerWalkingSpeed * elapsedSeconds;
+            var congestionFactor = IsAisleCongested(passenger) ? 0.42d : 1d;
+            var remainingDistance = PassengerWalkingSpeed * passenger.WalkingSpeedFactor * congestionFactor * elapsedSeconds;
             while (remainingDistance > 0d && passenger.Waypoints.Count > 0)
             {
                 var target = passenger.Waypoints.Peek();
@@ -403,23 +426,106 @@ public sealed class PassengerBoardingEngine
             : BoardingDoor.L2;
     }
 
-    private static CabinPoint GetDoorEntryPoint(BoardingDoor door) => door switch
+    private CabinPoint GetDoorEntryPoint(BoardingDoor door) => door switch
     {
-        BoardingDoor.L1 => new CabinPoint(183d, 208d),
-        _ => new CabinPoint(426d, 208d)
+        BoardingDoor.L1 => new CabinPoint(_layoutDefinition.L1DoorX, 208d),
+        _ => new CabinPoint(_layoutDefinition.L2DoorX, 208d)
     };
 
-    private static int GetBoardingGroup(CabinSeat seat) => seat.CabinClass switch
+    private int GetBoardingGroup(CabinSeat seat)
     {
-        PassengerCabinClass.First => 1,
-        PassengerCabinClass.Business when seat.X < 520d => 2,
-        PassengerCabinClass.Business => 3,
-        PassengerCabinClass.Economy when seat.X >= 850d => 4,
-        PassengerCabinClass.Economy when seat.X >= 800d => 5,
-        PassengerCabinClass.Economy when seat.X >= 750d => 6,
-        PassengerCabinClass.Economy when seat.X >= 700d => 7,
-        _ => 8
+        if (Layout == PassengerCabinLayout.BritishAirways777200Er)
+        {
+            return seat.CabinClass switch
+            {
+                PassengerCabinClass.Business when seat.X < 300d => 1,
+                PassengerCabinClass.Business => 2,
+                PassengerCabinClass.PremiumEconomy => 3,
+                PassengerCabinClass.Economy => AddZoneVariation(GetEconomyZone(seat.X, 4), seat, 4, 8),
+                _ => 1
+            };
+        }
+
+        if (Layout == PassengerCabinLayout.BritishAirways777300)
+        {
+            return seat.CabinClass switch
+            {
+                PassengerCabinClass.First => 1,
+                PassengerCabinClass.Business when seat.X < 540d => 2,
+                PassengerCabinClass.Business => 3,
+                PassengerCabinClass.PremiumEconomy => 4,
+                PassengerCabinClass.Economy => AddZoneVariation(GetEconomyZone(seat.X, 5), seat, 5, 8),
+                _ => 8
+            };
+        }
+
+        return seat.CabinClass switch
+        {
+            PassengerCabinClass.First => 1,
+            PassengerCabinClass.Business when seat.X < 450d => 2,
+            PassengerCabinClass.Business => 3,
+            PassengerCabinClass.Economy => AddZoneVariation(GetEconomyZone(seat.X, 4), seat, 4, 8),
+            _ => 8
+        };
+    }
+
+    private double GetSpawnInterval(BoardingPassenger passenger)
+    {
+        var passengerVariation = ((passenger.Id * 37) + ((int)Layout * 11)) % 57;
+        return BaseSpawnIntervalSeconds * (0.72d + (passengerVariation / 100d));
+    }
+
+    private bool IsAisleCongested(BoardingPassenger passenger)
+    {
+        if (passenger.Waypoints.Count == 0)
+        {
+            return false;
+        }
+
+        return _activePassengers.Any(other =>
+            !ReferenceEquals(other, passenger) &&
+            Math.Abs(other.Position.X - passenger.Position.X) < 22d &&
+            Math.Abs(other.Position.Y - passenger.Position.Y) < 7d);
+    }
+
+    private int GetEconomyZone(double seatX, int firstEconomyGroup) => Layout switch
+    {
+        PassengerCabinLayout.BritishAirways777200Er => seatX switch
+        {
+            >= 950d => firstEconomyGroup,
+            >= 900d => firstEconomyGroup + 1,
+            >= 840d => firstEconomyGroup + 2,
+            >= 780d => firstEconomyGroup + 3,
+            _ => firstEconomyGroup + 4
+        },
+        PassengerCabinLayout.BritishAirways777300 => seatX switch
+        {
+            >= 970d => firstEconomyGroup,
+            >= 930d => firstEconomyGroup + 1,
+            >= 890d => firstEconomyGroup + 2,
+            _ => firstEconomyGroup + 3
+        },
+        _ => seatX switch
+        {
+            >= 850d => firstEconomyGroup,
+            >= 800d => firstEconomyGroup + 1,
+            >= 750d => firstEconomyGroup + 2,
+            >= 700d => firstEconomyGroup + 3,
+            _ => firstEconomyGroup + 4
+        }
     };
+
+    private static int AddZoneVariation(int baseGroup, CabinSeat seat, int minimumGroup, int maximumGroup)
+    {
+        var stableSeed = seat.Number.Sum(character => character * 17);
+        var variation = (stableSeed % 5) switch
+        {
+            0 => -1,
+            1 => 1,
+            _ => 0
+        };
+        return Math.Clamp(baseGroup + variation, minimumGroup, maximumGroup);
+    }
 
     private static PassengerProfile CreatePassengerProfile(int passengerId, CabinSeat seat)
     {
@@ -432,6 +538,7 @@ public sealed class PassengerBoardingEngine
         {
             PassengerCabinClass.First => FrequentFlyerTiers[random.Next(2, FrequentFlyerTiers.Length)],
             PassengerCabinClass.Business => FrequentFlyerTiers[random.Next(1, FrequentFlyerTiers.Length)],
+            PassengerCabinClass.PremiumEconomy => FrequentFlyerTiers[random.Next(1, FrequentFlyerTiers.Length)],
             _ => FrequentFlyerTiers[random.Next(FrequentFlyerTiers.Length)]
         };
         var assistance = random.Next(18) switch
@@ -483,73 +590,4 @@ public sealed class PassengerBoardingEngine
         "None", "Blue", "Bronze", "Silver", "Gold"
     ];
 
-    private static IReadOnlyList<CabinSeat> CreateFf777PreviewSeats()
-    {
-        var seats = new List<CabinSeat>(256);
-        AddSeatBlock(
-            seats,
-            PassengerCabinClass.First,
-            firstRow: 1,
-            rowCount: 4,
-            startX: 304d,
-            endX: 403d,
-            letters: ["A", "B", "C", "D", "E", "F", "G", "H", "K"],
-            yPositions: [30d, 38d, 46d, 67d, 75d, 83d, 103d, 111d, 119d]);
-        AddSeatBlock(
-            seats,
-            PassengerCabinClass.Business,
-            firstRow: 5,
-            rowCount: 5,
-            startX: 447d,
-            endX: 565d,
-            letters: ["A", "B", "D", "E", "F", "J", "K"],
-            yPositions: [31d, 41d, 64d, 74d, 84d, 106d, 116d]);
-        AddSeatBlock(
-            seats,
-            PassengerCabinClass.Economy,
-            firstRow: 10,
-            rowCount: 24,
-            startX: 630d,
-            endX: 890d,
-            letters: ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K"],
-            yPositions: [30d, 39d, 48d, 67d, 74d, 81d, 88d, 102d, 111d, 120d]);
-        return seats;
-    }
-
-    private static void AddSeatBlock(
-        ICollection<CabinSeat> seats,
-        PassengerCabinClass cabinClass,
-        int firstRow,
-        int rowCount,
-        double startX,
-        double endX,
-        IReadOnlyList<string> letters,
-        IReadOnlyList<double> yPositions)
-    {
-        var rowSpacing = rowCount == 1 ? 0d : (endX - startX) / (rowCount - 1);
-        for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
-        {
-            var rowNumber = firstRow + rowIndex;
-            var x = startX + (rowSpacing * rowIndex);
-            for (var seatIndex = 0; seatIndex < letters.Count; seatIndex++)
-            {
-                var y = yPositions[seatIndex];
-                var aisleY = cabinClass switch
-                {
-                    PassengerCabinClass.Economy when seatIndex <= 4 => 57d,
-                    PassengerCabinClass.Economy => 95d,
-                    PassengerCabinClass.Business when seatIndex <= 2 => 53d,
-                    PassengerCabinClass.Business => 95d,
-                    PassengerCabinClass.First when seatIndex <= 4 => 56d,
-                    _ => 94d
-                };
-                seats.Add(new CabinSeat(
-                    $"{rowNumber}{letters[seatIndex]}",
-                    cabinClass,
-                    x,
-                    y,
-                    aisleY));
-            }
-        }
-    }
 }

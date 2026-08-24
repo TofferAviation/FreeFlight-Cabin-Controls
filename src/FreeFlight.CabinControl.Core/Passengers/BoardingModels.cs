@@ -27,7 +27,15 @@ public enum PassengerCabinClass
 {
     First,
     Business,
+    PremiumEconomy,
     Economy
+}
+
+public enum PassengerCabinLayout
+{
+    FlightFactor777V2,
+    BritishAirways777200Er,
+    BritishAirways777300
 }
 
 public enum PassengerMovementState
@@ -66,6 +74,7 @@ public sealed class BoardingPassenger
         Seat = seat;
         BoardingGroup = boardingGroup;
         Profile = profile;
+        WalkingSpeedFactor = 0.78d + (((id * 17) % 39) / 100d);
     }
 
     public int Id { get; }
@@ -75,6 +84,8 @@ public sealed class BoardingPassenger
     public int BoardingGroup { get; }
 
     public PassengerProfile Profile { get; }
+
+    internal double WalkingSpeedFactor { get; }
 
     public BoardingDoor? Door { get; internal set; }
 

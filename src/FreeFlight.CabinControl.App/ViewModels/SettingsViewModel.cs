@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Passengers;
 using FreeFlight.CabinControl.Core.Persistence;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
@@ -202,6 +203,7 @@ public sealed class SettingsViewModel : PageViewModel
 
 public sealed record CabinLayoutProfileOption(
     string Id,
+    PassengerCabinLayout Layout,
     string Name,
     string ProfileType,
     string Description,
@@ -221,6 +223,7 @@ public static class CabinLayoutProfileCatalog
     [
         new(
             "flightfactor.777v2",
+            PassengerCabinLayout.FlightFactor777V2,
             "FlightFactor 777 v2 cabin",
             "Operational preview",
             "The coded FreeFlight schematic used for live boarding, deboarding, seat markers, and door routing.",
@@ -232,26 +235,28 @@ public static class CabinLayoutProfileCatalog
             "OPERATIONAL · 311 MAPPED SEAT POSITIONS"),
         new(
             "british-airways.777-200er",
+            PassengerCabinLayout.BritishAirways777200Er,
             "British Airways 777-200ER",
-            "Airline seat-map reference",
-            "The supplied British Airways 777-200ER layout, stored as private airline-pack content for aircraft-profile matching.",
+            "Operational airline layout",
+            "British Airways 777-200ER boarding simulation with mapped seats, two-door routing, and live passenger movement.",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_200ER_SeatMap.png",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_200ER_SeatMap_Horizontal.png",
             "Manual selection · future aircraft match: Boeing 777-200ER",
             420d,
-            false,
-            "HORIZONTAL REFERENCE · NOSE LEFT · TAIL RIGHT"),
+            true,
+            "OPERATIONAL · 280 MAPPED SEAT POSITIONS · NOSE LEFT"),
         new(
             "british-airways.777-300",
+            PassengerCabinLayout.BritishAirways777300,
             "British Airways 777-300",
-            "Airline seat-map reference",
-            "The supplied British Airways 777-300 layout, stored as private airline-pack content for aircraft-profile matching.",
+            "Operational airline layout",
+            "British Airways 777-300 boarding simulation with mapped seats, two-door routing, and live passenger movement.",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_300_SeatMap.png",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_300_SeatMap_Horizontal.png",
             "Manual selection · future aircraft match: Boeing 777-300",
             420d,
-            false,
-            "HORIZONTAL REFERENCE · NOSE LEFT · TAIL RIGHT")
+            true,
+            "OPERATIONAL · 266 MAPPED SEAT POSITIONS · NOSE LEFT")
     ];
 
     public static CabinLayoutProfileOption Resolve(string? id) =>

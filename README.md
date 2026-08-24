@@ -8,9 +8,9 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 
 - Dashboard, Airliners, Passenger Flow, Cabin Area Control Panel, Audio, Performance, and Settings navigation;
 - the detailed FlightFactor 777 v2 cabin-layout reference on the Dashboard;
-- three stable cabin-layout choices shared by Aircraft Settings and the Passenger Flow live preview: the operational FlightFactor 777 v2 cabin plus private British Airways 777-200ER and 777-300 references, rendered horizontally with the nose to the left and tail to the right and ready for future aircraft-adapter matching;
+- three operational cabin-layout choices shared by Aircraft Settings and Passenger Flow: the 311-position FlightFactor 777 v2 cabin, 280-position British Airways 777-200ER, and 266-position British Airways 777-300, all rendered horizontally with the nose left and tail right;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
-- an original simulator-free Passenger Flow page with 311 individually mapped FF777 seat positions (36 First, 35 Business, and 240 Economy), seat-centred passenger markers, complete boarding and deboarding runs, boarding-ticket-based L1/L2 routing, two-aisle movement, an optional 30–45 minute real-operations pace, accelerated previews, progress, ETA, pause/resume, and live rerouting when doors change;
+- an original simulator-free Passenger Flow page with profile-specific seat coordinates, mixed partial-load allocation, boarding-group calls with randomized within-group flow, varied passenger walking and entry timing, congestion slowdowns, complete boarding/deboarding, boarding-ticket-based L1/L2 routing, two-aisle movement, optional 30–45 minute real operations, accelerated previews, and a selected passenger's destination-seat highlight;
 - a full passenger manifest with deterministic fictional names and profiles, live operational status, seat and booking details revealed only when a passenger dot or manifest row is selected;
 - optional SimBrief latest-OFP import using the user's numeric Pilot ID, giving the planned OFP passenger count priority over manual load controls and synchronizing flight number and route without storing a SimBrief password;
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;

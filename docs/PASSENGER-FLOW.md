@@ -4,21 +4,23 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 
 ## Current simulator-free behavior
 
-- Uses a deterministic 311-position FF777 profile whose marker coordinates cover every individual position represented by the current cabin schematic: 36 First, 35 Business in its drawn 2–3–2 blocks, and 240 Economy in its drawn 3–4–3 blocks.
-- Accepts a user-selected mapped-passenger count from 1 to 311, while preserving a larger authoritative booked count imported from SimBrief.
+- Provides operational coordinate profiles for the 311-position FlightFactor schematic, 280-position British Airways 777-200ER, and 266-position British Airways 777-300.
+- Accepts a user-selected mapped-passenger count up to the selected layout's capacity, while preserving a larger authoritative booked count imported from SimBrief.
+- Selects occupied positions from the entire cabin for partial loads, then assigns each fictional passenger a unique boarding-pass seat. Seats therefore do not fill as a rigid tail-to-nose sequence.
 - Starts with L2 open and L1 closed so single-door routing is immediately testable.
 - Routes every newly entering passenger through the only open door.
-- With both doors open, the assigned cabin on the passenger's boarding ticket controls the entry: First uses L1 while Business and Economy use L2.
+- With both doors open, the assigned cabin on the passenger's boarding ticket controls the entry: First uses L1 while all other cabins use L2.
 - Opening both passenger doors increases the spawn and in-cabin flow limits, producing a faster boarding operation than either door alone.
-- Uses separate upper and lower aisle lanes, selected from the assigned seat, so passengers move along an aisle before crossing into their row.
+- Uses separate upper and lower aisle lanes, selected from the assigned seat, so passengers move along the correct aisle before crossing into their row.
+- Varies entry gaps and walking speeds, randomizes order within each called group, and slows nearby passengers in congested aisle sections to produce controlled boarding/deboarding disorder without breaking boarding-pass assignments.
 - Holds new passengers when every door is closed, then resumes through whichever door opens.
 - Keeps passengers already inside the aircraft moving to their seats if an entry door closes.
 - Keeps moving passengers class-coloured, changes a passenger to orange while the seat is being occupied, and changes the marker to green only after the passenger is seated and secured.
 - Supports an optional real-operations pace targeting a 30–45 minute full one-door boarding, plus 1×, 2×, and 4× accelerated previews, pause/resume, reset, progress, ETA, and recent activity.
 - Calls and releases boarding groups in numeric order from 1 through 8. The live cabin header shows the group currently boarding, and the manifest sorts by group before passenger number.
-- Turns the primary action into **Start Deboarding** after boarding completes. Passengers leave their assigned seats through the same two aisle lanes, First routes to L1 when both doors are open, and Business/Economy routes to L2. Closing every door holds the operation until a door reopens.
+- Turns the primary action into **Start Deboarding** after boarding completes. Passengers leave their assigned seats through the same two aisle lanes, First routes to L1 when both doors are open, and every other cabin routes to L2. Closing every door holds the operation until a door reopens.
 - Generates a stable fictional profile for every preview passenger, including a name, age, nationality, purpose of travel, Executive Club tier, checked-bag count, assistance note, and booking reference.
-- Provides a complete scrollable manifest with live status. A passenger's extended information is hidden until the passenger dot or manifest row is selected.
+- Provides a complete scrollable manifest with live status. Selecting a live passenger marker highlights only that passenger's destination seat; selecting a manifest row opens the extended passenger information.
 - Can import the passenger count, flight number, origin, and destination from the user's latest generated SimBrief OFP using their numeric Pilot ID. No SimBrief password is requested or stored.
 
 ## SimBrief boundary
@@ -29,9 +31,9 @@ Only operational OFP data is consumed. SimBrief does not provide the real-world 
 
 ## Cabin layout profiles
 
-Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. The FlightFactor profile drives the operational Passenger Flow coordinates today. The supplied British Airways maps are installed only as private airline-seat-map references; the Passenger page displays dedicated horizontal crops with the original top/front at the left and bottom/tail at the right. Their IDs establish the selection and future matching boundary without committing third-party imagery to the public repository.
+Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. Every profile drives its own operational seat coordinates, cabin classes, boarding groups, door positions, and aisle routing. The British Airways background maps remain private airline-pack content; the public code contains only the simulation coordinates and profile metadata.
 
-Selecting a British Airways reference hides the FlightFactor markers, door controls, and operational legend, and pauses an active operation. This prevents the application from suggesting that FlightFactor seat coordinates are valid for a different cabin. Returning to the FlightFactor profile restores the coded live simulation.
+Changing layouts safely starts a fresh manifest against the selected capacity while preserving the booked SimBrief count, current manual door choices, and stable profile selection. A count above the chosen capacity is reported as unmapped rather than silently discarded.
 
 The user can persist a manual profile selection now. Once the X-Plane adapter exists, detected aircraft identity and verified variant metadata can select the matching profile automatically. Ambiguous or unknown aircraft must fall back to an explicit user choice rather than guessing the cabin.
 

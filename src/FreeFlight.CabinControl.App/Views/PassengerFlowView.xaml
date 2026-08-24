@@ -195,19 +195,6 @@
                                           Margin="12,-3,0,0"
                                           ToolTip="Choose the cabin shown in the live preview" />
                             </StackPanel>
-                            <Border Background="#142A46"
-                                    BorderBrush="#2B639E"
-                                    BorderThickness="1"
-                                    CornerRadius="10"
-                                    Padding="10,4"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Visibility="{Binding IsReferenceCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <TextBlock Text="{Binding SelectedCabinLayoutProfile.LivePreviewStatus}"
-                                           Foreground="#63B9FF"
-                                           FontSize="10"
-                                           FontWeight="SemiBold" />
-                            </Border>
                             <StackPanel Orientation="Horizontal"
                                         HorizontalAlignment="Right"
                                         Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -240,11 +227,14 @@
                             </StackPanel>
                         </Grid>
 
-                        <Viewbox Grid.Row="1"
-                                 Stretch="Uniform"
-                                 Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Viewbox Grid.Row="1" Stretch="Uniform">
                             <Canvas Width="1033" Height="230" ClipToBounds="False">
-                                <Border Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" Panel.ZIndex="0">
+                                <Border Canvas.Left="0"
+                                        Canvas.Top="0"
+                                        Width="1033"
+                                        Height="192"
+                                        Panel.ZIndex="0"
+                                        Visibility="{Binding IsFlightFactorCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <Border.Background>
                                         <ImageBrush ImageSource="pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png"
                                                     Viewbox="0,62,1033,192"
@@ -252,6 +242,44 @@
                                                     Stretch="Fill" />
                                     </Border.Background>
                                 </Border>
+
+                                <Border Canvas.Left="0"
+                                        Canvas.Top="0"
+                                        Width="1033"
+                                        Height="192"
+                                        Panel.ZIndex="0"
+                                        Visibility="{Binding IsAirlineCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
+                                                    Viewbox="0,0,1,0.60"
+                                                    ViewboxUnits="RelativeToBoundingBox"
+                                                    Stretch="Fill" />
+                                    </Border.Background>
+                                </Border>
+
+                                <Canvas Canvas.Left="{Binding SelectedSeatCanvasLeft}"
+                                        Canvas.Top="{Binding SelectedSeatCanvasTop}"
+                                        Width="24"
+                                        Height="24"
+                                        Panel.ZIndex="4"
+                                        IsHitTestVisible="False"
+                                        Visibility="{Binding IsSeatHighlightVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Ellipse Width="24" Height="24" Fill="#25101927" Stroke="#FFD54A" StrokeThickness="2.5" />
+                                    <Ellipse Canvas.Left="9.5" Canvas.Top="9.5" Width="5" Height="5" Fill="#FFF4B0" />
+                                    <Border Background="#E8091628"
+                                            BorderBrush="#FFD54A"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="5,2"
+                                            Canvas.Left="26"
+                                            Canvas.Top="-3">
+                                        <TextBlock Text="{Binding SelectedSeatLabel}"
+                                                   Foreground="#FFF4B0"
+                                                   FontSize="8"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="NoWrap" />
+                                    </Border>
+                                </Canvas>
 
                                 <ItemsControl Canvas.Left="0"
                                               Canvas.Top="0"
@@ -275,7 +303,7 @@
                                                     Cursor="Hand"
                                                     ToolTip="{Binding ToolTip}"
                                                     Command="{Binding DataContext.SelectPassengerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding PassengerId}">
+                                                    CommandParameter="{Binding}">
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Grid>
@@ -299,6 +327,9 @@
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CabinClassName}" Value="Business">
                                                                 <Setter TargetName="PassengerDot" Property="Fill" Value="#2E90FF" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CabinClassName}" Value="Premium Economy">
+                                                                <Setter TargetName="PassengerDot" Property="Fill" Value="#F0C64E" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CabinClassName}" Value="Economy">
                                                                 <Setter TargetName="PassengerDot" Property="Fill" Value="#21CED8" />
@@ -325,14 +356,14 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <ToggleButton Canvas.Left="148"
+                                <ToggleButton Canvas.Left="{Binding L1DoorCanvasLeft}"
                                               Canvas.Top="192"
                                               Panel.ZIndex="5"
                                               Content="L1"
                                               IsChecked="{Binding L1DoorOpen}"
                                               Style="{StaticResource DoorToggleStyle}"
                                               ToolTip="Open or close passenger door L1" />
-                                <ToggleButton Canvas.Left="391"
+                                <ToggleButton Canvas.Left="{Binding L2DoorCanvasLeft}"
                                               Canvas.Top="192"
                                               Panel.ZIndex="5"
                                               Content="L2"
@@ -341,32 +372,6 @@
                                               ToolTip="Open or close passenger door L2" />
                             </Canvas>
                         </Viewbox>
-
-                        <Border Grid.Row="1"
-                                Background="#F7F7F7"
-                                BorderBrush="#36506E"
-                                BorderThickness="1"
-                                CornerRadius="8"
-                                Padding="8"
-                                Margin="0,6"
-                                Visibility="{Binding IsReferenceCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Grid>
-                                <Image Source="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
-                                       Stretch="Uniform"
-                                       RenderOptions.BitmapScalingMode="HighQuality" />
-                                <Border Background="#D9091628"
-                                        CornerRadius="5"
-                                        Padding="9,4"
-                                        HorizontalAlignment="Left"
-                                        VerticalAlignment="Top"
-                                        Margin="4">
-                                    <TextBlock Text="{Binding SelectedCabinLayoutProfile.Name}"
-                                               Foreground="White"
-                                               FontSize="10"
-                                               FontWeight="SemiBold" />
-                                </Border>
-                            </Grid>
-                        </Border>
 
                         <Grid Grid.Row="2">
                             <TextBlock Text="{Binding DoorRoutingSummary}"
@@ -382,12 +387,6 @@
                                 <Ellipse Width="8" Height="8" Fill="#FF9D45" Margin="0,0,5,0" /><TextBlock Text="Occupying seat" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
                                 <Ellipse Width="8" Height="8" Fill="#58E68A" Margin="0,0,5,0" /><TextBlock Text="Secured" Style="{StaticResource MutedTextStyle}" />
                             </StackPanel>
-                            <TextBlock Text="Reference layout preview · operational passenger coordinates remain available on the FlightFactor cabin"
-                                       Foreground="#8FC8FF"
-                                       FontSize="11"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       Visibility="{Binding IsReferenceCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                     </Grid>
                 </Border>
@@ -395,8 +394,7 @@
                 <Border Grid.Column="1"
                         Style="{StaticResource CardStyle}"
                         Margin="8,0,0,0"
-                        Padding="17,14"
-                        IsEnabled="{Binding IsOperationalCabinLayout}">
+                        Padding="17,14">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="36" />
@@ -478,10 +476,11 @@
                                 MinHeight="26"
                                 Padding="10,2" />
                         <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0"><TextBlock Text="FIRST" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding FirstClassCount}" FontSize="20" Foreground="#C978ED" /></StackPanel>
                             <StackPanel Grid.Column="1"><TextBlock Text="BUSINESS" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding BusinessClassCount}" FontSize="20" Foreground="#2E90FF" /></StackPanel>
-                            <StackPanel Grid.Column="2"><TextBlock Text="ECONOMY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding EconomyClassCount}" FontSize="20" Foreground="#21CED8" /></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Text="PREM ECON" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding PremiumEconomyClassCount}" FontSize="20" Foreground="#F0C64E" /></StackPanel>
+                            <StackPanel Grid.Column="3"><TextBlock Text="ECONOMY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding EconomyClassCount}" FontSize="20" Foreground="#21CED8" /></StackPanel>
                         </Grid>
                     </Grid>
                 </Border>

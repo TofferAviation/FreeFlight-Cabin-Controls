@@ -19,7 +19,10 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger boarding completes", PassengerBoardingCompletesAsync),
     ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
     ("Boarding groups run in numeric order", BoardingGroupsRunInNumericOrderAsync),
-    ("Passenger deboarding completes", PassengerDeboardingCompletesAsync)
+    ("Passenger deboarding completes", PassengerDeboardingCompletesAsync),
+    ("British Airways cabin layouts map official seats", BritishAirwaysCabinLayoutsMapSeatsAsync),
+    ("British Airways layouts board and deboard", BritishAirwaysLayoutsOperateAsync),
+    ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync)
 };
 
 var failures = new List<string>();
@@ -321,6 +324,74 @@ static Task PassengerDeboardingCompletesAsync()
             .Where(passenger => passenger.Seat.CabinClass is PassengerCabinClass.Business or PassengerCabinClass.Economy)
             .All(passenger => passenger.Door == BoardingDoor.L2),
         "A Business or Economy passenger did not deboard through L2 with both doors open.");
+    return Task.CompletedTask;
+}
+
+static Task BritishAirwaysCabinLayoutsMapSeatsAsync()
+{
+    var twoHundred = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777200Er);
+    AssertEqual(280, twoHundred.Capacity, "The British Airways 777-200ER mapped capacity is incorrect.");
+    AssertSeatCentre(twoHundred, "1A", 72d, 163d);
+    AssertSeatCentre(twoHundred, "40K", 985d, 43d);
+    Assert(twoHundred.BoardingGroups.SequenceEqual(Enumerable.Range(1, 8)),
+        "The British Airways 777-200ER did not create boarding groups 1–8.");
+
+    var threeHundred = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777300);
+    AssertEqual(266, threeHundred.Capacity, "The British Airways 777-300 mapped capacity is incorrect.");
+    AssertSeatCentre(threeHundred, "1A", 76d, 163d);
+    AssertSeatCentre(threeHundred, "44K", 992d, 43d);
+    Assert(threeHundred.BoardingGroups.SequenceEqual(Enumerable.Range(1, 8)),
+        "The British Airways 777-300 did not create boarding groups 1–8.");
+    return Task.CompletedTask;
+}
+
+static Task BritishAirwaysLayoutsOperateAsync()
+{
+    foreach (var layout in new[]
+             {
+                 PassengerCabinLayout.BritishAirways777200Er,
+                 PassengerCabinLayout.BritishAirways777300
+             })
+    {
+        var engine = new PassengerBoardingEngine(int.MaxValue, layout);
+        engine.SetDoorOpen(BoardingDoor.L1, true);
+        engine.SetDoorOpen(BoardingDoor.L2, true);
+        engine.Start();
+        Advance(engine, seconds: 120d, speed: 8d);
+        AssertEqual(BoardingRunState.Complete, engine.State, $"{layout} boarding did not complete.");
+        AssertEqual(engine.Capacity, engine.BoardedCount, $"{layout} did not seat every ticketed passenger.");
+        Assert(engine.Passengers.All(passenger =>
+                Math.Abs(passenger.Position.X - passenger.Seat.X) < 0.001d &&
+                Math.Abs(passenger.Position.Y - passenger.Seat.Y) < 0.001d),
+            $"{layout} did not finish passengers in their boarding-pass seats.");
+
+        engine.StartDeboarding();
+        Advance(engine, seconds: 120d, speed: 8d);
+        AssertEqual(BoardingRunState.DeboardingComplete, engine.State, $"{layout} deboarding did not complete.");
+        AssertEqual(engine.Capacity, engine.DeboardedCount, $"{layout} did not deboard every passenger.");
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task PartialLoadsDistributeTicketsAsync()
+{
+    var engine = new PassengerBoardingEngine(180, PassengerCabinLayout.BritishAirways777200Er);
+    AssertEqual(180, engine.Passengers.Select(passenger => passenger.Seat.Number).Distinct().Count(),
+        "Two passengers were assigned the same seat.");
+    Assert(engine.Passengers.Any(passenger => passenger.Seat.X < 300d) &&
+           engine.Passengers.Any(passenger => passenger.Seat.X > 900d),
+        "The partial load filled a single end of the aircraft instead of distributing tickets.");
+
+    foreach (var group in engine.Passengers.GroupBy(passenger => passenger.BoardingGroup).Where(group => group.Count() >= 5))
+    {
+        var xCoordinates = group.Select(passenger => passenger.Seat.X).ToArray();
+        var adjacentPairs = xCoordinates.Zip(xCoordinates.Skip(1)).ToArray();
+        Assert(adjacentPairs.Any(pair => pair.First < pair.Second) &&
+               adjacentPairs.Any(pair => pair.First > pair.Second),
+            $"Boarding Group {group.Key} was assigned in a rigid front-to-back or back-to-front sequence.");
+    }
+
     return Task.CompletedTask;
 }
 
