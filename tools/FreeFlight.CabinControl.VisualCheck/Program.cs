@@ -208,6 +208,30 @@ internal static class Program
             }
 
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            if (page == "BoardingPasses")
+            {
+                var headerWordmark = FindVisualChild<Image>(
+                    window,
+                    image => Equals(image.Tag, "HeaderBritishAirwaysWordmark"));
+                var ticketWordmark = FindVisualChild<Image>(
+                    window,
+                    image => Equals(image.Tag, "BoardingPassBritishAirwaysWordmark"));
+                var oneworldBadge = FindVisualChild<Grid>(
+                    window,
+                    grid => Equals(grid.Tag, "OneworldBadge"));
+                var stubBarcode = FindVisualChild<ItemsControl>(
+                    window,
+                    itemsControl => Equals(itemsControl.Tag, "BoardingPassStubBarcode"));
+                if (headerWordmark?.Source?.ToString().EndsWith("/BAW.png", StringComparison.OrdinalIgnoreCase) != true ||
+                    ticketWordmark?.Source?.ToString().EndsWith("/BAW.png", StringComparison.OrdinalIgnoreCase) != true ||
+                    oneworldBadge is null ||
+                    stubBarcode is null)
+                {
+                    throw new InvalidOperationException(
+                        "The shared British Airways wordmark, clean oneworld badge, or retained ticket-stub barcode was not rendered.");
+                }
+            }
+
             Render(window, Path.Combine(outputDirectory, $"{page.ToLowerInvariant()}.png"));
 
             if (page == "GateDesk")

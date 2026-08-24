@@ -168,7 +168,13 @@
                 <Border Grid.Row="0" Background="#9A061326" BorderBrush="#263A52" BorderThickness="0,0,0,1">
                     <Grid Margin="20,0,145,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="270" /><ColumnDefinition Width="1" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="140" /><ColumnDefinition Width="1" /><ColumnDefinition Width="195" /><ColumnDefinition Width="215" /></Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/BAW.png" Width="55" Height="42" Stretch="Uniform" /><TextBlock Text="BRITISH AIRWAYS" FontFamily="Georgia" FontSize="19" FontWeight="Bold" VerticalAlignment="Center" Margin="9,0,0,0" /></StackPanel>
+                        <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/BAW.png"
+                               Width="245"
+                               Height="48"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center"
+                               Stretch="Uniform"
+                               Tag="HeaderBritishAirwaysWordmark" />
                         <Rectangle Grid.Column="1" Fill="#263A52" Margin="0,14" />
                         <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0"><TextBlock Text="{Binding Operations.FlightNumber}" FontSize="21" FontWeight="SemiBold" /><TextBlock Text="{Binding Operations.RouteSummary}" Style="{StaticResource MutedTextStyle}" /></StackPanel>
                         <Rectangle Grid.Column="3" Fill="#263A52" Margin="0,14" />
