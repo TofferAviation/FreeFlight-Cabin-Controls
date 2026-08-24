@@ -8,6 +8,7 @@ namespace FreeFlight.CabinControl.App.ViewModels;
 
 public sealed class MainWindowViewModel : ObservableObject, IDisposable
 {
+    private readonly AppSettings _settings;
     private PageViewModel _currentPage;
     private string _activePage = "Dashboard";
 
@@ -19,6 +20,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         string? boardingMusicDirectory = null,
         ISimBriefClient? simBriefClient = null)
     {
+        _settings = settings;
         Status = new SharedStatusViewModel();
         Dashboard = new DashboardViewModel(settings, Status);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
@@ -79,6 +81,15 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         if (parameter is not string destination)
         {
             return;
+        }
+
+        if (destination == "Passengers")
+        {
+            Passengers.ApplyCabinLayoutSelection(_settings.PassengerCabinLayoutId);
+        }
+        else if (destination == "Settings")
+        {
+            Settings.ApplyCabinLayoutSelection(_settings.PassengerCabinLayoutId);
         }
 
         CurrentPage = destination switch

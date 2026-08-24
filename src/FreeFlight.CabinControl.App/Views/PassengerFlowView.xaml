@@ -188,11 +188,29 @@
                         <Grid>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Live Cabin" Style="{StaticResource SectionTitleStyle}" />
-                                <Border Background="#142A46" BorderBrush="#2B639E" BorderThickness="1" CornerRadius="10" Padding="9,3" Margin="12,1,0,0">
-                                    <TextBlock Text="FF777 PREVIEW LAYOUT" Foreground="#63B9FF" FontSize="10" FontWeight="SemiBold" />
-                                </Border>
+                                <ComboBox ItemsSource="{Binding CabinLayoutProfiles}"
+                                          SelectedItem="{Binding SelectedCabinLayoutProfile}"
+                                          Width="245"
+                                          Height="31"
+                                          Margin="12,-3,0,0"
+                                          ToolTip="Choose the cabin shown in the live preview" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Border Background="#142A46"
+                                    BorderBrush="#2B639E"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,4"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Visibility="{Binding IsReferenceCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="{Binding SelectedCabinLayoutProfile.LivePreviewStatus}"
+                                           Foreground="#63B9FF"
+                                           FontSize="10"
+                                           FontWeight="SemiBold" />
+                            </Border>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Border Background="#332A1020"
                                         BorderBrush="#F0C64E"
                                         BorderThickness="1"
@@ -222,7 +240,9 @@
                             </StackPanel>
                         </Grid>
 
-                        <Viewbox Grid.Row="1" Stretch="Uniform">
+                        <Viewbox Grid.Row="1"
+                                 Stretch="Uniform"
+                                 Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <Canvas Width="1033" Height="230" ClipToBounds="False">
                                 <Border Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" Panel.ZIndex="0">
                                     <Border.Background>
@@ -322,18 +342,61 @@
                             </Canvas>
                         </Viewbox>
 
+                        <Border Grid.Row="1"
+                                Background="#F7F7F7"
+                                BorderBrush="#36506E"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,6"
+                                Visibility="{Binding IsReferenceCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Image Source="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
+                                       Stretch="Uniform"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                <Border Background="#D9091628"
+                                        CornerRadius="5"
+                                        Padding="9,4"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        Margin="4">
+                                    <TextBlock Text="{Binding SelectedCabinLayoutProfile.Name}"
+                                               Foreground="White"
+                                               FontSize="10"
+                                               FontWeight="SemiBold" />
+                                </Border>
+                            </Grid>
+                        </Border>
+
                         <Grid Grid.Row="2">
-                            <TextBlock Text="{Binding DoorRoutingSummary}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DoorRoutingSummary}"
+                                       Style="{StaticResource MutedTextStyle}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <Ellipse Width="8" Height="8" Fill="#2E90FF" Margin="0,0,5,0" /><TextBlock Text="Walking" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
                                 <Ellipse Width="8" Height="8" Fill="#FF9D45" Margin="0,0,5,0" /><TextBlock Text="Occupying seat" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
                                 <Ellipse Width="8" Height="8" Fill="#58E68A" Margin="0,0,5,0" /><TextBlock Text="Secured" Style="{StaticResource MutedTextStyle}" />
                             </StackPanel>
+                            <TextBlock Text="Reference layout preview · operational passenger coordinates remain available on the FlightFactor cabin"
+                                       Foreground="#8FC8FF"
+                                       FontSize="11"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Visibility="{Binding IsReferenceCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         </Grid>
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0" Padding="17,14">
+                <Border Grid.Column="1"
+                        Style="{StaticResource CardStyle}"
+                        Margin="8,0,0,0"
+                        Padding="17,14"
+                        IsEnabled="{Binding IsOperationalCabinLayout}">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="36" />

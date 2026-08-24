@@ -29,7 +29,9 @@ Only operational OFP data is consumed. SimBrief does not provide the real-world 
 
 ## Cabin layout profiles
 
-Aircraft Settings exposes three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. The FlightFactor profile drives the operational Passenger Flow coordinates today. The supplied British Airways maps are installed only as private, scrollable airline-seat-map references; their IDs establish the selection and future matching boundary without committing third-party imagery to the public repository.
+Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. The FlightFactor profile drives the operational Passenger Flow coordinates today. The supplied British Airways maps are installed only as private airline-seat-map references; the Passenger page displays dedicated horizontal crops with the original top/front at the left and bottom/tail at the right. Their IDs establish the selection and future matching boundary without committing third-party imagery to the public repository.
+
+Selecting a British Airways reference hides the FlightFactor markers, door controls, and operational legend, and pauses an active operation. This prevents the application from suggesting that FlightFactor seat coordinates are valid for a different cabin. Returning to the FlightFactor profile restores the coded live simulation.
 
 The user can persist a manual profile selection now. Once the X-Plane adapter exists, detected aircraft identity and verified variant metadata can select the matching profile automatically. Ambiguous or unknown aircraft must fall back to an explicit user choice rather than guessing the cabin.
 

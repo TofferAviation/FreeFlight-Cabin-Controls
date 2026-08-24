@@ -343,6 +343,23 @@ internal static class Program
 
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 Render(window, Path.Combine(outputDirectory, "passengers-simbrief-302-boarded.png"));
+
+                foreach (var profile in viewModel.Passengers.CabinLayoutProfiles.Where(profile => !profile.IsOperational))
+                {
+                    viewModel.Passengers.SelectedCabinLayoutProfile = profile;
+                    if (!viewModel.Passengers.IsReferenceCabinLayout ||
+                        !profile.LivePreviewUri.Contains("Horizontal", StringComparison.Ordinal))
+                    {
+                        throw new InvalidOperationException("A British Airways layout did not select its horizontal live-preview asset.");
+                    }
+
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                    var slug = profile.Id.Replace('.', '-');
+                    Render(window, Path.Combine(outputDirectory, $"passengers-live-layout-{slug}.png"));
+                }
+
+                viewModel.Passengers.SelectedCabinLayoutProfile =
+                    viewModel.Passengers.CabinLayoutProfiles.Single(profile => profile.IsOperational);
             }
             else if (page == "CabinPanel")
             {
@@ -684,7 +701,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 36 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 38 visual checks to {outputDirectory}");
         return 0;
     }
 

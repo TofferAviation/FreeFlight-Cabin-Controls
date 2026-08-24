@@ -31,17 +31,20 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private string _simBriefFlightSummary = "No SimBrief flight imported";
     private bool _isSimBriefSyncing;
     private bool _hasSimBriefFlight;
+    private CabinLayoutProfileOption _selectedCabinLayoutProfile;
 
     public PassengerFlowViewModel(
         AppSettings settings,
         SharedStatusViewModel status,
         ISettingsStore? settingsStore = null,
         ISimBriefClient? simBriefClient = null)
-        : base("Passenger Flow", "Simulator-free FF777 boarding, deboarding and passenger manifest")
+        : base("Passenger Flow", "Simulator-free 777 boarding, deboarding and passenger manifest")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _simBriefClient = simBriefClient ?? new SimBriefClient();
+        _selectedCabinLayoutProfile = CabinLayoutProfileCatalog.Resolve(settings.PassengerCabinLayoutId);
+        _settings.PassengerCabinLayoutId = _selectedCabinLayoutProfile.Id;
         _simBriefPilotId = settings.SimBriefPilotId;
         _simBriefAutoSync = settings.SimBriefAutoSync;
         Status = status;
@@ -95,6 +98,16 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public ObservableCollection<PassengerManifestEntryViewModel> PassengerManifest { get; } = [];
     public ObservableCollection<string> ActivityLog { get; } = [];
     public IReadOnlyList<BoardingSpeedOption> SpeedOptions { get; }
+    public IReadOnlyList<CabinLayoutProfileOption> CabinLayoutProfiles => CabinLayoutProfileCatalog.All;
+    public bool IsOperationalCabinLayout => SelectedCabinLayoutProfile.IsOperational;
+    public bool IsReferenceCabinLayout => !IsOperationalCabinLayout;
+
+    public CabinLayoutProfileOption SelectedCabinLayoutProfile
+    {
+        get => _selectedCabinLayoutProfile;
+        set => SetCabinLayoutProfile(value, persist: true);
+    }
+
     public int CabinCapacity => _engine.Capacity;
     public int MappedPassengerCount => _engine.TargetPassengerCount;
     public int UnmappedPassengerCount => Math.Max(0, BookedPassengerCount - MappedPassengerCount);
@@ -120,6 +133,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             ApplyBookedPassengerCount(value, simBriefPriority: false);
         }
     }
+
+    public void ApplyCabinLayoutSelection(string? profileId) =>
+        SetCabinLayoutProfile(CabinLayoutProfileCatalog.Resolve(profileId), persist: false);
 
     public BoardingSpeedOption SelectedSpeedOption
     {
@@ -492,6 +508,32 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ActivityLog.Clear();
         ActivityLog.Add("Passenger preview reset — manifest ready");
         RefreshFromEngine();
+    }
+
+    private void SetCabinLayoutProfile(CabinLayoutProfileOption? profile, bool persist)
+    {
+        if (profile is null || !SetProperty(ref _selectedCabinLayoutProfile, profile, nameof(SelectedCabinLayoutProfile)))
+        {
+            return;
+        }
+
+        if (!profile.IsOperational &&
+            _engine.State is BoardingRunState.Boarding or BoardingRunState.Deboarding or BoardingRunState.WaitingForDoor)
+        {
+            _engine.Pause();
+            _animationTimer.Stop();
+            AddActivity("Cabin operation paused while viewing an airline seat-map reference");
+            RefreshFromEngine();
+        }
+
+        _settings.PassengerCabinLayoutId = profile.Id;
+        OnPropertyChanged(nameof(IsOperationalCabinLayout));
+        OnPropertyChanged(nameof(IsReferenceCabinLayout));
+        AddActivity($"Live cabin layout changed to {profile.Name}");
+        if (persist)
+        {
+            _ = SaveSettingsQuietlyAsync();
+        }
     }
 
     private void SetLoadPreset(object? parameter)
