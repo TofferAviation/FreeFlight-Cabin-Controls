@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
@@ -16,10 +17,14 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
     private readonly ISettingsStore _settingsStore;
     private readonly IAudioOutputDeviceService _audioOutputDeviceService;
     private readonly CabinControlPanelViewModel? _cabinPanel;
+    private readonly DispatcherTimer _vuMeterTimer;
     private bool _isRefreshingOutputDevices;
     private AudioOutputDevice? _selectedOutputDevice;
     private string _outputDeviceStatus = "Detecting Windows playback devices...";
     private string _saveStatus = "Changes are stored locally";
+    private double _leftMeterLevel;
+    private double _rightMeterLevel;
+    private double _meterPhase;
 
     public AudioViewModel(
         AppSettings settings,
@@ -44,6 +49,13 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         {
             _cabinPanel.PropertyChanged += HandleCabinPanelPropertyChanged;
         }
+
+        _vuMeterTimer = new DispatcherTimer(DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(80)
+        };
+        _vuMeterTimer.Tick += HandleVuMeterTick;
+        _vuMeterTimer.Start();
 
         RefreshOutputDevices();
     }
@@ -159,9 +171,33 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         get => _settings.MasterVolume;
         set
         {
-            _settings.MasterVolume = value;
+            var clamped = Math.Clamp(value, 0, 100);
+            if (_settings.MasterVolume == clamped)
+            {
+                return;
+            }
+
+            _settings.MasterVolume = clamped;
             OnPropertyChanged();
+            _cabinPanel?.RefreshMasterAudioOutput();
+            if (clamped == 0)
+            {
+                LeftMeterLevel = 0d;
+                RightMeterLevel = 0d;
+            }
         }
+    }
+
+    public double LeftMeterLevel
+    {
+        get => _leftMeterLevel;
+        private set => SetProperty(ref _leftMeterLevel, Math.Clamp(value, 0d, 100d));
+    }
+
+    public double RightMeterLevel
+    {
+        get => _rightMeterLevel;
+        private set => SetProperty(ref _rightMeterLevel, Math.Clamp(value, 0d, 100d));
     }
 
     public bool PassengerAmbienceEnabled
@@ -318,12 +354,40 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
 
     public void Dispose()
     {
+        _vuMeterTimer.Stop();
+        _vuMeterTimer.Tick -= HandleVuMeterTick;
         if (_cabinPanel is not null)
         {
             _cabinPanel.PropertyChanged -= HandleCabinPanelPropertyChanged;
         }
 
         GC.SuppressFinalize(this);
+    }
+
+    public void AdvanceVuMeters()
+    {
+        var effectiveOutput = IsSafetyDemonstrationInProgress
+            ? _cabinPanel?.SafetyVideoVolume ?? 0d
+            : IsBoardingMusicInProgress
+                ? _cabinPanel?.BoardingMusicOutputVolume ?? 0d
+                : 0d;
+
+        if (!IsAnyAudioPlaying || effectiveOutput <= 0d)
+        {
+            LeftMeterLevel = Math.Max(0d, LeftMeterLevel - 12d);
+            RightMeterLevel = Math.Max(0d, RightMeterLevel - 14d);
+            return;
+        }
+
+        _meterPhase += 0.61d;
+        var leftEnvelope = 0.62d + (0.25d * Math.Abs(Math.Sin(_meterPhase))) +
+                           (0.10d * Math.Abs(Math.Sin(_meterPhase * 2.31d)));
+        var rightEnvelope = 0.58d + (0.27d * Math.Abs(Math.Sin(_meterPhase + 0.83d))) +
+                            (0.11d * Math.Abs(Math.Sin((_meterPhase * 1.87d) + 0.25d)));
+        var leftTarget = effectiveOutput * 100d * leftEnvelope;
+        var rightTarget = effectiveOutput * 100d * rightEnvelope;
+        LeftMeterLevel += (leftTarget - LeftMeterLevel) * 0.68d;
+        RightMeterLevel += (rightTarget - RightMeterLevel) * 0.68d;
     }
 
     private void ToggleSafetyDemonstration()
@@ -348,6 +412,8 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
             _cabinPanel.StartSafetyVideoCommand.Execute(null);
         }
     }
+
+    private void HandleVuMeterTick(object? sender, EventArgs e) => AdvanceVuMeters();
 
     private void ToggleBoardingMusic()
     {

@@ -253,7 +253,7 @@ public sealed class PassengerBoardingEngine
             return _openDoors.Single();
         }
 
-        return passenger.Seat.CabinClass == PassengerCabinClass.First || passenger.Seat.X < 545d
+        return passenger.Seat.CabinClass == PassengerCabinClass.First
             ? BoardingDoor.L1
             : BoardingDoor.L2;
     }
@@ -325,7 +325,13 @@ public sealed class PassengerBoardingEngine
             for (var seatIndex = 0; seatIndex < letters.Count; seatIndex++)
             {
                 var y = yPositions[seatIndex];
-                var aisleY = y < 77d ? 76d : 77d;
+                var aisleY = cabinClass switch
+                {
+                    PassengerCabinClass.Economy when seatIndex <= 3 => 63d,
+                    PassengerCabinClass.Economy => 91d,
+                    _ when seatIndex <= 1 => 56d,
+                    _ => 91d
+                };
                 seats.Add(new CabinSeat(
                     $"{rowNumber}{letters[seatIndex]}",
                     cabinClass,

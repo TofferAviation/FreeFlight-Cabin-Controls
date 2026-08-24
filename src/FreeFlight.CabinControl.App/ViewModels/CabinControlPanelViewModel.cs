@@ -101,7 +101,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     public string SafetyVideoTitle => "British Airways Safety Video 2024";
 
     public double SafetyVideoVolume => _settings.SafetyDemonstrationEnabled
-        ? Math.Clamp(_settings.SafetyDemonstrationVolume / 100d, 0d, 1d)
+        ? Math.Clamp(
+            (_settings.SafetyDemonstrationVolume / 100d) * (_settings.MasterVolume / 100d),
+            0d,
+            1d)
         : 0d;
 
     public string BoardingMusicDirectory { get; }
@@ -123,7 +126,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     public bool HasSelectedBoardingMusic => BoardingMusicLocalSource is not null;
 
     public double BoardingMusicOutputVolume => BoardingMusicEnabled
-        ? Math.Clamp(_settings.BoardingMusicVolume / 100d, 0d, 1d)
+        ? Math.Clamp(
+            (_settings.BoardingMusicVolume / 100d) * (_settings.MasterVolume / 100d),
+            0d,
+            1d)
         : 0d;
 
     public bool IsBoardingMusicPlaying
@@ -684,6 +690,12 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     }
 
     internal void RefreshSafetyVideoAudioOutput() => OnPropertyChanged(nameof(SafetyVideoVolume));
+
+    internal void RefreshMasterAudioOutput()
+    {
+        OnPropertyChanged(nameof(SafetyVideoVolume));
+        OnPropertyChanged(nameof(BoardingMusicOutputVolume));
+    }
 
     internal void SetBoardingMusicEnabled(bool enabled) => BoardingMusicEnabled = enabled;
 

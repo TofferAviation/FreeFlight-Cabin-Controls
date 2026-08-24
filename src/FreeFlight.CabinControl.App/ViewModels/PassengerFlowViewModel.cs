@@ -198,7 +198,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     public string DoorRoutingSummary => _engine.OpenDoorCount switch
     {
-        2 => "L1 routes First and forward Business • L2 routes the remaining cabin",
+        2 => "Ticket routing active • First uses L1 • Business and Economy use L2",
         1 when L1DoorOpen => "All remaining passengers are routing through L1",
         1 => "All remaining passengers are routing through L2",
         _ => "Boarding is held until L1 or L2 is opened"

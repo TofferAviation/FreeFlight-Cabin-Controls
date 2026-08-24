@@ -206,6 +206,30 @@ internal static class Program
                 }
 
                 viewModel.Passengers.StartPauseCommand.Execute(null);
+                viewModel.Passengers.ResetCommand.Execute(null);
+                viewModel.Passengers.L1DoorOpen = true;
+                viewModel.Passengers.L2DoorOpen = true;
+                viewModel.Passengers.StartPauseCommand.Execute(null);
+                for (var index = 0; index < 10; index++)
+                {
+                    viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                }
+
+                var ticketRoutedPassengers = viewModel.Passengers.PassengerMarkers
+                    .Where(marker => !string.IsNullOrWhiteSpace(marker.DoorLabel))
+                    .ToArray();
+                if (!ticketRoutedPassengers.Any(marker => marker.CabinClassName == "First") ||
+                    !ticketRoutedPassengers.Any(marker => marker.CabinClassName != "First") ||
+                    ticketRoutedPassengers.Any(marker =>
+                        marker.DoorLabel != (marker.CabinClassName == "First" ? "L1" : "L2")))
+                {
+                    throw new InvalidOperationException(
+                        "Two-door Passenger Flow did not follow First-to-L1 and Business/Economy-to-L2 ticket routing.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-ticket-and-aisle-routing.png"));
+                viewModel.Passengers.StartPauseCommand.Execute(null);
             }
             else if (page == "CabinPanel")
             {
@@ -401,12 +425,14 @@ internal static class Program
             }
             else if (page == "Audio")
             {
+                var masterVolume = viewModel.Audio.MasterVolume;
                 viewModel.Audio.BoardingMusicEnabled = true;
                 viewModel.Audio.BoardingMusicVolume = 37;
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
-                if (Math.Abs(viewModel.CabinPanel.BoardingMusicOutputVolume - 0.37d) > 0.001d)
+                var expectedBoardingOutput = 0.37d * (masterVolume / 100d);
+                if (Math.Abs(viewModel.CabinPanel.BoardingMusicOutputVolume - expectedBoardingOutput) > 0.001d)
                 {
-                    throw new InvalidOperationException("The Audio boarding-music slider did not control playback volume.");
+                    throw new InvalidOperationException("Master Audio did not scale the boarding-music output volume.");
                 }
 
                 viewModel.Audio.BoardingMusicCommand.Execute(null);
@@ -418,6 +444,33 @@ internal static class Program
                     !viewModel.Audio.NowPlaying.Contains($"Program {firstRandomProgram}", StringComparison.Ordinal))
                 {
                     throw new InvalidOperationException("The Audio boarding-music action did not start an installed random program.");
+                }
+
+                for (var index = 0; index < 8; index++)
+                {
+                    viewModel.Audio.AdvanceVuMeters();
+                }
+
+                if (viewModel.Audio.LeftMeterLevel <= 0d ||
+                    viewModel.Audio.RightMeterLevel <= 0d ||
+                    Math.Abs(viewModel.Audio.LeftMeterLevel - viewModel.Audio.RightMeterLevel) < 0.01d)
+                {
+                    throw new InvalidOperationException("The Master Audio left/right VU meters did not respond to playback.");
+                }
+
+                viewModel.Audio.MasterVolume = 0;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (Math.Abs(viewModel.CabinPanel.BoardingMusicOutputVolume) > 0.001d ||
+                    viewModel.Audio.LeftMeterLevel > 0.001d ||
+                    viewModel.Audio.RightMeterLevel > 0.001d)
+                {
+                    throw new InvalidOperationException("Muting Master Audio did not mute playback and clear both VU meters.");
+                }
+
+                viewModel.Audio.MasterVolume = masterVolume;
+                for (var index = 0; index < 8; index++)
+                {
+                    viewModel.Audio.AdvanceVuMeters();
                 }
 
                 viewModel.Audio.BoardingMusicEnabled = false;
@@ -448,9 +501,10 @@ internal static class Program
                 viewModel.Audio.SafetyDemonstrationEnabled = true;
                 viewModel.Audio.SafetyDemonstrationVolume = 32;
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
-                if (Math.Abs(viewModel.CabinPanel.SafetyVideoVolume - 0.32d) > 0.001d)
+                var expectedSafetyOutput = 0.32d * (masterVolume / 100d);
+                if (Math.Abs(viewModel.CabinPanel.SafetyVideoVolume - expectedSafetyOutput) > 0.001d)
                 {
-                    throw new InvalidOperationException("The Audio safety-demonstration slider did not control MP4 volume.");
+                    throw new InvalidOperationException("Master Audio did not scale the safety-demonstration MP4 volume.");
                 }
 
                 viewModel.Audio.SafetyDemonstrationCommand.Execute(null);
@@ -479,7 +533,7 @@ internal static class Program
                     audioAnnouncementBanner.ActualWidth < 1000d ||
                     audioAnnouncementLabel is null ||
                     safetyMediaElement is null ||
-                    Math.Abs(safetyMediaElement.Volume - 0.32d) > 0.001d)
+                    Math.Abs(safetyMediaElement.Volume - expectedSafetyOutput) > 0.001d)
                 {
                     throw new InvalidOperationException("The Audio announcement banner or live MP4 volume binding is incorrect.");
                 }
@@ -506,7 +560,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 27 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 28 visual checks to {outputDirectory}");
         return 0;
     }
 

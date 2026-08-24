@@ -10,6 +10,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Traversal asset rejected", TraversalAssetRejectedAsync),
     ("Executable asset rejected", ExecutableAssetRejectedAsync),
     ("L2-only passenger routing", L2OnlyPassengerRoutingAsync),
+    ("Boarding tickets select L1 and L2", BoardingTicketsSelectDoorsAsync),
+    ("Two-door boarding increases passenger flow", TwoDoorBoardingIncreasesFlowAsync),
+    ("Passenger seats select two aisle lanes", PassengerSeatsSelectTwoAislesAsync),
     ("Boarding waits for an open door", BoardingWaitsForDoorAsync),
     ("Passenger seat centres match the cabin layout", PassengerSeatCentresMatchLayoutAsync),
     ("Passenger seat occupation becomes secured", PassengerSeatOccupationBecomesSecuredAsync),
@@ -150,6 +153,69 @@ static Task BoardingWaitsForDoorAsync()
     Assert(engine.Passengers.Any(passenger => passenger.Door == BoardingDoor.L1),
         "Boarding did not resume through L1 when that door opened.");
     return Task.CompletedTask;
+}
+
+static Task BoardingTicketsSelectDoorsAsync()
+{
+    var engine = new PassengerBoardingEngine(int.MaxValue);
+    engine.SetDoorOpen(BoardingDoor.L1, true);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    Advance(engine, seconds: 30d, speed: 8d);
+
+    AssertEqual(BoardingRunState.Complete, engine.State, "Two-door boarding did not complete.");
+    Assert(engine.Passengers
+            .Where(passenger => passenger.Seat.CabinClass == PassengerCabinClass.First)
+            .All(passenger => passenger.Door == BoardingDoor.L1),
+        "A First passenger did not use L1 while both doors were open.");
+    Assert(engine.Passengers
+            .Where(passenger => passenger.Seat.CabinClass is PassengerCabinClass.Business or PassengerCabinClass.Economy)
+            .All(passenger => passenger.Door == BoardingDoor.L2),
+        "A Business or Economy passenger did not use L2 while both doors were open.");
+    return Task.CompletedTask;
+}
+
+static Task PassengerSeatsSelectTwoAislesAsync()
+{
+    var engine = new PassengerBoardingEngine(int.MaxValue);
+    AssertAisles(engine, PassengerCabinClass.First, 56d, 91d);
+    AssertAisles(engine, PassengerCabinClass.Business, 56d, 91d);
+    AssertAisles(engine, PassengerCabinClass.Economy, 63d, 91d);
+    return Task.CompletedTask;
+}
+
+static Task TwoDoorBoardingIncreasesFlowAsync()
+{
+    var singleDoorEngine = new PassengerBoardingEngine(120);
+    singleDoorEngine.SetDoorOpen(BoardingDoor.L2, true);
+    singleDoorEngine.Start();
+
+    var twoDoorEngine = new PassengerBoardingEngine(120);
+    twoDoorEngine.SetDoorOpen(BoardingDoor.L1, true);
+    twoDoorEngine.SetDoorOpen(BoardingDoor.L2, true);
+    twoDoorEngine.Start();
+
+    Advance(singleDoorEngine, seconds: 5d, speed: 2d);
+    Advance(twoDoorEngine, seconds: 5d, speed: 2d);
+    var singleDoorEntered = singleDoorEngine.BoardedCount + singleDoorEngine.InCabinCount;
+    var twoDoorEntered = twoDoorEngine.BoardedCount + twoDoorEngine.InCabinCount;
+    Assert(twoDoorEntered > singleDoorEntered,
+        $"Two open doors did not increase passenger flow. Single: {singleDoorEntered}; two doors: {twoDoorEntered}.");
+    return Task.CompletedTask;
+}
+
+static void AssertAisles(
+    PassengerBoardingEngine engine,
+    PassengerCabinClass cabinClass,
+    double upperAisleY,
+    double lowerAisleY)
+{
+    var aisleCoordinates = engine.Passengers
+        .Where(passenger => passenger.Seat.CabinClass == cabinClass)
+        .Select(passenger => passenger.Seat.AisleY)
+        .ToHashSet();
+    Assert(aisleCoordinates.SetEquals([upperAisleY, lowerAisleY]),
+        $"{cabinClass} seats did not resolve to the expected two aisle lanes.");
 }
 
 static Task PassengerBoardingCompletesAsync()

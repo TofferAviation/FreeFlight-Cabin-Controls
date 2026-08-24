@@ -8,7 +8,9 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 - Accepts a user-selected booked-passenger count from 1 to 219.
 - Starts with L2 open and L1 closed so single-door routing is immediately testable.
 - Routes every newly entering passenger through the only open door.
-- With both doors open, L1 handles First and forward Business while L2 handles the remaining cabin.
+- With both doors open, the assigned cabin on the passenger's boarding ticket controls the entry: First uses L1 while Business and Economy use L2.
+- Opening both passenger doors increases the spawn and in-cabin flow limits, producing a faster boarding operation than either door alone.
+- Uses separate upper and lower aisle lanes, selected from the assigned seat, so passengers move along an aisle before crossing into their row.
 - Holds new passengers when every door is closed, then resumes through whichever door opens.
 - Keeps passengers already inside the aircraft moving to their seats if an entry door closes.
 - Keeps moving passengers class-coloured, changes a passenger to orange while the seat is being occupied, and changes the marker to green only after the passenger is seated and secured.

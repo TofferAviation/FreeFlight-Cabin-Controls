@@ -11,6 +11,12 @@
             <Setter Property="FontSize" Value="17" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <LinearGradientBrush x:Key="VuMeterBrush" StartPoint="0.5,1" EndPoint="0.5,0">
+            <GradientStop Color="#58E68A" Offset="0" />
+            <GradientStop Color="#58E68A" Offset="0.58" />
+            <GradientStop Color="#F0C64E" Offset="0.76" />
+            <GradientStop Color="#FF6B55" Offset="1" />
+        </LinearGradientBrush>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -94,8 +100,28 @@
                             <TextBlock Grid.Column="2" Text="{Binding MasterVolume, StringFormat={}{0}%}" Foreground="#49A9FF" FontSize="17" VerticalAlignment="Center" HorizontalAlignment="Center" />
                             <Grid Grid.Column="3" Margin="10,2,0,2">
                                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <ProgressBar Grid.Column="0" Value="0" Maximum="100" Width="10" Height="62" Orientation="Vertical" Foreground="{StaticResource SuccessBrush}" Background="#202C3C" />
-                                <ProgressBar Grid.Column="1" Value="0" Maximum="100" Width="10" Height="62" Orientation="Vertical" Foreground="{StaticResource SuccessBrush}" Background="#202C3C" />
+                                <StackPanel Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <ProgressBar Value="{Binding LeftMeterLevel, Mode=OneWay}"
+                                                 Maximum="100"
+                                                 Width="10"
+                                                 Height="62"
+                                                 Orientation="Vertical"
+                                                 Foreground="{StaticResource VuMeterBrush}"
+                                                 Background="#202C3C"
+                                                 ToolTip="Left output level" />
+                                    <TextBlock Text="L" Style="{StaticResource MutedTextStyle}" FontSize="10" HorizontalAlignment="Center" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <ProgressBar Value="{Binding RightMeterLevel, Mode=OneWay}"
+                                                 Maximum="100"
+                                                 Width="10"
+                                                 Height="62"
+                                                 Orientation="Vertical"
+                                                 Foreground="{StaticResource VuMeterBrush}"
+                                                 Background="#202C3C"
+                                                 ToolTip="Right output level" />
+                                    <TextBlock Text="R" Style="{StaticResource MutedTextStyle}" FontSize="10" HorizontalAlignment="Center" />
+                                </StackPanel>
                             </Grid>
                         </Grid>
                     </Grid>

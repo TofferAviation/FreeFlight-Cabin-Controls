@@ -9,7 +9,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - Dashboard, Airliners, Cabin Area Control Panel, Audio, Performance, and Settings navigation;
 - the detailed FlightFactor 777 v2 cabin-layout reference on the Dashboard;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
-- an original simulator-free Passenger Flow page with seat-centred FF777 passenger markers, orange occupying-seat and green secured states, L1/L2 door routing, adjustable loads, an optional 30–45 minute real-operations pace, accelerated previews, progress, ETA, pause/resume, and live rerouting when doors change;
+- an original simulator-free Passenger Flow page with seat-centred FF777 passenger markers, orange occupying-seat and green secured states, boarding-ticket-based L1/L2 routing, two-aisle passenger movement, adjustable loads, an optional 30–45 minute real-operations pace, accelerated previews, progress, ETA, pause/resume, and live rerouting when doors change;
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;
 - a fully coded Cabin Area Control Panel built on reference-locked 1040×812 instrument geometry and a 716×512 live LCD coordinate system, with a CSCP hierarchy and 15 live operational screens that preserve the supplied FF777 proportions without using the page renders at runtime;
 - a British Airways 2024 safety-video mode with a 70% black “Announcement in progress” overlay, local MP4 playback directly inside the Safety Video card, future-aircraft queue staging, and no browser or YouTube dependency;

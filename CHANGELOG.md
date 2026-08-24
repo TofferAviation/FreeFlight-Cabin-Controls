@@ -11,6 +11,8 @@ All notable changes are recorded here. Filenames remain stable between releases.
 - Airliners page with search, filters, persistent airline selection, and custom local profiles.
 - Passenger Flow page with a simulator-free seat-aligned FF777 preview, animated passenger movement, configurable manifests, L1/L2 routing, boarding groups, progress/ETA, pause/resume/reset, and live door rerouting.
 - Passenger markers now land at the visual centre of each schematic seat, turn orange while the passenger settles in, and turn green once seated and secured; a 30–45 minute real-operations pace is available alongside accelerated previews.
+- Two-door boarding now follows the assigned ticket cabin (First via L1, Business/Economy via L2), while single-door operation routes everyone through the available door; passenger paths now use separate upper and lower aisle lanes.
+- Master Audio now scales the real safety-video and boarding-music output, with animated left/right VU meters that respond to playback activity and effective output volume.
 - Windows playback-endpoint discovery and output-device selection.
 - FlightFactor 777 v2 cabin-layout reference and transparent FreeFlight sidebar branding.
 - Safe vAMSYS connection setup boundary pending approved OAuth application credentials.
