@@ -12,7 +12,7 @@ The future native C++ plugin will own X-Plane SDK access, simulator dataref samp
 
 ### Aircraft adapter
 
-Each supported aircraft receives a declarative adapter containing verified datarefs, commands, capabilities, and cabin-layout mappings. FlightFactor-specific behavior must not leak into the generic core.
+Each supported aircraft receives a declarative adapter containing verified datarefs, commands, capabilities, and cabin-layout mappings. Stable layout IDs already distinguish the FlightFactor 777 v2 preview from the British Airways 777-200ER and 777-300 references. FlightFactor-specific behavior must not leak into the generic core.
 
 ### Airline content pack
 

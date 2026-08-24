@@ -493,8 +493,8 @@ public sealed class PassengerBoardingEngine
             rowCount: 4,
             startX: 304d,
             endX: 403d,
-            letters: ["A", "D", "K"],
-            yPositions: [38d, 73d, 108d]);
+            letters: ["A", "B", "C", "D", "E", "F", "G", "H", "K"],
+            yPositions: [30d, 38d, 46d, 67d, 75d, 83d, 103d, 111d, 119d]);
         AddSeatBlock(
             seats,
             PassengerCabinClass.Business,
@@ -502,8 +502,8 @@ public sealed class PassengerBoardingEngine
             rowCount: 5,
             startX: 447d,
             endX: 565d,
-            letters: ["A", "D", "K"],
-            yPositions: [38d, 73d, 108d]);
+            letters: ["A", "B", "D", "E", "F", "J", "K"],
+            yPositions: [31d, 41d, 64d, 74d, 84d, 106d, 116d]);
         AddSeatBlock(
             seats,
             PassengerCabinClass.Economy,
@@ -511,8 +511,8 @@ public sealed class PassengerBoardingEngine
             rowCount: 24,
             startX: 630d,
             endX: 890d,
-            letters: ["A", "B", "C", "D", "F", "G", "H", "J"],
-            yPositions: [30d, 43d, 56d, 69d, 84d, 97d, 110d, 123d]);
+            letters: ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K"],
+            yPositions: [30d, 39d, 48d, 67d, 74d, 81d, 88d, 102d, 111d, 120d]);
         return seats;
     }
 
@@ -536,10 +536,12 @@ public sealed class PassengerBoardingEngine
                 var y = yPositions[seatIndex];
                 var aisleY = cabinClass switch
                 {
-                    PassengerCabinClass.Economy when seatIndex <= 3 => 63d,
-                    PassengerCabinClass.Economy => 91d,
-                    _ when seatIndex <= 1 => 56d,
-                    _ => 91d
+                    PassengerCabinClass.Economy when seatIndex <= 4 => 57d,
+                    PassengerCabinClass.Economy => 95d,
+                    PassengerCabinClass.Business when seatIndex <= 2 => 53d,
+                    PassengerCabinClass.Business => 95d,
+                    PassengerCabinClass.First when seatIndex <= 4 => 56d,
+                    _ => 94d
                 };
                 seats.Add(new CabinSeat(
                     $"{rowNumber}{letters[seatIndex]}",

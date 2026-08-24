@@ -6,10 +6,11 @@ FreeFlight Cabin Control is a Windows desktop application and planned X-Plane 12
 
 Version `0.1.0-dev` is the first application-shell milestone. It provides:
 
-- Dashboard, Airliners, Cabin Area Control Panel, Audio, Performance, and Settings navigation;
+- Dashboard, Airliners, Passenger Flow, Cabin Area Control Panel, Audio, Performance, and Settings navigation;
 - the detailed FlightFactor 777 v2 cabin-layout reference on the Dashboard;
+- three stable cabin-layout choices in Aircraft Settings: the operational FlightFactor 777 v2 cabin plus private British Airways 777-200ER and 777-300 seat-map references, ready for future aircraft-adapter matching;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
-- an original simulator-free Passenger Flow page with seat-centred FF777 passenger markers, complete boarding and deboarding runs, boarding-ticket-based L1/L2 routing, two-aisle movement, an optional 30–45 minute real-operations pace, accelerated previews, progress, ETA, pause/resume, and live rerouting when doors change;
+- an original simulator-free Passenger Flow page with 311 individually mapped FF777 seat positions (36 First, 35 Business, and 240 Economy), seat-centred passenger markers, complete boarding and deboarding runs, boarding-ticket-based L1/L2 routing, two-aisle movement, an optional 30–45 minute real-operations pace, accelerated previews, progress, ETA, pause/resume, and live rerouting when doors change;
 - a full passenger manifest with deterministic fictional names and profiles, live operational status, seat and booking details revealed only when a passenger dot or manifest row is selected;
 - optional SimBrief latest-OFP import using the user's numeric Pilot ID, giving the planned OFP passenger count priority over manual load controls and synchronizing flight number and route without storing a SimBrief password;
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;
@@ -29,7 +30,7 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
 - no bundled photographic CACP page renders or airline safety video; the boarding alternatives and limited identifying wordmarks are distributed only under their separately documented licences.
 
-The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Passenger Flow therefore uses manual L1/L2 door controls today; SimBrief supplies only OFP-level flight and passenger-count data, and a future aircraft adapter will replace manual door inputs with live telemetry without replacing the passenger engine.
+The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, and in-aircraft screens are not implemented in this baseline. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Passenger Flow therefore uses manual L1/L2 door controls today; SimBrief supplies only OFP-level flight and passenger-count data, and a future aircraft adapter will replace manual doors and layout selection with live aircraft telemetry without replacing the passenger engine.
 
 ## Build
 
@@ -48,7 +49,7 @@ dotnet run --project src/FreeFlight.CabinControl.App
 
 Source filenames remain stable. Releases are identified by Git tags and `CHANGELOG.md`, not renamed project files.
 
-Airline recordings, safety videos, music, logos, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores. Bundled boarding recordings retain the separate licences and attribution listed in `content-packs/british-airways/audio/boarding/ATTRIBUTION.md`.
+Airline recordings, safety videos, music, logos, seat maps, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores. The supplied BA 777 seat-map previews follow that private-content path. Bundled boarding recordings retain the separate licences and attribution listed in `content-packs/british-airways/audio/boarding/ATTRIBUTION.md`.
 
 No open-source licence has been selected yet. The repository owner retains all rights until a licence is added.
 

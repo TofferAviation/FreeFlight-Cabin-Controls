@@ -17,6 +17,16 @@
     <Resource Include="Assets\FreeFlightBrand.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
   </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap.png')">
+    <Resource Include="..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap.png">
+      <Link>Assets\BA_777_200ER_SeatMap.png</Link>
+    </Resource>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap.png')">
+    <Resource Include="..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap.png">
+      <Link>Assets\BA_777_300_SeatMap.png</Link>
+    </Resource>
+  </ItemGroup>
   <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4')">
     <Content Include="..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4">
       <Link>content-packs\british-airways\media\BA_Safety_Video.mp4</Link>

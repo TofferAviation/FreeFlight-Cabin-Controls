@@ -132,6 +132,14 @@ internal static class Program
                     throw new InvalidOperationException("Cabin panel event queue did not accept a safety video event.");
                 }
             }
+            else if (page == "Settings")
+            {
+                if (viewModel.Settings.CabinLayoutProfiles.Count != 3 ||
+                    viewModel.Settings.CabinLayoutProfiles.Select(profile => profile.Id).Distinct().Count() != 3)
+                {
+                    throw new InvalidOperationException("The three stable 777 cabin layout profiles were not available.");
+                }
+            }
 
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             Render(window, Path.Combine(outputDirectory, $"{page.ToLowerInvariant()}.png"));
@@ -305,9 +313,9 @@ internal static class Program
                 viewModel.Passengers.SyncSimBriefAsync().GetAwaiter().GetResult();
                 if (viewModel.Passengers.BookedPassengerCount != 302 ||
                     !viewModel.Passengers.SimBriefFlightSummary.Contains("BAW123", StringComparison.Ordinal) ||
-                    viewModel.Passengers.MappedPassengerCount != 219 ||
-                    viewModel.Passengers.UnmappedPassengerCount != 83 ||
-                    viewModel.Passengers.PassengerManifest.Count != 219 ||
+                    viewModel.Passengers.MappedPassengerCount != 302 ||
+                    viewModel.Passengers.UnmappedPassengerCount != 0 ||
+                    viewModel.Passengers.PassengerManifest.Count != 302 ||
                     viewModel.Passengers.PassengerManifest.First().BoardingGroup != 1 ||
                     viewModel.Passengers.PassengerManifest.Last().BoardingGroup != 8 ||
                     viewModel.Passengers.CanAdjustPassengerLoad)
@@ -317,6 +325,24 @@ internal static class Program
 
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 Render(window, Path.Combine(outputDirectory, "passengers-simbrief-synced.png"));
+
+                viewModel.Passengers.StartPauseCommand.Execute(null);
+                for (var index = 0; index < 500 &&
+                     viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete; index++)
+                {
+                    viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                }
+
+                if (viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete ||
+                    viewModel.Passengers.BoardedPassengerCount != 302 ||
+                    viewModel.Passengers.PassengerMarkers.Count != 302 ||
+                    viewModel.Passengers.RemainingPassengerCount != 0)
+                {
+                    throw new InvalidOperationException("The 302-passenger SimBrief load did not fill 302 individual mapped seats.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-simbrief-302-boarded.png"));
             }
             else if (page == "CabinPanel")
             {
@@ -510,6 +536,17 @@ internal static class Program
                     throw new InvalidOperationException("The safety video test did not leave its in-progress state.");
                 }
             }
+            else if (page == "Settings")
+            {
+                viewModel.Settings.SelectSectionCommand.Execute("Aircraft");
+                foreach (var profile in viewModel.Settings.CabinLayoutProfiles)
+                {
+                    viewModel.Settings.SelectedCabinLayoutProfile = profile;
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                    var slug = profile.Id.Replace('.', '-');
+                    Render(window, Path.Combine(outputDirectory, $"settings-aircraft-{slug}.png"));
+                }
+            }
             else if (page == "Audio")
             {
                 var masterVolume = viewModel.Audio.MasterVolume;
@@ -647,7 +684,7 @@ internal static class Program
 
         window.Close();
         application.Shutdown();
-        Console.WriteLine($"Rendered 32 visual checks to {outputDirectory}");
+        Console.WriteLine($"Rendered 36 visual checks to {outputDirectory}");
         return 0;
     }
 

@@ -12,12 +12,17 @@ public sealed class SettingsViewModel : PageViewModel
     private readonly ISettingsStore _settingsStore;
     private string _selectedSection = "General";
     private string _saveStatus = "No unsaved changes";
+    private CabinLayoutProfileOption _selectedCabinLayoutProfile;
 
     public SettingsViewModel(AppSettings settings, ISettingsStore settingsStore, SharedStatusViewModel status)
         : base("Settings", "Application, aircraft, airline, and user preferences")
     {
         _settings = settings;
         _settingsStore = settingsStore;
+        _selectedCabinLayoutProfile = CabinLayoutProfiles.FirstOrDefault(profile =>
+            string.Equals(profile.Id, settings.PassengerCabinLayoutId, StringComparison.OrdinalIgnoreCase)) ??
+            CabinLayoutProfiles[0];
+        _settings.PassengerCabinLayoutId = _selectedCabinLayoutProfile.Id;
         Status = status;
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
         RestoreDefaultsCommand = new RelayCommand(_ => RestoreDefaults());
@@ -35,6 +40,34 @@ public sealed class SettingsViewModel : PageViewModel
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
 
     public IReadOnlyList<string> Themes { get; } = ["FreeFlight Dark"];
+
+    public IReadOnlyList<CabinLayoutProfileOption> CabinLayoutProfiles { get; } =
+    [
+        new(
+            "flightfactor.777v2",
+            "FlightFactor 777 v2 cabin",
+            "Operational preview",
+            "The coded FreeFlight schematic used for live boarding, deboarding, seat markers, and door routing.",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png",
+            "Manual selection · future adapter ID: FlightFactor 777 v2",
+            470d),
+        new(
+            "british-airways.777-200er",
+            "British Airways 777-200ER",
+            "Airline seat-map reference",
+            "The supplied British Airways 777-200ER layout, stored as private airline-pack content for aircraft-profile matching.",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_200ER_SeatMap.png",
+            "Manual selection · future aircraft match: Boeing 777-200ER",
+            420d),
+        new(
+            "british-airways.777-300",
+            "British Airways 777-300",
+            "Airline seat-map reference",
+            "The supplied British Airways 777-300 layout, stored as private airline-pack content for aircraft-profile matching.",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_300_SeatMap.png",
+            "Manual selection · future aircraft match: Boeing 777-300",
+            420d)
+    ];
 
     public string Version => "v0.1.0-dev";
 
@@ -131,6 +164,21 @@ public sealed class SettingsViewModel : PageViewModel
 
     public string ActiveAirlinePackName => "FreeFlight Generic";
 
+    public CabinLayoutProfileOption SelectedCabinLayoutProfile
+    {
+        get => _selectedCabinLayoutProfile;
+        set
+        {
+            if (value is null || !SetProperty(ref _selectedCabinLayoutProfile, value))
+            {
+                return;
+            }
+
+            _settings.PassengerCabinLayoutId = value.Id;
+            MarkDirty();
+        }
+    }
+
     private void SelectSection(object? parameter)
     {
         if (parameter is string section)
@@ -155,6 +203,8 @@ public sealed class SettingsViewModel : PageViewModel
         StartCabinImmersionAutomatically = defaults.StartCabinImmersionAutomatically;
         Theme = defaults.Theme;
         UiScalePercent = defaults.UiScalePercent;
+        SelectedCabinLayoutProfile = CabinLayoutProfiles.Single(profile =>
+            profile.Id == defaults.PassengerCabinLayoutId);
         SaveStatus = "Defaults restored; choose Save Changes to keep them";
     }
 
@@ -165,4 +215,16 @@ public sealed class SettingsViewModel : PageViewModel
         SaveStatus = "Could not save settings";
         MessageBox.Show(exception.Message, "Save failed", MessageBoxButton.OK, MessageBoxImage.Error);
     }
+}
+
+public sealed record CabinLayoutProfileOption(
+    string Id,
+    string Name,
+    string ProfileType,
+    string Description,
+    string PreviewUri,
+    string MatchHint,
+    double PreviewWidth)
+{
+    public override string ToString() => Name;
 }

@@ -4,8 +4,8 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 
 ## Current simulator-free behavior
 
-- Uses a deterministic 219-position FF777 profile whose marker coordinates match the visible seat centres in the current cabin schematic.
-- Accepts a user-selected mapped-passenger count from 1 to 219, while preserving a larger authoritative booked count imported from SimBrief.
+- Uses a deterministic 311-position FF777 profile whose marker coordinates cover every individual position represented by the current cabin schematic: 36 First, 35 Business in its drawn 2–3–2 blocks, and 240 Economy in its drawn 3–4–3 blocks.
+- Accepts a user-selected mapped-passenger count from 1 to 311, while preserving a larger authoritative booked count imported from SimBrief.
 - Starts with L2 open and L1 closed so single-door routing is immediately testable.
 - Routes every newly entering passenger through the only open door.
 - With both doors open, the assigned cabin on the passenger's boarding ticket controls the entry: First uses L1 while Business and Economy use L2.
@@ -25,12 +25,18 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 
 The desktop application reads the latest generated OFP from SimBrief's documented fetcher with JSON output. The user enters the numeric Pilot ID shown in SimBrief Account Settings. A manual **Sync OFP** action is always available, and optional auto-sync runs when the Passenger Flow view model starts.
 
-Only operational OFP data is consumed. SimBrief does not provide the real-world passenger identities used here; the manifest profiles remain deterministic fictional preview records. An imported passenger count above the current 219-seat visual capacity remains the authoritative **Booked** value. The application maps 219 passengers to the current schematic and clearly reports the remainder as unmapped until a compatible higher-capacity cabin layout is installed.
+Only operational OFP data is consumed. SimBrief does not provide the real-world passenger identities used here; the manifest profiles remain deterministic fictional preview records. The current 311-position FlightFactor profile maps the 302-passenger test OFP completely and leaves nine positions empty. An imported passenger count above 311 still remains the authoritative **Booked** value, with the difference clearly reported as unmapped until a compatible cabin layout is selected.
+
+## Cabin layout profiles
+
+Aircraft Settings exposes three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. The FlightFactor profile drives the operational Passenger Flow coordinates today. The supplied British Airways maps are installed only as private, scrollable airline-seat-map references; their IDs establish the selection and future matching boundary without committing third-party imagery to the public repository.
+
+The user can persist a manual profile selection now. Once the X-Plane adapter exists, detected aircraft identity and verified variant metadata can select the matching profile automatically. Ambiguous or unknown aircraft must fall back to an explicit user choice rather than guessing the cabin.
 
 ## Future bridge boundary
 
 The boarding engine is implemented in `FreeFlight.CabinControl.Core` and has no WPF or X-Plane dependency. The desktop view currently calls `SetDoorOpen` from its manual L1/L2 switches. A future FlightFactor 777 adapter can call the same method from live door datarefs.
 
-The aircraft adapter must map FlightFactor door identifiers or X-Plane door-array indexes to semantic door names such as L1 and L2. Passenger count can be supplied by the existing manual manifest control or the current SimBrief latest-OFP integration. A future vAMSYS integration can feed the same configuration boundary.
+The aircraft adapter must map FlightFactor door identifiers or X-Plane door-array indexes to semantic door names such as L1 and L2, and map verified aircraft/variant identifiers to the stable cabin-layout profile IDs. Passenger count can be supplied by the existing manual manifest control or the current SimBrief latest-OFP integration. A future vAMSYS integration can feed the same configuration boundary.
 
 Actual 3D passenger objects are a later rendering layer. The current top-down passenger positions and assigned seats already provide the state needed to drive that layer without replacing the manifest or routing system.

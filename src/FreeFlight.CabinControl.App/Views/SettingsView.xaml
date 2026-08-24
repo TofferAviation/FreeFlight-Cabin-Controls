@@ -117,17 +117,54 @@
                 </ScrollViewer>
 
                 <Grid Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Aircraft}">
-                    <Grid.RowDefinitions><RowDefinition Height="220" /><RowDefinition Height="16" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="205" /><RowDefinition Height="16" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                     <Border Style="{StaticResource CardStyle}">
                         <Grid><Grid.RowDefinitions><RowDefinition Height="44" /><RowDefinition /></Grid.RowDefinitions>
                             <TextBlock Text="Aircraft Integration" Style="{StaticResource SectionTitleStyle}" />
                             <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <StackPanel><TextBlock Text="Development target" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="FlightFactor 777 v2" FontSize="22" Foreground="#4CACFF" Margin="0,8,0,22" /><TextBlock Text="Adapter status" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="Awaiting aircraft files and verified datarefs" Foreground="{StaticResource WarningBrush}" Margin="0,8,0,0" /></StackPanel>
+                                <StackPanel><TextBlock Text="Development target" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="FlightFactor 777 v2" FontSize="22" Foreground="#4CACFF" Margin="0,8,0,18" /><TextBlock Text="Adapter status" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="Manual layout selection active · aircraft auto-match is staged for the X-Plane adapter" Foreground="{StaticResource WarningBrush}" Margin="0,8,16,0" TextWrapping="Wrap" /></StackPanel>
                                 <StackPanel Grid.Column="1"><TextBlock Text="Planned capabilities" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="• Telemetry and flight-phase detection&#x0a;• Cabin signs, doors, and aircraft events&#x0a;• X-Plane interior audio routing&#x0a;• Custom avionics screen feasibility" TextWrapping="Wrap" LineHeight="28" Margin="0,8,0,0" /></StackPanel>
                             </Grid>
                         </Grid>
                     </Border>
-                    <Border Grid.Row="2" Style="{StaticResource CardStyle}"><TextBlock Text="No aircraft files are modified by this application-shell baseline." Style="{StaticResource MutedTextStyle}" VerticalAlignment="Top" /></Border>
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="22,18">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="0.9*" /><ColumnDefinition Width="22" /><ColumnDefinition Width="1.1*" /></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Cabin Layout Profile" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="Selected layout" Style="{StaticResource MutedTextStyle}" Margin="0,18,0,7" />
+                                <ComboBox ItemsSource="{Binding CabinLayoutProfiles}"
+                                          SelectedItem="{Binding SelectedCabinLayoutProfile}"
+                                          MinHeight="38" />
+                                <TextBlock Text="{Binding SelectedCabinLayoutProfile.ProfileType}" Foreground="#55AEFF" FontSize="12" FontWeight="SemiBold" Margin="0,15,0,5" />
+                                <TextBlock Text="{Binding SelectedCabinLayoutProfile.Description}" Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" />
+                                <Border Background="#111F34" BorderBrush="#2A4361" BorderThickness="1" CornerRadius="7" Padding="10,8" Margin="0,16,0,0">
+                                    <TextBlock Text="{Binding SelectedCabinLayoutProfile.MatchHint}" Foreground="#8FC8FF" FontSize="11" TextWrapping="Wrap" />
+                                </Border>
+                                <TextBlock Text="The FlightFactor profile is operational now. The two BA maps establish stable 777 variant IDs for the future aircraft adapter." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,14,0,0" />
+                            </StackPanel>
+                            <Border Grid.Column="2" Background="#F7F7F7" BorderBrush="#36506E" BorderThickness="1" CornerRadius="9" Padding="8">
+                                <Grid>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  PanningMode="VerticalOnly">
+                                        <Image Source="{Binding SelectedCabinLayoutProfile.PreviewUri}"
+                                               Width="{Binding SelectedCabinLayoutProfile.PreviewWidth}"
+                                               Stretch="Uniform"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Top"
+                                               RenderOptions.BitmapScalingMode="HighQuality" />
+                                    </ScrollViewer>
+                                    <Border Background="#D9091628" CornerRadius="5" Padding="8,4" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5">
+                                        <TextBlock Text="SEAT MAP PREVIEW" Foreground="White" FontSize="10" FontWeight="SemiBold" />
+                                    </Border>
+                                    <Border Background="#D9091628" CornerRadius="5" Padding="8,4" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10">
+                                        <TextBlock Text="SCROLL TO INSPECT" Foreground="White" FontSize="9" FontWeight="SemiBold" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
                 </Grid>
 
                 <Grid Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Airline Packs}">

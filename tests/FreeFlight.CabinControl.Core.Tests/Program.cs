@@ -62,6 +62,7 @@ static async Task SettingsRoundTripAsync()
             ActiveAirlineId = "custom.tst",
             PassengerPreviewBookedCount = 196,
             PassengerPreviewSpeed = 4d,
+            PassengerCabinLayoutId = "british-airways.777-300",
             SimBriefPilotId = "123456",
             SimBriefAutoSync = true,
             CustomAirlineProfiles =
@@ -89,6 +90,7 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("custom.tst", actual.ActiveAirlineId, "Active airline id was not persisted.");
         AssertEqual(196, actual.PassengerPreviewBookedCount, "Preview passenger count was not persisted.");
         AssertEqual(4d, actual.PassengerPreviewSpeed, "Preview boarding speed was not persisted.");
+        AssertEqual("british-airways.777-300", actual.PassengerCabinLayoutId, "Cabin layout selection was not persisted.");
         AssertEqual("123456", actual.SimBriefPilotId, "SimBrief Pilot ID was not persisted.");
         AssertEqual(true, actual.SimBriefAutoSync, "SimBrief auto-sync preference was not persisted.");
         AssertEqual("Test Virtual", actual.CustomAirlineProfiles.Single().Name, "Custom airline was not persisted.");
@@ -185,9 +187,9 @@ static Task BoardingTicketsSelectDoorsAsync()
 static Task PassengerSeatsSelectTwoAislesAsync()
 {
     var engine = new PassengerBoardingEngine(int.MaxValue);
-    AssertAisles(engine, PassengerCabinClass.First, 56d, 91d);
-    AssertAisles(engine, PassengerCabinClass.Business, 56d, 91d);
-    AssertAisles(engine, PassengerCabinClass.Economy, 63d, 91d);
+    AssertAisles(engine, PassengerCabinClass.First, 56d, 94d);
+    AssertAisles(engine, PassengerCabinClass.Business, 53d, 95d);
+    AssertAisles(engine, PassengerCabinClass.Economy, 57d, 95d);
     return Task.CompletedTask;
 }
 
@@ -240,13 +242,13 @@ static Task PassengerBoardingCompletesAsync()
 static Task PassengerSeatCentresMatchLayoutAsync()
 {
     var engine = new PassengerBoardingEngine(int.MaxValue);
-    AssertEqual(219, engine.Capacity, "The visual cabin capacity did not match its seat centres.");
-    AssertSeatCentre(engine, "1A", 304d, 38d);
-    AssertSeatCentre(engine, "4K", 403d, 108d);
-    AssertSeatCentre(engine, "5A", 447d, 38d);
-    AssertSeatCentre(engine, "9K", 565d, 108d);
+    AssertEqual(311, engine.Capacity, "The visual cabin capacity did not match its individual seat centres.");
+    AssertSeatCentre(engine, "1A", 304d, 30d);
+    AssertSeatCentre(engine, "4K", 403d, 119d);
+    AssertSeatCentre(engine, "5A", 447d, 31d);
+    AssertSeatCentre(engine, "9K", 565d, 116d);
     AssertSeatCentre(engine, "10A", 630d, 30d);
-    AssertSeatCentre(engine, "33J", 890d, 123d);
+    AssertSeatCentre(engine, "33K", 890d, 120d);
     return Task.CompletedTask;
 }
 

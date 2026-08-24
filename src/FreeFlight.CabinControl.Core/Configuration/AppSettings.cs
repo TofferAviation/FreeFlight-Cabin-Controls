@@ -74,6 +74,8 @@ public sealed class AppSettings
 
     public double PassengerPreviewSpeed { get; set; } = 2d;
 
+    public string PassengerCabinLayoutId { get; set; } = "flightfactor.777v2";
+
     public string SimBriefPilotId { get; set; } = string.Empty;
 
     public bool SimBriefAutoSync { get; set; }
