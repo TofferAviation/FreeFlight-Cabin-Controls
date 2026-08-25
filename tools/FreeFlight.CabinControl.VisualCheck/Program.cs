@@ -220,9 +220,23 @@ internal static class Program
                 if (!viewModel.IportDcs.IsAvailable ||
                     viewModel.CurrentPage != viewModel.IportDcs ||
                     viewModel.IportDcs.Flights.Count < 3 ||
-                    viewModel.IportDcs.Operations != viewModel.Operations)
+                    viewModel.IportDcs.Operations != viewModel.Operations ||
+                    viewModel.IportDcs.ServiceMenuEntries.Count != 15 ||
+                    viewModel.IportDcs.ServiceMenuEntries.Count(entry => !entry.IsHeader) != 12)
                 {
                     throw new InvalidOperationException("Iport DCS was not unlocked as a shared gate-session workspace.");
+                }
+
+                viewModel.IportDcs.ToggleServiceMenuCommand.Execute(null);
+                var loadControlService = viewModel.IportDcs.ServiceMenuEntries
+                    .Single(entry => entry.Module == IportDcsViewModel.LoadControlModule);
+                viewModel.IportDcs.SelectServiceCommand.Execute(loadControlService);
+                if (viewModel.IportDcs.IsServiceMenuOpen ||
+                    viewModel.IportDcs.ActiveModule != IportDcsViewModel.LoadControlModule ||
+                    viewModel.IportDcs.ActiveServiceLabel != "Load Control" ||
+                    !viewModel.IportDcs.IsLoadControlService)
+                {
+                    throw new InvalidOperationException("The grouped Res2 services menu did not switch to Load Control.");
                 }
 
                 viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.CheckInModule);
@@ -340,12 +354,53 @@ internal static class Program
                     Render(window, Path.Combine(outputDirectory, $"iportdcs-{module.Replace(" ", "-").ToLowerInvariant()}.png"));
                 }
 
+                viewModel.IportDcs.LoadActionCommand.Execute("Load sheet finalized for the active flight.");
+                if (!viewModel.IportDcs.CommandStatus.Contains("finalized", StringComparison.OrdinalIgnoreCase) ||
+                    viewModel.IportDcs.MaxTakeoffWeightKg <= viewModel.IportDcs.TakeoffWeightKg ||
+                    viewModel.IportDcs.LandingWeightKg >= viewModel.IportDcs.TakeoffWeightKg)
+                {
+                    throw new InvalidOperationException("The iPortflight load calculations or action controls are not operational.");
+                }
+
+                viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.LoadPassengerModule);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (!viewModel.IportDcs.IsLoadControlPlaceholder)
+                {
+                    throw new InvalidOperationException("The retained Load Control reference tabs did not open their placeholder workspace.");
+                }
+
+                Render(window, Path.Combine(outputDirectory, "iportdcs-load-control-passenger-placeholder.png"));
+
+                viewModel.IportDcs.ToggleServiceMenuCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                var servicesMenu = FindVisualChild<Border>(
+                    window,
+                    border => Equals(border.Tag, "IportServiceMenu"));
+                if (servicesMenu?.Visibility != Visibility.Visible)
+                {
+                    throw new InvalidOperationException("The complete Res2 services dropdown was not rendered.");
+                }
+
+                Render(window, Path.Combine(outputDirectory, "iportdcs-service-menu.png"));
+                viewModel.IportDcs.ToggleServiceMenuCommand.Execute(null);
+
                 var iportWorkspace = FindVisualChild<Border>(
                     window,
                     border => Equals(border.Tag, "IportDcsWorkspace"));
                 if (iportWorkspace is null)
                 {
                     throw new InvalidOperationException("The coded Iport DCS workspace was not rendered.");
+                }
+
+                var loadWorkspace = FindVisualChild<Grid>(
+                    window,
+                    grid => Equals(grid.Tag, "IportLoadControlWorkspace"));
+                var envelopeChart = FindVisualChild<Canvas>(
+                    window,
+                    canvas => Equals(canvas.Tag, "IportEnvelopeChart"));
+                if (loadWorkspace is null || envelopeChart is null)
+                {
+                    throw new InvalidOperationException("The authentic iPortflight load-control workspace was not rendered.");
                 }
             }
             else if (page == "BoardingPasses")

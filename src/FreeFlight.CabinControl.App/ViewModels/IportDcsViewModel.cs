@@ -13,7 +13,20 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     public const string BoardingModule = "Boarding";
     public const string SeatmapModule = "Seatmap";
     public const string LoadControlModule = "Load Control";
+    public const string LoadPassengerModule = "Load Control — Passenger";
+    public const string LoadDeadloadModule = "Load Control — Deadload";
+    public const string LoadDistributionModule = "Load Control — Load Distribution";
+    public const string LoadDocumentsModule = "Load Control — Documents";
+    public const string LoadPwSummaryModule = "Load Control — P/W summary";
     public const string FlightMonitorModule = "Flight Monitor";
+    public const string GateControlModule = "Gate Control";
+    public const string LostAndFoundModule = "Lost & Found";
+    public const string DatabaseManagementModule = "Database mgt";
+    public const string AutomationModule = "Autoinformation";
+    public const string MyAccountModule = "My Account";
+    public const string SupportModule = "Support";
+    public const string Res2SupportModule = "Res2 Support";
+    public const string MessagesModule = "Messages";
 
     private readonly GateOperationsViewModel _operations;
     private readonly GateLoginViewModel _gateLogin;
@@ -22,6 +35,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     private string _passengerLookup = string.Empty;
     private string _manualBoardingInput = string.Empty;
     private string _commandStatus = "Select a passenger or use an action key.";
+    private bool _isServiceMenuOpen;
     private IportFlightSummary? _selectedFlight;
 
     public IportDcsViewModel(GateOperationsViewModel operations, GateLoginViewModel gateLogin)
@@ -30,8 +44,52 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         _operations = operations;
         _gateLogin = gateLogin;
         Roles = ["Customer Services", "Load Control", "Flight Control"];
-        Modules = [CheckInModule, BoardingModule, SeatmapModule, LoadControlModule, FlightMonitorModule];
+        Modules =
+        [
+            CheckInModule,
+            GateControlModule,
+            BoardingModule,
+            LostAndFoundModule,
+            SeatmapModule,
+            LoadControlModule,
+            LoadPassengerModule,
+            LoadDeadloadModule,
+            LoadDistributionModule,
+            LoadDocumentsModule,
+            LoadPwSummaryModule,
+            FlightMonitorModule,
+            DatabaseManagementModule,
+            AutomationModule,
+            MyAccountModule,
+            SupportModule,
+            Res2SupportModule,
+            MessagesModule
+        ];
+        ServiceMenuEntries =
+        [
+            IportServiceMenuEntry.Header("Customer Services"),
+            IportServiceMenuEntry.Service("Check-In", "Alt + C", CheckInModule),
+            IportServiceMenuEntry.Service("Gate Control", "Alt + G", GateControlModule),
+            IportServiceMenuEntry.Service("Boarding", "Alt + B", BoardingModule),
+            IportServiceMenuEntry.Service("Lost & Found", "Alt + W", LostAndFoundModule),
+            IportServiceMenuEntry.Header("Flight Services"),
+            IportServiceMenuEntry.Service("Load Control", "Alt + L", LoadControlModule),
+            IportServiceMenuEntry.Header("Core Services"),
+            IportServiceMenuEntry.Service("Flight Control", "Alt + F", FlightMonitorModule),
+            IportServiceMenuEntry.Service("Database mgt", "Alt + D", DatabaseManagementModule),
+            IportServiceMenuEntry.Service("Autoinformation", "Alt + A", AutomationModule),
+            IportServiceMenuEntry.Service("My Account", "Alt + M", MyAccountModule),
+            IportServiceMenuEntry.Service("Support", "Alt + S", SupportModule),
+            IportServiceMenuEntry.Service("Res2 Support", "Alt + R", Res2SupportModule),
+            IportServiceMenuEntry.Service("Messages", "Alt + T", MessagesModule)
+        ];
         SelectModuleCommand = new RelayCommand(SelectModule);
+        SelectServiceCommand = new RelayCommand(SelectService);
+        ToggleServiceMenuCommand = new RelayCommand(_ => IsServiceMenuOpen = !IsServiceMenuOpen);
+        LoadActionCommand = new RelayCommand(parameter =>
+        {
+            CommandStatus = parameter as string ?? "Load Control action completed.";
+        });
         SelectPassengerCommand = new RelayCommand(SelectPassenger);
         FindPassengerCommand = new RelayCommand(_ => FindPassenger(PassengerLookup));
         ManualBoardCommand = new RelayCommand(_ => ManualBoard());
@@ -58,11 +116,19 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public IReadOnlyList<string> Modules { get; }
 
+    public IReadOnlyList<IportServiceMenuEntry> ServiceMenuEntries { get; }
+
     public ObservableCollection<IportFlightSummary> Flights { get; } = [];
 
     public ObservableCollection<IportMonitorEventViewModel> MonitorEvents { get; } = [];
 
     public ICommand SelectModuleCommand { get; }
+
+    public ICommand SelectServiceCommand { get; }
+
+    public ICommand ToggleServiceMenuCommand { get; }
+
+    public ICommand LoadActionCommand { get; }
 
     public ICommand SelectPassengerCommand { get; }
 
@@ -87,7 +153,22 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _activeModule, value))
             {
+                var serviceLabel = ResolveServiceLabel(value);
+                if (!string.Equals(_activeRole, serviceLabel, StringComparison.Ordinal))
+                {
+                    _activeRole = serviceLabel;
+                    OnPropertyChanged(nameof(ActiveRole));
+                }
+
                 CommandStatus = $"{value} workspace active.";
+                OnPropertyChanged(nameof(ActiveServiceLabel));
+                OnPropertyChanged(nameof(IportProductLabel));
+                OnPropertyChanged(nameof(IsLoadControlService));
+                OnPropertyChanged(nameof(IsCustomerServiceTabsVisible));
+                OnPropertyChanged(nameof(IsLoadControlPlaceholder));
+                OnPropertyChanged(nameof(IsServicePlaceholder));
+                OnPropertyChanged(nameof(PlaceholderTitle));
+                OnPropertyChanged(nameof(PlaceholderDescription));
             }
         }
     }
@@ -110,6 +191,32 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             };
         }
     }
+
+    public string ActiveServiceLabel => ResolveServiceLabel(ActiveModule);
+
+    public string IportProductLabel => IsLoadControlService ? "flight" : "customer";
+
+    public bool IsServiceMenuOpen
+    {
+        get => _isServiceMenuOpen;
+        set => SetProperty(ref _isServiceMenuOpen, value);
+    }
+
+    public bool IsLoadControlService => IsLoadControlModule(ActiveModule);
+
+    public bool IsCustomerServiceTabsVisible => !IsLoadControlService;
+
+    public bool IsLoadControlPlaceholder => IsLoadControlService && ActiveModule != LoadControlModule;
+
+    public bool IsServicePlaceholder => ActiveModule is GateControlModule or LostAndFoundModule or
+        DatabaseManagementModule or AutomationModule or MyAccountModule or SupportModule or
+        Res2SupportModule or MessagesModule;
+
+    public string PlaceholderTitle => ActiveModule;
+
+    public string PlaceholderDescription => IsLoadControlPlaceholder
+        ? "The genuine iPortflight page is retained in the Load Control workspace and will be completed when its operational reference is supplied."
+        : "This service remains available in the authentic Res2 menu. Its operational screen will be added when the real reference page is supplied.";
 
     public string PassengerLookup
     {
@@ -185,6 +292,48 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public int TakeoffWeightKg => ZeroFuelWeightKg + TakeoffFuelKg;
 
+    public int TaxiFuelKg => 1_200;
+
+    public int TripFuelKg => 11_340;
+
+    public int LandingWeightKg => Math.Max(0, TakeoffWeightKg - TripFuelKg);
+
+    public int RampWeightKg => TakeoffWeightKg + TaxiFuelKg;
+
+    public int MaxZeroFuelWeightKg => IsBoeing777300 ? 237_682 : 208_652;
+
+    public int MaxTakeoffWeightKg => IsBoeing777300 ? 351_534 : 297_550;
+
+    public int MaxLandingWeightKg => IsBoeing777300 ? 251_290 : 213_188;
+
+    public int MaxRampWeightKg => MaxTakeoffWeightKg + 1_100;
+
+    public int EstimatedZeroFuelWeightKg => ZeroFuelWeightKg;
+
+    public int RegulatedRampWeightKg => Math.Min(RampWeightKg, MaxRampWeightKg);
+
+    public int AllowedTrafficLoadKg => Math.Max(0, MaxZeroFuelWeightKg - DryOperatingWeightKg);
+
+    public int UnderloadKg => Math.Max(0, AllowedTrafficLoadKg - TrafficLoadKg);
+
+    public int CargoWeightKg => _operations.LoadedBags * 18;
+
+    public double DryOperatingIndex => 45.20;
+
+    public string FlightTimeLabel => "08:20";
+
+    public string LoadPlanLabel => "Load plan No. 3";
+
+    public string LoadSheetLabel => "Load sheet No. 2";
+
+    public string LoadDistributionLabel => $"0A{_operations.FirstCount + _operations.ClubWorldCount}.0B{_operations.WorldTravellerPlusCount + _operations.WorldTravellerCount}";
+
+    public string ActualCountsLabel => $"M {_operations.FirstCount + _operations.ClubWorldCount} / F {_operations.WorldTravellerPlusCount} / C 0 / O 0 | TTL: {_operations.CheckedInPassengers}+0";
+
+    public string FlightVariationsLabel => "BRITISH AIRWAYS STANDARD (84/18/35/0)";
+
+    public string PaxWeightsLabel => "84/18/35/0";
+
     public string LoadFactorLabel => _operations.TotalPassengers == 0
         ? "0%"
         : $"{Math.Round(_operations.CheckedInPassengers * 100d / _operations.TotalPassengers):0}%";
@@ -209,6 +358,18 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             ActiveModule = module;
         }
+    }
+
+    private void SelectService(object? parameter)
+    {
+        if (parameter is not IportServiceMenuEntry { IsHeader: false } entry)
+        {
+            return;
+        }
+
+        IsServiceMenuOpen = false;
+        ActiveModule = entry.Module;
+        CommandStatus = $"{entry.Label} selected from the Res2 services menu.";
     }
 
     private void SelectPassenger(object? parameter)
@@ -326,6 +487,15 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(TrafficLoadKg));
         OnPropertyChanged(nameof(ZeroFuelWeightKg));
         OnPropertyChanged(nameof(TakeoffWeightKg));
+        OnPropertyChanged(nameof(LandingWeightKg));
+        OnPropertyChanged(nameof(RampWeightKg));
+        OnPropertyChanged(nameof(EstimatedZeroFuelWeightKg));
+        OnPropertyChanged(nameof(RegulatedRampWeightKg));
+        OnPropertyChanged(nameof(AllowedTrafficLoadKg));
+        OnPropertyChanged(nameof(UnderloadKg));
+        OnPropertyChanged(nameof(CargoWeightKg));
+        OnPropertyChanged(nameof(LoadDistributionLabel));
+        OnPropertyChanged(nameof(ActualCountsLabel));
         OnPropertyChanged(nameof(LoadFactorLabel));
         OnPropertyChanged(nameof(BoardingCounterSummary));
         OnPropertyChanged(nameof(StatusLabel));
@@ -363,6 +533,42 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             ? parsed.AddMinutes(minutes).ToString("HH:mm", CultureInfo.InvariantCulture)
             : time;
     }
+
+    private bool IsBoeing777300 => _operations.AircraftName.Contains("300", StringComparison.OrdinalIgnoreCase) ||
+        _operations.DetectedAircraftIcao.Contains("77W", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsLoadControlModule(string module) => module is LoadControlModule or LoadPassengerModule or
+        LoadDeadloadModule or LoadDistributionModule or LoadDocumentsModule or LoadPwSummaryModule;
+
+    private static string ResolveServiceLabel(string module) => module switch
+    {
+        LoadControlModule or LoadPassengerModule or LoadDeadloadModule or LoadDistributionModule or
+            LoadDocumentsModule or LoadPwSummaryModule => "Load Control",
+        FlightMonitorModule => "Flight Control",
+        GateControlModule => "Gate Control",
+        BoardingModule => "Boarding",
+        LostAndFoundModule => "Lost & Found",
+        DatabaseManagementModule => "Database mgt",
+        AutomationModule => "Autoinformation",
+        MyAccountModule => "My Account",
+        SupportModule => "Support",
+        Res2SupportModule => "Res2 Support",
+        MessagesModule => "Messages",
+        _ => "Customer Services"
+    };
+}
+
+public sealed record IportServiceMenuEntry(
+    string Label,
+    string Shortcut,
+    string Module,
+    bool IsHeader)
+{
+    public bool IsService => !IsHeader;
+
+    public static IportServiceMenuEntry Header(string label) => new(label, string.Empty, string.Empty, true);
+
+    public static IportServiceMenuEntry Service(string label, string shortcut, string module) => new(label, shortcut, module, false);
 }
 
 public sealed record IportFlightSummary(

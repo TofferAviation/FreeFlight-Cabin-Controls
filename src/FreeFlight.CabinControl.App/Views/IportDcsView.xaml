@@ -84,7 +84,51 @@
             <Setter Property="BorderBrush" Value="#88BFD0" />
             <Setter Property="CaretBrush" Value="#202020" />
         </Style>
+        <Style x:Key="IportComboBox" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#202020" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#88BFD0" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="IportMenuButton" TargetType="Button">
+            <Setter Property="Height" Value="25" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="#13B8D5" />
+            <Setter Property="BorderBrush" Value="#4CC9DE" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#70DAE9" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#BFEFF5" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
+
+    <UserControl.InputBindings>
+        <KeyBinding Modifiers="Alt" Key="C" Command="{Binding SelectModuleCommand}" CommandParameter="Check-In" />
+        <KeyBinding Modifiers="Alt" Key="G" Command="{Binding SelectModuleCommand}" CommandParameter="Gate Control" />
+        <KeyBinding Modifiers="Alt" Key="B" Command="{Binding SelectModuleCommand}" CommandParameter="Boarding" />
+        <KeyBinding Modifiers="Alt" Key="W" Command="{Binding SelectModuleCommand}" CommandParameter="Lost &amp; Found" />
+        <KeyBinding Modifiers="Alt" Key="L" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control" />
+        <KeyBinding Modifiers="Alt" Key="F" Command="{Binding SelectModuleCommand}" CommandParameter="Flight Monitor" />
+        <KeyBinding Modifiers="Alt" Key="D" Command="{Binding SelectModuleCommand}" CommandParameter="Database mgt" />
+        <KeyBinding Modifiers="Alt" Key="A" Command="{Binding SelectModuleCommand}" CommandParameter="Autoinformation" />
+        <KeyBinding Modifiers="Alt" Key="M" Command="{Binding SelectModuleCommand}" CommandParameter="My Account" />
+        <KeyBinding Modifiers="Alt" Key="S" Command="{Binding SelectModuleCommand}" CommandParameter="Support" />
+        <KeyBinding Modifiers="Alt" Key="R" Command="{Binding SelectModuleCommand}" CommandParameter="Res2 Support" />
+        <KeyBinding Modifiers="Alt" Key="T" Command="{Binding SelectModuleCommand}" CommandParameter="Messages" />
+    </UserControl.InputBindings>
 
     <Border Background="#E7E7E7" BorderBrush="#727272" BorderThickness="1" Tag="IportDcsWorkspace">
         <Grid>
@@ -96,15 +140,36 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="Res2" FontSize="22" FontWeight="Bold" Foreground="#5C5C5C" />
                         <TextBlock Text=" iPort" FontSize="22" FontWeight="SemiBold" Foreground="#5C5C5C" />
-                        <TextBlock Text="customer" FontSize="13" Foreground="#777777" VerticalAlignment="Bottom" Margin="0,0,0,7" />
+                        <TextBlock Text="{Binding IportProductLabel}" FontSize="13" Foreground="#777777" VerticalAlignment="Bottom" Margin="0,0,0,7" />
                     </StackPanel>
-                    <ComboBox Grid.Column="1" ItemsSource="{Binding Roles}" SelectedItem="{Binding ActiveRole}" Height="34" VerticalAlignment="Center" FontWeight="SemiBold" />
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0">
+                    <Button Grid.Column="1"
+                            Height="34"
+                            Margin="0,2"
+                            Padding="11,0"
+                            Background="#07182D"
+                            BorderBrush="#5D758D"
+                            Foreground="White"
+                            Command="{Binding ToggleServiceMenuCommand}">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="22" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding ActiveServiceLabel}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe Fluent Icons" Foreground="#5AC5DF" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0" Visibility="{Binding IsCustomerServiceTabsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <RadioButton GroupName="IportModules" Style="{StaticResource IportTab}" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Check-In, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Check-In"><TextBlock Text="Check-In" Foreground="#151515" /></RadioButton>
                         <RadioButton GroupName="IportModules" Style="{StaticResource IportTab}" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Boarding, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Boarding"><TextBlock Text="Boarding" Foreground="#151515" /></RadioButton>
                         <RadioButton GroupName="IportModules" Style="{StaticResource IportTab}" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Seatmap, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Seatmap"><TextBlock Text="Seatmap" Foreground="#151515" /></RadioButton>
                         <RadioButton GroupName="IportModules" Style="{StaticResource IportTab}" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Load Control, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control"><TextBlock Text="Load Control" Foreground="#151515" /></RadioButton>
                         <RadioButton GroupName="IportModules" Style="{StaticResource IportTab}" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Flight Monitor, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Flight Monitor"><TextBlock Text="Flight Monitor" Foreground="#151515" /></RadioButton>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0,0,0" Visibility="{Binding IsLoadControlService, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <RadioButton GroupName="IportLoadModules" Style="{StaticResource IportTab}" Padding="6,0" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Load Control, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control"><TextBlock Text="W&amp;B Overview" Foreground="#151515" FontSize="10" /></RadioButton>
+                        <RadioButton GroupName="IportLoadModules" Style="{StaticResource IportTab}" Padding="6,0" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Load Control — Passenger, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control — Passenger"><TextBlock Text="Passenger" Foreground="#151515" FontSize="10" /></RadioButton>
+                        <RadioButton GroupName="IportLoadModules" Style="{StaticResource IportTab}" Padding="6,0" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Load Control — Deadload, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control — Deadload"><TextBlock Text="Deadload" Foreground="#151515" FontSize="10" /></RadioButton>
+                        <RadioButton GroupName="IportLoadModules" Style="{StaticResource IportTab}" Padding="6,0" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Load Control — Load Distribution, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control — Load Distribution"><TextBlock Text="Load Distribution" Foreground="#151515" FontSize="10" /></RadioButton>
+                        <RadioButton GroupName="IportLoadModules" Style="{StaticResource IportTab}" Padding="6,0" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Load Control — Documents, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control — Documents"><TextBlock Text="Documents" Foreground="#151515" FontSize="10" /></RadioButton>
+                        <RadioButton GroupName="IportLoadModules" Style="{StaticResource IportTab}" Padding="6,0" IsChecked="{Binding ActiveModule, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Load Control — P/W summary, Mode=OneWay}" Command="{Binding SelectModuleCommand}" CommandParameter="Load Control — P/W summary"><TextBlock Text="P/W summary" Foreground="#151515" FontSize="10" /></RadioButton>
                     </StackPanel>
                     <Grid Grid.Column="3" Margin="15,0,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="94" /><ColumnDefinition Width="94" /></Grid.ColumnDefinitions>
@@ -137,8 +202,8 @@
 
                 <Border Grid.Column="2" Background="#F9F9F9" BorderBrush="#939393" BorderThickness="1">
                     <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="83" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <Grid Margin="10,7"><Grid.RowDefinitions><RowDefinition Height="31" /><RowDefinition /></Grid.RowDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="118" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid Margin="10,7" Visibility="{Binding IsCustomerServiceTabsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"><Grid.RowDefinitions><RowDefinition Height="31" /><RowDefinition /></Grid.RowDefinitions>
                             <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="75" /><ColumnDefinition Width="70" /><ColumnDefinition Width="75" /><ColumnDefinition Width="70" /><ColumnDefinition Width="80" /><ColumnDefinition Width="70" /><ColumnDefinition /></Grid.ColumnDefinitions>
                                 <TextBlock Text="{Binding Operations.FlightNumber}" FontSize="18" FontWeight="Bold" /><TextBlock Grid.Column="1" Text="{Binding Operations.FlightDateShort}" FontWeight="SemiBold" /><TextBlock Grid.Column="2" Text="{Binding Operations.OriginIata}" FontWeight="SemiBold" /><TextBlock Grid.Column="3" Text="STD" /><TextBlock Grid.Column="4" Text="{Binding Operations.ScheduledDeparture}" FontWeight="Bold" /><TextBlock Grid.Column="5" Text="ETD" /><TextBlock Grid.Column="6" Text="{Binding Operations.ScheduledDeparture}" FontWeight="Bold" /><TextBlock Grid.Column="7" Text="{Binding Operations.DestinationIata, StringFormat=DEST  {0}}" HorizontalAlignment="Right" FontWeight="Bold" />
                             </Grid>
@@ -148,6 +213,16 @@
                                 <StackPanel Grid.Column="2"><TextBlock><Run Text="Checked-In:  " /><Run Text="{Binding Operations.CheckedInPassengers, Mode=OneWay}" FontWeight="SemiBold" /></TextBlock><TextBlock><Run Text="Booked:  " /><Run Text="{Binding Operations.TotalPassengers, Mode=OneWay}" /></TextBlock><TextBlock><Run Text="Available:  " /><Run Text="{Binding StandbyPassengers, Mode=OneWay}" /></TextBlock></StackPanel>
                                 <TextBlock Grid.Column="3" Text="{Binding WbStatusLabel}" Foreground="#D60000" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>
+                        </Grid>
+
+                        <Grid Margin="7,3" Visibility="{Binding IsLoadControlService, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid.RowDefinitions><RowDefinition Height="22" /><RowDefinition Height="22" /><RowDefinition Height="22" /><RowDefinition /></Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="80" /><ColumnDefinition Width="58" /><ColumnDefinition Width="98" /><ColumnDefinition Width="82" /><ColumnDefinition Width="82" /><ColumnDefinition Width="70" /><ColumnDefinition Width="82" /><ColumnDefinition Width="82" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Flights[1].FlightNumber}" FontSize="13" FontWeight="Bold" /><TextBlock Grid.Column="1" Text="{Binding Operations.FlightDateShort}" /><TextBlock Grid.Column="2" Text="LHR-LAX" /><TextBlock Grid.Column="3" Text="{Binding Flights[1].DepartureTime, StringFormat=STD  {0}}" /><TextBlock Grid.Column="4" Text="{Binding Flights[1].DepartureTime, StringFormat=ETD  {0}}" /><TextBlock Grid.Column="5" Text="CTOT  --" /><TextBlock Grid.Column="6" Text="STA  13:35z" /><TextBlock Grid.Column="7" Text="ETA  13:35z" /><TextBlock Grid.Column="8" Text="+" FontWeight="Bold" HorizontalAlignment="Right" />
+                            <TextBlock Grid.Row="1" Text="{Binding Flights[2].FlightNumber}" FontSize="13" FontWeight="Bold" /><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Operations.FlightDateShort}" /><TextBlock Grid.Row="1" Grid.Column="2" Text="LHR-LAS" /><TextBlock Grid.Row="1" Grid.Column="3" Text="{Binding Flights[2].DepartureTime, StringFormat=STD  {0}}" /><TextBlock Grid.Row="1" Grid.Column="4" Text="{Binding Flights[2].DepartureTime, StringFormat=ETD  {0}}" /><TextBlock Grid.Row="1" Grid.Column="5" Text="CTOT  --" /><TextBlock Grid.Row="1" Grid.Column="6" Text="STA  15:10z" /><TextBlock Grid.Row="1" Grid.Column="7" Text="ETA  15:10z" /><TextBlock Grid.Row="1" Grid.Column="8" Text="+" FontWeight="Bold" HorizontalAlignment="Right" />
+                            <Border Grid.Row="2" Grid.ColumnSpan="9" Background="#F4F4F4" BorderBrush="#C8C8C8" BorderThickness="0,1,0,1" />
+                            <TextBlock Grid.Row="2" Text="▶" Foreground="#18B4CF" FontSize="10" VerticalAlignment="Center" /><TextBlock Grid.Row="2" Margin="15,0,0,0" Text="{Binding Operations.FlightNumber}" FontSize="14" FontWeight="Bold" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Operations.FlightDateShort}" FontWeight="Bold" /><StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal"><TextBlock Text="{Binding Operations.OriginIata}" FontWeight="Bold" /><TextBlock Text="-" /><TextBlock Text="{Binding Operations.DestinationIata}" FontWeight="Bold" /></StackPanel><TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding Operations.ScheduledDeparture, StringFormat=STD  {0}}" FontWeight="Bold" /><TextBlock Grid.Row="2" Grid.Column="4" Text="{Binding Operations.ScheduledDeparture, StringFormat=ETD  {0}}" FontWeight="Bold" /><TextBlock Grid.Row="2" Grid.Column="5" Text="CTOT  --" FontWeight="Bold" /><TextBlock Grid.Row="2" Grid.Column="6" Text="STA  21:15z" FontWeight="Bold" /><TextBlock Grid.Row="2" Grid.Column="7" Text="ETA  21:15z" FontWeight="Bold" /><TextBlock Grid.Row="2" Grid.Column="8" Text="−" FontSize="15" FontWeight="Bold" HorizontalAlignment="Right" />
+                            <Grid Grid.Row="3" Grid.ColumnSpan="9" Margin="0,3,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="105" /><ColumnDefinition Width="165" /><ColumnDefinition Width="170" /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Operations.AircraftName}" FontWeight="SemiBold" /><TextBlock Text="{Binding Operations.DetectedAircraftIcao}" /></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="Status:  Flight open" /><TextBlock Text="{Binding Operations.BoardingBeginsAt, StringFormat=Boarding:  {0}}" /><TextBlock Text="{Binding Operations.GateNumber, StringFormat=Gate:  {0}}" /></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="{Binding Operations.CheckedInPassengers, StringFormat=Total Checked-In:  {0}}" /><TextBlock Text="{Binding Operations.TotalPassengers, StringFormat=Total Booked:  {0}}" /></StackPanel><TextBlock Grid.Column="3" Text="{Binding WbStatusLabel}" Foreground="#D40000" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
                         </Grid>
 
                         <Grid Grid.Row="1" Margin="8,0,8,8">
@@ -172,10 +247,73 @@
                                 <ScrollViewer Grid.Row="1" Background="#FFFFFF" BorderBrush="#9E9E9E" BorderThickness="1" VerticalScrollBarVisibility="Auto"><ItemsControl ItemsSource="{Binding Operations.PassengerRecords}" Margin="12"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel IsItemsHost="True" ItemWidth="54" ItemHeight="42" /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><Button Width="48" Height="35" Margin="2" Command="{Binding DataContext.SelectPassengerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="{Binding BoardingColor}" BorderBrush="#707070" Foreground="White" FontWeight="Bold" ToolTip="{Binding FullName}"><TextBlock Text="{Binding SeatNumber}" /></Button></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
                             </Grid>
 
-                            <Grid Visibility="{Binding ActiveModule, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Load Control}">
-                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="12" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <Grid><Grid.RowDefinitions><RowDefinition Height="34" /><RowDefinition Height="*" /><RowDefinition Height="128" /></Grid.RowDefinitions><Border Style="{StaticResource IportSectionHeader}"><TextBlock Text="Dry Operating Weight" Foreground="White" FontWeight="Bold" /></Border><Border Grid.Row="1" Style="{StaticResource IportSection}"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Crew" /><TextBlock Text="DOW" Margin="0,18,0,0" /><TextBlock Text="+ Traffic Load" Margin="0,15,0,0" /><Separator Margin="0,12" /><TextBlock Text="ZFW" FontWeight="Bold" /><TextBlock Text="+ Take Off Fuel" Margin="0,18,0,0" /><Separator Margin="0,12" /><TextBlock Text="TOW" FontWeight="Bold" /></StackPanel><StackPanel Grid.Column="1" HorizontalAlignment="Right"><TextBlock Text="4 / 12" /><TextBlock Text="{Binding DryOperatingWeightKg, StringFormat={}{0:N0} kg}" Margin="0,18,0,0" /><TextBlock Text="{Binding TrafficLoadKg, StringFormat={}{0:N0} kg}" Margin="0,15,0,0" /><Separator Margin="0,12" /><TextBlock Text="{Binding ZeroFuelWeightKg, StringFormat={}{0:N0} kg}" FontWeight="Bold" /><TextBlock Text="{Binding TakeoffFuelKg, StringFormat={}{0:N0} kg}" Margin="0,18,0,0" /><Separator Margin="0,12" /><TextBlock Text="{Binding TakeoffWeightKg, StringFormat={}{0:N0} kg}" FontWeight="Bold" /></StackPanel></Grid></Border><Border Grid.Row="2" Style="{StaticResource IportSection}" Margin="0,8,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Passenger" FontWeight="Bold" /><TextBlock Text="Actual distribution" Margin="0,8,0,0" /><TextBlock Text="Actual counts" /></StackPanel><StackPanel Grid.Column="1" HorizontalAlignment="Right"><TextBlock Text="{Binding LoadFactorLabel}" FontWeight="Bold" /><TextBlock Text="{Binding BoardingCounterSummary}" Margin="0,8,0,0" /><TextBlock Text="{Binding Operations.CheckedInPassengers, StringFormat=Total {0}}" /></StackPanel></Grid></Border></Grid>
-                                <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="34" /><RowDefinition Height="*" /><RowDefinition Height="128" /></Grid.RowDefinitions><Border Style="{StaticResource IportSectionHeader}"><TextBlock Text="Envelope" Foreground="White" FontWeight="Bold" /></Border><Border Grid.Row="1" Style="{StaticResource IportSection}"><Grid><Canvas Margin="30,20,20,35" Background="#FAFAFA"><Line X1="0" Y1="230" X2="430" Y2="230" Stroke="#404040" /><Line X1="0" Y1="0" X2="0" Y2="230" Stroke="#404040" /><Polyline Points="10,210 80,75 245,30 410,95 360,210 10,210" Stroke="#C8A619" Fill="#18E2C64E" StrokeThickness="2" /><Polyline Points="10,210 150,130 330,165 360,210" Stroke="#288C32" StrokeThickness="2" /><Line X1="215" Y1="10" X2="215" Y2="225" Stroke="#26B4D0" StrokeDashArray="3,3" /><Ellipse Canvas.Left="208" Canvas.Top="153" Width="14" Height="14" Fill="#F2A000" Stroke="#7A4B00" /><TextBlock Canvas.Left="180" Canvas.Top="235" Text="% MAC" /><TextBlock Canvas.Left="-23" Canvas.Top="95" Text="Weight" RenderTransformOrigin="0.5,0.5"><TextBlock.RenderTransform><RotateTransform Angle="-90" /></TextBlock.RenderTransform></TextBlock></Canvas></Grid></Border><Border Grid.Row="2" Style="{StaticResource IportSection}" Margin="0,8,0,0"><StackPanel><TextBlock Text="Options" FontWeight="Bold" /><TextBlock Text="NOTOC needed:  No" Margin="0,11,0,0" /><TextBlock Text="Flight variation:  BA standard" /><TextBlock Text="Pax weights:  84 / 18 kg" /></StackPanel></Border></Grid>
+                            <Grid Visibility="{Binding ActiveModule, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Load Control}" Tag="IportLoadControlWorkspace">
+                                <Grid.RowDefinitions><RowDefinition Height="25" /><RowDefinition /></Grid.RowDefinitions>
+                                <Border Background="#F5F5F5" BorderBrush="#9A9A9A" BorderThickness="0,0,0,1">
+                                    <Grid Margin="5,0"><Grid.ColumnDefinitions><ColumnDefinition Width="115" /><ColumnDefinition Width="115" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="{Binding LoadPlanLabel}" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding LoadSheetLabel}" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="Aircraft weight unit: Kilos" VerticalAlignment="Center" /></Grid>
+                                </Border>
+                                <Grid Grid.Row="1" Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="44*" /><ColumnDefinition Width="7" /><ColumnDefinition Width="56*" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="188" /></Grid.RowDefinitions>
+
+                                    <Border BorderBrush="#A4A4A4" BorderThickness="1">
+                                        <Grid><Grid.RowDefinitions><RowDefinition Height="27" /><RowDefinition /></Grid.RowDefinitions>
+                                            <Border Background="#A8A8A8" Padding="7,3"><TextBlock Text="Dry Operating Weight" Foreground="White" FontWeight="Bold" /></Border>
+                                            <Grid Grid.Row="1" Margin="7,4">
+                                                <Grid.RowDefinitions><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /><RowDefinition Height="23" /></Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="78" /><ColumnDefinition Width="94" /><ColumnDefinition Width="54" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="Crew" VerticalAlignment="Center" /><ComboBox Grid.Column="1" Height="21" SelectedIndex="1" Style="{StaticResource IportComboBox}"><ComboBoxItem><TextBlock Text="2 / 4" Foreground="#202020" /></ComboBoxItem><ComboBoxItem><TextBlock Text="4 / 12" Foreground="#202020" /></ComboBoxItem></ComboBox><TextBlock Grid.Column="2" Text="Pantry" VerticalAlignment="Center" /><TextBox Grid.Column="3" Height="21" Text="BA" Style="{StaticResource IportInput}" />
+                                                <TextBlock Grid.Row="1" Text="DOW" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="1" Grid.Column="1" Height="21" Text="{Binding DryOperatingWeightKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" /><TextBlock Grid.Row="1" Grid.Column="2" Text="DOI" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="1" Grid.Column="3" Height="21" Text="{Binding DryOperatingIndex, Mode=OneWay, StringFormat={}{0:0.00}}" Style="{StaticResource IportInput}" IsReadOnly="True" />
+                                                <TextBlock Grid.Row="2" Text="+ Traffic Load" VerticalAlignment="Center" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding TrafficLoadKg, StringFormat={}{0:N0}}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Row="3" Text="ZFW" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="3" Grid.Column="1" Height="21" Text="{Binding ZeroFuelWeightKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" /><TextBlock Grid.Row="3" Grid.Column="2" Text="MZFW" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="3" Grid.Column="3" Height="21" Text="{Binding MaxZeroFuelWeightKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" />
+                                                <TextBlock Grid.Row="4" Text="+ Take Off Fuel" VerticalAlignment="Center" /><TextBox Grid.Row="4" Grid.Column="1" Height="21" Text="{Binding TakeoffFuelKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" />
+                                                <TextBlock Grid.Row="5" Text="TOW" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="5" Grid.Column="1" Height="21" Text="{Binding TakeoffWeightKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" /><TextBlock Grid.Row="5" Grid.Column="2" Text="MTOW" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="5" Grid.Column="3" Height="21" Text="{Binding MaxTakeoffWeightKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" />
+                                                <TextBlock Grid.Row="6" Text="− Trip Fuel" VerticalAlignment="Center" /><TextBox Grid.Row="6" Grid.Column="1" Height="21" Text="{Binding TripFuelKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" />
+                                                <TextBlock Grid.Row="7" Text="LDW" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="7" Grid.Column="1" Height="21" Text="{Binding LandingWeightKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" /><TextBlock Grid.Row="7" Grid.Column="2" Text="MLDW" FontWeight="Bold" VerticalAlignment="Center" /><TextBox Grid.Row="7" Grid.Column="3" Height="21" Text="{Binding MaxLandingWeightKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" />
+                                                <TextBlock Grid.Row="8" Text="+ Taxi Fuel" VerticalAlignment="Center" /><TextBox Grid.Row="8" Grid.Column="1" Height="21" Text="{Binding TaxiFuelKg, Mode=OneWay, StringFormat={}{0:N0}}" Style="{StaticResource IportInput}" IsReadOnly="True" />
+                                                <TextBlock Grid.Row="9" Text="Additional" VerticalAlignment="Center" /><TextBox Grid.Row="9" Grid.Column="1" Height="21" Text="0" Style="{StaticResource IportInput}" /><Button Grid.Row="9" Grid.Column="2" Style="{StaticResource IportButton}" Padding="2,0"><TextBlock Text="Change" Foreground="#151515" FontSize="9" /></Button><StackPanel Grid.Row="9" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right"><TextBlock Text="Flight time  " VerticalAlignment="Center" /><TextBox Width="50" Height="21" Text="{Binding FlightTimeLabel, Mode=OneWay}" Style="{StaticResource IportInput}" IsReadOnly="True" /></StackPanel>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Grid.Column="2" BorderBrush="#A4A4A4" BorderThickness="1">
+                                        <Grid><Grid.RowDefinitions><RowDefinition Height="27" /><RowDefinition /></Grid.RowDefinitions>
+                                            <Border Background="#A8A8A8" Padding="7,3"><TextBlock Text="Envelope" Foreground="White" FontWeight="Bold" /></Border>
+                                            <Viewbox Grid.Row="1" Margin="8,3" Stretch="Uniform">
+                                                <Canvas Width="470" Height="252" Background="#FFFFFF" Tag="IportEnvelopeChart">
+                                                    <TextBlock Canvas.Left="207" Canvas.Top="0" Text="Actual" FontSize="10" FontWeight="Bold" />
+                                                    <Line X1="45" Y1="20" X2="45" Y2="225" Stroke="#224A97" /><Line X1="45" Y1="225" X2="455" Y2="225" Stroke="#224A97" />
+                                                    <Line X1="45" Y1="184" X2="455" Y2="184" Stroke="#D8D8D8" /><Line X1="45" Y1="143" X2="455" Y2="143" Stroke="#D8D8D8" /><Line X1="45" Y1="102" X2="455" Y2="102" Stroke="#D8D8D8" /><Line X1="45" Y1="61" X2="455" Y2="61" Stroke="#D8D8D8" /><Line X1="45" Y1="20" X2="455" Y2="20" Stroke="#D8D8D8" />
+                                                    <Line X1="95" Y1="20" X2="95" Y2="225" Stroke="#E1E1E1" /><Line X1="145" Y1="20" X2="145" Y2="225" Stroke="#E1E1E1" /><Line X1="195" Y1="20" X2="195" Y2="225" Stroke="#E1E1E1" /><Line X1="245" Y1="20" X2="245" Y2="225" Stroke="#E1E1E1" /><Line X1="295" Y1="20" X2="295" Y2="225" Stroke="#E1E1E1" /><Line X1="345" Y1="20" X2="345" Y2="225" Stroke="#E1E1E1" /><Line X1="395" Y1="20" X2="395" Y2="225" Stroke="#E1E1E1" /><Line X1="445" Y1="20" X2="445" Y2="225" Stroke="#E1E1E1" />
+                                                    <Polyline Points="54,120 105,54 255,42 425,68 452,111 404,143 87,143 54,120" Stroke="#CDA820" Fill="#0FE7D56E" StrokeThickness="2" />
+                                                    <Polyline Points="55,144 145,219 338,219 430,144 55,144" Stroke="#3D42A3" Fill="#08191D94" StrokeThickness="2" />
+                                                    <Polyline Points="55,143 132,105 261,113 365,143" Stroke="#4A4A4A" StrokeThickness="1.5" />
+                                                    <Line X1="45" Y1="143" X2="455" Y2="143" Stroke="#267A34" StrokeThickness="2" />
+                                                    <Line X1="245" Y1="20" X2="245" Y2="225" Stroke="#25B6D1" StrokeDashArray="3,2" />
+                                                    <TextBlock Canvas.Left="238" Canvas.Top="128" Text="✦" Foreground="#0A8B32" FontSize="17" FontWeight="Bold" /><TextBlock Canvas.Left="236" Canvas.Top="141" Text="✦" Foreground="#2F3FB0" FontSize="17" FontWeight="Bold" /><TextBlock Canvas.Left="236" Canvas.Top="91" Text="✦" Foreground="#D5A20B" FontSize="17" FontWeight="Bold" />
+                                                    <TextBlock Canvas.Left="7" Canvas.Top="16" Text="360k" FontSize="9" /><TextBlock Canvas.Left="7" Canvas.Top="57" Text="320k" FontSize="9" /><TextBlock Canvas.Left="7" Canvas.Top="98" Text="280k" FontSize="9" /><TextBlock Canvas.Left="7" Canvas.Top="139" Text="240k" FontSize="9" /><TextBlock Canvas.Left="7" Canvas.Top="180" Text="200k" FontSize="9" /><TextBlock Canvas.Left="43" Canvas.Top="229" Text="15  20  25  30  35  40  45  50  55  60  65  70  75  80  85  90  95" FontSize="8" />
+                                                    <TextBlock Canvas.Left="0" Canvas.Top="112" Text="Weight" FontSize="9"><TextBlock.RenderTransform><RotateTransform Angle="-90" /></TextBlock.RenderTransform></TextBlock>
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Grid>
+                                    </Border>
+
+                                    <Grid Grid.Row="1"><Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                                        <Border BorderBrush="#A4A4A4" BorderThickness="1"><Grid><Grid.RowDefinitions><RowDefinition Height="25" /><RowDefinition /></Grid.RowDefinitions><Border Background="#A8A8A8" Padding="7,3"><TextBlock Text="Weights" Foreground="White" FontWeight="Bold" /></Border><Grid Grid.Row="1" Margin="7,3"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="90" /><ColumnDefinition /><ColumnDefinition Width="90" /></Grid.ColumnDefinitions><TextBlock Text="MaxRF" /><TextBlock Grid.Column="1" Text="{Binding MaxRampWeightKg, StringFormat={}{0:N0}}" FontWeight="Bold" /><TextBlock Grid.Column="2" Text="EZFW" FontWeight="Bold" /><TextBlock Grid.Column="3" Text="{Binding EstimatedZeroFuelWeightKg, StringFormat={}{0:N0}}" FontWeight="Bold" /></Grid></Grid></Border>
+                                        <Border Grid.Row="1" BorderBrush="#A4A4A4" BorderThickness="1" Margin="0,5,0,0"><Grid><Grid.RowDefinitions><RowDefinition Height="25" /><RowDefinition /></Grid.RowDefinitions><Border Background="#A8A8A8" Padding="7,3"><TextBlock Text="Underload" Foreground="White" FontWeight="Bold" /></Border><Grid Grid.Row="1" Margin="7,2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="100" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Allowed Traffic Load" /><TextBlock Text="Cargo" /><TextBlock Text="Mail" /></StackPanel><StackPanel Grid.Column="1" HorizontalAlignment="Right"><TextBlock Text="{Binding AllowedTrafficLoadKg, StringFormat={}{0:N0}}" /><TextBlock Text="{Binding CargoWeightKg, StringFormat={}{0:N0}}" /><TextBlock Text="0" /></StackPanel></Grid></Grid></Border>
+                                    </Grid>
+
+                                    <Grid Grid.Row="1" Grid.Column="2"><Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                                        <Border BorderBrush="#A4A4A4" BorderThickness="1"><Grid><Grid.RowDefinitions><RowDefinition Height="25" /><RowDefinition /></Grid.RowDefinitions><Border Background="#A8A8A8" Padding="7,3"><TextBlock Text="Passenger" Foreground="White" FontWeight="Bold" /></Border><Grid Grid.Row="1" Margin="7,3"><Grid.ColumnDefinitions><ColumnDefinition Width="115" /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="Actual distribution" /><TextBlock Text="Actual counts" /></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="{Binding LoadDistributionLabel}" /><TextBlock Text="{Binding ActualCountsLabel}" /></StackPanel></Grid></Grid></Border>
+                                        <Border Grid.Row="1" BorderBrush="#A4A4A4" BorderThickness="1" Margin="0,5,0,0"><Grid><Grid.RowDefinitions><RowDefinition Height="25" /><RowDefinition /></Grid.RowDefinitions><Border Background="#A8A8A8" Padding="7,3"><TextBlock Text="Options" Foreground="White" FontWeight="Bold" /></Border><Grid Grid.Row="1" Margin="7,2"><Grid.RowDefinitions><RowDefinition Height="20" /><RowDefinition Height="20" /><RowDefinition Height="20" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="115" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="NOTOC needed" VerticalAlignment="Center" /><TextBlock Grid.Row="1" Text="Flight variations" VerticalAlignment="Center" /><TextBlock Grid.Row="2" Text="Pax weights" VerticalAlignment="Center" /><ComboBox Grid.Column="1" Height="19" SelectedIndex="0" Style="{StaticResource IportComboBox}"><ComboBoxItem><TextBlock Text="No" Foreground="#202020" /></ComboBoxItem><ComboBoxItem><TextBlock Text="Yes" Foreground="#202020" /></ComboBoxItem></ComboBox><TextBox Grid.Row="1" Grid.Column="1" Height="19" Text="{Binding FlightVariationsLabel, Mode=OneWay}" Style="{StaticResource IportInput}" IsReadOnly="True" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PaxWeightsLabel}" VerticalAlignment="Center" /></Grid></Grid></Border>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+
+                            <Grid Visibility="{Binding IsLoadControlPlaceholder, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Border Background="#FFFFFF" BorderBrush="#A4A4A4" BorderThickness="1" Padding="30">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="{Binding PlaceholderTitle}" Foreground="#1C1C1C" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" /><TextBlock Text="{Binding PlaceholderDescription}" Foreground="#4D4D4D" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="600" Margin="0,12,0,0" /></StackPanel>
+                                </Border>
                             </Grid>
 
                             <Grid Visibility="{Binding ActiveModule, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Flight Monitor}">
@@ -184,17 +322,56 @@
                                 <Border Grid.Row="1" Background="#D5D5D5" BorderBrush="#9D9D9D" BorderThickness="1,0"><Grid Margin="7,0"><Grid.ColumnDefinitions><ColumnDefinition Width="92" /><ColumnDefinition Width="74" /><ColumnDefinition /><ColumnDefinition Width="75" /><ColumnDefinition Width="150" /><ColumnDefinition Width="75" /></Grid.ColumnDefinitions><TextBlock Text="Date" FontWeight="Bold" /><TextBlock Grid.Column="1" Text="Time" FontWeight="Bold" /><TextBlock Grid.Column="2" Text="Monitoring Event" FontWeight="Bold" /><TextBlock Grid.Column="3" Text="Status" FontWeight="Bold" /><TextBlock Grid.Column="4" Text="Agent" FontWeight="Bold" /><TextBlock Grid.Column="5" Text="Remark" FontWeight="Bold" /></Grid></Border>
                                 <ListBox Grid.Row="2" ItemsSource="{Binding MonitorEvents}" Background="White" BorderBrush="#9D9D9D" BorderThickness="1,0,1,1"><ListBox.ItemTemplate><DataTemplate><Grid Margin="6,4" TextElement.Foreground="#252525"><Grid.ColumnDefinitions><ColumnDefinition Width="92" /><ColumnDefinition Width="74" /><ColumnDefinition /><ColumnDefinition Width="75" /><ColumnDefinition Width="150" /><ColumnDefinition Width="75" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Date}" Foreground="#252525" /><TextBlock Grid.Column="1" Text="{Binding Time}" Foreground="#252525" /><TextBlock Grid.Column="2" Text="{Binding Event}" Foreground="#252525" /><TextBlock Grid.Column="3" Text="●" Foreground="#249A34" FontWeight="Bold" /><TextBlock Grid.Column="4" Text="{Binding Agent}" Foreground="#252525" /><TextBlock Grid.Column="5" Text="{Binding Status}" Foreground="#252525" /></Grid></DataTemplate></ListBox.ItemTemplate></ListBox>
                             </Grid>
+
+                            <Grid Visibility="{Binding IsServicePlaceholder, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Border Background="#FFFFFF" BorderBrush="#A4A4A4" BorderThickness="1" Padding="30">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"><TextBlock Text="{Binding PlaceholderTitle}" Foreground="#1C1C1C" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" /><TextBlock Text="{Binding PlaceholderDescription}" Foreground="#4D4D4D" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="600" Margin="0,12,0,0" /></StackPanel>
+                                </Border>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </Border>
             </Grid>
 
             <Border Grid.Row="2" Background="{StaticResource IportBarBrush}" BorderBrush="#9A9A9A" BorderThickness="0,1,0,0">
-                <Grid Margin="10,5"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="420" /><ColumnDefinition Width="250" /></Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal"><Button Style="{StaticResource IportButton}" MinWidth="82"><TextBlock Text="F1-Help" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="92" Margin="4,0,0,0" Command="{Binding ToggleGateCommand}"><TextBlock Text="F2-Action" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="100" Margin="4,0,0,0" Command="{Binding SelectModuleCommand}" CommandParameter="Seatmap"><TextBlock Text="F4-Seatmap" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="95" Margin="4,0,0,0" Command="{Binding RefreshCommand}"><TextBlock Text="F5-Refresh" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="105" Margin="4,0,0,0" Command="{Binding CheckInCommand}"><TextBlock Text="F10-Check In" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="105" Margin="4,0,0,0" Command="{Binding PrintCommand}"><TextBlock Text="F11-Print BP" Foreground="#151515" /></Button></StackPanel>
+                <Grid Margin="10,5"><Grid.ColumnDefinitions><ColumnDefinition Width="615" /><ColumnDefinition /><ColumnDefinition Width="250" /></Grid.ColumnDefinitions>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsCustomerServiceTabsVisible, Converter={StaticResource BooleanToVisibilityConverter}}"><Button Style="{StaticResource IportButton}" MinWidth="82"><TextBlock Text="F1-Help" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="92" Margin="4,0,0,0" Command="{Binding ToggleGateCommand}"><TextBlock Text="F2-Action" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="100" Margin="4,0,0,0" Command="{Binding SelectModuleCommand}" CommandParameter="Seatmap"><TextBlock Text="F4-Seatmap" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="95" Margin="4,0,0,0" Command="{Binding RefreshCommand}"><TextBlock Text="F5-Refresh" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="105" Margin="4,0,0,0" Command="{Binding CheckInCommand}"><TextBlock Text="F10-Check In" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="105" Margin="4,0,0,0" Command="{Binding PrintCommand}"><TextBlock Text="F11-Print BP" Foreground="#151515" /></Button></StackPanel>
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsLoadControlService, Converter={StaticResource BooleanToVisibilityConverter}}"><Button Style="{StaticResource IportButton}" MinWidth="72"><TextBlock Text="F1-Help" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="82" Margin="4,0,0,0" Command="{Binding LoadActionCommand}" CommandParameter="Load Control action menu opened."><TextBlock Text="F2-Action" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="88" Margin="4,0,0,0" Command="{Binding LoadActionCommand}" CommandParameter="Free-text load message opened."><TextBlock Text="F3-Free text" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="118" Margin="4,0,0,0" Command="{Binding LoadActionCommand}" CommandParameter="Load sheet finalized for the active flight."><TextBlock Text="Finalize load sheet" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="94" Margin="4,0,0,0" Command="{Binding LoadActionCommand}" CommandParameter="Load message sent through ACARS."><TextBlock Text="Send ACARS" Foreground="#151515" /></Button><Button Style="{StaticResource IportButton}" MinWidth="96" Margin="4,0,0,0" Command="{Binding LoadActionCommand}" CommandParameter="Trip information saved."><TextBlock Text="Save trip info" Foreground="#151515" /></Button></StackPanel>
+                    </Grid>
                     <TextBlock Grid.Column="1" Text="{Binding CommandStatus}" Foreground="#444444" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding CommandStatus}" />
                     <Grid Grid.Column="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="iPort Version  6.2.7" FontWeight="SemiBold" /><TextBlock Text="{Binding SignedInUser, StringFormat=User  {0}}" /></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="{Binding BoardingPointLabel, StringFormat=Boarding Point  {0}}" /><TextBlock Text="Domain  FREEFLIGHT +" /></StackPanel></Grid>
                 </Grid>
+            </Border>
+
+            <Border Grid.RowSpan="3"
+                    Width="230"
+                    Margin="237,58,0,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Background="#13B8D5"
+                    BorderBrush="#DA2020"
+                    BorderThickness="1"
+                    Panel.ZIndex="100"
+                    Tag="IportServiceMenu"
+                    Visibility="{Binding IsServiceMenuOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ItemsControl ItemsSource="{Binding ServiceMenuEntries}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Border Height="24" Background="#0EAAC8" Padding="10,2" Visibility="{Binding IsHeader, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding Label}" Foreground="#07384A" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+                                </Border>
+                                <Button Style="{StaticResource IportMenuButton}"
+                                        Command="{Binding DataContext.SelectServiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}"
+                                        Visibility="{Binding IsService, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="62" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Label}" Foreground="#07384A" FontSize="13" FontWeight="SemiBold" /><TextBlock Grid.Column="1" Text="{Binding Shortcut}" Foreground="#07384A" FontSize="12" HorizontalAlignment="Right" /></Grid>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </Border>
         </Grid>
     </Border>
