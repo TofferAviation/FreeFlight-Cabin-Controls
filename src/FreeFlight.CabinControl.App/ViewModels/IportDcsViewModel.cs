@@ -31,6 +31,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     private readonly GateOperationsViewModel _operations;
     private readonly GateLoginViewModel _gateLogin;
+    private readonly Dictionary<string, IportLoadFlightState> _flightStates = new(StringComparer.OrdinalIgnoreCase);
     private string _activeModule = CheckInModule;
     private string _activeRole = "Customer Services";
     private string _passengerLookup = string.Empty;
@@ -46,6 +47,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     private int _taxiFuelKg = 1_200;
     private int _tripFuelKg = 11_340;
     private int _additionalWeightKg;
+    private bool _isLoadingFlightState;
 
     public IportDcsViewModel(GateOperationsViewModel operations, GateLoginViewModel gateLogin)
         : base("Iport DCS", "Advanced coded departure-control workspace")
@@ -54,6 +56,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         _gateLogin = gateLogin;
         _boardingPoint = _gateLogin.SelectedStation.Code;
         _destination = _operations.DestinationIata;
+        InitializeFlightStates();
         Roles = ["Customer Services", "Load Control", "Flight Control"];
         Modules =
         [
@@ -255,15 +258,30 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         get => _selectedFlight;
         set
         {
+            if (ReferenceEquals(_selectedFlight, value))
+            {
+                return;
+            }
+
+            SaveCurrentFlightState();
+            if (_selectedFlight is not null)
+            {
+                _selectedFlight.IsSelected = false;
+            }
             if (!SetProperty(ref _selectedFlight, value) || value is null)
             {
                 return;
             }
 
-            if (!value.IsLive)
-            {
-                CommandStatus = $"{value.FlightNumber} is shown for roster context; only {_operations.FlightNumber} is live in this session.";
-            }
+            value.IsSelected = true;
+            LoadFlightState(value.FlightNumber);
+            CommandStatus = value.IsLive
+                ? $"{value.FlightNumber} live Load Control workspace opened."
+                : $"{value.FlightNumber} dispatcher flight workspace opened for inspection and editing.";
+            OnPropertyChanged(nameof(SelectedFlightStatusLabel));
+            OnPropertyChanged(nameof(SelectedCheckedInPassengers));
+            OnPropertyChanged(nameof(SelectedBookedPassengers));
+            RefreshDerivedProperties();
         }
     }
 
@@ -294,8 +312,12 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             var normalized = NormalizeAirportEntry(value);
             if (SetProperty(ref _boardingPoint, normalized))
             {
+                if (!_isLoadingFlightState && SelectedFlight is not null)
+                {
+                    SelectedFlight.Origin = normalized;
+                    SaveCurrentFlightState();
+                }
                 OnPropertyChanged(nameof(BoardingPointLabel));
-                RefreshFlightList();
             }
         }
     }
@@ -308,7 +330,11 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             var normalized = NormalizeAirportEntry(value);
             if (SetProperty(ref _destination, normalized))
             {
-                RefreshFlightList();
+                if (!_isLoadingFlightState && SelectedFlight is not null)
+                {
+                    SelectedFlight.Destination = normalized;
+                    SaveCurrentFlightState();
+                }
             }
         }
     }
@@ -319,9 +345,17 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public string CurrentClock => _operations.CurrentClockTime;
 
-    public int NotBoardedPassengers => Math.Max(0, _operations.TotalPassengers - _operations.BoardedPassengers);
+    public string SelectedFlightStatusLabel => SelectedFlight?.StatusLabel ?? "Flight open";
 
-    public int StandbyPassengers => _operations.PassengerRecords.Count(passenger => !passenger.IsCheckedIn);
+    public int SelectedCheckedInPassengers => SelectedFlight?.CheckedInPassengers ?? _operations.CheckedInPassengers;
+
+    public int SelectedBookedPassengers => SelectedFlight?.BookedPassengers ?? _operations.TotalPassengers;
+
+    public int SelectedLoadedBags => SelectedFlight?.LoadedBags ?? _operations.LoadedBags;
+
+    public int NotBoardedPassengers => Math.Max(0, SelectedBookedPassengers - _operations.BoardedPassengers);
+
+    public int StandbyPassengers => Math.Max(0, SelectedBookedPassengers - SelectedCheckedInPassengers);
 
     public int DryOperatingWeightKg
     {
@@ -330,12 +364,13 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _dryOperatingWeightKg, Math.Clamp(value, 0, 600_000)))
             {
+                SaveCurrentFlightState();
                 RefreshLoadCalculations();
             }
         }
     }
 
-    public int TrafficLoadKg => (_operations.CheckedInPassengers * 84) + (_operations.LoadedBags * 18);
+    public int TrafficLoadKg => (SelectedCheckedInPassengers * 84) + (SelectedLoadedBags * 18);
 
     public int ZeroFuelWeightKg => DryOperatingWeightKg + TrafficLoadKg;
 
@@ -346,6 +381,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _takeoffFuelKg, Math.Clamp(value, 0, 200_000)))
             {
+                SaveCurrentFlightState();
                 RefreshLoadCalculations();
             }
         }
@@ -360,6 +396,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _taxiFuelKg, Math.Clamp(value, 0, 100_000)))
             {
+                SaveCurrentFlightState();
                 RefreshLoadCalculations();
             }
         }
@@ -372,6 +409,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _tripFuelKg, Math.Clamp(value, 0, 200_000)))
             {
+                SaveCurrentFlightState();
                 RefreshLoadCalculations();
             }
         }
@@ -384,6 +422,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _additionalWeightKg, Math.Clamp(value, 0, 100_000)))
             {
+                SaveCurrentFlightState();
                 RefreshLoadCalculations();
             }
         }
@@ -409,7 +448,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public int UnderloadKg => Math.Max(0, AllowedTrafficLoadKg - TrafficLoadKg);
 
-    public int CargoWeightKg => _operations.LoadedBags * 18;
+    public int CargoWeightKg => SelectedLoadedBags * 18;
 
     public double DryOperatingIndex
     {
@@ -418,6 +457,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _dryOperatingIndex, Math.Clamp(value, 0d, 120d)))
             {
+                SaveCurrentFlightState();
                 RefreshEnvelopePositions();
             }
         }
@@ -441,19 +481,19 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public string LoadDistributionLabel => $"0A{_operations.FirstCount + _operations.ClubWorldCount}.0B{_operations.WorldTravellerPlusCount + _operations.WorldTravellerCount}";
 
-    public string ActualCountsLabel => $"M {_operations.FirstCount + _operations.ClubWorldCount} / F {_operations.WorldTravellerPlusCount} / C 0 / O 0 | TTL: {_operations.CheckedInPassengers}+0";
+    public string ActualCountsLabel => $"M {_operations.FirstCount + _operations.ClubWorldCount} / F {_operations.WorldTravellerPlusCount} / C 0 / O 0 | TTL: {SelectedCheckedInPassengers}+0";
 
     public string FlightVariationsLabel => "BRITISH AIRWAYS STANDARD (84/18/35/0)";
 
     public string PaxWeightsLabel => "84/18/35/0";
 
-    public string LoadFactorLabel => _operations.TotalPassengers == 0
+    public string LoadFactorLabel => SelectedBookedPassengers == 0
         ? "0%"
-        : $"{Math.Round(_operations.CheckedInPassengers * 100d / _operations.TotalPassengers):0}%";
+        : $"{Math.Round(SelectedCheckedInPassengers * 100d / SelectedBookedPassengers):0}%";
 
     public string BoardingCounterSummary => $"J {_operations.ClubWorldCount + _operations.FirstCount}   W {_operations.WorldTravellerPlusCount}   Y {_operations.WorldTravellerCount}";
 
-    public string StatusLabel => _operations.IsGateOpen ? "Open for Boarding" : "Open for Check-In";
+    public string StatusLabel => SelectedFlight?.StatusLabel ?? (_operations.IsGateOpen ? "Open for Boarding" : "Open for Check-In");
 
     public string WbStatusLabel => ZeroFuelWeightKg > MaxZeroFuelWeightKg ||
         TakeoffWeightKg > MaxTakeoffWeightKg ||
@@ -567,20 +607,114 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         CommandStatus = message;
     }
 
-    private void RefreshFlightList()
+    private void InitializeFlightStates()
     {
-        var liveFlight = new IportFlightSummary(
+        _flightStates[_operations.FlightNumber] = new IportLoadFlightState(
             _operations.FlightNumber,
             _operations.FlightDateShort,
             _operations.ScheduledDeparture,
-            Destination,
+            _boardingPoint,
+            _destination,
             _operations.GateNumber,
+            _operations.AircraftName,
+            _operations.DetectedAircraftIcao,
+            _operations.BoardingBeginsAt,
+            "Flight open",
+            _operations.CheckedInPassengers,
+            _operations.TotalPassengers,
+            _operations.LoadedBags,
+            _dryOperatingWeightKg,
+            _dryOperatingIndex,
+            _takeoffFuelKg,
+            _tripFuelKg,
+            _taxiFuelKg,
+            _additionalWeightKg,
             true);
+        _flightStates["BA281"] = new IportLoadFlightState(
+            "BA281", _operations.FlightDateShort, AddMinutes(_operations.ScheduledDeparture, 40),
+            "LHR", "LAX", "C55", "Boeing 777-200ER", "B772", AddMinutes(_operations.ScheduledDeparture, 15),
+            "Dispatcher assigned", 198, 244, 174, 165_400, 44.10, 96_000, 84_600, 1_100, 0, false);
+        _flightStates["BA274"] = new IportLoadFlightState(
+            "BA274", _operations.FlightDateShort, AddMinutes(_operations.ScheduledDeparture, 75),
+            "LHR", "LAS", "B36", "Boeing 777-200ER", "B772", AddMinutes(_operations.ScheduledDeparture, 50),
+            "Dispatcher assigned", 162, 231, 139, 166_250, 46.35, 88_500, 76_900, 1_050, 0, false);
+    }
+
+    private void SaveCurrentFlightState()
+    {
+        if (_isLoadingFlightState || SelectedFlight is null || !_flightStates.TryGetValue(SelectedFlight.FlightNumber, out var state))
+        {
+            return;
+        }
+
+        state.Origin = BoardingPoint;
+        state.Destination = Destination;
+        state.DryOperatingWeightKg = DryOperatingWeightKg;
+        state.DryOperatingIndex = DryOperatingIndex;
+        state.TakeoffFuelKg = TakeoffFuelKg;
+        state.TripFuelKg = TripFuelKg;
+        state.TaxiFuelKg = TaxiFuelKg;
+        state.AdditionalWeightKg = AdditionalWeightKg;
+    }
+
+    private void LoadFlightState(string flightNumber)
+    {
+        if (!_flightStates.TryGetValue(flightNumber, out var state))
+        {
+            return;
+        }
+
+        _isLoadingFlightState = true;
+        _boardingPoint = state.Origin;
+        _destination = state.Destination;
+        _dryOperatingWeightKg = state.DryOperatingWeightKg;
+        _dryOperatingIndex = state.DryOperatingIndex;
+        _takeoffFuelKg = state.TakeoffFuelKg;
+        _tripFuelKg = state.TripFuelKg;
+        _taxiFuelKg = state.TaxiFuelKg;
+        _additionalWeightKg = state.AdditionalWeightKg;
+        _isLoadingFlightState = false;
+
+        OnPropertyChanged(nameof(BoardingPoint));
+        OnPropertyChanged(nameof(Destination));
+        OnPropertyChanged(nameof(BoardingPointLabel));
+        OnPropertyChanged(nameof(DryOperatingWeightKg));
+        OnPropertyChanged(nameof(DryOperatingIndex));
+        OnPropertyChanged(nameof(TakeoffFuelKg));
+        OnPropertyChanged(nameof(TripFuelKg));
+        OnPropertyChanged(nameof(TaxiFuelKg));
+        OnPropertyChanged(nameof(AdditionalWeightKg));
+        OnPropertyChanged(nameof(MaxZeroFuelWeightKg));
+        OnPropertyChanged(nameof(MaxTakeoffWeightKg));
+        OnPropertyChanged(nameof(MaxLandingWeightKg));
+        OnPropertyChanged(nameof(MaxRampWeightKg));
+    }
+
+    private void RefreshFlightList()
+    {
+        var selectedFlightNumber = SelectedFlight?.FlightNumber ?? _operations.FlightNumber;
+        SaveCurrentFlightState();
+        if (_flightStates.TryGetValue(_operations.FlightNumber, out var liveState))
+        {
+            liveState.CheckedInPassengers = _operations.CheckedInPassengers;
+            liveState.BookedPassengers = _operations.TotalPassengers;
+            liveState.LoadedBags = _operations.LoadedBags;
+            liveState.AircraftName = _operations.AircraftName;
+            liveState.AircraftIcao = _operations.DetectedAircraftIcao;
+            liveState.StatusLabel = _operations.IsGateOpen ? "Open for Boarding" : "Flight open";
+        }
+
         Flights.Clear();
-        Flights.Add(liveFlight);
-        Flights.Add(new IportFlightSummary("BA281", _operations.FlightDateShort, AddMinutes(_operations.ScheduledDeparture, 40), "LAX", "C55", false));
-        Flights.Add(new IportFlightSummary("BA274", _operations.FlightDateShort, AddMinutes(_operations.ScheduledDeparture, 75), "LAS", "B36", false));
-        SelectedFlight = liveFlight;
+        foreach (var flightNumber in new[] { _operations.FlightNumber, "BA281", "BA274" }.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            if (_flightStates.TryGetValue(flightNumber, out var state))
+            {
+                Flights.Add(state.ToSummary());
+            }
+        }
+
+        SelectedFlight = Flights.FirstOrDefault(flight => string.Equals(flight.FlightNumber, selectedFlightNumber, StringComparison.OrdinalIgnoreCase))
+            ?? Flights.FirstOrDefault();
     }
 
     private void RefreshMonitorEvents()
@@ -690,8 +824,8 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             : time;
     }
 
-    private bool IsBoeing777300 => _operations.AircraftName.Contains("300", StringComparison.OrdinalIgnoreCase) ||
-        _operations.DetectedAircraftIcao.Contains("77W", StringComparison.OrdinalIgnoreCase);
+    private bool IsBoeing777300 => (SelectedFlight?.AircraftName ?? _operations.AircraftName).Contains("300", StringComparison.OrdinalIgnoreCase) ||
+        (SelectedFlight?.AircraftIcao ?? _operations.DetectedAircraftIcao).Contains("77W", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsLoadControlModule(string module) => module is LoadControlModule or LoadPassengerModule or
         LoadDeadloadModule or LoadDistributionModule or LoadDocumentsModule or LoadPwSummaryModule;
@@ -727,21 +861,178 @@ public sealed record IportServiceMenuEntry(
     public static IportServiceMenuEntry Service(string label, string shortcut, string module) => new(label, shortcut, module, false);
 }
 
-public sealed record IportFlightSummary(
-    string FlightNumber,
-    string Date,
-    string DepartureTime,
-    string Destination,
-    string Gate,
-    bool IsLive)
+public sealed class IportFlightSummary : ObservableObject
 {
+    private string _origin;
+    private string _destination;
+    private bool _isSelected;
+
+    public IportFlightSummary(
+        string flightNumber,
+        string date,
+        string departureTime,
+        string origin,
+        string destination,
+        string gate,
+        string aircraftName,
+        string aircraftIcao,
+        string boardingTime,
+        string statusLabel,
+        int checkedInPassengers,
+        int bookedPassengers,
+        int loadedBags,
+        bool isLive)
+    {
+        FlightNumber = flightNumber;
+        Date = date;
+        DepartureTime = departureTime;
+        _origin = origin;
+        _destination = destination;
+        Gate = gate;
+        AircraftName = aircraftName;
+        AircraftIcao = aircraftIcao;
+        BoardingTime = boardingTime;
+        StatusLabel = statusLabel;
+        CheckedInPassengers = checkedInPassengers;
+        BookedPassengers = bookedPassengers;
+        LoadedBags = loadedBags;
+        IsLive = isLive;
+    }
+
+    public string FlightNumber { get; }
+
+    public string Date { get; }
+
+    public string DepartureTime { get; }
+
+    public string Origin
+    {
+        get => _origin;
+        set
+        {
+            if (SetProperty(ref _origin, value))
+            {
+                OnPropertyChanged(nameof(RouteLabel));
+                OnPropertyChanged(nameof(DisplayLine));
+            }
+        }
+    }
+
+    public string Destination
+    {
+        get => _destination;
+        set
+        {
+            if (SetProperty(ref _destination, value))
+            {
+                OnPropertyChanged(nameof(RouteLabel));
+                OnPropertyChanged(nameof(DisplayLine));
+            }
+        }
+    }
+
+    public string Gate { get; }
+
+    public string AircraftName { get; }
+
+    public string AircraftIcao { get; }
+
+    public string BoardingTime { get; }
+
+    public string StatusLabel { get; }
+
+    public int CheckedInPassengers { get; }
+
+    public int BookedPassengers { get; }
+
+    public int LoadedBags { get; }
+
+    public bool IsLive { get; }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (SetProperty(ref _isSelected, value))
+            {
+                OnPropertyChanged(nameof(RowBackground));
+                OnPropertyChanged(nameof(HeaderRowBackground));
+            }
+        }
+    }
+
     public string StatusGlyph => IsLive ? "●" : "■";
 
     public string StatusColor => IsLive ? "#12B8CF" : "#E7B225";
 
-    public string RowBackground => IsLive ? "#20B7D0" : "#FFFFFF";
+    public string RowBackground => IsSelected ? "#20B7D0" : "#FFFFFF";
+
+    public string HeaderRowBackground => IsSelected ? "#E7E7E7" : "#FFFFFF";
+
+    public string RouteLabel => $"{Origin}-{Destination}";
 
     public string DisplayLine => $"{FlightNumber}   {Date}-{DepartureTime}   {Destination}   {Gate}";
+}
+
+internal sealed class IportLoadFlightState(
+    string flightNumber,
+    string date,
+    string departureTime,
+    string origin,
+    string destination,
+    string gate,
+    string aircraftName,
+    string aircraftIcao,
+    string boardingTime,
+    string statusLabel,
+    int checkedInPassengers,
+    int bookedPassengers,
+    int loadedBags,
+    int dryOperatingWeightKg,
+    double dryOperatingIndex,
+    int takeoffFuelKg,
+    int tripFuelKg,
+    int taxiFuelKg,
+    int additionalWeightKg,
+    bool isLive)
+{
+    public string FlightNumber { get; } = flightNumber;
+    public string Date { get; } = date;
+    public string DepartureTime { get; } = departureTime;
+    public string Origin { get; set; } = origin;
+    public string Destination { get; set; } = destination;
+    public string Gate { get; } = gate;
+    public string AircraftName { get; set; } = aircraftName;
+    public string AircraftIcao { get; set; } = aircraftIcao;
+    public string BoardingTime { get; } = boardingTime;
+    public string StatusLabel { get; set; } = statusLabel;
+    public int CheckedInPassengers { get; set; } = checkedInPassengers;
+    public int BookedPassengers { get; set; } = bookedPassengers;
+    public int LoadedBags { get; set; } = loadedBags;
+    public int DryOperatingWeightKg { get; set; } = dryOperatingWeightKg;
+    public double DryOperatingIndex { get; set; } = dryOperatingIndex;
+    public int TakeoffFuelKg { get; set; } = takeoffFuelKg;
+    public int TripFuelKg { get; set; } = tripFuelKg;
+    public int TaxiFuelKg { get; set; } = taxiFuelKg;
+    public int AdditionalWeightKg { get; set; } = additionalWeightKg;
+    public bool IsLive { get; } = isLive;
+
+    public IportFlightSummary ToSummary() => new(
+        FlightNumber,
+        Date,
+        DepartureTime,
+        Origin,
+        Destination,
+        Gate,
+        AircraftName,
+        AircraftIcao,
+        BoardingTime,
+        StatusLabel,
+        CheckedInPassengers,
+        BookedPassengers,
+        LoadedBags,
+        IsLive);
 }
 
 public sealed record IportMonitorEventViewModel(

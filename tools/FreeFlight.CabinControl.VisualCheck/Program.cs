@@ -354,6 +354,9 @@ internal static class Program
                     Render(window, Path.Combine(outputDirectory, $"iportdcs-{module.Replace(" ", "-").ToLowerInvariant()}.png"));
                 }
 
+                viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.LoadControlModule);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+
                 var originalDow = viewModel.IportDcs.DryOperatingWeightKg;
                 var originalDoi = viewModel.IportDcs.DryOperatingIndex;
                 var originalTakeoffFuel = viewModel.IportDcs.TakeoffFuelKg;
@@ -391,6 +394,34 @@ internal static class Program
                 viewModel.IportDcs.AdditionalWeightKg = 0;
                 viewModel.IportDcs.BoardingPoint = originalBoardingPoint;
                 viewModel.IportDcs.Destination = originalDestination;
+
+                var liveFlight = viewModel.IportDcs.Flights.First(flight => flight.IsLive);
+                var dispatcherFlight = viewModel.IportDcs.Flights.First(flight => flight.FlightNumber == "BA281");
+                var secondDispatcherFlight = viewModel.IportDcs.Flights.First(flight => flight.FlightNumber == "BA274");
+                viewModel.IportDcs.SelectedFlight = dispatcherFlight;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "iportdcs-load-control-ba281.png"));
+                var dispatcherOriginalDow = viewModel.IportDcs.DryOperatingWeightKg;
+                var dispatcherOriginalDestination = viewModel.IportDcs.Destination;
+                viewModel.IportDcs.DryOperatingWeightKg = dispatcherOriginalDow + 725;
+                viewModel.IportDcs.Destination = "SFO";
+                viewModel.IportDcs.SelectedFlight = secondDispatcherFlight;
+                if (viewModel.IportDcs.Destination != "LAS" || viewModel.IportDcs.SelectedBookedPassengers != 231)
+                {
+                    throw new InvalidOperationException("The second dispatcher flight did not open its independent Load Control workspace.");
+                }
+
+                viewModel.IportDcs.SelectedFlight = dispatcherFlight;
+                if (viewModel.IportDcs.DryOperatingWeightKg != dispatcherOriginalDow + 725 ||
+                    viewModel.IportDcs.Destination != "SFO" ||
+                    !viewModel.IportDcs.CommandStatus.Contains("dispatcher flight", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Dispatcher flight load edits were not retained while switching flights.");
+                }
+
+                viewModel.IportDcs.DryOperatingWeightKg = dispatcherOriginalDow;
+                viewModel.IportDcs.Destination = dispatcherOriginalDestination;
+                viewModel.IportDcs.SelectedFlight = liveFlight;
 
                 viewModel.IportDcs.LoadActionCommand.Execute("Load sheet finalized for the active flight.");
                 if (!viewModel.IportDcs.CommandStatus.Contains("finalized", StringComparison.OrdinalIgnoreCase) ||
@@ -445,9 +476,12 @@ internal static class Program
                 var powerControl = FindVisualChild<Button>(
                     window,
                     button => Equals(button.Tag, "IportPowerControl"));
-                if (loadWorkspace is null || envelopeChart is null || systemFooter is null || printerControl is null || powerControl is null)
+                var dispatcherFlights = FindVisualChild<ListBox>(
+                    window,
+                    listBox => Equals(listBox.Tag, "IportDispatcherFlights"));
+                if (loadWorkspace is null || envelopeChart is null || systemFooter is null || printerControl is null || powerControl is null || dispatcherFlights?.Items.Count != 3)
                 {
-                    throw new InvalidOperationException("The authentic iPortflight load-control workspace and system footer were not rendered.");
+                    throw new InvalidOperationException("The authentic iPortflight load-control workspace, dispatcher flight list, and system footer were not rendered.");
                 }
             }
             else if (page == "BoardingPasses")
