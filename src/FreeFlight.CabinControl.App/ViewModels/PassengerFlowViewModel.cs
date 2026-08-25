@@ -59,10 +59,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _simBriefPilotId = settings.SimBriefPilotId;
         _simBriefAutoSync = settings.SimBriefAutoSync;
         Status = status;
-        _engine = new PassengerBoardingEngine(
-            settings.PassengerPreviewBookedCount,
-            _selectedCabinLayoutProfile.Layout);
-        _bookedPassengerCount = Math.Max(1, settings.PassengerPreviewBookedCount);
+        _engine = new PassengerBoardingEngine(0, _selectedCabinLayoutProfile.Layout);
+        _bookedPassengerCount = 0;
         SpeedOptions =
         [
             new BoardingSpeedOption("Real Ops · 30–45 min", 0.06d),
@@ -74,7 +72,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             Math.Abs(option.Multiplier - settings.PassengerPreviewSpeed)) ?? SpeedOptions[1];
 
         _engine.SetDoorOpen(BoardingDoor.L2, true);
-        ActivityLog.Add("Preview manifest prepared — L2 is open for boarding");
+        ActivityLog.Add("No passenger list loaded — import SimBrief or enter a manual passenger count");
         StartPauseCommand = new RelayCommand(_ => StartPauseOperation());
         ResetCommand = new RelayCommand(_ => ResetPreview());
         SetLoadPresetCommand = new RelayCommand(SetLoadPreset);
@@ -139,11 +137,14 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public int MappedPassengerCount => _engine.TargetPassengerCount;
     public int UnmappedPassengerCount => Math.Max(0, BookedPassengerCount - MappedPassengerCount);
     public bool HasCapacityOverflow => UnmappedPassengerCount > 0;
+    public bool HasPassengerManifest => PassengerManifest.Count > 0;
     public int PassengerInputMaximum => Math.Max(CabinCapacity, BookedPassengerCount);
     public string CapacitySummary => HasCapacityOverflow
         ? $"{MappedPassengerCount} mapped · {UnmappedPassengerCount} unmapped"
         : $"of {CabinCapacity} seats";
-    public string ManifestSummary => HasCapacityOverflow
+    public string ManifestSummary => !HasPassengerManifest
+        ? "No passenger list loaded — import SimBrief or enter a manual passenger count"
+        : HasCapacityOverflow
         ? $"{MappedPassengerCount} mapped passengers · {BookedPassengerCount} booked by SimBrief · {UnmappedPassengerCount} awaiting a compatible cabin layout"
         : $"{PassengerManifest.Count} passengers · ordered by boarding group";
 
@@ -437,7 +438,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         : "\uE768";
     public bool CanEditPassengerLoad => _engine.State is BoardingRunState.Ready or BoardingRunState.DeboardingComplete;
     public bool CanAdjustPassengerLoad => CanEditPassengerLoad && !HasSimBriefFlight;
-    public string PassengerLoadSourceLabel => HasSimBriefFlight ? "SIMBRIEF PRIORITY" : "MANUAL LOAD";
+    public string PassengerLoadSourceLabel => !HasPassengerManifest
+        ? "NO PASSENGER LIST"
+        : HasSimBriefFlight ? "SIMBRIEF PRIORITY" : "MANUAL LOAD";
 
     public string ActiveDoorSummary => _engine.OpenDoorCount switch
     {
@@ -520,7 +523,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         try
         {
             var summary = await _simBriefClient.FetchLatestOfpAsync(SimBriefPilotId);
-            var passengerCount = Math.Max(1, summary.PassengerCount);
+            var passengerCount = Math.Max(0, summary.PassengerCount);
             HasSimBriefFlight = true;
             ImportedFlightNumber = summary.FlightNumber;
             ImportedOrigin = summary.Origin;
@@ -572,6 +575,13 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void StartPauseOperation()
     {
+        if (!HasPassengerManifest)
+        {
+            AddActivity("Boarding cannot start — import SimBrief or enter a manual passenger count first");
+            RefreshFromEngine();
+            return;
+        }
+
         if (_engine.State is BoardingRunState.Boarding or BoardingRunState.Deboarding or BoardingRunState.WaitingForDoor)
         {
             var operationName = OperationName;
@@ -666,15 +676,15 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         if (CanAdjustPassengerLoad && parameter is string text && int.TryParse(text, out var percentage))
         {
-            BookedPassengerCount = Math.Max(1, (int)Math.Round(CabinCapacity * (percentage / 100d)));
+            BookedPassengerCount = Math.Max(0, (int)Math.Round(CabinCapacity * (percentage / 100d)));
         }
     }
 
     private void ApplyBookedPassengerCount(int value, bool simBriefPriority)
     {
         var bookedCount = simBriefPriority
-            ? Math.Max(1, value)
-            : Math.Clamp(value, 1, CabinCapacity);
+            ? Math.Max(0, value)
+            : Math.Clamp(value, 0, CabinCapacity);
         if (!SetProperty(ref _bookedPassengerCount, bookedCount, nameof(BookedPassengerCount)))
         {
             return;
@@ -693,6 +703,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(PassengerInputMaximum));
         OnPropertyChanged(nameof(CapacitySummary));
         OnPropertyChanged(nameof(ManifestSummary));
+        OnPropertyChanged(nameof(HasPassengerManifest));
+        OnPropertyChanged(nameof(PassengerLoadSourceLabel));
         RefreshFromEngine();
     }
 
@@ -773,6 +785,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(BusinessClassCount));
         OnPropertyChanged(nameof(PremiumEconomyClassCount));
         OnPropertyChanged(nameof(EconomyClassCount));
+        OnPropertyChanged(nameof(HasPassengerManifest));
+        OnPropertyChanged(nameof(PassengerLoadSourceLabel));
+        OnPropertyChanged(nameof(ManifestSummary));
     }
 
     private void RefreshFromEngine()

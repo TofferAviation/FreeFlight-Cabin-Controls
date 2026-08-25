@@ -16,6 +16,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Valid airline pack", ValidAirlinePackAsync),
     ("Traversal asset rejected", TraversalAssetRejectedAsync),
     ("Executable asset rejected", ExecutableAssetRejectedAsync),
+    ("Empty passenger manifest stays empty", EmptyPassengerManifestStaysEmptyAsync),
     ("L2-only passenger routing", L2OnlyPassengerRoutingAsync),
     ("Boarding tickets select L1 and L2", BoardingTicketsSelectDoorsAsync),
     ("Two-door boarding increases passenger flow", TwoDoorBoardingIncreasesFlowAsync),
@@ -32,6 +33,20 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync),
     ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync)
 };
+
+static Task EmptyPassengerManifestStaysEmptyAsync()
+{
+    var engine = new PassengerBoardingEngine(0);
+    Assert(engine.TargetPassengerCount == 0, "The engine forced an unloaded flight to contain passengers.");
+    Assert(engine.Passengers.Count == 0, "Passenger names were generated before a flight load was supplied.");
+
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    engine.Tick(TimeSpan.FromSeconds(1));
+    Assert(engine.State == BoardingRunState.Ready, "An empty manifest incorrectly started boarding.");
+    Assert(engine.Passengers.Count == 0, "Starting an empty operation generated passengers.");
+    return Task.CompletedTask;
+}
 
 var failures = new List<string>();
 foreach (var test in tests)

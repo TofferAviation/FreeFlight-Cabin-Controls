@@ -416,7 +416,7 @@
                             </StackPanel>
                             <TextBlock Text="{Binding BookedPassengerCount}" HorizontalAlignment="Right" FontSize="18" Foreground="#55AEFF" />
                             <Slider Grid.Row="1"
-                                    Minimum="1"
+                                    Minimum="0"
                                     Maximum="{Binding PassengerInputMaximum}"
                                     TickFrequency="1"
                                     IsSnapToTickEnabled="True"

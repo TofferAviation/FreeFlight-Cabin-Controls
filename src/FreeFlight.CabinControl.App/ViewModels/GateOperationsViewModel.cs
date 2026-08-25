@@ -26,7 +26,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private string _selectedCabinFilter = "All Passengers";
     private bool _isGateOpen;
     private bool _gateHasClosed;
-    private string _operationMessage = "Flight and passenger data are ready for gate preparation.";
+    private string _operationMessage = "No passenger list loaded. Import SimBrief or enter a manual passenger count.";
     private PrinterDestination? _selectedPrinter;
     private string _printerStatusMessage = "Checking Windows printers…";
 
@@ -225,6 +225,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string SimBriefImportLabel => _passengers.LastSimBriefSyncLabel;
 
     public int TotalPassengers => PassengerRecords.Count;
+    public bool HasPassengerList => TotalPassengers > 0;
+    public bool IsPassengerListEmpty => !HasPassengerList;
+    public string PassengerListStatus => HasPassengerList
+        ? $"{TotalPassengers} passenger records loaded"
+        : "No passenger list loaded — import SimBrief or enter a manual passenger count.";
     public int CheckedInPassengers => PassengerRecords.Count(passenger => passenger.IsCheckedIn);
     public int BoardedPassengers => PassengerRecords.Count(passenger => passenger.IsBoarded);
     public int TotalBags => PassengerRecords.Sum(passenger => passenger.CheckedBags);
@@ -603,6 +608,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
         SelectedPassenger = PassengerRecords.FirstOrDefault();
         RefreshVisiblePassengers();
+        OperationMessage = PassengerListStatus;
         NotifyOperationalMetrics();
     }
 
@@ -660,6 +666,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
         RefreshVisiblePassengers();
         SelectedPassenger ??= PassengerRecords.FirstOrDefault();
+        OperationMessage = PassengerListStatus;
         NotifyOperationalMetrics();
     }
 
@@ -709,6 +716,9 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private void NotifyOperationalMetrics()
     {
         OnPropertyChanged(nameof(TotalPassengers));
+        OnPropertyChanged(nameof(HasPassengerList));
+        OnPropertyChanged(nameof(IsPassengerListEmpty));
+        OnPropertyChanged(nameof(PassengerListStatus));
         OnPropertyChanged(nameof(CheckedInPassengers));
         OnPropertyChanged(nameof(BoardedPassengers));
         OnPropertyChanged(nameof(TotalBags));

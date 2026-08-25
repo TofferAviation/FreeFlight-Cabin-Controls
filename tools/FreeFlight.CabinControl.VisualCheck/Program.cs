@@ -182,6 +182,32 @@ internal static class Program
             throw new InvalidOperationException("The dummy gate login did not unlock the gate workspace.");
         }
 
+        if (viewModel.Passengers.BookedPassengerCount != 0 ||
+            viewModel.Passengers.PassengerManifest.Count != 0 ||
+            viewModel.Operations.PassengerRecords.Count != 0 ||
+            viewModel.Operations.VisiblePassengers.Count != 0 ||
+            viewModel.Operations.SelectedPassenger is not null ||
+            !viewModel.Operations.IsPassengerListEmpty)
+        {
+            throw new InvalidOperationException(
+                "Passenger identities were generated before SimBrief or a manual passenger load was supplied.");
+        }
+
+        foreach (var emptyPassengerPage in new[] { "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses" })
+        {
+            viewModel.NavigateCommand.Execute(emptyPassengerPage);
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+            Render(window, Path.Combine(outputDirectory, $"{emptyPassengerPage.ToLowerInvariant()}-no-passenger-list.png"));
+        }
+
+        viewModel.Passengers.BookedPassengerCount = 228;
+        if (viewModel.Passengers.PassengerManifest.Count != 228 ||
+            viewModel.Operations.PassengerRecords.Count != 228 ||
+            viewModel.Operations.IsPassengerListEmpty)
+        {
+            throw new InvalidOperationException("A manual passenger count did not create the shared passenger manifest.");
+        }
+
         viewModel.NavigateCommand.Execute("GateLogin");
         window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
         Render(window, Path.Combine(outputDirectory, "gate-session.png"));

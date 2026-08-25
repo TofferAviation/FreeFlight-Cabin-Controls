@@ -89,7 +89,7 @@ public sealed class PassengerBoardingEngine
 
     public void ConfigurePassengerCount(int passengerCount)
     {
-        TargetPassengerCount = Math.Clamp(passengerCount, 1, Capacity);
+        TargetPassengerCount = Math.Clamp(passengerCount, 0, Capacity);
         InitializeManifest();
     }
 
@@ -118,6 +118,12 @@ public sealed class PassengerBoardingEngine
 
     public void Start()
     {
+        if (TargetPassengerCount == 0)
+        {
+            State = BoardingRunState.Ready;
+            return;
+        }
+
         if (State is BoardingRunState.Complete or BoardingRunState.DeboardingComplete)
         {
             return;
