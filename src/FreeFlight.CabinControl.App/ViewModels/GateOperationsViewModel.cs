@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Windows.Input;
 using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Operations;
 using FreeFlight.CabinControl.Core.Passengers;
@@ -17,6 +18,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private readonly PassengerFlowViewModel _passengers;
     private readonly IOperationsClock _operationsClock;
     private readonly Func<bool> _hasGateAccess;
+    private readonly IBoardingPassPrinterService _boardingPassPrinterService;
     private readonly DispatcherTimer _clockTimer;
     private readonly Dictionary<int, GatePassengerViewModel> _passengersById = [];
     private GatePassengerViewModel? _selectedPassenger;
@@ -25,18 +27,22 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private bool _isGateOpen;
     private bool _gateHasClosed;
     private string _operationMessage = "Flight and passenger data are ready for gate preparation.";
+    private PrinterDestination? _selectedPrinter;
+    private string _printerStatusMessage = "Checking Windows printers…";
 
     public GateOperationsViewModel(
         AppSettings settings,
         PassengerFlowViewModel passengers,
         IOperationsClock operationsClock,
-        Func<bool>? hasGateAccess = null)
+        Func<bool>? hasGateAccess = null,
+        IBoardingPassPrinterService? boardingPassPrinterService = null)
         : base("Overview", "Gate preparation, boarding readiness, and live passenger operations")
     {
         _settings = settings;
         _passengers = passengers;
         _operationsClock = operationsClock;
         _hasGateAccess = hasGateAccess ?? (() => true);
+        _boardingPassPrinterService = boardingPassPrinterService ?? new WindowsBoardingPassPrinterService();
         CabinFilters = ["All Passengers", "First", "Club World", "World Traveller Plus", "World Traveller"];
         TimelineEvents =
         [
@@ -54,6 +60,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         BoardPassengerCommand = new RelayCommand(BoardPassenger);
         ToggleBagLoadedCommand = new RelayCommand(ToggleBagLoaded);
         PrintBoardingPassCommand = new RelayCommand(PrintBoardingPass);
+        RefreshPrintersCommand = new RelayCommand(_ => RefreshPrinters());
         MarkBoardingPassIssuedCommand = new RelayCommand(MarkBoardingPassIssued);
         ImportSimBriefCommand = new AsyncRelayCommand(ImportSimBriefAsync, HandleImportError);
 
@@ -65,6 +72,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         };
         _clockTimer.Tick += HandleClockTick;
         RebuildPassengerRecords();
+        RefreshPrinters();
         RefreshOperationalClock();
         _clockTimer.Start();
     }
@@ -72,6 +80,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public PassengerFlowViewModel PassengerFlow => _passengers;
     public ObservableCollection<GatePassengerViewModel> PassengerRecords { get; } = [];
     public ObservableCollection<GatePassengerViewModel> VisiblePassengers { get; } = [];
+    public ObservableCollection<PrinterDestination> AvailablePrinters { get; } = [];
     public ObservableCollection<FlightTimelineEventViewModel> TimelineEvents { get; }
     public IReadOnlyList<string> CabinFilters { get; }
     public ICommand ToggleGateCommand { get; }
@@ -81,6 +90,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public ICommand BoardPassengerCommand { get; }
     public ICommand ToggleBagLoadedCommand { get; }
     public ICommand PrintBoardingPassCommand { get; }
+    public ICommand RefreshPrintersCommand { get; }
     public ICommand MarkBoardingPassIssuedCommand { get; }
     public ICommand ImportSimBriefCommand { get; }
 
@@ -88,6 +98,39 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     {
         get => _selectedPassenger;
         set => SetProperty(ref _selectedPassenger, value);
+    }
+
+    public PrinterDestination? SelectedPrinter
+    {
+        get => _selectedPrinter;
+        set
+        {
+            if (!SetProperty(ref _selectedPrinter, value))
+            {
+                return;
+            }
+
+            if (value is not null)
+            {
+                _settings.BoardingPassPrinter = value.QueueId;
+                PrinterStatusMessage = value.IsOffline
+                    ? $"{value.DisplayName} is currently offline."
+                    : $"{value.DisplayName} is ready for boarding passes.";
+            }
+
+            OnPropertyChanged(nameof(HasAvailablePrinter));
+            OnPropertyChanged(nameof(SelectedPrinterLabel));
+        }
+    }
+
+    public bool HasAvailablePrinter => SelectedPrinter is { IsOffline: false };
+
+    public string SelectedPrinterLabel => SelectedPrinter?.DisplayLabel ?? "No Windows printer selected";
+
+    public string PrinterStatusMessage
+    {
+        get => _printerStatusMessage;
+        private set => SetProperty(ref _printerStatusMessage, value);
     }
 
     public string SearchText
@@ -458,11 +501,51 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             return;
         }
 
+        if (SelectedPrinter is not { } printer)
+        {
+            OperationMessage = "No Windows printer is available. Connect a printer and use the refresh arrow.";
+            PrinterStatusMessage = OperationMessage;
+            return;
+        }
+
+        SelectedPassenger = passenger;
+        var result = _boardingPassPrinterService.PrintBoardingPass(
+            printer,
+            this,
+            $"{FlightNumber} {passenger.FullName} {passenger.SeatNumber}");
+        PrinterStatusMessage = result.Message;
+        if (!result.IsSuccess)
+        {
+            OperationMessage = result.Message;
+            return;
+        }
+
         passenger.BoardingPassStatus = "Printed";
         passenger.LastPrintedLabel = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
-        SelectedPassenger = passenger;
-        OperationMessage = $"Boarding pass printed for {passenger.FullName} on {_settings.BoardingPassPrinter}.";
+        OperationMessage = $"Boarding pass printed for {passenger.FullName}. {result.Message}";
         NotifyOperationalMetrics();
+    }
+
+    private void RefreshPrinters()
+    {
+        var priorQueueId = SelectedPrinter?.QueueId ?? _settings.BoardingPassPrinter;
+        AvailablePrinters.Clear();
+        foreach (var printer in _boardingPassPrinterService.GetPrinters())
+        {
+            AvailablePrinters.Add(printer);
+        }
+
+        SelectedPrinter = AvailablePrinters.FirstOrDefault(printer =>
+                              string.Equals(printer.QueueId, priorQueueId, StringComparison.OrdinalIgnoreCase) ||
+                              string.Equals(printer.DisplayName, priorQueueId, StringComparison.OrdinalIgnoreCase)) ??
+                          AvailablePrinters.FirstOrDefault(printer => printer.IsDefault) ??
+                          AvailablePrinters.FirstOrDefault();
+        if (SelectedPrinter is null)
+        {
+            PrinterStatusMessage = "No Windows printers found. Connect or install a printer, then refresh.";
+            OnPropertyChanged(nameof(HasAvailablePrinter));
+            OnPropertyChanged(nameof(SelectedPrinterLabel));
+        }
     }
 
     private void MarkBoardingPassIssued(object? parameter)

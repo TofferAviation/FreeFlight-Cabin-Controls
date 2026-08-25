@@ -41,8 +41,14 @@
             </Grid>
 
             <StackPanel Grid.Row="1" Width="490" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/BAW.png"
-                       Width="330" Height="65" Stretch="Uniform" />
+                <Grid Width="330" Height="65" Tag="GateLoginBritishAirwaysWordmark">
+                    <Rectangle Fill="#F4F7FB">
+                        <Rectangle.OpacityMask>
+                            <ImageBrush ImageSource="pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/BAW.png"
+                                        Stretch="Uniform" />
+                        </Rectangle.OpacityMask>
+                    </Rectangle>
+                </Grid>
                 <TextBlock Text="FreeFlight Gate Operations" FontSize="17" Foreground="#A8B7CA" HorizontalAlignment="Center" Margin="0,-3,0,24" />
 
                 <Border Style="{StaticResource CardStyle}" Padding="32,25">

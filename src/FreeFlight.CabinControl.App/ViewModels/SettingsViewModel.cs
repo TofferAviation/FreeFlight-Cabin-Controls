@@ -14,7 +14,7 @@ public sealed class SettingsViewModel : PageViewModel
     private readonly ISettingsStore _settingsStore;
     private string _selectedSection = "General";
     private string _saveStatus = "No unsaved changes";
-    private string _boardingPassPrinterStatus = "Preview printer ready";
+    private string _boardingPassPrinterStatus = "Select an installed Windows queue from Gate Desk";
     private string _bagTagPrinterStatus = "Preview printer ready";
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
 
@@ -31,7 +31,7 @@ public sealed class SettingsViewModel : PageViewModel
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
         RestoreDefaultsCommand = new RelayCommand(_ => RestoreDefaults());
         SelectSectionCommand = new RelayCommand(SelectSection);
-        TestBoardingPassPrinterCommand = new RelayCommand(_ => BoardingPassPrinterStatus = $"Test page queued at {DateTime.Now:HH:mm}");
+        TestBoardingPassPrinterCommand = new RelayCommand(_ => BoardingPassPrinterStatus = "Use Print Pass in Gate Desk to send a real Windows print job");
         TestBagTagPrinterCommand = new RelayCommand(_ => BagTagPrinterStatus = $"Test tag queued at {DateTime.Now:HH:mm}");
         RandomizePassengerSeedCommand = new RelayCommand(_ => PassengerGenerationSeed = Random.Shared.Next(100000, 999999));
     }

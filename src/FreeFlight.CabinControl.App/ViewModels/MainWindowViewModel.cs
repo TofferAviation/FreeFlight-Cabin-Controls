@@ -20,7 +20,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         string? safetyVideoLocalFilePath = null,
         string? boardingMusicDirectory = null,
         ISimBriefClient? simBriefClient = null,
-        IOperationsClock? operationsClock = null)
+        IOperationsClock? operationsClock = null,
+        IBoardingPassPrinterService? boardingPassPrinterService = null)
     {
         _settings = settings;
         var resolvedOperationsClock = operationsClock ?? new LocalOperationsClock();
@@ -28,7 +29,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         GateLogin = new GateLoginViewModel(settings, resolvedOperationsClock);
         Airliners = new AirlinersViewModel(settings, settingsStore, Status);
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
-        Operations = new GateOperationsViewModel(settings, Passengers, resolvedOperationsClock, () => GateLogin.IsAuthenticated);
+        Operations = new GateOperationsViewModel(
+            settings,
+            Passengers,
+            resolvedOperationsClock,
+            () => GateLogin.IsAuthenticated,
+            boardingPassPrinterService);
+        IportDcs = new IportDcsViewModel(Operations, GateLogin);
         Dashboard = Operations;
         CabinPanel = new CabinControlPanelViewModel(
             settings,
@@ -50,6 +57,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public GateLoginViewModel GateLogin { get; }
 
     public GateOperationsViewModel Operations { get; }
+
+    public IportDcsViewModel IportDcs { get; }
 
     public GateOperationsViewModel Dashboard { get; }
 
@@ -85,6 +94,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         GateLogin.SignedOut -= HandleGateSignedOut;
         GateLogin.Dispose();
         Audio.Dispose();
+        IportDcs.Dispose();
         Operations.Dispose();
         Passengers.Dispose();
         Performance.Dispose();
@@ -122,6 +132,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "GateDesk" => Operations,
             "PassengerManifest" => Operations,
             "BoardingPasses" => Operations,
+            "IportDcs" => IportDcs,
             "Airliners" => Airliners,
             "Passengers" => Passengers,
             "CabinPanel" => CabinPanel,
@@ -147,5 +158,5 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     private static bool IsGateWorkspacePage(string destination) => destination is
-        "GateDesk" or "PassengerManifest" or "BoardingPasses" or "Passengers";
+        "GateDesk" or "PassengerManifest" or "BoardingPasses" or "IportDcs" or "Passengers";
 }

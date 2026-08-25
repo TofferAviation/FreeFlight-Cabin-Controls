@@ -95,6 +95,7 @@ internal static class Program
         Console.WriteLine("Creating the application view model.");
         var fixedClockTime = new DateTimeOffset(
             new DateTime(2026, 8, 25, 17, 50, 0, DateTimeKind.Local));
+        var printerService = new FakeBoardingPassPrinterService();
         var viewModel = new MainWindowViewModel(
             new AppSettings(),
             new JsonSettingsStore(settingsPath),
@@ -102,7 +103,8 @@ internal static class Program
             localSafetyVideoPath,
             boardingMusicDirectory,
             new FakeSimBriefClient(),
-            new FixedOperationsClock(fixedClockTime));
+            new FixedOperationsClock(fixedClockTime),
+            printerService);
         Console.WriteLine("Application view model created; constructing the window.");
         var window = new CabinControlWindow
         {
@@ -156,8 +158,22 @@ internal static class Program
             throw new InvalidOperationException("The signed-out gate workspace was not locked behind Gate Login.");
         }
 
+        viewModel.NavigateCommand.Execute("IportDcs");
+        if (viewModel.ActivePage != "GateLogin" || viewModel.CurrentPage != viewModel.GateLogin)
+        {
+            throw new InvalidOperationException("Iport DCS was accessible without an authenticated gate session.");
+        }
+
         window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
         Render(window, Path.Combine(outputDirectory, "gate-login.png"));
+        var gateLoginWordmark = FindVisualChild<Grid>(
+            window,
+            grid => Equals(grid.Tag, "GateLoginBritishAirwaysWordmark"));
+        if (gateLoginWordmark is null)
+        {
+            throw new InvalidOperationException("The repaired British Airways gate-login wordmark was not rendered.");
+        }
+
         viewModel.GateLogin.EmployeeId = "FF042";
         viewModel.GateLogin.Password = "preview";
         viewModel.GateLogin.SignInCommand.Execute(null);
@@ -172,7 +188,7 @@ internal static class Program
 
         foreach (var page in new[]
                  {
-                     "GateDesk", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "CabinPanel",
+                     "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "CabinPanel",
                      "Audio", "Performance", "Settings"
                  })
         {
@@ -190,12 +206,27 @@ internal static class Program
                     !passenger.IsCheckedIn ||
                     !passenger.IsBoarded ||
                     passenger.BoardingPassStatus != "Printed" ||
+                    printerService.PrintCount != 1 ||
+                    viewModel.Operations.AvailablePrinters.Count != 2 ||
                     viewModel.Operations.BoardedPassengers != boardedBefore + 1 ||
                     viewModel.Passengers.BoardedPassengerCount != boardedBefore + 1)
                 {
                     throw new InvalidOperationException(
                         "Gate Desk check-in, print, and cabin boarding did not update their shared passenger state.");
                 }
+            }
+            else if (page == "IportDcs")
+            {
+                if (!viewModel.IportDcs.IsAvailable ||
+                    viewModel.CurrentPage != viewModel.IportDcs ||
+                    viewModel.IportDcs.Flights.Count < 3 ||
+                    viewModel.IportDcs.Operations != viewModel.Operations)
+                {
+                    throw new InvalidOperationException("Iport DCS was not unlocked as a shared gate-session workspace.");
+                }
+
+                viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.CheckInModule);
+                viewModel.IportDcs.SelectPassengerCommand.Execute(viewModel.Operations.PassengerRecords.Skip(2).First());
             }
             else if (page == "PassengerManifest")
             {
@@ -292,6 +323,29 @@ internal static class Program
                 if (viewModel.Operations.IsGateOpen)
                 {
                     viewModel.Operations.ToggleGateCommand.Execute(null);
+                }
+            }
+            else if (page == "IportDcs")
+            {
+                foreach (var module in new[]
+                         {
+                             IportDcsViewModel.BoardingModule,
+                             IportDcsViewModel.SeatmapModule,
+                             IportDcsViewModel.LoadControlModule,
+                             IportDcsViewModel.FlightMonitorModule
+                         })
+                {
+                    viewModel.IportDcs.SelectModuleCommand.Execute(module);
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                    Render(window, Path.Combine(outputDirectory, $"iportdcs-{module.Replace(" ", "-").ToLowerInvariant()}.png"));
+                }
+
+                var iportWorkspace = FindVisualChild<Border>(
+                    window,
+                    border => Equals(border.Tag, "IportDcsWorkspace"));
+                if (iportWorkspace is null)
+                {
+                    throw new InvalidOperationException("The coded Iport DCS workspace was not rendered.");
                 }
             }
             else if (page == "BoardingPasses")
@@ -1102,5 +1156,25 @@ internal static class Program
         public DateTimeOffset Now { get; } = now;
 
         public string SourceLabel => "LOCAL TIME";
+    }
+
+    private sealed class FakeBoardingPassPrinterService : IBoardingPassPrinterService
+    {
+        public int PrintCount { get; private set; }
+
+        public IReadOnlyList<PrinterDestination> GetPrinters() =>
+        [
+            new PrinterDestination("visual-default", "Visual Check Printer", true, false),
+            new PrinterDestination("visual-pdf", "Visual PDF Printer", false, false)
+        ];
+
+        public BoardingPassPrintResult PrintBoardingPass(
+            PrinterDestination destination,
+            object boardingPassDataContext,
+            string jobName)
+        {
+            PrintCount++;
+            return new BoardingPassPrintResult(true, $"Sent to {destination.DisplayName}.");
+        }
     }
 }
