@@ -398,9 +398,18 @@ internal static class Program
                 var envelopeChart = FindVisualChild<Canvas>(
                     window,
                     canvas => Equals(canvas.Tag, "IportEnvelopeChart"));
-                if (loadWorkspace is null || envelopeChart is null)
+                var systemFooter = FindVisualChild<Border>(
+                    window,
+                    border => Equals(border.Tag, "IportSystemFooter"));
+                var printerControl = FindVisualChild<Button>(
+                    window,
+                    button => Equals(button.Tag, "IportPrinterControl"));
+                var powerControl = FindVisualChild<Button>(
+                    window,
+                    button => Equals(button.Tag, "IportPowerControl"));
+                if (loadWorkspace is null || envelopeChart is null || systemFooter is null || printerControl is null || powerControl is null)
                 {
-                    throw new InvalidOperationException("The authentic iPortflight load-control workspace was not rendered.");
+                    throw new InvalidOperationException("The authentic iPortflight load-control workspace and system footer were not rendered.");
                 }
             }
             else if (page == "BoardingPasses")

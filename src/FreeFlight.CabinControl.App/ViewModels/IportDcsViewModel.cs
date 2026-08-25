@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.Windows;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 
@@ -163,6 +164,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
                 CommandStatus = $"{value} workspace active.";
                 OnPropertyChanged(nameof(ActiveServiceLabel));
                 OnPropertyChanged(nameof(IportProductLabel));
+                OnPropertyChanged(nameof(IportHeaderHeight));
                 OnPropertyChanged(nameof(IsLoadControlService));
                 OnPropertyChanged(nameof(IsCustomerServiceTabsVisible));
                 OnPropertyChanged(nameof(IsLoadControlPlaceholder));
@@ -195,6 +197,8 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     public string ActiveServiceLabel => ResolveServiceLabel(ActiveModule);
 
     public string IportProductLabel => IsLoadControlService ? "flight" : "customer";
+
+    public GridLength IportHeaderHeight => new(IsLoadControlService ? 163d : 118d);
 
     public bool IsServiceMenuOpen
     {
@@ -582,6 +586,8 @@ public sealed record IportFlightSummary(
     public string StatusGlyph => IsLive ? "●" : "■";
 
     public string StatusColor => IsLive ? "#12B8CF" : "#E7B225";
+
+    public string RowBackground => IsLive ? "#20B7D0" : "#FFFFFF";
 
     public string DisplayLine => $"{FlightNumber}   {Date}-{DepartureTime}   {Destination}   {Gate}";
 }
