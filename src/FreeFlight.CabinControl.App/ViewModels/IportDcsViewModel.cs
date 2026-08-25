@@ -38,12 +38,22 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     private string _commandStatus = "Select a passenger or use an action key.";
     private bool _isServiceMenuOpen;
     private IportFlightSummary? _selectedFlight;
+    private string _boardingPoint;
+    private string _destination;
+    private int _dryOperatingWeightKg = 167_800;
+    private double _dryOperatingIndex = 45.20;
+    private int _takeoffFuelKg = 14_400;
+    private int _taxiFuelKg = 1_200;
+    private int _tripFuelKg = 11_340;
+    private int _additionalWeightKg;
 
     public IportDcsViewModel(GateOperationsViewModel operations, GateLoginViewModel gateLogin)
         : base("Iport DCS", "Advanced coded departure-control workspace")
     {
         _operations = operations;
         _gateLogin = gateLogin;
+        _boardingPoint = _gateLogin.SelectedStation.Code;
+        _destination = _operations.DestinationIata;
         Roles = ["Customer Services", "Load Control", "Flight Control"];
         Modules =
         [
@@ -276,9 +286,36 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public string SignedInUser => string.IsNullOrWhiteSpace(_gateLogin.SignedInStaff) ? "PREVIEW" : _gateLogin.SignedInStaff;
 
-    public string BoardingPoint => _gateLogin.SelectedStation.Code;
+    public string BoardingPoint
+    {
+        get => _boardingPoint;
+        set
+        {
+            var normalized = NormalizeAirportEntry(value);
+            if (SetProperty(ref _boardingPoint, normalized))
+            {
+                OnPropertyChanged(nameof(BoardingPointLabel));
+                RefreshFlightList();
+            }
+        }
+    }
 
-    public string BoardingPointLabel => $"{_gateLogin.SelectedStation.DisplayName} / {_operations.GateNumber}";
+    public string Destination
+    {
+        get => _destination;
+        set
+        {
+            var normalized = NormalizeAirportEntry(value);
+            if (SetProperty(ref _destination, normalized))
+            {
+                RefreshFlightList();
+            }
+        }
+    }
+
+    public string BoardingPointLabel => string.Equals(BoardingPoint, _gateLogin.SelectedStation.Code, StringComparison.OrdinalIgnoreCase)
+        ? $"{_gateLogin.SelectedStation.DisplayName} / {_operations.GateNumber}"
+        : $"{BoardingPoint} / {_operations.GateNumber}";
 
     public string CurrentClock => _operations.CurrentClockTime;
 
@@ -286,19 +323,71 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public int StandbyPassengers => _operations.PassengerRecords.Count(passenger => !passenger.IsCheckedIn);
 
-    public int DryOperatingWeightKg => 167_800;
+    public int DryOperatingWeightKg
+    {
+        get => _dryOperatingWeightKg;
+        set
+        {
+            if (SetProperty(ref _dryOperatingWeightKg, Math.Clamp(value, 0, 600_000)))
+            {
+                RefreshLoadCalculations();
+            }
+        }
+    }
 
     public int TrafficLoadKg => (_operations.CheckedInPassengers * 84) + (_operations.LoadedBags * 18);
 
     public int ZeroFuelWeightKg => DryOperatingWeightKg + TrafficLoadKg;
 
-    public int TakeoffFuelKg => 14_400;
+    public int TakeoffFuelKg
+    {
+        get => _takeoffFuelKg;
+        set
+        {
+            if (SetProperty(ref _takeoffFuelKg, Math.Clamp(value, 0, 200_000)))
+            {
+                RefreshLoadCalculations();
+            }
+        }
+    }
 
-    public int TakeoffWeightKg => ZeroFuelWeightKg + TakeoffFuelKg;
+    public int TakeoffWeightKg => ZeroFuelWeightKg + TakeoffFuelKg + AdditionalWeightKg;
 
-    public int TaxiFuelKg => 1_200;
+    public int TaxiFuelKg
+    {
+        get => _taxiFuelKg;
+        set
+        {
+            if (SetProperty(ref _taxiFuelKg, Math.Clamp(value, 0, 100_000)))
+            {
+                RefreshLoadCalculations();
+            }
+        }
+    }
 
-    public int TripFuelKg => 11_340;
+    public int TripFuelKg
+    {
+        get => _tripFuelKg;
+        set
+        {
+            if (SetProperty(ref _tripFuelKg, Math.Clamp(value, 0, 200_000)))
+            {
+                RefreshLoadCalculations();
+            }
+        }
+    }
+
+    public int AdditionalWeightKg
+    {
+        get => _additionalWeightKg;
+        set
+        {
+            if (SetProperty(ref _additionalWeightKg, Math.Clamp(value, 0, 100_000)))
+            {
+                RefreshLoadCalculations();
+            }
+        }
+    }
 
     public int LandingWeightKg => Math.Max(0, TakeoffWeightKg - TripFuelKg);
 
@@ -322,7 +411,27 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public int CargoWeightKg => _operations.LoadedBags * 18;
 
-    public double DryOperatingIndex => 45.20;
+    public double DryOperatingIndex
+    {
+        get => _dryOperatingIndex;
+        set
+        {
+            if (SetProperty(ref _dryOperatingIndex, Math.Clamp(value, 0d, 120d)))
+            {
+                RefreshEnvelopePositions();
+            }
+        }
+    }
+
+    public double EnvelopeIndexX => 45d + ((Math.Clamp(DryOperatingIndex, 15d, 95d) - 15d) / 80d * 410d);
+
+    public double EnvelopeMarkerLeft => EnvelopeIndexX - 8d;
+
+    public double EnvelopeZeroFuelMarkerTop => WeightToEnvelopeY(ZeroFuelWeightKg) - 11d;
+
+    public double EnvelopeTakeoffMarkerTop => WeightToEnvelopeY(TakeoffWeightKg) - 11d;
+
+    public double EnvelopeLandingMarkerTop => WeightToEnvelopeY(LandingWeightKg) - 11d;
 
     public string FlightTimeLabel => "08:20";
 
@@ -346,7 +455,11 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public string StatusLabel => _operations.IsGateOpen ? "Open for Boarding" : "Open for Check-In";
 
-    public string WbStatusLabel => ZeroFuelWeightKg > 205_000 ? "CHECK LOAD LIMITS" : "W&B READY";
+    public string WbStatusLabel => ZeroFuelWeightKg > MaxZeroFuelWeightKg ||
+        TakeoffWeightKg > MaxTakeoffWeightKg ||
+        LandingWeightKg > MaxLandingWeightKg
+        ? "CHECK LOAD LIMITS"
+        : "W&B READY";
 
     public void Dispose()
     {
@@ -460,7 +573,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             _operations.FlightNumber,
             _operations.FlightDateShort,
             _operations.ScheduledDeparture,
-            _operations.DestinationIata,
+            Destination,
             _operations.GateNumber,
             true);
         Flights.Clear();
@@ -505,6 +618,30 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(StatusLabel));
         OnPropertyChanged(nameof(WbStatusLabel));
         OnPropertyChanged(nameof(BoardingPointLabel));
+        RefreshEnvelopePositions();
+    }
+
+    private void RefreshLoadCalculations()
+    {
+        OnPropertyChanged(nameof(ZeroFuelWeightKg));
+        OnPropertyChanged(nameof(TakeoffWeightKg));
+        OnPropertyChanged(nameof(LandingWeightKg));
+        OnPropertyChanged(nameof(RampWeightKg));
+        OnPropertyChanged(nameof(EstimatedZeroFuelWeightKg));
+        OnPropertyChanged(nameof(RegulatedRampWeightKg));
+        OnPropertyChanged(nameof(AllowedTrafficLoadKg));
+        OnPropertyChanged(nameof(UnderloadKg));
+        OnPropertyChanged(nameof(WbStatusLabel));
+        RefreshEnvelopePositions();
+    }
+
+    private void RefreshEnvelopePositions()
+    {
+        OnPropertyChanged(nameof(EnvelopeIndexX));
+        OnPropertyChanged(nameof(EnvelopeMarkerLeft));
+        OnPropertyChanged(nameof(EnvelopeZeroFuelMarkerTop));
+        OnPropertyChanged(nameof(EnvelopeTakeoffMarkerTop));
+        OnPropertyChanged(nameof(EnvelopeLandingMarkerTop));
     }
 
     private void HandleOperationsPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -529,6 +666,21 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(SignedInUser));
         OnPropertyChanged(nameof(BoardingPoint));
         OnPropertyChanged(nameof(BoardingPointLabel));
+    }
+
+    private static double WeightToEnvelopeY(int weightKg)
+    {
+        var clampedWeight = Math.Clamp(weightKg, 160_000, 360_000);
+        return 225d - ((clampedWeight - 160_000d) / 200_000d * 205d);
+    }
+
+    private static string NormalizeAirportEntry(string? value)
+    {
+        var normalized = new string((value ?? string.Empty)
+            .Where(char.IsLetterOrDigit)
+            .Take(4)
+            .ToArray());
+        return normalized.ToUpperInvariant();
     }
 
     private static string AddMinutes(string time, int minutes)

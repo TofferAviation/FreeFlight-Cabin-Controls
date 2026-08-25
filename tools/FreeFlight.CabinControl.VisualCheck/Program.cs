@@ -354,6 +354,44 @@ internal static class Program
                     Render(window, Path.Combine(outputDirectory, $"iportdcs-{module.Replace(" ", "-").ToLowerInvariant()}.png"));
                 }
 
+                var originalDow = viewModel.IportDcs.DryOperatingWeightKg;
+                var originalDoi = viewModel.IportDcs.DryOperatingIndex;
+                var originalTakeoffFuel = viewModel.IportDcs.TakeoffFuelKg;
+                var originalTripFuel = viewModel.IportDcs.TripFuelKg;
+                var originalTaxiFuel = viewModel.IportDcs.TaxiFuelKg;
+                var originalBoardingPoint = viewModel.IportDcs.BoardingPoint;
+                var originalDestination = viewModel.IportDcs.Destination;
+                var originalTakeoffWeight = viewModel.IportDcs.TakeoffWeightKg;
+                var originalEnvelopeX = viewModel.IportDcs.EnvelopeIndexX;
+                var originalTakeoffMarkerTop = viewModel.IportDcs.EnvelopeTakeoffMarkerTop;
+
+                viewModel.IportDcs.DryOperatingWeightKg += 5_000;
+                viewModel.IportDcs.DryOperatingIndex += 10d;
+                viewModel.IportDcs.TakeoffFuelKg += 1_000;
+                viewModel.IportDcs.TripFuelKg += 500;
+                viewModel.IportDcs.TaxiFuelKg += 200;
+                viewModel.IportDcs.AdditionalWeightKg = 300;
+                viewModel.IportDcs.BoardingPoint = "FRA";
+                viewModel.IportDcs.Destination = "OSL";
+
+                if (viewModel.IportDcs.TakeoffWeightKg != originalTakeoffWeight + 6_300 ||
+                    viewModel.IportDcs.EnvelopeIndexX <= originalEnvelopeX ||
+                    viewModel.IportDcs.EnvelopeTakeoffMarkerTop >= originalTakeoffMarkerTop ||
+                    viewModel.IportDcs.Flights.First().Destination != "OSL" ||
+                    !viewModel.IportDcs.BoardingPointLabel.StartsWith("FRA", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("Manual iPortflight load, route, or envelope inputs did not recalculate immediately.");
+                }
+
+                viewModel.IportDcs.DryOperatingWeightKg = originalDow;
+                viewModel.IportDcs.DryOperatingIndex = originalDoi;
+                viewModel.IportDcs.TakeoffFuelKg = originalTakeoffFuel;
+                viewModel.IportDcs.TripFuelKg = originalTripFuel;
+                viewModel.IportDcs.TaxiFuelKg = originalTaxiFuel;
+                viewModel.IportDcs.AdditionalWeightKg = 0;
+                viewModel.IportDcs.BoardingPoint = originalBoardingPoint;
+                viewModel.IportDcs.Destination = originalDestination;
+
                 viewModel.IportDcs.LoadActionCommand.Execute("Load sheet finalized for the active flight.");
                 if (!viewModel.IportDcs.CommandStatus.Contains("finalized", StringComparison.OrdinalIgnoreCase) ||
                     viewModel.IportDcs.MaxTakeoffWeightKg <= viewModel.IportDcs.TakeoffWeightKg ||
