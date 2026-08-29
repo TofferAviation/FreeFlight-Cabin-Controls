@@ -1,6 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Views;
 using FreeFlight.CabinControl.App.ViewModels;
@@ -11,6 +15,7 @@ public partial class MainWindow
 {
     private bool _startupUpdateCheckStarted;
     private bool _automaticUpdateCheckInProgress;
+    private bool _flightLoggerPageInstalled;
     private string? _notifiedUpdateTag;
     private readonly DispatcherTimer _updateCheckTimer;
 
@@ -37,6 +42,8 @@ public partial class MainWindow
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        InstallFlightLoggerPage();
+
         if (_startupUpdateCheckStarted || DataContext is not MainWindowViewModel)
         {
             return;
@@ -45,6 +52,87 @@ public partial class MainWindow
         _startupUpdateCheckStarted = true;
         await CheckForAutomaticUpdateAsync();
         _updateCheckTimer.Start();
+    }
+
+    private void InstallFlightLoggerPage()
+    {
+        if (_flightLoggerPageInstalled)
+        {
+            return;
+        }
+
+        var navigationPanel = FindVisualDescendant<StackPanel>(
+            this,
+            panel => panel.Children.OfType<RadioButton>()
+                .Any(button => string.Equals(button.Content?.ToString(), "Diagnostics", StringComparison.Ordinal)));
+        var pageHost = FindVisualDescendant<Grid>(
+            this,
+            grid => grid.Children.OfType<DashboardView>().Any());
+
+        if (navigationPanel is null || pageHost is null)
+        {
+            return;
+        }
+
+        var flightLoggerButton = new RadioButton
+        {
+            Content = "FlightLogger",
+            Tag = "\uE774",
+            GroupName = "Navigation",
+            CommandParameter = "FlightLogger",
+            ToolTip = "Log and track your real-life flights"
+        };
+        if (FindResource("CompactNavRadioStyle") is Style navigationStyle)
+        {
+            flightLoggerButton.Style = navigationStyle;
+        }
+
+        flightLoggerButton.SetBinding(
+            ToggleButton.IsCheckedProperty,
+            new Binding(nameof(MainWindowViewModel.ActivePage))
+            {
+                Mode = BindingMode.OneWay,
+                Converter = (System.Windows.Data.IValueConverter)FindResource("StringEqualsConverter"),
+                ConverterParameter = "FlightLogger"
+            });
+        flightLoggerButton.SetBinding(
+            ButtonBase.CommandProperty,
+            new Binding(nameof(MainWindowViewModel.NavigateCommand)));
+        navigationPanel.Children.Add(flightLoggerButton);
+
+        var flightLoggerPage = new FlightLoggerView();
+        flightLoggerPage.SetBinding(
+            UIElement.VisibilityProperty,
+            new Binding("DataContext.ActivePage")
+            {
+                RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(Window), 1),
+                Converter = (System.Windows.Data.IValueConverter)FindResource("StringEqualsToVisibilityConverter"),
+                ConverterParameter = "FlightLogger"
+            });
+        pageHost.Children.Add(flightLoggerPage);
+        _flightLoggerPageInstalled = true;
+    }
+
+    private static T? FindVisualDescendant<T>(DependencyObject root, Func<T, bool> predicate)
+        where T : DependencyObject
+    {
+        var childCount = VisualTreeHelper.GetChildrenCount(root);
+        for (var index = 0; index < childCount; index++)
+        {
+            var child = VisualTreeHelper.GetChild(root, index);
+            if (child is T match && predicate(match))
+            {
+                return match;
+            }
+
+            var descendant = FindVisualDescendant(child, predicate);
+            if (descendant is not null)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
     }
 
     private async Task CheckForAutomaticUpdateAsync()

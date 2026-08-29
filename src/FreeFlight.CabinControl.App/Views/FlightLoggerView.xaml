@@ -1,0 +1,64 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.FlightLoggerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="Transparent">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="#050D18"
+                BorderBrush="#263A52"
+                BorderThickness="1"
+                CornerRadius="16"
+                ClipToBounds="True"
+                Cursor="Hand"
+                MouseLeftButtonUp="Promo_OnMouseLeftButtonUp"
+                ToolTip="Open FlightLogger in your default browser">
+            <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/FlightLoggerPromo.jpg"
+                   Stretch="Uniform"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"
+                   SnapsToDevicePixels="True"
+                   RenderOptions.BitmapScalingMode="HighQuality" />
+        </Border>
+
+        <Border Grid.Row="1"
+                Margin="0,14,0,0"
+                Padding="18,14"
+                Background="#C90A1728"
+                BorderBrush="#263A52"
+                BorderThickness="1"
+                CornerRadius="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="FlightLogger — real-world flight logging"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" />
+                    <TextBlock Margin="0,4,18,0"
+                               Text="Log and track your real-life flights with one of the most capable modern pilot logbooks. FlightLogger opens in your Windows default browser."
+                               TextWrapping="Wrap"
+                               Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="12" />
+                </StackPanel>
+
+                <Button Grid.Column="1"
+                        Content="Open FlightLogger  ↗"
+                        Click="OpenFlightLogger_Click"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        MinWidth="176"
+                        Height="38"
+                        Padding="14,5"
+                        VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
