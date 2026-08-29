@@ -3,7 +3,7 @@ namespace FreeFlight.CabinControl.Core.Passengers;
 public sealed class PassengerBoardingEngine
 {
     private const double PassengerWalkingSpeed = 155d;
-    private const double BaseSpawnIntervalSeconds = 0.42d;
+    private const double BaseSpawnIntervalSeconds = 0.28d;
     private readonly PassengerCabinLayoutDefinition _layoutDefinition;
     private readonly IReadOnlyList<CabinSeat> _cabinSeats;
     private readonly List<BoardingPassenger> _passengers = [];
@@ -387,7 +387,7 @@ public sealed class PassengerBoardingEngine
         var spawnInterval = _nextPassengerIndex < _passengers.Count
             ? GetSpawnInterval(_passengers[_nextPassengerIndex]) / _openDoors.Count
             : BaseSpawnIntervalSeconds;
-        var activeLimit = _openDoors.Count * 16;
+        var activeLimit = _openDoors.Count * 22;
         if (_nextPassengerIndex < _passengers.Count &&
             _passengers[_nextPassengerIndex].BoardingGroup != _currentBoardingGroup &&
             _spawnAccumulator >= spawnInterval &&
@@ -636,7 +636,7 @@ public sealed class PassengerBoardingEngine
         var spawnInterval = _nextDeboardingPassengerIndex < _deboardingQueue.Count
             ? GetSpawnInterval(_deboardingQueue[_nextDeboardingPassengerIndex]) / _openDoors.Count
             : BaseSpawnIntervalSeconds;
-        var activeLimit = _openDoors.Count * 16;
+        var activeLimit = _openDoors.Count * 22;
         while (_spawnAccumulator >= spawnInterval &&
                _nextDeboardingPassengerIndex < _deboardingQueue.Count &&
                _activePassengers.Count < activeLimit)

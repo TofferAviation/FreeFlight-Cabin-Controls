@@ -28,6 +28,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger boarding completes", PassengerBoardingCompletesAsync),
     ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
     ("Seat-belt sign controls cabin activities", SeatbeltSignControlsCabinActivitiesAsync),
+    ("Cabin crew rest rotates in 3.5-hour blocks", CabinCrewRestRotatesAsync),
     ("Unfinished passenger session restores", UnfinishedPassengerSessionRestoresAsync),
     ("Boarding groups run in numeric order", BoardingGroupsRunInNumericOrderAsync),
     ("Passenger deboarding completes", PassengerDeboardingCompletesAsync),
@@ -515,6 +516,30 @@ static Task SeatbeltSignControlsCabinActivitiesAsync()
     Assert(!passenger.SeatbeltFastened, "The passenger remained forced into the seat belt after the sign switched off.");
     Assert(passenger.CabinActivity != PassengerCabinActivity.SeatbeltFastened,
         "The passenger did not resume a cruise activity after the sign switched off.");
+    return Task.CompletedTask;
+}
+
+static Task CabinCrewRestRotatesAsync()
+{
+    var cruiseStartedAt = new DateTimeOffset(2026, 8, 29, 12, 0, 0, TimeSpan.Zero);
+    var firstBlock = CabinCrewRestSchedule.Evaluate(
+        cruiseStartedAt,
+        cruiseStartedAt.AddHours(2),
+        12);
+    Assert(firstBlock.IsActive, "Cruise did not activate cabin-crew rest.");
+    AssertEqual(1, firstBlock.RestGroup, "The first crew-rest group was not selected.");
+    AssertEqual(6, firstBlock.RestingCrewCount, "The 777 crew was not split into equal rest groups.");
+    AssertEqual(TimeSpan.FromHours(1.5d), firstBlock.Remaining, "The first rest-block countdown was incorrect.");
+    Assert(CabinCrewRestSchedule.IsCrewMemberResting(0, 12, firstBlock), "A group-one crew member was not resting.");
+    Assert(!CabinCrewRestSchedule.IsCrewMemberResting(6, 12, firstBlock), "A working group-two crew member was incorrectly resting.");
+
+    var secondBlock = CabinCrewRestSchedule.Evaluate(
+        cruiseStartedAt,
+        cruiseStartedAt.AddHours(3.5d).AddMinutes(1),
+        12);
+    AssertEqual(2, secondBlock.RestGroup, "Crew rest did not rotate after 3.5 hours.");
+    Assert(!CabinCrewRestSchedule.IsCrewMemberResting(0, 12, secondBlock), "The first rest group did not return to duty.");
+    Assert(CabinCrewRestSchedule.IsCrewMemberResting(6, 12, secondBlock), "The second rest group did not begin its block.");
     return Task.CompletedTask;
 }
 

@@ -198,6 +198,39 @@ internal static class Program
             return 0;
         }
 
+        if (string.Equals(
+                Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_LIVE_CABIN_ONLY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            viewModel.Passengers.SelectedCabinLayoutProfile = viewModel.Passengers.CabinLayoutProfiles.Single(profile =>
+                profile.Id == "british-airways.777-300");
+            viewModel.Passengers.ApplyCabinTelemetry(new CabinTelemetrySnapshot(
+                fixedClockTime,
+                "Cruise",
+                36_000d,
+                false,
+                true,
+                new Dictionary<string, double> { ["groundspeed_mps"] = 240d }));
+            viewModel.NavigateCommand.Execute("Passengers");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+            if (viewModel.Passengers.RestingCrewCount != 6 ||
+                !viewModel.Passengers.CrewRestStatus.Contains("3:30 remaining", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("The live cabin did not expose its 3.5-hour cabin-crew rest rotation.");
+            }
+
+            Render(window, Path.Combine(outputDirectory, "passengers-crew-rest.png"));
+            window.Width = 1120;
+            window.Height = 700;
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            Render(window, Path.Combine(outputDirectory, "passengers-crew-rest-minimum-window.png"));
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered focused Live Cabin checks to {outputDirectory}");
+            return 0;
+        }
+
         var dashboardView = FindVisualChild<FreeFlight.CabinControl.App.Views.DashboardView>(window, _ => true);
         var overviewGateToggle = dashboardView is null
             ? null

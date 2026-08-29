@@ -48,6 +48,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private int _activityPulseTicks;
     private bool _isAircraftMoving;
     private bool _isPushbackActive;
+    private DateTimeOffset? _crewRestCycleStartedAt;
+    private CabinCrewRestAssignment _crewRestAssignment;
+    private int _lastAnnouncedCrewRestGroup;
 
     public PassengerFlowViewModel(
         AppSettings settings,
@@ -134,6 +137,21 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public string LiveFlightPhase => _liveFlightPhase;
     public string AircraftMovementLabel => _isPushbackActive ? "PUSHBACK ACTIVE" : _isAircraftMoving ? "AIRCRAFT MOVING" : "STATIONARY";
     public string LiveCabinStatus => $"{LiveFlightPhase.ToUpperInvariant()} · {AircraftMovementLabel} · {SeatbeltSignLabel}";
+    private int ExpectedCabinCrewCount => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300 ? 12 : 10;
+    public int RestingCrewCount => _crewRestAssignment.IsActive ? _crewRestAssignment.RestingCrewCount : 0;
+    public string CrewRestStatus
+    {
+        get
+        {
+            if (!_crewRestAssignment.IsActive)
+            {
+                return "CREW REST · 3h 30m cruise rotations";
+            }
+
+            var hours = (int)_crewRestAssignment.Remaining.TotalHours;
+            return $"CREW REST {_crewRestAssignment.RestGroup} · {RestingCrewCount} resting · {hours}:{_crewRestAssignment.Remaining.Minutes:00} remaining";
+        }
+    }
     public string CabinActivitySummary
     {
         get
@@ -142,7 +160,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             var entertainment = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WatchingMovie or PassengerCabinActivity.Gaming or PassengerCabinActivity.UsingPhone);
             var resting = passengers.Count(passenger => passenger.CabinActivity == PassengerCabinActivity.Sleeping);
             var moving = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat);
-            return $"{entertainment} entertainment · {resting} resting · {moving} moving · {CabinCrewMarkers.Count(marker => !marker.IsSecured)} crew active";
+            var activeCrew = CabinCrewMarkers.Count(marker => !marker.IsSecured && !marker.IsResting);
+            return $"{entertainment} entertainment · {resting} resting · {moving} moving · {activeCrew} crew active · {RestingCrewCount} crew resting";
         }
     }
     public double L1DoorCanvasLeft => SelectedCabinLayoutProfile.Layout switch
@@ -222,6 +241,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(LiveCabinStatus));
         }
 
+        UpdateCabinCrewRest();
         RefreshCrewMarkers();
     }
 
@@ -584,7 +604,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ImportedAircraftIcao,
         ImportedScheduledDepartureLocal,
         LastSimBriefSyncTime,
-        _engine.CaptureSession());
+        _engine.CaptureSession(),
+        _crewRestCycleStartedAt,
+        LiveFlightPhase);
 
     public bool RestoreFlightSession(FlightSessionSnapshot snapshot)
     {
@@ -605,11 +627,17 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ImportedAircraftIcao = snapshot.ImportedAircraftIcao;
         ImportedScheduledDepartureLocal = snapshot.ImportedScheduledDepartureLocal;
         LastSimBriefSyncTime = snapshot.LastSimBriefSyncTime;
+        _crewRestCycleStartedAt = snapshot.CrewRestCycleStartedAt;
+        _liveFlightPhase = string.IsNullOrWhiteSpace(snapshot.LiveFlightPhase)
+            ? "Preflight"
+            : snapshot.LiveFlightPhase;
         RebuildManifest();
         ClearPassengerVisuals();
         AddActivity($"Previous unfinished flight restored · saved {snapshot.SavedAt.ToLocalTime():dd MMM HH:mm}");
         OnPropertyChanged(nameof(L1DoorOpen));
         OnPropertyChanged(nameof(L2DoorOpen));
+        OnPropertyChanged(nameof(LiveFlightPhase));
+        OnPropertyChanged(nameof(LiveCabinStatus));
         RefreshFromEngine();
         return true;
     }
@@ -1048,7 +1076,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void RefreshCrewMarkers()
     {
-        var crewCount = SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300 ? 12 : 10;
+        var crewCount = ExpectedCabinCrewCount;
         while (CabinCrewMarkers.Count < crewCount)
         {
             CabinCrewMarkers.Add(new CabinCrewMarkerViewModel(CabinCrewMarkers.Count + 1));
@@ -1063,6 +1091,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         var entranceGreeting = _engine.Operation == PassengerOperation.Boarding &&
                                _engine.State is BoardingRunState.Boarding or BoardingRunState.WaitingForDoor or BoardingRunState.Ready;
         var secured = SeatbeltSignOn ||
+                      _isAircraftMoving ||
+                      _isPushbackActive ||
                       LiveFlightPhase.Contains("Taxi", StringComparison.OrdinalIgnoreCase) ||
                       LiveFlightPhase.Contains("Approach", StringComparison.OrdinalIgnoreCase) ||
                       LiveFlightPhase.Contains("Climb", StringComparison.OrdinalIgnoreCase) ||
@@ -1070,10 +1100,25 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         for (var index = 0; index < CabinCrewMarkers.Count; index++)
         {
             var crew = CabinCrewMarkers[index];
+            if (CabinCrewRestSchedule.IsCrewMemberResting(index, CabinCrewMarkers.Count, _crewRestAssignment))
+            {
+                var restSlot = _crewRestAssignment.RestGroup == 1
+                    ? index
+                    : index - (CabinCrewMarkers.Count / 2);
+                var restX = 865d + (restSlot * 26d);
+                crew.Update(
+                    Math.Clamp(restX, 865d, 1008d),
+                    20d,
+                    $"Crew rest group {_crewRestAssignment.RestGroup} · {CrewRestStatus}",
+                    true,
+                    true);
+                continue;
+            }
+
             if (entranceGreeting && index < 2)
             {
                 var doorOpen = index == 0 ? L1DoorOpen : L2DoorOpen;
-                crew.Update(index == 0 ? l1X : l2X, 168d, doorOpen ? "Greeting passengers" : "Standing by at entrance", false);
+                crew.Update(index == 0 ? l1X : l2X, 168d, doorOpen ? "Greeting passengers" : "Standing by at entrance", false, false);
                 continue;
             }
 
@@ -1085,7 +1130,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                     1 => l2X,
                     _ => 120d + (((index - 2) % 4) * 285d)
                 };
-                crew.Update(Math.Clamp(stationX, 25d, 1008d), index % 2 == 0 ? 48d : 143d, "Secured at crew station", true);
+                crew.Update(Math.Clamp(stationX, 25d, 1008d), index % 2 == 0 ? 48d : 143d, "Secured at crew station", true, false);
                 continue;
             }
 
@@ -1098,8 +1143,51 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 2 => "Passenger assistance",
                 _ => "Galley preparation"
             };
-            crew.Update(activeX, activeY, activity, false);
+            crew.Update(activeX, activeY, activity, false, false);
         }
+    }
+
+    private void UpdateCabinCrewRest()
+    {
+        var isCruise = LiveFlightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase);
+        if (!isCruise)
+        {
+            if (_crewRestAssignment.IsActive)
+            {
+                AddActivity("Cabin crew rest rotation ended · all crew returned to duty");
+            }
+
+            _crewRestCycleStartedAt = null;
+            _crewRestAssignment = default;
+            _lastAnnouncedCrewRestGroup = 0;
+            NotifyCrewRestChanged();
+            return;
+        }
+
+        var currentTime = _operationsClock.Now;
+        if (_crewRestCycleStartedAt is null || currentTime < _crewRestCycleStartedAt)
+        {
+            _crewRestCycleStartedAt = currentTime;
+        }
+
+        _crewRestAssignment = CabinCrewRestSchedule.Evaluate(
+            _crewRestCycleStartedAt.Value,
+            currentTime,
+            ExpectedCabinCrewCount);
+        if (_crewRestAssignment.IsActive && _lastAnnouncedCrewRestGroup != _crewRestAssignment.RestGroup)
+        {
+            _lastAnnouncedCrewRestGroup = _crewRestAssignment.RestGroup;
+            AddActivity($"Cabin crew rest group {_crewRestAssignment.RestGroup} started · {RestingCrewCount} crew · 3h 30m block");
+        }
+
+        NotifyCrewRestChanged();
+    }
+
+    private void NotifyCrewRestChanged()
+    {
+        OnPropertyChanged(nameof(RestingCrewCount));
+        OnPropertyChanged(nameof(CrewRestStatus));
+        OnPropertyChanged(nameof(CabinActivitySummary));
     }
 
     private async Task SaveSettingsQuietlyAsync()
@@ -1158,6 +1246,7 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
     private double _y;
     private string _activity = "Standing by";
     private bool _isSecured;
+    private bool _isResting;
 
     public CabinCrewMarkerViewModel(int crewNumber)
     {
@@ -1170,9 +1259,10 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
     public double CanvasLeft => _x - 6d;
     public double CanvasTop => _y - 6d;
     public bool IsSecured { get => _isSecured; private set => SetProperty(ref _isSecured, value); }
+    public bool IsResting { get => _isResting; private set => SetProperty(ref _isResting, value); }
     public string ToolTip => $"{Role} · {_activity}";
 
-    public void Update(double x, double y, string activity, bool isSecured)
+    public void Update(double x, double y, string activity, bool isSecured, bool isResting)
     {
         if (Math.Abs(_x - x) > 0.01d)
         {
@@ -1190,6 +1280,7 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
             OnPropertyChanged(nameof(ToolTip));
         }
         IsSecured = isSecured;
+        IsResting = isResting;
     }
 }
 

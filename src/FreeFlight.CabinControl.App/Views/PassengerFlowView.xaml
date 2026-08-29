@@ -181,32 +181,49 @@
                 <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="16,12">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="42" />
+                            <RowDefinition Height="82" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="42" />
                         </Grid.RowDefinitions>
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Live Cabin" Style="{StaticResource SectionTitleStyle}" />
-                                <ComboBox ItemsSource="{Binding CabinLayoutProfiles}"
-                                          SelectedItem="{Binding SelectedCabinLayoutProfile}"
-                                          Width="205"
-                                          Height="31"
-                                          Margin="12,-3,0,0"
-                                          ToolTip="Choose the cabin shown in the live preview" />
-                            </StackPanel>
-                            <Border Grid.Column="1"
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="36" />
+                                <RowDefinition Height="44" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Live Cabin" Style="{StaticResource SectionTitleStyle}" />
+                                    <ComboBox ItemsSource="{Binding CabinLayoutProfiles}"
+                                              SelectedItem="{Binding SelectedCabinLayoutProfile}"
+                                              Width="205"
+                                              Height="31"
+                                              Margin="12,-3,0,0"
+                                              ToolTip="Choose the cabin shown in the live preview" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Content="Open Manifest"
+                                        Command="{Binding OpenManifestCommand}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        MinHeight="30"
+                                        Padding="12,4"
+                                        Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </Grid>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
                                     Background="#332A1020"
                                     BorderBrush="#F0C64E"
                                     BorderThickness="1"
                                     CornerRadius="11"
                                     Padding="7,3"
-                                    Margin="10,0"
+                                    Margin="0,2,10,2"
                                     HorizontalAlignment="Center"
                                     ToolTip="{Binding BoardingGroupDetail}"
                                     Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -254,20 +271,29 @@
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal"
-                                        HorizontalAlignment="Right"
+                            <StackPanel Grid.Column="1"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Center"
                                         Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Button Content="Open Manifest"
-                                        Command="{Binding OpenManifestCommand}"
-                                        Style="{StaticResource SecondaryButtonStyle}"
-                                        MinHeight="30"
-                                        Padding="12,4"
-                                        Margin="0,0,10,0" />
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding ActiveDoorSummary}" Foreground="#58E68A" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" />
-                                    <TextBlock Text="{Binding LiveCabinStatus}" Foreground="#8FC8FF" FontSize="8" HorizontalAlignment="Right" />
-                                </StackPanel>
+                                <TextBlock Text="{Binding ActiveDoorSummary}"
+                                           Foreground="#58E68A"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding LiveCabinStatus}"
+                                           Foreground="#8FC8FF"
+                                           FontSize="8"
+                                           TextAlignment="Right"
+                                           TextWrapping="Wrap"
+                                           ToolTip="{Binding LiveCabinStatus}" />
+                                <TextBlock Text="{Binding CrewRestStatus}"
+                                           Foreground="#AFA2FF"
+                                           FontSize="8"
+                                           TextAlignment="Right"
+                                           TextWrapping="Wrap"
+                                           ToolTip="{Binding CrewRestStatus}" />
                             </StackPanel>
+                            </Grid>
                         </Grid>
 
                         <Viewbox Grid.Row="1" Stretch="Uniform">
@@ -358,6 +384,9 @@
                                                 <Border Width="8" Height="7" CornerRadius="4,4,3,3" Background="#0B3D78" BorderBrush="#A9D2FF" BorderThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                                                 <Ellipse Width="12" Height="12" Stroke="#FFFFFF" StrokeThickness="1" Fill="Transparent">
                                                     <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSecured}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
+                                                </Ellipse>
+                                                <Ellipse Width="12" Height="12" Stroke="#B49CFF" StrokeThickness="1.5" Fill="Transparent">
+                                                    <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsResting}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
                                                 </Ellipse>
                                             </Grid>
                                         </DataTemplate>
@@ -466,6 +495,7 @@
                                 <Ellipse Width="8" Height="8" Fill="#FF9D45" Margin="0,0,5,0" /><TextBlock Text="Occupying seat" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
                                 <Ellipse Width="8" Height="8" Fill="#58E68A" Margin="0,0,5,0" /><TextBlock Text="Secured" Style="{StaticResource MutedTextStyle}" />
                                 <Ellipse Width="8" Height="8" Fill="#0B3D78" Stroke="#A9D2FF" Margin="12,0,5,0" /><TextBlock Text="Cabin crew" Style="{StaticResource MutedTextStyle}" />
+                                <Ellipse Width="8" Height="8" Fill="#0B3D78" Stroke="#B49CFF" StrokeThickness="1.5" Margin="12,0,5,0" /><TextBlock Text="Crew rest" Style="{StaticResource MutedTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Grid>
