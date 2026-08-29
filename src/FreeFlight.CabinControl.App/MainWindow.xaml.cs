@@ -74,6 +74,12 @@ public partial class MainWindow
             return;
         }
 
+        var flightLoggerPage = new FlightLoggerView
+        {
+            Visibility = Visibility.Collapsed
+        };
+        pageHost.Children.Add(flightLoggerPage);
+
         var flightLoggerButton = new RadioButton
         {
             Content = "FlightLogger",
@@ -98,18 +104,22 @@ public partial class MainWindow
         flightLoggerButton.SetBinding(
             ButtonBase.CommandProperty,
             new Binding(nameof(MainWindowViewModel.NavigateCommand)));
-        navigationPanel.Children.Add(flightLoggerButton);
 
-        var flightLoggerPage = new FlightLoggerView();
-        flightLoggerPage.SetBinding(
-            UIElement.VisibilityProperty,
-            new Binding("DataContext.ActivePage")
+        flightLoggerButton.Checked += (_, _) =>
+        {
+            foreach (UIElement child in pageHost.Children)
             {
-                RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(Window), 1),
-                Converter = (System.Windows.Data.IValueConverter)FindResource("StringEqualsToVisibilityConverter"),
-                ConverterParameter = "FlightLogger"
-            });
-        pageHost.Children.Add(flightLoggerPage);
+                child.Visibility = ReferenceEquals(child, flightLoggerPage)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+        };
+        flightLoggerButton.Unchecked += (_, _) =>
+        {
+            flightLoggerPage.Visibility = Visibility.Collapsed;
+        };
+
+        navigationPanel.Children.Add(flightLoggerButton);
         _flightLoggerPageInstalled = true;
     }
 
