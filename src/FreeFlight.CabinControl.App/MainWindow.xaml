@@ -174,6 +174,15 @@
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Performance, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Performance" />
+                        <TextBlock Text="REAL TRACKER" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="FlightLogger"
+                                     Tag="&#xE774;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=FlightLogger, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="FlightLogger"
+                                     ToolTip="Open the FlightLogger real-world flight tracker" />
                     </StackPanel>
                     </ScrollViewer>
 
@@ -296,7 +305,9 @@
                     <views:PassengerManifestView DataContext="{Binding Operations}"
                                                  Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=PassengerManifest}" />
                     <views:BoardingPassesView DataContext="{Binding Operations}"
-                                              Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=BoardingPasses}" />
+                                               Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=BoardingPasses}" />
+                    <views:FlightLoggerView DataContext="{Binding FlightLogger}"
+                                            Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=FlightLogger}" />
                 </Grid>
             </Grid>
         </Grid>

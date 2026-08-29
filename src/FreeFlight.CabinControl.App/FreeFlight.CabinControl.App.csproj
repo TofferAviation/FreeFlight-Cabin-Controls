@@ -31,7 +31,7 @@
     <Resource Include="Assets\FreeFlightBrand.png" />
     <Resource Include="Assets\FreeFlightHeaderMark.png" />
     <Resource Include="Assets\FreeFlightHeaderWordmark.png" />
-    <Resource Include="Assets\FlightLoggerPromo.jpg" />
+    <Resource Include="Assets\FlightLoggerPromo.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
     <EmbeddedResource Include="Assets\Operators\real-world-operators.json"
                       LogicalName="FreeFlight.CabinControl.Operators.RealWorld.json" />

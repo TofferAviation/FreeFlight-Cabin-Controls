@@ -74,6 +74,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             settingsStore,
             updateService ?? new UpdateService(Path.GetDirectoryName(logDirectory) ?? logDirectory),
             PersistFlightSession);
+        FlightLogger = new FlightLoggerViewModel();
         _currentPage = Dashboard;
         NavigateCommand = new RelayCommand(Navigate);
         _sessionSaveTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -116,6 +117,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public SettingsViewModel Settings { get; }
 
     public UpdatesViewModel Updates { get; }
+
+    public FlightLoggerViewModel FlightLogger { get; }
 
     public bool IsFlightInProgress =>
         Passengers.PassengerManifest.Count > 0 && !Passengers.IsFlightCompleted;
@@ -208,6 +211,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "Audio" => Audio,
             "Performance" => Performance,
             "Settings" => Settings,
+            "FlightLogger" => FlightLogger,
             _ => Dashboard
         };
         ActivePage = destination;

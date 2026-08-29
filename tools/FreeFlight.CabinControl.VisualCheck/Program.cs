@@ -169,6 +169,35 @@ internal static class Program
 
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
 
+        if (string.Equals(
+                Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_FLIGHTLOGGER_ONLY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            viewModel.NavigateCommand.Execute("FlightLogger");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            var promoImage = FindVisualChild<Image>(
+                window,
+                image => Equals(image.Tag, "FlightLoggerPromo"));
+            if (viewModel.ActivePage != "FlightLogger" ||
+                viewModel.CurrentPage != viewModel.FlightLogger ||
+                FlightLoggerViewModel.OfficialUrl != "https://flightlogger.app/" ||
+                promoImage?.Source is null)
+            {
+                throw new InvalidOperationException("The Real Tracker FlightLogger destination or supplied artwork was not available.");
+            }
+
+            Render(window, Path.Combine(outputDirectory, "flightlogger.png"));
+            window.Width = 1120;
+            window.Height = 700;
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            Render(window, Path.Combine(outputDirectory, "flightlogger-minimum-window.png"));
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered focused FlightLogger checks to {outputDirectory}");
+            return 0;
+        }
+
         var dashboardView = FindVisualChild<FreeFlight.CabinControl.App.Views.DashboardView>(window, _ => true);
         var overviewGateToggle = dashboardView is null
             ? null
@@ -231,9 +260,11 @@ internal static class Program
 
         foreach (var emptyPassengerPage in new[] { "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses" })
         {
+            Console.WriteLine($"Rendering empty passenger page: {emptyPassengerPage}.");
             viewModel.NavigateCommand.Execute(emptyPassengerPage);
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
             Render(window, Path.Combine(outputDirectory, $"{emptyPassengerPage.ToLowerInvariant()}-no-passenger-list.png"));
+            Console.WriteLine($"Rendered empty passenger page: {emptyPassengerPage}.");
         }
 
         viewModel.Passengers.BookedPassengerCount = 228;
@@ -250,8 +281,8 @@ internal static class Program
 
         foreach (var page in new[]
                  {
-                     "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "CabinPanel",
-                     "Audio", "Performance", "Settings"
+                      "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "CabinPanel",
+                      "Audio", "Performance", "Settings", "FlightLogger"
                  })
         {
             viewModel.NavigateCommand.Execute(page);
@@ -422,6 +453,18 @@ internal static class Program
                     viewModel.Settings.CabinLayoutProfiles.Select(profile => profile.Id).Distinct().Count() != 3)
                 {
                     throw new InvalidOperationException("The three stable 777 cabin layout profiles were not available.");
+                }
+            }
+            else if (page == "FlightLogger")
+            {
+                var promoImage = FindVisualChild<Image>(
+                    window,
+                    image => Equals(image.Tag, "FlightLoggerPromo"));
+                if (viewModel.CurrentPage != viewModel.FlightLogger ||
+                    FlightLoggerViewModel.OfficialUrl != "https://flightlogger.app/" ||
+                    promoImage?.Source is null)
+                {
+                    throw new InvalidOperationException("The Real Tracker FlightLogger destination or supplied artwork was not available.");
                 }
             }
 

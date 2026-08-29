@@ -9,6 +9,7 @@ All notable changes are recorded here. User settings and unfinished-flight state
 - A GitHub Releases pipeline now publishes a versioned Windows package after every accepted change on `main`.
 - Automatic update checks now run at startup and every 30 minutes, with a manual **Check GitHub Now** action in Settings.
 - The update dialog and changelog load the latest GitHub release notes instead of relying only on the installed text file.
+- A **Real Tracker** navigation group and FlightLogger community page now present the supplied promotional artwork and open the official real-world flight logbook in the user's browser without sharing FreeFlight session data.
 
 - Automatic X-Plane and Microsoft Flight Simulator 2024 detection through the X-Plane Web API and the official out-of-process SimConnect interface.
 - A persistent simulator-status indicator that names the active simulator and reports whether telemetry comes from X-Plane Web API or MSFS 2024 SimConnect.
@@ -29,6 +30,7 @@ All notable changes are recorded here. User settings and unfinished-flight state
 
 - Replaced the abstract seatbelt indicator with a crisp buckle-arrow-buckle annunciator based on the supplied 777-style reference.
 - Release builds now receive their actual version from the GitHub workflow, so the Settings version, update comparison, ZIP name, and changelog agree.
+- Self-contained GitHub packages now restore the required Windows runtime packs from the official NuGet feed during release publication.
 
 - Cabin layout replacement now raises one collection reset instead of hundreds of individual UI updates.
 - Simulator telemetry is coalesced to the newest frame so the UI dispatcher cannot be flooded during simulator or layout loading.

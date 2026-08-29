@@ -58,6 +58,7 @@ jobs:
           $shortSha = "${{ github.sha }}".Substring(0, 8)
           dotnet publish src/FreeFlight.CabinControl.App/FreeFlight.CabinControl.App.csproj `
             -c Release -r win-x64 --self-contained true `
+            --source https://api.nuget.org/v3/index.json `
             -o artifacts/publish `
             -p:Version=${{ steps.version.outputs.version }} `
             -p:AssemblyVersion=${{ steps.version.outputs.version }}.0 `
