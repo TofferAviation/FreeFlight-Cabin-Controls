@@ -2,7 +2,7 @@
 
 Passenger Flow is an original FreeFlight cabin-operations view. It does not copy Passenger2 artwork, layouts, code, or interface assets.
 
-## Current simulator-free behavior
+## Current cabin behavior
 
 - Provides operational coordinate profiles for the 311-position FlightFactor schematic, 280-position British Airways 777-200ER, and 266-position British Airways 777-300.
 - Accepts a user-selected mapped-passenger count up to the selected layout's capacity, while preserving a larger authoritative booked count imported from SimBrief.
@@ -35,12 +35,12 @@ Aircraft Settings and the Passenger Flow Live Cabin card expose three stable pro
 
 Changing layouts safely starts a fresh manifest against the selected capacity while preserving the booked SimBrief count, current manual door choices, and stable profile selection. A count above the chosen capacity is reported as unmapped rather than silently discarded.
 
-The user can persist a manual profile selection now. Once the X-Plane adapter exists, detected aircraft identity and verified variant metadata can select the matching profile automatically. Ambiguous or unknown aircraft must fall back to an explicit user choice rather than guessing the cabin.
+The user can persist a manual profile selection. The X-Plane bridge now detects and reports aircraft identity, but it deliberately does not guess a cabin profile from an ambiguous description. A verified aircraft adapter can later map exact variant metadata to a stable profile ID; unknown aircraft continue to use the explicit user choice.
 
-## Future bridge boundary
+## X-Plane bridge boundary
 
-The boarding engine is implemented in `FreeFlight.CabinControl.Core` and has no WPF or X-Plane dependency. The desktop view currently calls `SetDoorOpen` from its manual L1/L2 switches. A future FlightFactor 777 adapter can call the same method from live door datarefs.
+The boarding engine is implemented in `FreeFlight.CabinControl.Core` and has no WPF or X-Plane dependency. The desktop view calls `SetDoorOpen` from its manual L1/L2 switches. When X-Plane exposes `sim/flightmodel2/misc/door_open_ratio`, the live bridge maps indexes 0 and 1 to those same semantic L1/L2 inputs. Synchronization is optional and manual control remains the fallback when the array is absent.
 
-The aircraft adapter must map FlightFactor door identifiers or X-Plane door-array indexes to semantic door names such as L1 and L2, and map verified aircraft/variant identifiers to the stable cabin-layout profile IDs. Passenger count can be supplied by the existing manual manifest control or the current SimBrief latest-OFP integration. A future vAMSYS integration can feed the same configuration boundary.
+A FlightFactor adapter still needs verified mappings for custom door identifiers and exact aircraft/variant identifiers. Passenger count can be supplied by the existing manual manifest control or the current SimBrief latest-OFP integration. A future vAMSYS integration can feed the same configuration boundary.
 
 Actual 3D passenger objects are a later rendering layer. The current top-down passenger positions and assigned seats already provide the state needed to drive that layer without replacing the manifest or routing system.

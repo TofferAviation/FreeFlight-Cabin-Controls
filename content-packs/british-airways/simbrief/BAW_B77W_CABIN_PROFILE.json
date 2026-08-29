@@ -1,0 +1,23 @@
+{
+  "profileId": "freeflight.ba.b77w.256",
+  "airline": "British Airways",
+  "icao": "B77W",
+  "aircraft": "Boeing 777-300ER",
+  "cabinCapacity": 256,
+  "cabins": {
+    "first": 8,
+    "clubWorld": 76,
+    "worldTravellerPlus": 40,
+    "worldTraveller": 132
+  },
+  "standardPassengerMassKgIncludingCabinBag": 84,
+  "defaultCheckedBagMassKg": 18,
+  "referenceDryOperatingWeightKg": 167800,
+  "structuralLimitsKg": {
+    "maximumZeroFuelWeight": 237682,
+    "maximumTakeoffWeight": 351534,
+    "maximumLandingWeight": 251290,
+    "maximumRampWeight": 352634
+  },
+  "usage": "Cabin/load-planning reference for a SimBrief B77W airframe. Verify DOW/DOI against the exact simulator aircraft before dispatch."
+}

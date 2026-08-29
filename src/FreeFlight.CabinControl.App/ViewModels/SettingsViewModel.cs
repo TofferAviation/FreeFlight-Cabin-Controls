@@ -1,10 +1,14 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Runtime.CompilerServices;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Integration;
 using FreeFlight.CabinControl.Core.Passengers;
 using FreeFlight.CabinControl.Core.Persistence;
+using Microsoft.Win32;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
 
@@ -12,17 +16,23 @@ public sealed class SettingsViewModel : PageViewModel
 {
     private readonly AppSettings _settings;
     private readonly ISettingsStore _settingsStore;
+    private readonly ISimulatorBridge? _simulatorBridge;
     private string _selectedSection = "General";
     private string _saveStatus = "No unsaved changes";
     private string _boardingPassPrinterStatus = "Select an installed Windows queue from Gate Desk";
     private string _bagTagPrinterStatus = "Preview printer ready";
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
 
-    public SettingsViewModel(AppSettings settings, ISettingsStore settingsStore, SharedStatusViewModel status)
+    public SettingsViewModel(
+        AppSettings settings,
+        ISettingsStore settingsStore,
+        SharedStatusViewModel status,
+        ISimulatorBridge? simulatorBridge = null)
         : base("Settings", "Application, aircraft, airline, and user preferences")
     {
         _settings = settings;
         _settingsStore = settingsStore;
+        _simulatorBridge = simulatorBridge;
         _selectedCabinLayoutProfile = CabinLayoutProfiles.FirstOrDefault(profile =>
             string.Equals(profile.Id, settings.PassengerCabinLayoutId, StringComparison.OrdinalIgnoreCase)) ??
             CabinLayoutProfiles[0];
@@ -34,6 +44,9 @@ public sealed class SettingsViewModel : PageViewModel
         TestBoardingPassPrinterCommand = new RelayCommand(_ => BoardingPassPrinterStatus = "Use Print Pass in Gate Desk to send a real Windows print job");
         TestBagTagPrinterCommand = new RelayCommand(_ => BagTagPrinterStatus = $"Test tag queued at {DateTime.Now:HH:mm}");
         RandomizePassengerSeedCommand = new RelayCommand(_ => PassengerGenerationSeed = Random.Shared.Next(100000, 999999));
+        ReconnectXPlaneCommand = new RelayCommand(_ => _simulatorBridge?.RequestReconnect());
+        SelectXPlaneFolderCommand = new RelayCommand(_ => SelectXPlaneFolder());
+        SelectXPlaneExecutableCommand = new RelayCommand(_ => SelectXPlaneExecutable());
     }
 
     public SharedStatusViewModel Status { get; }
@@ -49,6 +62,12 @@ public sealed class SettingsViewModel : PageViewModel
     public ICommand TestBagTagPrinterCommand { get; }
 
     public ICommand RandomizePassengerSeedCommand { get; }
+
+    public ICommand ReconnectXPlaneCommand { get; }
+
+    public ICommand SelectXPlaneFolderCommand { get; }
+
+    public ICommand SelectXPlaneExecutableCommand { get; }
 
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
 
@@ -70,7 +89,96 @@ public sealed class SettingsViewModel : PageViewModel
 
     public IReadOnlyList<CabinLayoutProfileOption> CabinLayoutProfiles => CabinLayoutProfileCatalog.All;
 
-    public string Version => "v0.1.0-dev";
+    public string Version => $"v{typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"}";
+
+    public string XPlaneExecutablePath
+    {
+        get => _settings.XPlaneExecutablePath;
+        set => SetSetting(value.Trim(), current => _settings.XPlaneExecutablePath = current);
+    }
+
+    public string XPlaneExecutableLabel => string.IsNullOrWhiteSpace(XPlaneExecutablePath)
+        ? "X-Plane folder not selected"
+        : XPlaneExecutablePath;
+
+    public bool Msfs2024AutoConnect
+    {
+        get => _settings.Msfs2024AutoConnect;
+        set
+        {
+            SetSetting(value, current => _settings.Msfs2024AutoConnect = current);
+            _simulatorBridge?.RequestReconnect();
+        }
+    }
+
+    public bool XPlaneAutoConnect
+    {
+        get => _settings.XPlaneAutoConnect;
+        set
+        {
+            SetSetting(value, current => _settings.XPlaneAutoConnect = current);
+            _simulatorBridge?.RequestReconnect();
+        }
+    }
+
+    public int XPlaneWebApiPort
+    {
+        get => _settings.XPlaneWebApiPort;
+        set
+        {
+            var sanitized = value is >= 1 and <= 65_535 ? value : 8086;
+            SetSetting(sanitized, current => _settings.XPlaneWebApiPort = current);
+        }
+    }
+
+    public bool SyncXPlaneDoors
+    {
+        get => _settings.SyncXPlaneDoors;
+        set => SetSetting(value, current => _settings.SyncXPlaneDoors = current);
+    }
+
+    public bool AutomaticallyCheckForUpdates
+    {
+        get => _settings.AutomaticallyCheckForUpdates;
+        set => SetSetting(value, current => _settings.AutomaticallyCheckForUpdates = current);
+    }
+
+    private void SelectXPlaneExecutable()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select the X-Plane executable",
+            Filter = "X-Plane executable|X-Plane.exe|Executable files|*.exe",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        XPlaneExecutablePath = dialog.FileName;
+        OnPropertyChanged(nameof(XPlaneExecutableLabel));
+        _simulatorBridge?.RequestReconnect();
+    }
+
+    private void SelectXPlaneFolder()
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = "Select the X-Plane installation folder",
+            Multiselect = false
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        var executable = Path.Combine(dialog.FolderName, "X-Plane.exe");
+        XPlaneExecutablePath = File.Exists(executable) ? executable : dialog.FolderName;
+        OnPropertyChanged(nameof(XPlaneExecutableLabel));
+        _simulatorBridge?.RequestReconnect();
+    }
 
     public string BoardingPassPrinterStatus
     {
@@ -375,6 +483,12 @@ public sealed class SettingsViewModel : PageViewModel
         StartCabinImmersionAutomatically = defaults.StartCabinImmersionAutomatically;
         Theme = defaults.Theme;
         UiScalePercent = defaults.UiScalePercent;
+        XPlaneAutoConnect = defaults.XPlaneAutoConnect;
+        XPlaneWebApiPort = defaults.XPlaneWebApiPort;
+        SyncXPlaneDoors = defaults.SyncXPlaneDoors;
+        XPlaneExecutablePath = defaults.XPlaneExecutablePath;
+        Msfs2024AutoConnect = defaults.Msfs2024AutoConnect;
+        AutomaticallyCheckForUpdates = defaults.AutomaticallyCheckForUpdates;
         SelectedCabinLayoutProfile = CabinLayoutProfiles.Single(profile =>
             profile.Id == defaults.PassengerCabinLayoutId);
         SimBriefPilotId = defaults.SimBriefPilotId;
@@ -434,6 +548,21 @@ public sealed record CabinLayoutProfileOption(
     bool IsOperational,
     string LivePreviewStatus)
 {
+    public bool UsesFallbackLivePreview => LivePreviewUri.Contains("Ff777CabinLayout", StringComparison.OrdinalIgnoreCase);
+
+    public Rect LivePreviewViewbox => UsesFallbackLivePreview
+        ? new Rect(0d, 62d, 1033d, 192d)
+        : Layout switch
+        {
+            PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 2860d, 380d),
+            PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 2855d, 390d),
+            _ => new Rect(0d, 62d, 1033d, 192d)
+        };
+
+    public Stretch LivePreviewStretch => UsesFallbackLivePreview
+        ? Stretch.Fill
+        : Stretch.Uniform;
+
     public override string ToString() => Name;
 }
 
@@ -459,26 +588,39 @@ public static class CabinLayoutProfileCatalog
             "British Airways 777-200ER",
             "Operational airline layout",
             "British Airways 777-200ER boarding simulation with mapped seats, two-door routing, and live passenger movement.",
-            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_200ER_SeatMap.png",
-            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_200ER_SeatMap_Horizontal.png",
+            ResolveOptionalCabinAsset("BA_777_200ER_SeatMap.png"),
+            ResolveOptionalCabinAsset("BA_777_200ER_SeatMap_Horizontal.png"),
             "Manual selection · future aircraft match: Boeing 777-200ER",
             420d,
             true,
-            "OPERATIONAL · 280 MAPPED SEAT POSITIONS · NOSE LEFT"),
+            "OPERATIONAL · 272 MAPPED SEAT POSITIONS · NOSE LEFT"),
         new(
             "british-airways.777-300",
             PassengerCabinLayout.BritishAirways777300,
             "British Airways 777-300",
             "Operational airline layout",
             "British Airways 777-300 boarding simulation with mapped seats, two-door routing, and live passenger movement.",
-            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_300_SeatMap.png",
-            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/BA_777_300_SeatMap_Horizontal.png",
+            ResolveOptionalCabinAsset("BA_777_300_SeatMap.png"),
+            ResolveOptionalCabinAsset("BA_777_300_SeatMap_Horizontal.png"),
             "Manual selection · future aircraft match: Boeing 777-300",
             420d,
             true,
-            "OPERATIONAL · 266 MAPPED SEAT POSITIONS · NOSE LEFT")
+            "OPERATIONAL · 256 MAPPED SEAT POSITIONS · NOSE LEFT")
     ];
 
     public static CabinLayoutProfileOption Resolve(string? id) =>
         All.FirstOrDefault(profile => string.Equals(profile.Id, id, StringComparison.OrdinalIgnoreCase)) ?? All[0];
+
+    private static string ResolveOptionalCabinAsset(string fileName)
+    {
+        var path = Path.Combine(
+            AppContext.BaseDirectory,
+            "content-packs",
+            "british-airways",
+            "layouts",
+            fileName);
+        return File.Exists(path)
+            ? new Uri(path).AbsoluteUri
+            : "pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png";
+    }
 }

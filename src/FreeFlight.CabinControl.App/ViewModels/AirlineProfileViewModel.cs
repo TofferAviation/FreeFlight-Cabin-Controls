@@ -17,7 +17,7 @@ public sealed class AirlineProfileViewModel(
 
     public string Name { get; } = name;
 
-    public string Icao { get; } = icao;
+    public string Icao { get; } = string.IsNullOrWhiteSpace(icao) ? "—" : icao;
 
     public string Type { get; } = type;
 

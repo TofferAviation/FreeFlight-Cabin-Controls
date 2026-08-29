@@ -32,8 +32,8 @@
                     <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
-                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                    <Ellipse Width="13" Height="13" Fill="{Binding Status.ConnectionColor}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{Binding Status.ConnectionColor}" FontSize="14" FontWeight="SemiBold" />
                 </StackPanel>
             </Grid>
 
@@ -57,14 +57,14 @@
                 <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="7,0" Padding="16">
                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE767;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Audio Latency" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding AudioLatency}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Bridge required" Foreground="{StaticResource WarningBrush}" FontSize="12" /></StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="System CPU" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding SystemCpuUsage}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Whole-system live load" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
                     </Grid>
                 </Border>
 
                 <Border Grid.Column="3" Style="{StaticResource CardStyle}" Margin="7,0,0,0" Padding="16">
                     <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE716;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Active Sounds" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding ActiveSounds}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="No audio engine connected" Foreground="{StaticResource WarningBrush}" FontSize="12" /></StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="System Memory" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding SystemMemoryUsage}" FontSize="21" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" /><TextBlock Text="Used / installed RAM" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
                     </Grid>
                 </Border>
             </Grid>
@@ -74,7 +74,7 @@
                 <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition Height="*" /><RowDefinition Height="26" /></Grid.RowDefinitions>
-                        <Grid><TextBlock Text="Resource Usage" Style="{StaticResource SectionTitleStyle}" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Rectangle Width="22" Height="3" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Center" /><TextBlock Text="CPU (%)" Margin="8,0,20,0" /><Rectangle Width="22" Height="3" Fill="{StaticResource CyanBrush}" VerticalAlignment="Center" /><TextBlock Text="Memory (MB)" Margin="8,0,0,0" /></StackPanel></Grid>
+                        <Grid><TextBlock Text="Resource Usage" Style="{StaticResource SectionTitleStyle}" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Rectangle Width="22" Height="3" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Center" /><TextBlock Text="{Binding CpuUsage, StringFormat=CPU {0}}" Margin="8,0,20,0" /><Rectangle Width="22" Height="3" Fill="{StaticResource CyanBrush}" VerticalAlignment="Center" /><TextBlock Text="{Binding MemoryUsage, StringFormat=Memory {0}}" Margin="8,0,0,0" /></StackPanel></Grid>
                         <Grid Grid.Row="1" Margin="10,4,4,0">
                             <Rectangle Fill="#060E1C" Stroke="{StaticResource BorderSoftBrush}" />
                             <Grid Opacity="0.45">
@@ -85,25 +85,25 @@
                             </Grid>
                             <Viewbox Stretch="Fill" Margin="0,12">
                                 <Canvas Width="700" Height="150">
-                                    <Polyline Stroke="{StaticResource CyanBrush}" StrokeThickness="3" Points="0,56 35,52 70,58 105,55 140,57 175,49 210,53 245,59 280,51 315,54 350,57 385,50 420,60 455,55 490,62 525,58 560,55 595,60 630,48 665,52 700,45" />
-                                    <Polyline Stroke="{StaticResource PrimaryBrush}" StrokeThickness="3" Points="0,112 35,105 70,116 105,103 140,110 175,98 210,109 245,103 280,114 315,106 350,111 385,96 420,108 455,101 490,116 525,105 560,109 595,99 630,112 665,104 700,107" />
+                                    <Polyline Stroke="{StaticResource CyanBrush}" StrokeThickness="3" Points="{Binding MemoryGraphPoints}" />
+                                    <Polyline Stroke="{StaticResource PrimaryBrush}" StrokeThickness="3" Points="{Binding CpuGraphPoints}" />
                                 </Canvas>
                             </Viewbox>
                         </Grid>
-                        <TextBlock Grid.Row="2" Text="Live history graph begins with bridge telemetry milestone" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                        <TextBlock Grid.Row="2" Text="Live 60-second process history" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                     </Grid>
                 </Border>
 
                 <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="36" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <TextBlock Text="Audio Engine" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="Simulator / Process Detail" Style="{StaticResource SectionTitleStyle}" />
                         <StackPanel Grid.Row="1">
-                            <Grid Height="45"><TextBlock Text="Buffer Health" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource WarningBrush}" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <Grid Height="45"><TextBlock Text="Sample Rate" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <Grid Height="45"><TextBlock Text="Underruns" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <Grid Height="45"><TextBlock Text="Queue Depth" VerticalAlignment="Center" /><TextBlock Text="—" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <Grid Height="45"><TextBlock Text="Status" VerticalAlignment="Center" /><TextBlock Text="OFFLINE" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{StaticResource WarningBrush}" FontWeight="SemiBold" /></Grid>
+                            <Grid Height="45"><TextBlock Text="Simulator" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorProcess}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Simulator load" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorCpuUsage}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Simulator memory" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorMemoryUsage}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <Grid Height="45"><TextBlock Text="Simulator frame rate" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorFps}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
+                            <StackPanel Margin="0,8,0,0"><TextBlock Text="{Binding ProcessDetail}" Foreground="#8DA0B8" /><TextBlock Text="{Binding ManagedHeap}" Foreground="#8DA0B8" Margin="0,3,0,0" /></StackPanel>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -118,7 +118,7 @@
                             <Grid Height="39"><TextBlock Text="Application shell" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
                             <Grid Height="39"><TextBlock Text="Settings persistence" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
                             <Grid Height="39"><TextBlock Text="Pack validation" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
-                            <Grid Height="39"><TextBlock Text="Plugin frame time" /><TextBlock Text="{Binding BridgeFrameTime}" Foreground="{StaticResource WarningBrush}" HorizontalAlignment="Right" /></Grid>
+                            <Grid Height="39"><TextBlock Text="{Binding Status.TelemetrySourceLabel}" /><TextBlock Text="{Binding BridgeFrameTime}" Foreground="{Binding Status.ConnectionColor}" HorizontalAlignment="Right" /></Grid>
                         </StackPanel>
                     </Grid>
                 </Border>
@@ -139,8 +139,9 @@
 
                 <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
                     <Grid><Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition Height="*" /><RowDefinition Height="48" /></Grid.RowDefinitions>
-                        <TextBlock Text="Diagnostic Log (Latest)" Style="{StaticResource SectionTitleStyle}" />
-                        <ItemsControl Grid.Row="1" ItemsSource="{Binding DiagnosticEntries}">
+                        <TextBlock Text="Performance Recommendation" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Grid.Row="1" Text="{Binding Recommendation}" Foreground="{Binding RecommendationColor}" FontSize="14" TextWrapping="Wrap" LineHeight="22" Margin="0,8,0,0" />
+                        <ItemsControl Grid.Row="1" ItemsSource="{Binding DiagnosticEntries}" Visibility="Collapsed">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Height="31">

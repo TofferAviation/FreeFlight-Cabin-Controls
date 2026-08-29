@@ -7,35 +7,63 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.1.0</Version>
+    <Version>0.3.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\..\content-packs\british-airways\simbrief\*.json">
+      <Link>content-packs\british-airways\simbrief\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\CHANGELOG.md">
+      <Link>CHANGELOG.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <Resource Include="Assets\Ff777CabinLayout.png" />
     <Resource Include="Assets\FreeFlightBrand.png" />
+    <Resource Include="Assets\FreeFlightHeaderMark.png" />
+    <Resource Include="Assets\FreeFlightHeaderWordmark.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
+    <EmbeddedResource Include="Assets\Operators\real-world-operators.json"
+                      LogicalName="FreeFlight.CabinControl.Operators.RealWorld.json" />
+    <EmbeddedResource Include="Assets\Operators\bundled-logo-codes.json"
+                      LogicalName="FreeFlight.CabinControl.Operators.BundledLogoCodes.json" />
   </ItemGroup>
   <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap.png')">
-    <Resource Include="..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap.png">
-      <Link>Assets\BA_777_200ER_SeatMap.png</Link>
-    </Resource>
+    <Content Include="..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap.png">
+      <Link>content-packs\british-airways\layouts\BA_777_200ER_SeatMap.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap.png')">
-    <Resource Include="..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap.png">
-      <Link>Assets\BA_777_300_SeatMap.png</Link>
-    </Resource>
+    <Content Include="..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap.png">
+      <Link>content-packs\british-airways\layouts\BA_777_300_SeatMap.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap_Horizontal.png')">
-    <Resource Include="..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap_Horizontal.png">
-      <Link>Assets\BA_777_200ER_SeatMap_Horizontal.png</Link>
-    </Resource>
+    <Content Include="..\..\content-packs\private\british-airways\layouts\BA_777_200ER_SeatMap_Horizontal.png">
+      <Link>content-packs\british-airways\layouts\BA_777_200ER_SeatMap_Horizontal.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap_Horizontal.png')">
-    <Resource Include="..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap_Horizontal.png">
-      <Link>Assets\BA_777_300_SeatMap_Horizontal.png</Link>
-    </Resource>
+    <Content Include="..\..\content-packs\private\british-airways\layouts\BA_777_300_SeatMap_Horizontal.png">
+      <Link>content-packs\british-airways\layouts\BA_777_300_SeatMap_Horizontal.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4')">
     <Content Include="..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4">

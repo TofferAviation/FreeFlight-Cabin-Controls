@@ -39,8 +39,8 @@
                     <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
-                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                    <Ellipse Width="13" Height="13" Fill="{Binding Status.ConnectionColor}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{Binding Status.ConnectionColor}" FontSize="14" FontWeight="SemiBold" />
                 </StackPanel>
             </Grid>
 

@@ -1,0 +1,738 @@
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.WebSockets;
+using System.IO;
+using System.Text;
+using System.Text.Json;
+using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Integration;
+
+namespace FreeFlight.CabinControl.App.Services;
+
+public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
+{
+    private const double MetresToFeet = 3.280839895d;
+    private const string AltitudeMsl = "sim/flightmodel/position/elevation";
+    private const string AltitudeAgl = "sim/flightmodel/position/y_agl";
+    private const string GroundSpeed = "sim/flightmodel/position/groundspeed";
+    private const string VerticalSpeed = "sim/flightmodel/position/vh_ind_fpm";
+    private const string OnGroundAny = "sim/flightmodel/failures/onground_any";
+    private const string GearOnGround = "sim/flightmodel2/gear/on_ground";
+    private const string SeatbeltSign = "sim/cockpit2/switches/fasten_seat_belts";
+    private const string DoorOpenRatio = "sim/flightmodel2/misc/door_open_ratio";
+    private const string EnginesRunning = "sim/flightmodel/engine/ENGN_running";
+    private const string AircraftIcao = "sim/aircraft/view/acf_ICAO";
+    private const string AircraftDescription = "sim/aircraft/view/acf_descrip";
+    private const string AircraftRelativePath = "sim/aircraft/view/acf_relative_path";
+    private const string SimulatorRunningTime = "sim/time/total_running_time_sec";
+    private const string SimulatorLocalTime = "sim/time/local_time_sec";
+    private const string FrameRatePeriod = "sim/operation/misc/frame_rate_period";
+
+    private static readonly HashSet<string> RequestedDatarefs =
+    [
+        AltitudeMsl,
+        AltitudeAgl,
+        GroundSpeed,
+        VerticalSpeed,
+        OnGroundAny,
+        GearOnGround,
+        SeatbeltSign,
+        DoorOpenRatio,
+        EnginesRunning,
+        AircraftIcao,
+        AircraftDescription,
+        AircraftRelativePath,
+        FrameRatePeriod,
+        SimulatorRunningTime,
+        SimulatorLocalTime
+    ];
+
+    private readonly AppSettings _settings;
+    private readonly FileLogService _log;
+    private readonly HttpClient _httpClient;
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly SemaphoreSlim _reconnectSignal = new(0, 1);
+    private readonly object _socketLock = new();
+    private readonly Dictionary<string, XPlaneValue> _values = new(StringComparer.Ordinal);
+    private ClientWebSocket? _activeSocket;
+    private Task? _runTask;
+    private BridgeStatus _currentStatus = BridgeStatus.XPlaneOffline;
+    private long _lastFrameUtcTicks;
+    private string? _lastLoggedFailure;
+    private string _apiVersion = "v1";
+    private string _simulatorVersion = "12.1.1+";
+    private bool _disposed;
+
+    public XPlaneWebApiBridgeService(AppSettings settings, FileLogService log)
+    {
+        _settings = settings;
+        _log = log;
+        _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(10)
+        };
+        _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+    }
+
+    public BridgeStatus CurrentStatus => _currentStatus;
+
+    public TimeSpan? LastFrameAge
+    {
+        get
+        {
+            var ticks = Interlocked.Read(ref _lastFrameUtcTicks);
+            return ticks == 0 ? null : DateTimeOffset.UtcNow - new DateTimeOffset(ticks, TimeSpan.Zero);
+        }
+    }
+
+    public event Action<BridgeStatus>? StatusChanged;
+
+    public event Action<CabinTelemetrySnapshot>? TelemetryReceived;
+
+    public void Start()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        _runTask ??= Task.Run(() => RunAsync(_lifetime.Token));
+    }
+
+    public void RequestReconnect()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        AbortActiveSocket();
+        if (_reconnectSignal.CurrentCount == 0)
+        {
+            try
+            {
+                _reconnectSignal.Release();
+            }
+            catch (SemaphoreFullException)
+            {
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _lifetime.Cancel();
+        AbortActiveSocket();
+        GC.SuppressFinalize(this);
+    }
+
+    private async Task RunAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            if (!_settings.XPlaneAutoConnect)
+            {
+                PublishStatus(new BridgeStatus(
+                    BridgeConnectionState.Disconnected,
+                    "X-Plane auto-connect disabled",
+                    "Manual cabin controls available",
+                    "Enable X-Plane auto-connect in Settings."));
+                await WaitForRetryAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+                continue;
+            }
+
+            PublishStatus(new BridgeStatus(
+                BridgeConnectionState.Connecting,
+                "Looking for X-Plane",
+                "Detecting aircraft",
+                $"Probing the local Web API on port {SanitizePort(_settings.XPlaneWebApiPort)}."));
+
+            try
+            {
+                await ConnectAndStreamAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (XPlaneBridgeException exception)
+            {
+                PublishStatus(new BridgeStatus(
+                    exception.State,
+                    "X-Plane not connected",
+                    "Manual cabin controls available",
+                    exception.Message));
+                LogConnectionFailureOnce(exception.Message);
+            }
+            catch (Exception exception) when (exception is HttpRequestException or WebSocketException or
+                                               JsonException or IOException or OperationCanceledException)
+            {
+                var detail = DescribeConnectionFailure(exception);
+                PublishStatus(new BridgeStatus(
+                    BridgeConnectionState.Disconnected,
+                    "X-Plane not connected",
+                    "Manual cabin controls available",
+                    detail));
+                LogConnectionFailureOnce(detail);
+            }
+            finally
+            {
+                ClearActiveSocket();
+                _values.Clear();
+            }
+
+            await WaitForRetryAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ConnectAndStreamAsync(CancellationToken cancellationToken)
+    {
+        var port = SanitizePort(_settings.XPlaneWebApiPort);
+        var capabilities = await DiscoverCapabilitiesAsync(port, cancellationToken).ConfigureAwait(false);
+        _apiVersion = capabilities.ApiVersion;
+        _simulatorVersion = capabilities.SimulatorVersion;
+
+        var descriptors = await DiscoverDatarefsAsync(port, _apiVersion, cancellationToken).ConfigureAwait(false);
+        if (!descriptors.ContainsKey(GroundSpeed) ||
+            (!descriptors.ContainsKey(OnGroundAny) && !descriptors.ContainsKey(GearOnGround)))
+        {
+            throw new XPlaneBridgeException(
+                BridgeConnectionState.Incompatible,
+                "The X-Plane API is reachable, but its standard flight datarefs are unavailable.");
+        }
+
+        using var socket = new ClientWebSocket();
+        SetActiveSocket(socket);
+        var socketUri = new Uri($"ws://127.0.0.1:{port}/api/{_apiVersion}");
+        await socket.ConnectAsync(socketUri, cancellationToken).ConfigureAwait(false);
+        await SubscribeAsync(socket, descriptors.Values, cancellationToken).ConfigureAwait(false);
+
+        _lastLoggedFailure = null;
+        PublishStatus(new BridgeStatus(
+            BridgeConnectionState.Connected,
+            $"X-Plane {_simulatorVersion}",
+            "Aircraft telemetry detected",
+            $"Web API {_apiVersion} · {descriptors.Count} cabin datarefs · live at up to 10 Hz"));
+        _log.Information($"Connected to X-Plane {_simulatorVersion} through Web API {_apiVersion} on port {port}.");
+
+        var descriptorsById = descriptors.Values.ToDictionary(item => item.Id);
+        await ReceiveLoopAsync(socket, descriptorsById, cancellationToken).ConfigureAwait(false);
+        throw new HttpRequestException("The X-Plane WebSocket closed.");
+    }
+
+    private async Task<XPlaneCapabilities> DiscoverCapabilitiesAsync(int port, CancellationToken cancellationToken)
+    {
+        var uri = new Uri($"http://127.0.0.1:{port}/api/capabilities");
+        using var response = await _httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return new XPlaneCapabilities("v1", "12.1.1+");
+        }
+
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw new XPlaneBridgeException(
+                BridgeConnectionState.Incompatible,
+                "X-Plane is blocking incoming traffic. In X-Plane Settings → Network, allow incoming traffic.");
+        }
+
+        response.EnsureSuccessStatusCode();
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var root = document.RootElement;
+        var versions = root.GetProperty("api").GetProperty("versions")
+            .EnumerateArray()
+            .Select(item => item.GetString())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item!)
+            .ToArray();
+        var apiVersion = versions
+            .OrderByDescending(ParseApiVersion)
+            .FirstOrDefault() ?? "v1";
+        var simulatorVersion = root.TryGetProperty("x-plane", out var simulator) &&
+                               simulator.TryGetProperty("version", out var version)
+            ? version.GetString() ?? "12"
+            : "12";
+        return new XPlaneCapabilities(apiVersion, simulatorVersion);
+    }
+
+    private async Task<Dictionary<string, XPlaneDataref>> DiscoverDatarefsAsync(
+        int port,
+        string apiVersion,
+        CancellationToken cancellationToken)
+    {
+        var uri = new Uri($"http://127.0.0.1:{port}/api/{apiVersion}/datarefs?fields=id,name,value_type");
+        using var response = await _httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            throw new XPlaneBridgeException(
+                BridgeConnectionState.Incompatible,
+                "X-Plane is blocking incoming traffic. In X-Plane Settings → Network, allow incoming traffic.");
+        }
+
+        response.EnsureSuccessStatusCode();
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var discovered = new Dictionary<string, XPlaneDataref>(StringComparer.Ordinal);
+        var customDoorCount = 0;
+        foreach (var item in document.RootElement.GetProperty("data").EnumerateArray())
+        {
+            var name = item.GetProperty("name").GetString();
+            var valueType = item.GetProperty("value_type").GetString() ?? "float";
+            var isRequested = name is not null && RequestedDatarefs.Contains(name);
+            var isDoorCandidate = name is not null && customDoorCount < 48 && IsDoorCandidate(name, valueType);
+            if (name is null || (!isRequested && !isDoorCandidate))
+            {
+                continue;
+            }
+
+            if (!isRequested)
+            {
+                customDoorCount++;
+            }
+
+            discovered[name] = new XPlaneDataref(
+                item.GetProperty("id").GetInt64(),
+                name,
+                valueType);
+        }
+
+        return discovered;
+    }
+
+    private static async Task SubscribeAsync(
+        ClientWebSocket socket,
+        IEnumerable<XPlaneDataref> descriptors,
+        CancellationToken cancellationToken)
+    {
+        var message = JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            req_id = 1,
+            type = "dataref_subscribe_values",
+            @params = new
+            {
+                datarefs = descriptors.Select(item => new { id = item.Id }).ToArray()
+            }
+        });
+        await socket.SendAsync(message, WebSocketMessageType.Text, true, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task ReceiveLoopAsync(
+        ClientWebSocket socket,
+        IReadOnlyDictionary<long, XPlaneDataref> descriptorsById,
+        CancellationToken cancellationToken)
+    {
+        var receiveBuffer = new byte[32 * 1024];
+        while (socket.State == WebSocketState.Open && !cancellationToken.IsCancellationRequested)
+        {
+            using var messageBuffer = new MemoryStream();
+            WebSocketReceiveResult result;
+            do
+            {
+                result = await socket.ReceiveAsync(receiveBuffer, cancellationToken).ConfigureAwait(false);
+                if (result.MessageType == WebSocketMessageType.Close)
+                {
+                    return;
+                }
+
+                messageBuffer.Write(receiveBuffer, 0, result.Count);
+                if (messageBuffer.Length > 1024 * 1024)
+                {
+                    throw new JsonException("X-Plane sent an unexpectedly large telemetry message.");
+                }
+            } while (!result.EndOfMessage);
+
+            if (result.MessageType != WebSocketMessageType.Text)
+            {
+                continue;
+            }
+
+            ProcessMessage(messageBuffer.GetBuffer().AsMemory(0, checked((int)messageBuffer.Length)), descriptorsById);
+        }
+    }
+
+    private void ProcessMessage(
+        ReadOnlyMemory<byte> message,
+        IReadOnlyDictionary<long, XPlaneDataref> descriptorsById)
+    {
+        using var document = JsonDocument.Parse(message);
+        var root = document.RootElement;
+        if (!root.TryGetProperty("type", out var messageType) ||
+            messageType.GetString() != "dataref_update_values" ||
+            !root.TryGetProperty("data", out var data))
+        {
+            return;
+        }
+
+        foreach (var item in data.EnumerateObject())
+        {
+            if (!long.TryParse(item.Name, out var id) || !descriptorsById.TryGetValue(id, out var descriptor))
+            {
+                continue;
+            }
+
+            _values[descriptor.Name] = XPlaneValue.Parse(item.Value, descriptor.ValueType);
+        }
+
+        var timestamp = DateTimeOffset.UtcNow;
+        Interlocked.Exchange(ref _lastFrameUtcTicks, timestamp.UtcTicks);
+        UpdateConnectedAircraftStatus();
+        PublishTelemetry(CreateSnapshot(timestamp));
+    }
+
+    private CabinTelemetrySnapshot CreateSnapshot(DateTimeOffset timestamp)
+    {
+        var altitudeFeet = GetScalar(AltitudeMsl) * MetresToFeet;
+        var altitudeAglFeet = GetScalar(AltitudeAgl) * MetresToFeet;
+        var groundSpeed = GetScalar(GroundSpeed);
+        var verticalSpeed = GetScalar(VerticalSpeed);
+        var onGround = GetScalar(OnGroundAny) >= 0.5d || GetArray(GearOnGround).Any(value => value >= 0.5d);
+        var anyEngineRunning = GetArray(EnginesRunning).Any(value => value >= 0.5d);
+        var seatbeltSignOn = GetScalar(SeatbeltSign) >= 0.5d;
+        var (l1DoorRatio, l2DoorRatio) = ResolveDoorRatios();
+        var phase = XPlaneFlightPhaseClassifier.Classify(
+            onGround,
+            groundSpeed,
+            altitudeAglFeet,
+            verticalSpeed,
+            anyEngineRunning);
+        var signals = new Dictionary<string, double>(StringComparer.Ordinal)
+        {
+            ["altitude_agl_ft"] = altitudeAglFeet,
+            ["groundspeed_mps"] = groundSpeed,
+            ["vertical_speed_fpm"] = verticalSpeed,
+            ["engines_running"] = anyEngineRunning ? 1d : 0d,
+            ["simulator_fps"] = GetScalar(FrameRatePeriod) > 0.0001d ? 1d / GetScalar(FrameRatePeriod) : 0d,
+            ["simulator_running_time_sec"] = GetScalar(SimulatorRunningTime),
+            ["sim_local_time_sec"] = GetScalar(SimulatorLocalTime),
+            ["pushback_active"] = onGround && groundSpeed >= 0.35d && altitudeAglFeet < 15d ? 1d : 0d
+        };
+        if (!double.IsNaN(l1DoorRatio))
+        {
+            signals["door_l1_ratio"] = l1DoorRatio;
+        }
+
+        if (!double.IsNaN(l2DoorRatio))
+        {
+            signals["door_l2_ratio"] = l2DoorRatio;
+        }
+
+        return new CabinTelemetrySnapshot(
+            timestamp,
+            phase,
+            altitudeFeet,
+            onGround,
+            seatbeltSignOn,
+            signals);
+    }
+
+    private void UpdateConnectedAircraftStatus()
+    {
+        var icao = GetText(AircraftIcao).ToUpperInvariant();
+        var description = GetText(AircraftDescription);
+        var acfPath = ResolveActiveAircraftPath(GetText(AircraftRelativePath));
+        var aircraft = !string.IsNullOrWhiteSpace(description)
+            ? description
+            : !string.IsNullOrWhiteSpace(icao) ? icao : "Aircraft telemetry detected";
+        if (!string.IsNullOrWhiteSpace(icao) && !aircraft.Contains(icao, StringComparison.OrdinalIgnoreCase))
+        {
+            aircraft = $"{icao} · {aircraft}";
+        }
+
+        if (aircraft.Length > 72)
+        {
+            aircraft = aircraft[..69] + "…";
+        }
+
+        PublishStatus(new BridgeStatus(
+            BridgeConnectionState.Connected,
+            $"X-Plane {_simulatorVersion}",
+            aircraft,
+            string.IsNullOrWhiteSpace(acfPath)
+                ? $"Web API {_apiVersion} · live telemetry up to 10 Hz"
+                : $"Web API {_apiVersion} · {Path.GetFileName(acfPath)} · live telemetry up to 10 Hz"));
+    }
+
+    private (double L1, double L2) ResolveDoorRatios()
+    {
+        var standard = GetArray(DoorOpenRatio);
+        var l1 = standard.Length > 0 ? NormalizeDoorRatio(standard[0]) : double.NaN;
+        var l2 = standard.Length > 1 ? NormalizeDoorRatio(standard[1]) : double.NaN;
+        var candidates = _values
+            .Where(pair => !string.Equals(pair.Key, DoorOpenRatio, StringComparison.Ordinal) &&
+                           IsDoorCandidate(pair.Key, "float"))
+            .ToArray();
+        var namedL1 = ResolveNamedDoor(candidates, 1);
+        var namedL2 = ResolveNamedDoor(candidates, 2);
+        l1 = double.IsNaN(namedL1) ? l1 : namedL1;
+        l2 = double.IsNaN(namedL2) ? l2 : namedL2;
+
+        var arrayCandidate = candidates.Select(pair => pair.Value.Array).FirstOrDefault(array => array.Length >= 2);
+        if (arrayCandidate is not null)
+        {
+            l1 = double.IsNaN(l1) ? NormalizeDoorRatio(arrayCandidate[0]) : l1;
+            l2 = double.IsNaN(l2) ? NormalizeDoorRatio(arrayCandidate[1]) : l2;
+        }
+
+        return (l1, l2);
+    }
+
+    private static double ResolveNamedDoor(
+        IEnumerable<KeyValuePair<string, XPlaneValue>> candidates,
+        int doorNumber)
+    {
+        var selected = candidates
+            .Select(pair => new { Pair = pair, Score = ScoreDoorName(pair.Key, doorNumber) })
+            .Where(item => item.Score > 0)
+            .OrderByDescending(item => item.Score)
+            .FirstOrDefault();
+        return selected is null ? double.NaN : NormalizeDoorRatio(selected.Pair.Value.Scalar);
+    }
+
+    private static int ScoreDoorName(string name, int doorNumber)
+    {
+        var value = name.ToLowerInvariant().Replace('-', '_');
+        var score = 0;
+        if (value.Contains($"l{doorNumber}", StringComparison.Ordinal) ||
+            value.Contains($"door_{doorNumber}", StringComparison.Ordinal) ||
+            value.Contains($"door{doorNumber}", StringComparison.Ordinal) ||
+            value.Contains($"entry_{doorNumber}", StringComparison.Ordinal))
+        {
+            score += 20;
+        }
+
+        if (value.Contains("left", StringComparison.Ordinal) || value.Contains("entry", StringComparison.Ordinal))
+        {
+            score += 6;
+        }
+
+        if (value.Contains("right", StringComparison.Ordinal) || value.Contains("cargo", StringComparison.Ordinal) ||
+            value.Contains("service", StringComparison.Ordinal) || value.Contains("cockpit", StringComparison.Ordinal))
+        {
+            score -= 15;
+        }
+
+        return score;
+    }
+
+    private static bool IsDoorCandidate(string name, string valueType)
+    {
+        var value = name.ToLowerInvariant();
+        var numeric = !valueType.Contains("data", StringComparison.OrdinalIgnoreCase) &&
+                      !valueType.Contains("string", StringComparison.OrdinalIgnoreCase);
+        return numeric &&
+               (value.Contains("door", StringComparison.Ordinal) || value.Contains("exit", StringComparison.Ordinal)) &&
+               (value.Contains("open", StringComparison.Ordinal) || value.Contains("ratio", StringComparison.Ordinal) ||
+                value.Contains("position", StringComparison.Ordinal) || value.Contains("pos", StringComparison.Ordinal) ||
+                value.Contains("status", StringComparison.Ordinal));
+    }
+
+    private static double NormalizeDoorRatio(double value)
+    {
+        if (!double.IsFinite(value) || value < 0d)
+        {
+            return double.NaN;
+        }
+
+        return Math.Clamp(value > 1.5d ? value / 100d : value, 0d, 1d);
+    }
+
+    private string ResolveActiveAircraftPath(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath) || string.IsNullOrWhiteSpace(_settings.XPlaneExecutablePath))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            var configuredPath = _settings.XPlaneExecutablePath.Trim();
+            var root = Directory.Exists(configuredPath)
+                ? Path.GetFullPath(configuredPath)
+                : Path.GetDirectoryName(configuredPath);
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                return string.Empty;
+            }
+
+            var candidate = Path.GetFullPath(Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar)));
+            var rootWithSeparator = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            return candidate.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase) && File.Exists(candidate)
+                ? candidate
+                : string.Empty;
+        }
+        catch (Exception exception) when (exception is IOException or ArgumentException or NotSupportedException)
+        {
+            return string.Empty;
+        }
+    }
+
+    private double GetScalar(string name) =>
+        _values.TryGetValue(name, out var value) ? value.Scalar : 0d;
+
+    private double[] GetArray(string name) =>
+        _values.TryGetValue(name, out var value) ? value.Array : [];
+
+    private string GetText(string name) =>
+        _values.TryGetValue(name, out var value) ? value.Text : string.Empty;
+
+    private void PublishStatus(BridgeStatus status)
+    {
+        if (status == _currentStatus)
+        {
+            return;
+        }
+
+        _currentStatus = status;
+        try
+        {
+            StatusChanged?.Invoke(status);
+        }
+        catch (Exception exception)
+        {
+            _log.Error("A bridge status subscriber failed.", exception);
+        }
+    }
+
+    private void PublishTelemetry(CabinTelemetrySnapshot snapshot)
+    {
+        try
+        {
+            TelemetryReceived?.Invoke(snapshot);
+        }
+        catch (Exception exception)
+        {
+            LogFailureOnce("A telemetry subscriber failed.", exception);
+        }
+    }
+
+    private async Task WaitForRetryAsync(TimeSpan delay, CancellationToken cancellationToken)
+    {
+        using var retryCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        retryCancellation.CancelAfter(delay);
+        try
+        {
+            await _reconnectSignal.WaitAsync(retryCancellation.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void SetActiveSocket(ClientWebSocket socket)
+    {
+        lock (_socketLock)
+        {
+            _activeSocket = socket;
+        }
+    }
+
+    private void ClearActiveSocket()
+    {
+        lock (_socketLock)
+        {
+            _activeSocket = null;
+        }
+    }
+
+    private void AbortActiveSocket()
+    {
+        lock (_socketLock)
+        {
+            try
+            {
+                _activeSocket?.Abort();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+    }
+
+    private void LogFailureOnce(string detail, Exception exception)
+    {
+        if (string.Equals(detail, _lastLoggedFailure, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastLoggedFailure = detail;
+        _log.Error($"X-Plane bridge: {detail}", exception);
+    }
+
+    private void LogConnectionFailureOnce(string detail)
+    {
+        if (string.Equals(detail, _lastLoggedFailure, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _lastLoggedFailure = detail;
+        _log.Information($"X-Plane bridge: {detail}");
+    }
+
+    private static string DescribeConnectionFailure(Exception exception) => exception switch
+    {
+        OperationCanceledException => "The X-Plane connection timed out. Retrying automatically.",
+        WebSocketException => "X-Plane stopped sending telemetry. Retrying automatically.",
+        _ => "Start X-Plane 12.1.1 or newer; connection will retry automatically."
+    };
+
+    private static int ParseApiVersion(string version) =>
+        int.TryParse(version.TrimStart('v', 'V'), out var parsed) ? parsed : 0;
+
+    private static int SanitizePort(int port) => port is >= 1 and <= 65_535 ? port : 8086;
+
+    private sealed record XPlaneCapabilities(string ApiVersion, string SimulatorVersion);
+
+    private sealed record XPlaneDataref(long Id, string Name, string ValueType);
+
+    private sealed class XPlaneBridgeException(BridgeConnectionState state, string message) : Exception(message)
+    {
+        public BridgeConnectionState State { get; } = state;
+    }
+
+    private readonly record struct XPlaneValue(double Scalar, double[] Array, string Text)
+    {
+        public static XPlaneValue Parse(JsonElement value, string valueType)
+        {
+            if (value.ValueKind == JsonValueKind.Number)
+            {
+                return new XPlaneValue(value.GetDouble(), [], string.Empty);
+            }
+
+            if (value.ValueKind == JsonValueKind.Array)
+            {
+                var array = value.EnumerateArray()
+                    .Where(item => item.ValueKind == JsonValueKind.Number)
+                    .Select(item => item.GetDouble())
+                    .ToArray();
+                return new XPlaneValue(array.FirstOrDefault(), array, string.Empty);
+            }
+
+            if (value.ValueKind == JsonValueKind.String)
+            {
+                var encoded = value.GetString() ?? string.Empty;
+                var text = valueType == "data" ? DecodeDatarefText(encoded) : encoded;
+                return new XPlaneValue(0d, [], text);
+            }
+
+            return new XPlaneValue(0d, [], string.Empty);
+        }
+
+        private static string DecodeDatarefText(string encoded)
+        {
+            try
+            {
+                return Encoding.UTF8.GetString(Convert.FromBase64String(encoded)).Trim('\0', ' ', '\r', '\n', '\t');
+            }
+            catch (FormatException)
+            {
+                return encoded.Trim('\0', ' ', '\r', '\n', '\t');
+            }
+        }
+    }
+}

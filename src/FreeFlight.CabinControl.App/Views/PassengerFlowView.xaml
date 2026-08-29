@@ -174,8 +174,8 @@
 
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="300" />
+                    <ColumnDefinition Width="3.5*" MinWidth="560" />
+                    <ColumnDefinition Width="1.1*" MinWidth="260" MaxWidth="330" />
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="16,12">
@@ -186,44 +186,87 @@
                             <RowDefinition Height="42" />
                         </Grid.RowDefinitions>
                         <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Live Cabin" Style="{StaticResource SectionTitleStyle}" />
                                 <ComboBox ItemsSource="{Binding CabinLayoutProfiles}"
                                           SelectedItem="{Binding SelectedCabinLayoutProfile}"
-                                          Width="245"
+                                          Width="205"
                                           Height="31"
                                           Margin="12,-3,0,0"
                                           ToolTip="Choose the cabin shown in the live preview" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal"
+                            <Border Grid.Column="1"
+                                    Background="#332A1020"
+                                    BorderBrush="#F0C64E"
+                                    BorderThickness="1"
+                                    CornerRadius="11"
+                                    Padding="7,3"
+                                    Margin="10,0"
+                                    HorizontalAlignment="Center"
+                                    ToolTip="{Binding BoardingGroupDetail}"
+                                    Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="72" Height="30" CornerRadius="5" Margin="0,0,7,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#131D2B" />
+                                                <Setter Property="BorderBrush" Value="#536375" />
+                                                <Setter Property="BorderThickness" Value="1" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SeatbeltSignOn}" Value="True">
+                                                        <Setter Property="Background" Value="#6A4510" />
+                                                        <Setter Property="BorderBrush" Value="#FFC54D" />
+                                                        <Setter Property="Effect">
+                                                            <Setter.Value><DropShadowEffect Color="#FFB52B" BlurRadius="9" ShadowDepth="0" Opacity="0.65" /></Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Viewbox Margin="4" ToolTip="{Binding SeatbeltSignLabel}" Stretch="Uniform">
+                                            <Canvas Width="66" Height="22">
+                                                <Path Data="F0 M 1,7 L 10,7 L 14,3 L 31,3 L 31,19 L 14,19 L 10,15 L 1,15 Z M 17,7 L 27,7 L 27,15 L 17,15 Z">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"><Setter Property="Fill" Value="#687585" /><Style.Triggers><DataTrigger Binding="{Binding SeatbeltSignOn}" Value="True"><Setter Property="Fill" Value="#FFD384" /></DataTrigger></Style.Triggers></Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <Path Data="F0 M 45,3 L 52,3 L 55,7 L 65,7 L 65,15 L 55,15 L 52,19 L 45,19 L 45,14 L 41,14 L 41,8 L 45,8 Z M 45,9 L 50,9 L 50,13 L 45,13 Z">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"><Setter Property="Fill" Value="#687585" /><Style.Triggers><DataTrigger Binding="{Binding SeatbeltSignOn}" Value="True"><Setter Property="Fill" Value="#FFD384" /></DataTrigger></Style.Triggers></Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <Path Data="M 39,5 L 32,11 L 39,17 L 39,14 L 44,14 L 44,8 L 39,8 Z">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"><Setter Property="Fill" Value="#6B4650" /><Style.Triggers><DataTrigger Binding="{Binding SeatbeltSignOn}" Value="True"><Setter Property="Fill" Value="#FF365F" /></DataTrigger></Style.Triggers></Style>
+                                                    </Path.Style>
+                                                </Path>
+                                            </Canvas>
+                                        </Viewbox>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding BoardingGroupStatus}" Foreground="#F0C64E" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding BoardingGroupDetail}" Foreground="#C6B56F" FontSize="8" HorizontalAlignment="Center" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal"
                                         HorizontalAlignment="Right"
                                         Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Border Background="#332A1020"
-                                        BorderBrush="#F0C64E"
-                                        BorderThickness="1"
-                                        CornerRadius="11"
-                                        Padding="11,3"
-                                        Margin="0,0,10,0"
-                                        ToolTip="{Binding BoardingGroupDetail}">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding BoardingGroupStatus}"
-                                                   Foreground="#F0C64E"
-                                                   FontSize="10"
-                                                   FontWeight="SemiBold"
-                                                   HorizontalAlignment="Center" />
-                                        <TextBlock Text="{Binding BoardingGroupDetail}"
-                                                   Foreground="#C6B56F"
-                                                   FontSize="8"
-                                                   HorizontalAlignment="Center" />
-                                    </StackPanel>
-                                </Border>
                                 <Button Content="Open Manifest"
                                         Command="{Binding OpenManifestCommand}"
                                         Style="{StaticResource SecondaryButtonStyle}"
                                         MinHeight="30"
                                         Padding="12,4"
-                                        Margin="0,0,14,0" />
-                                <TextBlock Text="{Binding ActiveDoorSummary}" Foreground="#58E68A" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        Margin="0,0,10,0" />
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ActiveDoorSummary}" Foreground="#58E68A" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    <TextBlock Text="{Binding LiveCabinStatus}" Foreground="#8FC8FF" FontSize="8" HorizontalAlignment="Right" />
+                                </StackPanel>
                             </StackPanel>
                         </Grid>
 
@@ -248,12 +291,28 @@
                                         Width="1033"
                                         Height="192"
                                         Panel.ZIndex="0"
-                                        Visibility="{Binding IsAirlineCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        Visibility="{Binding IsBritishAirways777200Er, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
-                                                    Viewbox="0,0,1,0.60"
-                                                    ViewboxUnits="RelativeToBoundingBox"
-                                                    Stretch="Uniform"
+                                                    Viewbox="{Binding SelectedCabinLayoutProfile.LivePreviewViewbox}"
+                                                    ViewboxUnits="Absolute"
+                                                    Stretch="{Binding SelectedCabinLayoutProfile.LivePreviewStretch}"
+                                                    AlignmentX="Center"
+                                                    AlignmentY="Center" />
+                                    </Border.Background>
+                                </Border>
+
+                                <Border Canvas.Left="0"
+                                        Canvas.Top="0"
+                                        Width="1033"
+                                        Height="192"
+                                        Panel.ZIndex="0"
+                                        Visibility="{Binding IsBritishAirways777300, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
+                                                    Viewbox="{Binding SelectedCabinLayoutProfile.LivePreviewViewbox}"
+                                                    ViewboxUnits="Absolute"
+                                                    Stretch="{Binding SelectedCabinLayoutProfile.LivePreviewStretch}"
                                                     AlignmentX="Center"
                                                     AlignmentY="Center" />
                                     </Border.Background>
@@ -286,6 +345,28 @@
                                 <ItemsControl Canvas.Left="0"
                                               Canvas.Top="0"
                                               Width="1033"
+                                              Height="192"
+                                              ItemsSource="{Binding CabinCrewMarkers}"
+                                              ItemContainerStyle="{StaticResource PassengerCanvasItemStyle}"
+                                              Panel.ZIndex="4"
+                                              IsHitTestVisible="True">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Width="12" Height="12" ToolTip="{Binding ToolTip}">
+                                                <Ellipse Width="5" Height="5" Fill="#0B3D78" Stroke="#A9D2FF" StrokeThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                                <Border Width="8" Height="7" CornerRadius="4,4,3,3" Background="#0B3D78" BorderBrush="#A9D2FF" BorderThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                                                <Ellipse Width="12" Height="12" Stroke="#FFFFFF" StrokeThickness="1" Fill="Transparent">
+                                                    <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsSecured}" Value="False"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
+                                                </Ellipse>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <ItemsControl Canvas.Left="0"
+                                              Canvas.Top="0"
+                                              Width="1033"
                                               Height="230"
                                               ItemsSource="{Binding PassengerMarkers}"
                                               ItemContainerStyle="{StaticResource PassengerCanvasItemStyle}"
@@ -309,11 +390,8 @@
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Grid>
-                                                            <Ellipse x:Name="PassengerDot"
-                                                                     Fill="#33B8E8"
-                                                                     Stroke="#D9F6FF"
-                                                                     StrokeThickness="0.8"
-                                                                     Opacity="0.76" />
+                                                            <Ellipse x:Name="PassengerHead" Width="5" Height="5" Fill="#33B8E8" Stroke="#D9F6FF" StrokeThickness="0.7" Opacity="0.9" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                                            <Border x:Name="PassengerBody" Width="8" Height="7" Background="#33B8E8" BorderBrush="#D9F6FF" BorderThickness="0.7" CornerRadius="4,4,3,3" Opacity="0.9" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                                                             <Ellipse x:Name="WalkingRing"
                                                                      Stroke="#FFFFFF"
                                                                      StrokeThickness="1.2"
@@ -322,33 +400,32 @@
                                                         </Grid>
                                                         <ControlTemplate.Triggers>
                                                             <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="PassengerDot" Property="StrokeThickness" Value="2" />
+                                                                <Setter TargetName="PassengerHead" Property="StrokeThickness" Value="1.5" />
+                                                                <Setter TargetName="PassengerBody" Property="BorderThickness" Value="1.5" />
                                                             </Trigger>
                                                             <DataTrigger Binding="{Binding CabinClassName}" Value="First">
-                                                                <Setter TargetName="PassengerDot" Property="Fill" Value="#C978ED" />
+                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#C978ED" /><Setter TargetName="PassengerBody" Property="Background" Value="#C978ED" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CabinClassName}" Value="Business">
-                                                                <Setter TargetName="PassengerDot" Property="Fill" Value="#2E90FF" />
+                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#2E90FF" /><Setter TargetName="PassengerBody" Property="Background" Value="#2E90FF" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CabinClassName}" Value="Premium Economy">
-                                                                <Setter TargetName="PassengerDot" Property="Fill" Value="#F0C64E" />
+                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#F0C64E" /><Setter TargetName="PassengerBody" Property="Background" Value="#F0C64E" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CabinClassName}" Value="Economy">
-                                                                <Setter TargetName="PassengerDot" Property="Fill" Value="#21CED8" />
+                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#21CED8" /><Setter TargetName="PassengerBody" Property="Background" Value="#21CED8" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsWalking}" Value="True">
-                                                                <Setter TargetName="PassengerDot" Property="Opacity" Value="1" />
+                                                                <Setter TargetName="PassengerHead" Property="Opacity" Value="1" /><Setter TargetName="PassengerBody" Property="Opacity" Value="1" />
                                                                 <Setter TargetName="WalkingRing" Property="Visibility" Value="Visible" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsOccupyingSeat}" Value="True">
-                                                                <Setter TargetName="PassengerDot" Property="Fill" Value="#FF9D45" />
-                                                                <Setter TargetName="PassengerDot" Property="Stroke" Value="#FFE0BE" />
-                                                                <Setter TargetName="PassengerDot" Property="Opacity" Value="1" />
+                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#FF9D45" /><Setter TargetName="PassengerBody" Property="Background" Value="#FF9D45" />
+                                                                <Setter TargetName="PassengerHead" Property="Stroke" Value="#FFE0BE" /><Setter TargetName="PassengerBody" Property="BorderBrush" Value="#FFE0BE" />
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsSecured}" Value="True">
-                                                                <Setter TargetName="PassengerDot" Property="Fill" Value="#58E68A" />
-                                                                <Setter TargetName="PassengerDot" Property="Stroke" Value="#D9FFE6" />
-                                                                <Setter TargetName="PassengerDot" Property="Opacity" Value="1" />
+                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#58E68A" /><Setter TargetName="PassengerBody" Property="Background" Value="#58E68A" />
+                                                                <Setter TargetName="PassengerHead" Property="Stroke" Value="#D9FFE6" /><Setter TargetName="PassengerBody" Property="BorderBrush" Value="#D9FFE6" />
                                                             </DataTrigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
@@ -388,6 +465,7 @@
                                 <Ellipse Width="8" Height="8" Fill="#2E90FF" Margin="0,0,5,0" /><TextBlock Text="Walking" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
                                 <Ellipse Width="8" Height="8" Fill="#FF9D45" Margin="0,0,5,0" /><TextBlock Text="Occupying seat" Style="{StaticResource MutedTextStyle}" Margin="0,0,12,0" />
                                 <Ellipse Width="8" Height="8" Fill="#58E68A" Margin="0,0,5,0" /><TextBlock Text="Secured" Style="{StaticResource MutedTextStyle}" />
+                                <Ellipse Width="8" Height="8" Fill="#0B3D78" Stroke="#A9D2FF" Margin="12,0,5,0" /><TextBlock Text="Cabin crew" Style="{StaticResource MutedTextStyle}" />
                             </StackPanel>
                         </Grid>
                     </Grid>
@@ -401,7 +479,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="36" />
                             <RowDefinition Height="78" />
-                            <RowDefinition Height="62" />
+                            <RowDefinition Height="74" />
                             <RowDefinition Height="62" />
                             <RowDefinition Height="56" />
                             <RowDefinition Height="*" />
@@ -410,11 +488,10 @@
 
                         <Grid Grid.Row="1">
                             <Grid.RowDefinitions><RowDefinition Height="30" /><RowDefinition /></Grid.RowDefinitions>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="Booked passengers" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding PassengerLoadSourceLabel}" Foreground="#55AEFF" FontSize="9" FontWeight="SemiBold" Margin="9,0,0,0" VerticalAlignment="Center" />
-                            </StackPanel>
-                            <TextBlock Text="{Binding BookedPassengerCount}" HorizontalAlignment="Right" FontSize="18" Foreground="#55AEFF" />
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="Booked passengers" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding PassengerLoadSourceLabel}" Foreground="#55AEFF" FontSize="8" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /></StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding BookedPassengerCount}" FontSize="18" Foreground="#55AEFF" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </Grid>
                             <Slider Grid.Row="1"
                                     Minimum="0"
                                     Maximum="{Binding PassengerInputMaximum}"
@@ -434,12 +511,10 @@
                         <Grid Grid.Row="3">
                             <Grid.RowDefinitions><RowDefinition Height="24" /><RowDefinition /></Grid.RowDefinitions>
                             <TextBlock Text="Passenger doors" Style="{StaticResource MutedTextStyle}" />
-                            <StackPanel Grid.Row="1" Orientation="Horizontal">
-                                <ToggleButton Content="L1" IsChecked="{Binding L1DoorOpen}" Style="{StaticResource DoorToggleStyle}" Margin="0,0,8,0" />
-                                <ToggleButton Content="L2" IsChecked="{Binding L2DoorOpen}" Style="{StaticResource DoorToggleStyle}" />
-                                <TextBlock Text="{Binding L1PassengerCount, StringFormat=L1 {0}}" Style="{StaticResource MutedTextStyle}" Margin="14,0,6,0" VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding L2PassengerCount, StringFormat=L2 {0}}" Style="{StaticResource MutedTextStyle}" VerticalAlignment="Center" />
-                            </StackPanel>
+                            <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                                <StackPanel><ToggleButton Content="L1" IsChecked="{Binding L1DoorOpen}" Style="{StaticResource DoorToggleStyle}" HorizontalAlignment="Left" /><TextBlock Text="{Binding L1PassengerCount, StringFormat={}{0} routed}" Style="{StaticResource MutedTextStyle}" FontSize="9" Margin="2,2,0,0" /></StackPanel>
+                                <StackPanel Grid.Column="1"><ToggleButton Content="L2" IsChecked="{Binding L2DoorOpen}" Style="{StaticResource DoorToggleStyle}" HorizontalAlignment="Left" /><TextBlock Text="{Binding L2PassengerCount, StringFormat={}{0} routed}" Style="{StaticResource MutedTextStyle}" FontSize="9" Margin="2,2,0,0" /></StackPanel>
+                            </Grid>
                         </Grid>
 
                         <Grid Grid.Row="4" Margin="0,7,0,4">
@@ -523,7 +598,7 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="128" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="Latest Activity" Style="{StaticResource SectionTitleStyle}" FontSize="16" />
-                            <TextBlock Text="Local preview events" Style="{StaticResource MutedTextStyle}" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding CabinActivitySummary}" Style="{StaticResource MutedTextStyle}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
                         <ItemsControl Grid.Column="1" ItemsSource="{Binding ActivityLog}">
                             <ItemsControl.ItemTemplate>
@@ -653,6 +728,7 @@
                         <TextBlock Text="NATIONALITY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.Nationality}" Margin="0,2,0,14" />
                         <TextBlock Text="TRAVEL PURPOSE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.TravelPurpose}" Margin="0,2,0,14" />
                         <TextBlock Text="BOARDING GROUP" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.BoardingGroup}" Margin="0,2,0,14" />
+                        <TextBlock Text="EMAIL" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.Email}" TextWrapping="Wrap" FontSize="11" Margin="0,2,0,14" />
                     </StackPanel>
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="BOOKING REFERENCE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.BookingReference}" Margin="0,2,0,14" />
@@ -660,6 +736,8 @@
                         <TextBlock Text="EXECUTIVE CLUB" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.FrequentFlyerTier}" Margin="0,2,0,14" />
                         <TextBlock Text="CHECKED BAGS" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.CheckedBags}" Margin="0,2,0,14" />
                         <TextBlock Text="ASSISTANCE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.Assistance}" TextWrapping="Wrap" Margin="0,2,0,14" />
+                        <TextBlock Text="CURRENT ACTIVITY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.CurrentActivity}" Foreground="#8FC8FF" TextWrapping="Wrap" Margin="0,2,0,14" />
+                        <TextBlock Text="SEAT BELT" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.SeatbeltStatus}" Foreground="{Binding SelectedPassenger.SeatbeltColor}" Margin="0,2,0,14" />
                     </StackPanel>
                 </Grid>
             </Grid>

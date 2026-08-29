@@ -3,6 +3,7 @@ using FreeFlight.CabinControl.Core.Content;
 using FreeFlight.CabinControl.Core.Persistence;
 using FreeFlight.CabinControl.Core.Passengers;
 using FreeFlight.CabinControl.Core.Operations;
+using FreeFlight.CabinControl.Core.Integration;
 
 var tests = new (string Name, Func<Task> Run)[]
 {
@@ -26,12 +27,17 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger seat occupation becomes secured", PassengerSeatOccupationBecomesSecuredAsync),
     ("Passenger boarding completes", PassengerBoardingCompletesAsync),
     ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
+    ("Seat-belt sign controls cabin activities", SeatbeltSignControlsCabinActivitiesAsync),
+    ("Unfinished passenger session restores", UnfinishedPassengerSessionRestoresAsync),
     ("Boarding groups run in numeric order", BoardingGroupsRunInNumericOrderAsync),
     ("Passenger deboarding completes", PassengerDeboardingCompletesAsync),
     ("British Airways cabin layouts map official seats", BritishAirwaysCabinLayoutsMapSeatsAsync),
     ("British Airways layouts board and deboard", BritishAirwaysLayoutsOperateAsync),
     ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync),
-    ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync)
+    ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync),
+    ("No-show passengers are excluded from boarding", NoShowPassengersAreExcludedAsync),
+    ("Route-aware no-show forecasts use configured profiles", RouteAwareNoShowForecastsAsync),
+    ("X-Plane telemetry classifies flight phases", XPlaneTelemetryClassifiesFlightPhasesAsync)
 };
 
 static Task EmptyPassengerManifestStaysEmptyAsync()
@@ -89,6 +95,12 @@ static async Task SettingsRoundTripAsync()
             PassengerPreviewBookedCount = 196,
             PassengerPreviewSpeed = 4d,
             PassengerCabinLayoutId = "british-airways.777-300",
+            XPlaneAutoConnect = false,
+            XPlaneExecutablePath = @"C:\X-Plane 12\X-Plane.exe",
+            XPlaneWebApiPort = 8088,
+            SyncXPlaneDoors = false,
+            Msfs2024AutoConnect = false,
+            AutomaticallyCheckForUpdates = false,
             SimBriefPilotId = "123456",
             SimBriefAutoSync = true,
             GateFlightNumber = "BA281",
@@ -141,6 +153,12 @@ static async Task SettingsRoundTripAsync()
         AssertEqual(196, actual.PassengerPreviewBookedCount, "Preview passenger count was not persisted.");
         AssertEqual(4d, actual.PassengerPreviewSpeed, "Preview boarding speed was not persisted.");
         AssertEqual("british-airways.777-300", actual.PassengerCabinLayoutId, "Cabin layout selection was not persisted.");
+        AssertEqual(false, actual.XPlaneAutoConnect, "X-Plane auto-connect was not persisted.");
+        AssertEqual(@"C:\X-Plane 12\X-Plane.exe", actual.XPlaneExecutablePath, "X-Plane executable path was not persisted.");
+        AssertEqual(8088, actual.XPlaneWebApiPort, "X-Plane Web API port was not persisted.");
+        AssertEqual(false, actual.SyncXPlaneDoors, "X-Plane door synchronization was not persisted.");
+        AssertEqual(false, actual.Msfs2024AutoConnect, "MSFS 2024 auto-connect was not persisted.");
+        AssertEqual(false, actual.AutomaticallyCheckForUpdates, "Automatic update preference was not persisted.");
         AssertEqual("123456", actual.SimBriefPilotId, "SimBrief Pilot ID was not persisted.");
         AssertEqual(true, actual.SimBriefAutoSync, "SimBrief auto-sync preference was not persisted.");
         AssertEqual("BA281", actual.GateFlightNumber, "Gate flight number was not persisted.");
@@ -169,6 +187,39 @@ static async Task SettingsRoundTripAsync()
             Directory.Delete(directory, true);
         }
     }
+}
+
+static Task XPlaneTelemetryClassifiesFlightPhasesAsync()
+{
+    AssertEqual(
+        "On stand",
+        XPlaneFlightPhaseClassifier.Classify(true, 0d, 0d, 0d, false),
+        "A parked aircraft with engines off was not classified as on stand.");
+    AssertEqual(
+        "On stand · engines running",
+        XPlaneFlightPhaseClassifier.Classify(true, 0d, 0d, 0d, true),
+        "A parked aircraft with engines running lost its engine state.");
+    AssertEqual(
+        "Taxi",
+        XPlaneFlightPhaseClassifier.Classify(true, 4d, 0d, 0d, true),
+        "A moving aircraft on the ground was not classified as taxi.");
+    AssertEqual(
+        "Climb",
+        XPlaneFlightPhaseClassifier.Classify(false, 120d, 7_000d, 1_200d, true),
+        "A climbing aircraft was not classified as climb.");
+    AssertEqual(
+        "Cruise",
+        XPlaneFlightPhaseClassifier.Classify(false, 240d, 35_000d, 40d, true),
+        "A level aircraft was not classified as cruise.");
+    AssertEqual(
+        "Descent",
+        XPlaneFlightPhaseClassifier.Classify(false, 220d, 12_000d, -900d, true),
+        "A descending aircraft was not classified as descent.");
+    AssertEqual(
+        "Approach",
+        XPlaneFlightPhaseClassifier.Classify(false, 75d, 1_600d, -500d, true),
+        "A low descending aircraft was not classified as approach.");
+    return Task.CompletedTask;
 }
 
 static Task HeavyAircraftReceiveDeterministicGateAsync()
@@ -442,9 +493,46 @@ static Task PassengerProfilesAreCompleteAndUniqueAsync()
         "One or more passenger profiles were incomplete.");
     AssertEqual(80, firstEngine.Passengers.Select(passenger => passenger.Profile.BookingReference).Distinct().Count(),
         "Booking references were not unique within the manifest.");
+    AssertEqual(80, firstEngine.Passengers.Select(passenger => passenger.Profile.Email).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+        "Passenger email addresses were not unique within the manifest.");
     Assert(firstEngine.Passengers.Zip(secondEngine.Passengers).All(pair =>
             pair.First.Profile == pair.Second.Profile && pair.First.Seat == pair.Second.Seat),
         "The same preview load did not generate a stable deterministic manifest.");
+    return Task.CompletedTask;
+}
+
+static Task SeatbeltSignControlsCabinActivitiesAsync()
+{
+    var engine = new PassengerBoardingEngine(1);
+    var passenger = engine.Passengers.Single();
+    Assert(engine.TryBoardPassenger(passenger.Id), "The activity test passenger could not be seated.");
+    engine.UpdateCabinActivities(TimeSpan.FromSeconds(1), true, "Climb");
+    Assert(passenger.SeatbeltFastened, "The passenger did not fasten their seat belt while the sign was on.");
+    AssertEqual(PassengerCabinActivity.SeatbeltFastened, passenger.CabinActivity,
+        "The passenger continued an incompatible activity while the seat-belt sign was on.");
+
+    engine.UpdateCabinActivities(TimeSpan.FromSeconds(20), false, "Cruise");
+    Assert(!passenger.SeatbeltFastened, "The passenger remained forced into the seat belt after the sign switched off.");
+    Assert(passenger.CabinActivity != PassengerCabinActivity.SeatbeltFastened,
+        "The passenger did not resume a cruise activity after the sign switched off.");
+    return Task.CompletedTask;
+}
+
+static Task UnfinishedPassengerSessionRestoresAsync()
+{
+    var source = new PassengerBoardingEngine(24, PassengerCabinLayout.BritishAirways777200Er);
+    source.SetDoorOpen(BoardingDoor.L1, true);
+    Assert(source.TryBoardPassenger(source.Passengers[3].Id), "The session passenger could not be boarded.");
+    Assert(source.MarkPassengerNoShow(source.Passengers[7].Id), "The session no-show could not be recorded.");
+    var snapshot = source.CaptureSession();
+
+    var restored = new PassengerBoardingEngine(24, PassengerCabinLayout.BritishAirways777200Er);
+    Assert(restored.RestoreSession(snapshot), "The compatible passenger session was rejected.");
+    Assert(restored.IsDoorOpen(BoardingDoor.L1), "The restored session lost its open L1 door.");
+    AssertEqual(1, restored.BoardedCount, "The restored session lost its boarded passenger.");
+    AssertEqual(1, restored.NoShowCount, "The restored session lost its no-show passenger.");
+    AssertEqual(PassengerMovementState.Seated, restored.Passengers[3].MovementState,
+        "The restored boarded passenger was no longer seated.");
     return Task.CompletedTask;
 }
 
@@ -481,16 +569,24 @@ static Task PassengerDeboardingCompletesAsync()
 static Task BritishAirwaysCabinLayoutsMapSeatsAsync()
 {
     var twoHundred = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777200Er);
-    AssertEqual(280, twoHundred.Capacity, "The British Airways 777-200ER mapped capacity is incorrect.");
-    AssertSeatCentre(twoHundred, "1A", 72d, 136d);
-    AssertSeatCentre(twoHundred, "40K", 985d, 66d);
+    AssertEqual(272, twoHundred.Capacity, "The British Airways 777-200ER mapped capacity is incorrect.");
+    var twoHundredScale = 1033d / 2860d;
+    var twoHundredOffset = (192d - (380d * twoHundredScale)) / 2d;
+    AssertSeatCentre(twoHundred, "1A", 315d * twoHundredScale, twoHundredOffset + (318d * twoHundredScale));
+    AssertSeatCentre(twoHundred, "40G", 2572d * twoHundredScale, twoHundredOffset + (151.5d * twoHundredScale));
+    Assert(!twoHundred.Passengers.Any(passenger => passenger.Seat.Number is "40A" or "40B" or "40J" or "40K"),
+        "The British Airways 777-200ER mapped passengers into the seatless rear galley area.");
     Assert(twoHundred.BoardingGroups.SequenceEqual(Enumerable.Range(1, 8)),
         "The British Airways 777-200ER did not create boarding groups 1–8.");
 
     var threeHundred = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777300);
-    AssertEqual(266, threeHundred.Capacity, "The British Airways 777-300 mapped capacity is incorrect.");
-    AssertSeatCentre(threeHundred, "1A", 76d, 136d);
-    AssertSeatCentre(threeHundred, "44K", 992d, 66d);
+    AssertEqual(256, threeHundred.Capacity, "The British Airways 777-300 mapped capacity is incorrect.");
+    var threeHundredScale = 1033d / 2855d;
+    var threeHundredOffset = (192d - (390d * threeHundredScale)) / 2d;
+    AssertSeatCentre(threeHundred, "1A", 261d * threeHundredScale, threeHundredOffset + (331d * threeHundredScale));
+    AssertSeatCentre(threeHundred, "43K", 2636.1d * threeHundredScale, threeHundredOffset + (116.5d * threeHundredScale));
+    Assert(!threeHundred.Passengers.Any(passenger => passenger.Seat.Number.StartsWith("44", StringComparison.Ordinal)),
+        "The British Airways 777-300 mapped passengers into the seatless rear galley area.");
     Assert(threeHundred.BoardingGroups.SequenceEqual(Enumerable.Range(1, 8)),
         "The British Airways 777-300 did not create boarding groups 1–8.");
     return Task.CompletedTask;
@@ -564,6 +660,51 @@ static Task GateDeskBoardingUpdatesCabinAsync()
     AssertEqual(BoardingRunState.Complete, engine.State,
         "Normal boarding did not complete after a passenger was boarded from the gate desk.");
     AssertEqual(24, engine.BoardedCount, "The final count was incorrect after gate desk boarding.");
+    return Task.CompletedTask;
+}
+
+static Task NoShowPassengersAreExcludedAsync()
+{
+    var engine = new PassengerBoardingEngine(24, PassengerCabinLayout.BritishAirways777200Er);
+    var noShow = engine.Passengers[7];
+    Assert(engine.SetPassengerBoardingHold(noShow.Id, true), "The forecast passenger could not be held for check-in.");
+    Assert(!engine.TryBoardPassenger(noShow.Id), "An unchecked passenger on hold was allowed to board.");
+
+    engine.SetDoorOpen(BoardingDoor.L1, true);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    Advance(engine, seconds: 60d, speed: 8d);
+    AssertEqual(23, engine.BoardedCount, "The check-in hold blocked eligible passengers from boarding.");
+    Assert(engine.State != BoardingRunState.Complete, "Boarding closed before the late passenger was resolved.");
+    Assert(engine.MarkPassengerNoShow(noShow.Id), "The unresolved late passenger could not be recorded as a no-show.");
+    Assert(!engine.MarkPassengerNoShow(noShow.Id), "The same passenger was recorded as a no-show twice.");
+    AssertEqual(1, engine.NoShowCount, "The no-show count was not updated.");
+    AssertEqual(23, engine.ExpectedBoardingCount, "The expected boarding count still included the no-show.");
+    AssertEqual(BoardingRunState.Complete, engine.State, "Boarding did not close after all eligible passengers boarded.");
+    AssertEqual(23, engine.BoardedCount, "The boarded total included a no-show passenger.");
+    AssertEqual(PassengerMovementState.Waiting, noShow.MovementState, "The no-show passenger entered the aircraft.");
+    AssertEqual(0, engine.RemainingCount, "A no-show remained in the eligible boarding count.");
+    return Task.CompletedTask;
+}
+
+static Task RouteAwareNoShowForecastsAsync()
+{
+    var systemwide = PassengerNoShowForecastService.Calculate("BAW123", "LHR", "JFK", 302);
+    AssertEqual(9, systemwide.RatePercent, "The historic BA systemwide no-show rate was not applied.");
+    AssertEqual(27, systemwide.ForecastPassengerCount, "The BA systemwide passenger forecast was incorrect.");
+
+    var japan = PassengerNoShowForecastService.Calculate("BA117", "LHR", "HND", 272);
+    AssertEqual(2, japan.RatePercent, "The historic BA Japan route profile was not applied.");
+    AssertEqual(5, japan.ForecastPassengerCount, "The Japan-route passenger forecast was incorrect.");
+
+    var india = PassengerNoShowForecastService.Calculate("BAW118", "DEL", "LHR", 272);
+    AssertEqual(40, india.RatePercent, "The historic BA India-origin route profile was not applied.");
+    AssertEqual(109, india.ForecastPassengerCount, "The India-origin passenger forecast was incorrect.");
+
+    var industry = PassengerNoShowForecastService.Calculate("DLH400", "FRA", "JFK", 272);
+    var repeatedIndustry = PassengerNoShowForecastService.Calculate("DLH400", "FRA", "JFK", 272);
+    Assert(industry.RatePercent is >= 2 and <= 10, "The industry route baseline left the configured 2–10% range.");
+    AssertEqual(industry, repeatedIndustry, "The industry route forecast was not stable for the same flight.");
     return Task.CompletedTask;
 }
 

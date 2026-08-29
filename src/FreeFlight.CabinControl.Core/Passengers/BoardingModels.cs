@@ -47,6 +47,26 @@ public enum PassengerMovementState
     Deboarded
 }
 
+public enum PassengerCabinActivity
+{
+    AwaitingBoarding,
+    WalkingToSeat,
+    SettlingIn,
+    SeatbeltFastened,
+    WatchingMovie,
+    Gaming,
+    UsingPhone,
+    Sleeping,
+    Reading,
+    Working,
+    Talking,
+    WalkingToLavatory,
+    UsingLavatory,
+    ReturningToSeat,
+    Deboarding,
+    OffAircraft
+}
+
 public readonly record struct CabinPoint(double X, double Y);
 
 public sealed record CabinSeat(
@@ -64,7 +84,8 @@ public sealed record PassengerProfile(
     string FrequentFlyerTier,
     int CheckedBags,
     string Assistance,
-    string BookingReference);
+    string BookingReference,
+    string Email);
 
 public sealed class BoardingPassenger
 {
@@ -96,4 +117,31 @@ public sealed class BoardingPassenger
     internal Queue<CabinPoint> Waypoints { get; set; } = new();
 
     internal double SecondsUntilSecured { get; set; }
+
+    public PassengerCabinActivity CabinActivity { get; internal set; } = PassengerCabinActivity.AwaitingBoarding;
+
+    public bool SeatbeltFastened { get; internal set; }
+
+    internal double SecondsUntilActivityChange { get; set; }
+
+    internal int ActivitySequence { get; set; }
 }
+
+public sealed record BoardingPassengerSession(
+    int PassengerId,
+    BoardingDoor? Door,
+    PassengerMovementState MovementState,
+    CabinPoint Position,
+    PassengerCabinActivity CabinActivity,
+    bool SeatbeltFastened,
+    bool IsBoardingHeld,
+    bool IsNoShow);
+
+public sealed record PassengerBoardingSession(
+    PassengerCabinLayout Layout,
+    int TargetPassengerCount,
+    BoardingRunState State,
+    PassengerOperation Operation,
+    int CurrentBoardingGroup,
+    IReadOnlyList<BoardingDoor> OpenDoors,
+    IReadOnlyList<BoardingPassengerSession> Passengers);

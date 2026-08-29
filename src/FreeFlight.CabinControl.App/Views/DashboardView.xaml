@@ -14,9 +14,13 @@
                 <Grid><Grid.RowDefinitions><RowDefinition Height="36" /><RowDefinition /></Grid.RowDefinitions>
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="FLIGHT TIMELINE" FontSize="15" FontWeight="SemiBold" />
-                            <TextBlock Text="{Binding TurnaroundSummary}" Foreground="#8FC8FF" FontSize="10" Margin="12,2,0,0" />
+                            <TextBlock Text="{Binding TimelineTitle}" FontSize="15" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding TimelineContext}" Foreground="#8FC8FF" FontSize="10" Margin="12,2,0,0" />
                         </StackPanel>
+                        <Border Background="#C51B5033" BorderBrush="#58E68A" BorderThickness="1" CornerRadius="12" Padding="14,5" HorizontalAlignment="Center"
+                                Visibility="{Binding HasFlightBannerMessage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="{Binding FlightBannerMessage}" Foreground="#BFFFD0" FontWeight="SemiBold" />
+                        </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                             <StackPanel Margin="0,0,14,0">
                                 <TextBlock Text="{Binding CurrentClockTime}" FontSize="17" FontWeight="SemiBold" HorizontalAlignment="Right" />

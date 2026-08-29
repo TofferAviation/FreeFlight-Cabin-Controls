@@ -6,8 +6,7 @@
              mc:Ignorable="d"
              d:DesignHeight="820"
              d:DesignWidth="1200">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid>
+        <Grid ClipToBounds="True">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="16" />
@@ -15,7 +14,7 @@
                 <RowDefinition Height="16" />
                 <RowDefinition Height="44" />
                 <RowDefinition Height="16" />
-                <RowDefinition Height="400" />
+                <RowDefinition Height="*" MinHeight="160" />
                 <RowDefinition Height="28" />
             </Grid.RowDefinitions>
 
@@ -25,8 +24,8 @@
                     <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
-                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                    <Ellipse Width="13" Height="13" Fill="{Binding Status.ConnectionColor}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{Binding Status.ConnectionColor}" FontSize="14" FontWeight="SemiBold" />
                 </StackPanel>
             </Grid>
 
@@ -95,9 +94,10 @@
             </Border>
 
             <Grid Grid.Row="4">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="330" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="330" /><ColumnDefinition Width="230" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <Grid>
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             TextChanged="SearchTextBox_OnTextChanged"
                              Padding="34,7,12,7"
                              ToolTip="Search airline profiles by airline name or ICAO code" />
                     <StackPanel Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
@@ -115,18 +115,46 @@
                         <TextBlock Text="Search airlines by name or ICAO..." Foreground="{StaticResource TextMutedBrush}" Margin="8,0,0,0" />
                     </StackPanel>
                 </Grid>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="16,0,0,0">
-                    <Button Content="All" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding FilterCommand}" CommandParameter="All" MinHeight="40" Padding="20,5" />
-                    <Button Content="Real-world" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding FilterCommand}" CommandParameter="Real-world" MinHeight="40" Padding="18,5" Margin="8,0,0,0" />
-                    <Button Content="Virtual Airlines" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding FilterCommand}" CommandParameter="Virtual Airlines" MinHeight="40" Padding="18,5" Margin="8,0,0,0" />
-                    <Button Content="Installed Packs" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding FilterCommand}" CommandParameter="Installed Packs" MinHeight="40" Padding="18,5" Margin="8,0,0,0" />
-                    <TextBlock Text="{Binding ActiveFilter}" Style="{StaticResource MutedTextStyle}" Margin="18,0,0,0" VerticalAlignment="Center" />
-                </StackPanel>
+                <ComboBox Grid.Column="1"
+                          ItemsSource="{Binding CatalogSources}"
+                          SelectedItem="{Binding SelectedCatalogSource}"
+                          SelectionChanged="CatalogSource_OnSelectionChanged"
+                          Margin="16,0,0,0"
+                          ToolTip="Choose the operator catalog used when no vAMSYS airline is connected" />
+                <TextBlock Grid.Column="2"
+                           Text="{Binding AirlineSourceStatus}"
+                           Style="{StaticResource MutedTextStyle}"
+                           Margin="16,0,0,0"
+                           VerticalAlignment="Center" />
             </Grid>
 
             <Grid Grid.Row="6">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="280" /></Grid.ColumnDefinitions>
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,16,0">
+                <ScrollViewer x:Name="CatalogScrollViewer"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              CanContentScroll="False"
+                              Margin="0,0,16,0">
+                    <Grid>
+                    <TextBlock Text="{Binding EmptyCatalogMessage}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="16"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               MaxWidth="560">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasVisibleAirlines}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <ItemsControl ItemsSource="{Binding VisibleAirlines}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
@@ -205,9 +233,13 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    </Grid>
                 </ScrollViewer>
 
-                <StackPanel Grid.Column="1">
+                <ScrollViewer Grid.Column="1"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
                     <Border Style="{StaticResource CardStyle}" Height="205" Padding="18,14">
                         <StackPanel>
                             <TextBlock Text="Connect vAMSYS" Style="{StaticResource SectionTitleStyle}" />
@@ -228,17 +260,17 @@
                         </StackPanel>
                     </Border>
                 </StackPanel>
+                </ScrollViewer>
             </Grid>
 
             <Grid Grid.Row="7">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                    <TextBlock Text="{Binding AvailableProfileCount}" Foreground="{StaticResource TextSecondaryBrush}" />
-                    <TextBlock Text=" airline profiles available  ·  " Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock Text="{Binding RealWorldOperatorCount}" Foreground="{StaticResource TextSecondaryBrush}" />
+                    <TextBlock Text=" real-world operators  ·  " Foreground="{StaticResource TextSecondaryBrush}" />
                     <TextBlock Text="{Binding InstalledPackCount}" Foreground="{StaticResource TextSecondaryBrush}" />
                     <TextBlock Text=" sound pack installed" Foreground="{StaticResource TextSecondaryBrush}" />
                 </StackPanel>
                 <TextBlock Text="{Binding SelectionStatus}" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Right" VerticalAlignment="Bottom" />
             </Grid>
         </Grid>
-    </ScrollViewer>
 </UserControl>

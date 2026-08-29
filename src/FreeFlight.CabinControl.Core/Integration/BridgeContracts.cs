@@ -16,9 +16,15 @@ public sealed record BridgeStatus(
 {
     public static BridgeStatus Offline { get; } = new(
         BridgeConnectionState.Disconnected,
+        "No simulator connected",
+        "No aircraft detected",
+        "Searching for X-Plane Web API and MSFS 2024 SimConnect.");
+
+    public static BridgeStatus XPlaneOffline { get; } = new(
+        BridgeConnectionState.Disconnected,
         "X-Plane not connected",
         "No aircraft detected",
-        "The native bridge has not been installed yet.");
+        "Waiting for the local X-Plane Web API.");
 }
 
 public sealed record CabinTelemetrySnapshot(
@@ -28,3 +34,18 @@ public sealed record CabinTelemetrySnapshot(
     bool OnGround,
     bool SeatbeltSignOn,
     IReadOnlyDictionary<string, double> Signals);
+
+public interface ISimulatorBridge : IDisposable
+{
+    BridgeStatus CurrentStatus { get; }
+
+    TimeSpan? LastFrameAge { get; }
+
+    event Action<BridgeStatus>? StatusChanged;
+
+    event Action<CabinTelemetrySnapshot>? TelemetryReceived;
+
+    void Start();
+
+    void RequestReconnect();
+}

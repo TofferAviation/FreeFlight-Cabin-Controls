@@ -26,7 +26,18 @@ public partial class App
         _logService.Information("FreeFlight Cabin Control starting.");
         var (settings, settingsStore) = await LoadSettingsAsync(settingsDirectory);
 
-        var viewModel = new MainWindowViewModel(settings, settingsStore, _logService.LogDirectory);
+        var simulatorBridge = new AutomaticSimulatorBridgeService(settings, _logService);
+        var flightSessionStore = new FlightSessionStore(
+            Path.Combine(settingsDirectory, "active-flight.json"),
+            _logService);
+        var updateService = new UpdateService(settingsDirectory);
+        var viewModel = new MainWindowViewModel(
+            settings,
+            settingsStore,
+            _logService.LogDirectory,
+            simulatorBridge: simulatorBridge,
+            flightSessionStore: flightSessionStore,
+            updateService: updateService);
         MainWindow = new MainWindow
         {
             DataContext = viewModel

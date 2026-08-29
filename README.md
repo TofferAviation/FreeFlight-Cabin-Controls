@@ -1,10 +1,10 @@
 # FreeFlight Cabin Control
 
-FreeFlight Cabin Control is a Windows desktop application and planned X-Plane 12 bridge for managing a simulated aircraft cabin. Development initially targets the FlightFactor 777 v2 while keeping the core aircraft- and airline-neutral.
+FreeFlight Cabin Control is a Windows desktop application with a live X-Plane 12 bridge for managing a simulated aircraft cabin. Development initially targets the FlightFactor 777 v2 while keeping the core aircraft- and airline-neutral.
 
 ## Current baseline
 
-Version `0.1.0-dev` is the first application-shell milestone. It provides:
+Version `0.3.x` is the current application line. GitHub release builds receive an automatically increasing patch number and are offered through the in-application updater. It provides:
 
 - operational Overview, Gate Desk, Iport DCS, Passenger Manifest, Boarding Passes, Cabin, Settings, Airliners, Cabin Area Control Panel, Audio, and Diagnostics navigation;
 - a local dummy staff-login page with a live operations clock, station selector, non-persistent preview credentials, a signed-in session screen, a repaired high-contrast British Airways wordmark, and a locked Gate Operations navigation group that reveals Iport DCS, Gate Desk, Passenger Manifest, Boarding Passes, and Cabin only after sign-in; Overview is read-only for gate state and only links into this protected workspace;
@@ -27,18 +27,28 @@ Version `0.1.0-dev` is the first application-shell milestone. It provides:
 - live Audio-page safety-demonstration controls: both play buttons start/stop the shared MP4 session, the Safety Demonstration slider controls its real audio level, the switch mutes/unmutes it, and an amber page-wide banner marks an active announcement;
 - navigation-persistent safety-video playback, so switching application pages does not stop, restart, or lose the active preview position;
 - four installed British Airways Boarding Music programs on the coded 777 panel, with local playback/looping, live volume, and credited CC0/Creative Commons editions of each requested composition;
+- an embedded 26 August 2026 catalog of 616 researched passenger-jet operators, with 453 ICAO-matched bundled branding assets and explicit fallbacks for operators without a verified code or logo;
 - Audio-page boarding controls that choose a new installed program at random for each session, with live mute/volume and shared Now Playing state; exact program selection remains on the Cabin Panel;
 - a Display Controls brightness bar whose numeric value, filled range, and pointer move together;
 - a safe vAMSYS authorization entry point, pending an approved Pilot API client registration;
 - enumeration and persistent selection of active Windows playback endpoints;
-- honest disconnected/preview states until an X-Plane bridge exists;
+- automatic X-Plane 12.1.1+ connection through the simulator's built-in local Web API, with API-version negotiation, live dataref discovery, WebSocket telemetry, automatic retry, aircraft identity, flight phase, altitude, ground speed, vertical speed, on-ground state, engine state, seatbelt sign, and optional standard L1/L2 door synchronization;
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;
 - real process CPU and memory sampling for the desktop application;
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
 - no bundled photographic CACP page renders or airline safety video; the boarding alternatives and limited identifying wordmarks are distributed only under their separately documented licences.
 
-The X-Plane plugin, FlightFactor integration, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, physical bag-tag printing, and in-aircraft screens are not implemented in this baseline. Boarding-pass printing uses the selected installed Windows queue, while bag tags remain an explicitly labelled local preview. Cabin-panel controls update safe local preview state, while media and future bridge actions enter a local pre-bridge event queue. Passenger Flow therefore uses manual L1/L2 door controls today; SimBrief supplies OFP-level flight, passenger-count, and departure-time data. A future aircraft adapter will replace the local operations clock, manual doors, and layout selection with live X-Plane telemetry without replacing the passenger or gate engine.
+FlightFactor-specific custom-dataref mappings, embedded/in-aircraft audio-video playback, vAMSYS OAuth exchange, physical bag-tag printing, and in-aircraft screens are not implemented in this baseline. Boarding-pass printing uses the selected installed Windows queue, while bag tags remain an explicitly labelled local preview. The live bridge reads X-Plane's standard datarefs and synchronizes L1/L2 when the standard door array is exposed; manual controls remain available when an aircraft omits those values. A future verified FlightFactor adapter can add custom doors, automatic cabin-variant selection, simulator audio buses, and screen rendering without replacing the passenger or gate engine.
+
+## X-Plane connection
+
+1. Run X-Plane 12.1.1 or newer on the same Windows computer.
+2. In X-Plane **Settings → Network**, do not select **Disable Incoming Traffic**.
+3. Start FreeFlight Cabin Control. It probes `127.0.0.1:8086` and reconnects automatically.
+4. If X-Plane was launched with a custom `--web_server_port`, enter that port under **Settings → X-Plane 12 Live Connection** and choose **Retry Connection**.
+
+No separate X-Plane plugin is required for this telemetry layer. The Web API is loopback-only, so the app does not expose the simulator to another computer. Diagnostics shows the active aircraft, flight phase, and age of the latest telemetry frame. See the [official X-Plane Web API reference](https://developer.x-plane.com/article/x-plane-web-api/).
 
 ## Build
 

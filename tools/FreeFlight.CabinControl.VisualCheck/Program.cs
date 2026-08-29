@@ -7,7 +7,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using FreeFlight.CabinControl.App.ViewModels;
 using FreeFlight.CabinControl.App.Services;
+using FreeFlight.CabinControl.App.Views;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Integration;
 using FreeFlight.CabinControl.Core.Operations;
 using FreeFlight.CabinControl.Core.Persistence;
 using CabinControlApplication = FreeFlight.CabinControl.App.App;
@@ -28,6 +30,13 @@ internal static class Program
         var application = new CabinControlApplication();
         application.InitializeComponent();
 
+        if (UpdateService.ParseReleaseVersion("v0.3.12") != new Version(0, 3, 12) ||
+            UpdateService.ParseReleaseVersion("FreeFlight-v1.4.7") != new Version(1, 4, 7) ||
+            UpdateService.ParseReleaseVersion("latest") is not null)
+        {
+            throw new InvalidOperationException("GitHub release tags were not parsed into reliable application versions.");
+        }
+
         try
         {
             var playbackDevices = new AudioOutputDeviceService().GetActiveOutputDevices();
@@ -39,6 +48,31 @@ internal static class Program
         }
 
         var settingsPath = Path.Combine(outputDirectory, "visual-check-settings.json");
+        var simulatorStatus = new SharedStatusViewModel();
+        simulatorStatus.ApplyBridgeStatus(new BridgeStatus(
+            BridgeConnectionState.Connected,
+            "Microsoft Flight Simulator 2024",
+            "Boeing 777",
+            "SimConnect · live telemetry"));
+        if (simulatorStatus.ConnectionLabel != "MSFS 2024 CONNECTED" ||
+            simulatorStatus.ConnectionSource != "MSFS 2024 · SimConnect" ||
+            simulatorStatus.TelemetrySourceLabel != "MSFS telemetry")
+        {
+            throw new InvalidOperationException("The shared simulator status did not identify an MSFS 2024 SimConnect connection.");
+        }
+
+        simulatorStatus.ApplyBridgeStatus(new BridgeStatus(
+            BridgeConnectionState.Connected,
+            "X-Plane 12.4",
+            "Boeing 777",
+            "Web API v2 · live telemetry"));
+        if (simulatorStatus.ConnectionLabel != "X-PLANE CONNECTED" ||
+            simulatorStatus.ConnectionSource != "X-Plane Web API" ||
+            simulatorStatus.TelemetrySourceLabel != "X-Plane telemetry")
+        {
+            throw new InvalidOperationException("The shared simulator status did not identify an X-Plane Web API connection.");
+        }
+
         var localSafetyVideoPath = args.Length > 1
             ? Path.GetFullPath(args[1])
             : Path.Combine(outputDirectory, "BA_Safety_Video.mp4");
@@ -95,15 +129,17 @@ internal static class Program
         Console.WriteLine("Creating the application view model.");
         var fixedClockTime = new DateTimeOffset(
             new DateTime(2026, 8, 25, 17, 50, 0, DateTimeKind.Local));
+        var operationsClock = new FixedOperationsClock(fixedClockTime);
         var printerService = new FakeBoardingPassPrinterService();
+        var previewSettings = new AppSettings { AutomaticallyCheckForUpdates = false };
         var viewModel = new MainWindowViewModel(
-            new AppSettings(),
+            previewSettings,
             new JsonSettingsStore(settingsPath),
             Path.Combine(outputDirectory, "logs"),
             localSafetyVideoPath,
             boardingMusicDirectory,
             new FakeSimBriefClient(),
-            new FixedOperationsClock(fixedClockTime),
+            operationsClock,
             printerService);
         Console.WriteLine("Application view model created; constructing the window.");
         var window = new CabinControlWindow
@@ -166,9 +202,9 @@ internal static class Program
 
         window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
         Render(window, Path.Combine(outputDirectory, "gate-login.png"));
-        var gateLoginWordmark = FindVisualChild<Grid>(
+        var gateLoginWordmark = FindVisualChild<Image>(
             window,
-            grid => Equals(grid.Tag, "GateLoginBritishAirwaysWordmark"));
+            image => Equals(image.Tag, "GateLoginBritishAirwaysWordmark"));
         if (gateLoginWordmark is null)
         {
             throw new InvalidOperationException("The repaired British Airways gate-login wordmark was not rendered.");
@@ -228,14 +264,47 @@ internal static class Program
                 viewModel.Operations.CheckInPassengerCommand.Execute(passenger);
                 viewModel.Operations.PrintBoardingPassCommand.Execute(passenger);
                 viewModel.Operations.BoardPassengerCommand.Execute(passenger);
+                var baggagePassenger = viewModel.Operations.PassengerRecords
+                    .First(candidate => candidate.CheckedBags > 0 && !candidate.IsBagLoaded && !candidate.IsBoarded);
+                var loadedWeightBefore = viewModel.Operations.LoadedBaggageWeightKg;
+                if (baggagePassenger.EstimatedBagCount == 0)
+                {
+                    throw new InvalidOperationException("Awaiting baggage was not identified as estimated before its load scan.");
+                }
+
+                viewModel.Operations.ToggleBagLoadedCommand.Execute(baggagePassenger);
+                if (!baggagePassenger.IsBagLoaded ||
+                    baggagePassenger.EstimatedBagCount != 0 ||
+                    baggagePassenger.LoadedBaggageWeightKg != baggagePassenger.PlannedBaggageWeightKg ||
+                    viewModel.Operations.LoadedBaggageWeightKg != loadedWeightBefore + baggagePassenger.PlannedBaggageWeightKg ||
+                    !baggagePassenger.BaggageLabel.StartsWith("Loaded —", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("Individual baggage weights did not enter the loaded traffic total.");
+                }
+
+                viewModel.Operations.ToggleBagLoadedCommand.Execute(baggagePassenger);
+                viewModel.Operations.CheckInPassengerCommand.Execute(baggagePassenger);
+                viewModel.Operations.BoardPassengerCommand.Execute(baggagePassenger);
+                if (!baggagePassenger.HasBaggageDiscrepancy ||
+                    !baggagePassenger.BaggageLabel.StartsWith("Baggage discrepancy", StringComparison.Ordinal) ||
+                    !viewModel.Operations.HasBaggageDiscrepancies)
+                {
+                    throw new InvalidOperationException("A boarded passenger with awaiting baggage was not flagged for reconciliation.");
+                }
+
+                viewModel.Operations.ToggleBagLoadedCommand.Execute(baggagePassenger);
+                if (baggagePassenger.HasBaggageDiscrepancy || viewModel.Operations.HasBaggageDiscrepancies)
+                {
+                    throw new InvalidOperationException("Loading the outstanding bag did not clear baggage reconciliation.");
+                }
                 if (!viewModel.Operations.IsGateOpen ||
                     !passenger.IsCheckedIn ||
                     !passenger.IsBoarded ||
                     passenger.BoardingPassStatus != "Printed" ||
                     printerService.PrintCount != 1 ||
                     viewModel.Operations.AvailablePrinters.Count != 2 ||
-                    viewModel.Operations.BoardedPassengers != boardedBefore + 1 ||
-                    viewModel.Passengers.BoardedPassengerCount != boardedBefore + 1)
+                    viewModel.Operations.BoardedPassengers != boardedBefore + 2 ||
+                    viewModel.Passengers.BoardedPassengerCount != boardedBefore + 2)
                 {
                     throw new InvalidOperationException(
                         "Gate Desk check-in, print, and cabin boarding did not update their shared passenger state.");
@@ -304,14 +373,40 @@ internal static class Program
             }
             else if (page == "Airliners")
             {
-                var britishAirways = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "BAW");
-                var norwegian = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "NOZ");
-                if (!britishAirways.HasLogo || !norwegian.HasLogo)
+                if (viewModel.Airliners.RealWorldOperatorCount != 616)
                 {
-                    throw new InvalidOperationException("Expected BAW and NOZ ICAO logo mappings were not resolved.");
+                    throw new InvalidOperationException("The imported real-world operator catalog did not contain 616 entries.");
                 }
 
+                var britishAirways = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "BAW");
+                var norwegian = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "NOZ");
+                var ryanair = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "RYR");
+                if (!britishAirways.HasLogo || !norwegian.HasLogo || !ryanair.HasLogo)
+                {
+                    throw new InvalidOperationException("Expected BAW, NOZ and RYR ICAO logo mappings were not resolved.");
+                }
+
+                viewModel.Airliners.SelectedCatalogSource = "vAMSYS virtual airline";
+                if (viewModel.Airliners.VisibleAirlines.Count != 0)
+                {
+                    throw new InvalidOperationException("Virtual airlines were shown before vAMSYS authorization.");
+                }
+
+                viewModel.Airliners.SelectedCatalogSource = "Real-world operators";
                 viewModel.Airliners.SelectAirlineCommand.Execute(britishAirways);
+
+                window.Width = 1120;
+                window.Height = 700;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                Render(window, Path.Combine(outputDirectory, "airliners-minimum-window.png"));
+
+                window.Width = 1920;
+                window.Height = 1080;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                Render(window, Path.Combine(outputDirectory, "airliners-large-window.png"));
+
+                window.Width = 1540;
+                window.Height = 900;
             }
             else if (page == "CabinPanel")
             {
@@ -449,12 +544,13 @@ internal static class Program
                 viewModel.IportDcs.Destination = dispatcherOriginalDestination;
                 viewModel.IportDcs.SelectedFlight = liveFlight;
 
-                viewModel.IportDcs.LoadActionCommand.Execute("Load sheet finalized for the active flight.");
-                if (!viewModel.IportDcs.CommandStatus.Contains("finalized", StringComparison.OrdinalIgnoreCase) ||
+                viewModel.IportDcs.FinalizeLoadSheetCommand.Execute(null);
+                if (!viewModel.IportDcs.CommandStatus.Contains("draft", StringComparison.OrdinalIgnoreCase) ||
+                    viewModel.IportDcs.IsLoadSheetFinalized ||
                     viewModel.IportDcs.MaxTakeoffWeightKg <= viewModel.IportDcs.TakeoffWeightKg ||
                     viewModel.IportDcs.LandingWeightKg >= viewModel.IportDcs.TakeoffWeightKg)
                 {
-                    throw new InvalidOperationException("The iPortflight load calculations or action controls are not operational.");
+                    throw new InvalidOperationException("The iPortflight calculations or unresolved-passenger finalization block are not operational.");
                 }
 
                 viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.LoadPassengerModule);
@@ -526,10 +622,12 @@ internal static class Program
             }
             else if (page == "Passengers")
             {
-                if (viewModel.Passengers.L1DoorOpen || !viewModel.Passengers.L2DoorOpen)
+                if (viewModel.Passengers.L1DoorOpen || viewModel.Passengers.L2DoorOpen)
                 {
-                    throw new InvalidOperationException("Passenger Flow did not initialize with the L2-only preview scenario.");
+                    throw new InvalidOperationException("Passenger Flow did not initialize with both doors safely closed before simulator telemetry.");
                 }
+
+                viewModel.Passengers.L2DoorOpen = true;
 
                 var realOperationsSpeed = viewModel.Passengers.SpeedOptions.Single(option => option.Multiplier == 0.06d);
                 viewModel.Passengers.SelectedSpeedOption = realOperationsSpeed;
@@ -623,6 +721,12 @@ internal static class Program
 
                 viewModel.Passengers.ResetCommand.Execute(null);
                 viewModel.Passengers.BookedPassengerCount = 36;
+                foreach (var passenger in viewModel.Operations.PassengerRecords
+                             .Where(passenger => !passenger.IsCheckedIn)
+                             .ToArray())
+                {
+                    viewModel.Operations.CheckInPassengerCommand.Execute(passenger);
+                }
                 viewModel.Passengers.L1DoorOpen = true;
                 viewModel.Passengers.L2DoorOpen = true;
                 viewModel.Passengers.SelectedSpeedOption = viewModel.Passengers.SpeedOptions.Single(option => option.Multiplier == 4d);
@@ -694,9 +798,10 @@ internal static class Program
                 if (viewModel.Passengers.BookedPassengerCount != 302 ||
                     !viewModel.Passengers.SimBriefFlightSummary.Contains("BAW123", StringComparison.Ordinal) ||
                     !viewModel.Passengers.SimBriefFlightSummary.Contains("18:30", StringComparison.Ordinal) ||
-                    viewModel.Passengers.MappedPassengerCount != 302 ||
-                    viewModel.Passengers.UnmappedPassengerCount != 0 ||
-                    viewModel.Passengers.PassengerManifest.Count != 302 ||
+                    viewModel.Passengers.SelectedCabinLayoutProfile.Id != "british-airways.777-300" ||
+                    viewModel.Passengers.MappedPassengerCount != 256 ||
+                    viewModel.Passengers.UnmappedPassengerCount != 46 ||
+                    viewModel.Passengers.PassengerManifest.Count != 256 ||
                     viewModel.Passengers.PassengerManifest.First().BoardingGroup != 1 ||
                     viewModel.Passengers.PassengerManifest.Last().BoardingGroup != 8 ||
                     viewModel.Passengers.CanAdjustPassengerLoad)
@@ -739,6 +844,19 @@ internal static class Program
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 Render(window, Path.Combine(outputDirectory, "passengers-simbrief-synced.png"));
 
+                if (viewModel.Operations.ForecastNoShowRate != 9 ||
+                    viewModel.Operations.ForecastNoShowPassengers != 23 ||
+                    viewModel.Operations.PassengerRecords.Count(passenger => !passenger.IsCheckedIn) != 23)
+                {
+                    throw new InvalidOperationException(
+                        "The BA systemwide route forecast did not create the expected 9% check-in hold cohort.");
+                }
+
+                foreach (var passenger in viewModel.Operations.PassengerRecords.Where(passenger => !passenger.IsCheckedIn).ToArray())
+                {
+                    viewModel.Operations.CheckInPassengerCommand.Execute(passenger);
+                }
+
                 viewModel.Passengers.StartPauseCommand.Execute(null);
                 for (var index = 0; index < 500 &&
                      viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete; index++)
@@ -747,20 +865,49 @@ internal static class Program
                 }
 
                 if (viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete ||
-                    viewModel.Passengers.BoardedPassengerCount != 302 ||
-                    viewModel.Passengers.PassengerMarkers.Count != 302 ||
-                    viewModel.Passengers.RemainingPassengerCount != 0)
+                    viewModel.Passengers.BoardedPassengerCount != 256 ||
+                    viewModel.Passengers.PassengerMarkers.Count != 256 ||
+                    viewModel.Passengers.RemainingPassengerCount != 46 ||
+                    viewModel.Operations.PassengerRecords.Any(passenger => passenger.IsBoarded && !passenger.IsCheckedIn))
                 {
-                    throw new InvalidOperationException("The 302-passenger SimBrief load did not fill 302 individual mapped seats.");
+                    throw new InvalidOperationException(
+                        $"The SimBrief load did not fill all mapped BA 777-300 seats with checked-in passengers. State={viewModel.Passengers.BoardingState}, Boarded={viewModel.Passengers.BoardedPassengerCount}, Markers={viewModel.Passengers.PassengerMarkers.Count}, Remaining={viewModel.Passengers.RemainingPassengerCount}.");
                 }
+
+                foreach (var baggagePassenger in viewModel.Operations.PassengerRecords
+                             .Where(passenger => passenger.CheckedBags > 0 && !passenger.IsBagLoaded)
+                             .ToArray())
+                {
+                    viewModel.Operations.ToggleBagLoadedCommand.Execute(baggagePassenger);
+                }
+
+                viewModel.IportDcs.SelectedFlight = viewModel.IportDcs.Flights.First(flight => flight.IsLive);
+                viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.LoadControlModule);
+                viewModel.IportDcs.FinalizeLoadSheetCommand.Execute(null);
+                if (!viewModel.IportDcs.IsLoadSheetFinalized ||
+                    viewModel.IportDcs.TrafficLoadKg !=
+                    (viewModel.Operations.BoardedPassengers * 84) + viewModel.Operations.LoadedBaggageWeightKg ||
+                    viewModel.IportDcs.CargoWeightKg != viewModel.Operations.LoadedBaggageWeightKg ||
+                    viewModel.Operations.HasBaggageDiscrepancies ||
+                    viewModel.Operations.PassengerRecords.Any(passenger =>
+                        passenger.IsBoarded && passenger.EstimatedBagCount > 0))
+                {
+                    throw new InvalidOperationException(
+                        "The final iPort load sheet did not use boarded passengers and exact loaded-bag kilograms.");
+                }
+
+                viewModel.NavigateCommand.Execute("IportDcs");
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "iportdcs-load-control-final.png"));
+                viewModel.NavigateCommand.Execute("Passengers");
 
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                 Render(window, Path.Combine(outputDirectory, "passengers-simbrief-302-boarded.png"));
 
                 foreach (var layoutCheck in new[]
                          {
-                             (Id: "british-airways.777-200er", Capacity: 280),
-                             (Id: "british-airways.777-300", Capacity: 266)
+                             (Id: "british-airways.777-200er", Capacity: 272),
+                             (Id: "british-airways.777-300", Capacity: 256)
                          })
                 {
                     var profile = viewModel.Passengers.CabinLayoutProfiles.Single(profile => profile.Id == layoutCheck.Id);
@@ -768,11 +915,16 @@ internal static class Program
                     if (!viewModel.Passengers.IsOperationalCabinLayout ||
                         viewModel.Passengers.IsReferenceCabinLayout ||
                         !viewModel.Passengers.IsAirlineCabinLayout ||
-                        !profile.LivePreviewUri.Contains("Horizontal", StringComparison.Ordinal) ||
+                        (!profile.LivePreviewUri.Contains("Horizontal", StringComparison.Ordinal) && !profile.UsesFallbackLivePreview) ||
                         viewModel.Passengers.CabinCapacity != layoutCheck.Capacity ||
                         viewModel.Passengers.MappedPassengerCount != layoutCheck.Capacity)
                     {
                         throw new InvalidOperationException($"{profile.Name} did not activate its operational seat-coordinate profile.");
+                    }
+
+                    foreach (var passenger in viewModel.Operations.PassengerRecords.Where(passenger => !passenger.IsCheckedIn).ToArray())
+                    {
+                        viewModel.Operations.CheckInPassengerCommand.Execute(passenger);
                     }
 
                     viewModel.Passengers.L1DoorOpen = true;
@@ -805,6 +957,27 @@ internal static class Program
                     window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
                     var slug = profile.Id.Replace('.', '-');
                     Render(window, Path.Combine(outputDirectory, $"passengers-live-layout-{slug}.png"));
+
+                    for (var index = 0;
+                         index < 800 && viewModel.Passengers.BoardingState !=
+                         FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete;
+                         index++)
+                    {
+                        viewModel.Passengers.AdvancePreview(TimeSpan.FromSeconds(0.5d));
+                    }
+
+                    if (viewModel.Passengers.BoardingState !=
+                            FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete ||
+                        viewModel.Passengers.PassengerMarkers.Count != layoutCheck.Capacity ||
+                        viewModel.Passengers.PassengerMarkers.Any(passenger =>
+                            Math.Abs(passenger.X - passenger.SeatX) > 0.001d ||
+                            Math.Abs(passenger.Y - passenger.SeatY) > 0.001d))
+                    {
+                        throw new InvalidOperationException($"{profile.Name} did not finish every passenger at the mapped seat centre.");
+                    }
+
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                    Render(window, Path.Combine(outputDirectory, $"passengers-live-layout-{slug}-boarded.png"));
                 }
 
                 viewModel.Passengers.SelectedCabinLayoutProfile =
@@ -1148,6 +1321,116 @@ internal static class Program
             }
         }
 
+        var uncheckedBeforeDeadline = viewModel.Operations.PassengerRecords.Count(passenger =>
+            !passenger.IsCheckedIn && !passenger.IsBoarded);
+        if (uncheckedBeforeDeadline != viewModel.Operations.ForecastNoShowPassengers)
+        {
+            throw new InvalidOperationException(
+                "The route forecast and the held passenger cohort did not contain the same number of passengers.");
+        }
+        operationsClock.Now = viewModel.Operations.TurnaroundSchedule.FinalBoarding.AddMinutes(1);
+        viewModel.Operations.RefreshOperationalClock();
+        if (uncheckedBeforeDeadline == 0 ||
+            viewModel.Operations.LatePassengers != uncheckedBeforeDeadline ||
+            viewModel.Operations.NoShowPassengers != 0 ||
+            viewModel.Operations.PassengerRecords.Any(passenger =>
+                passenger.IsLate && !passenger.CheckInLabel.StartsWith("Late ·", StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                "Unchecked passengers did not enter the late window after final boarding.");
+        }
+
+        viewModel.NavigateCommand.Execute("PassengerManifest");
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+        Render(window, Path.Combine(outputDirectory, "passenger-manifest-late-window.png"));
+
+        operationsClock.Now = viewModel.Operations.TurnaroundSchedule.GateClose.AddMinutes(1);
+        viewModel.Operations.RefreshOperationalClock();
+        if (uncheckedBeforeDeadline == 0 ||
+            viewModel.Operations.NoShowPassengers != uncheckedBeforeDeadline ||
+            viewModel.Passengers.NoShowPassengerCount != uncheckedBeforeDeadline ||
+            viewModel.Operations.PassengerRecords.Any(passenger => passenger.IsNoShow && passenger.IsBoarded) ||
+            viewModel.Operations.PassengerRecords.Any(passenger => passenger.IsNoShow && passenger.LoadedBagCount > 0) ||
+            viewModel.Operations.PassengerRecords.Any(passenger =>
+                passenger.IsNoShow && passenger.CheckedBags > 0 &&
+                !passenger.BaggageLabel.StartsWith("Offloaded — passenger no-show", StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                "Unchecked late passengers were not converted to non-boardable no-shows with reconciled baggage at gate close.");
+        }
+
+        viewModel.NavigateCommand.Execute("PassengerManifest");
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+        Render(window, Path.Combine(outputDirectory, "passenger-manifest-no-shows.png"));
+
+        var flightTimestamp = DateTimeOffset.UtcNow;
+        viewModel.Operations.ApplyCabinTelemetry(new CabinTelemetrySnapshot(
+            flightTimestamp,
+            "Cruise",
+            36_000d,
+            false,
+            true,
+            new Dictionary<string, double> { ["groundspeed_mps"] = 240d }));
+        if (!viewModel.Operations.IsArrivalMode ||
+            viewModel.Operations.TimelineEvents[2].Label != "Cruise")
+        {
+            throw new InvalidOperationException("Airborne telemetry did not switch the Overview into arrival mode.");
+        }
+        viewModel.NavigateCommand.Execute("Dashboard");
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+        Render(window, Path.Combine(outputDirectory, "dashboard-arrival-mode.png"));
+
+        viewModel.Operations.ApplyCabinTelemetry(new CabinTelemetrySnapshot(
+            flightTimestamp.AddHours(8),
+            "Taxi",
+            0d,
+            true,
+            false,
+            new Dictionary<string, double> { ["groundspeed_mps"] = 7d }));
+        if (!viewModel.Operations.FlightBannerMessage.Contains("Welcome to", StringComparison.Ordinal) ||
+            viewModel.Operations.TimelineEvents[4].Label != "Arrival")
+        {
+            throw new InvalidOperationException("Landing telemetry did not show the destination welcome state.");
+        }
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+        Render(window, Path.Combine(outputDirectory, "dashboard-arrival-welcome.png"));
+
+        var updateNotification = new UpdateNotificationWindow
+        {
+            Owner = window,
+            DataContext = new
+            {
+                CurrentVersion = "v0.3.0",
+                AvailableVersion = "v0.3.1 available",
+                ReleaseNotes = "• Improved simulator connectivity\n• Cabin-state reliability updates\n• Performance and usability improvements",
+                FlightAdvisory = "An active flight is in progress. Choose Later to keep flying; the update will not install automatically.",
+                Status = "Update ready when you are.",
+                InstallButtonLabel = "Install & Restart",
+                CanInstall = true
+            },
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -20000,
+            Top = 0,
+            ShowActivated = false
+        };
+        updateNotification.Show();
+        updateNotification.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+        Render(updateNotification, Path.Combine(outputDirectory, "update-notification.png"));
+        updateNotification.Close();
+
+        var changelogWindow = new ChangelogWindow("# GitHub Release v0.3.1\n\n- Example live release notes.\n\n---\n\n# Installed Changelog\n\n## [0.3.0]")
+        {
+            Owner = window,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -20000,
+            Top = 0,
+            ShowActivated = false
+        };
+        changelogWindow.Show();
+        changelogWindow.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+        Render(changelogWindow, Path.Combine(outputDirectory, "changelog-window.png"));
+        changelogWindow.Close();
+
         window.Close();
         application.Shutdown();
         var renderedChecks = Directory.EnumerateFiles(outputDirectory, "*.png", SearchOption.TopDirectoryOnly).Count();
@@ -1315,7 +1598,7 @@ internal static class Program
 
     private sealed class FixedOperationsClock(DateTimeOffset now) : IOperationsClock
     {
-        public DateTimeOffset Now { get; } = now;
+        public DateTimeOffset Now { get; set; } = now;
 
         public string SourceLabel => "LOCAL TIME";
     }

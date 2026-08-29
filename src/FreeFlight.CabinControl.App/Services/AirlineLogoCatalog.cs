@@ -1,11 +1,14 @@
 using System.IO;
+using System.Reflection;
+using System.Text.Json;
 
 namespace FreeFlight.CabinControl.App.Services;
 
 public static class AirlineLogoCatalog
 {
-    private static readonly HashSet<string> BundledIcaoCodes =
-        new(StringComparer.OrdinalIgnoreCase) { "BAW", "NOZ" };
+    private const string BundledCodesResource = "FreeFlight.CabinControl.Operators.BundledLogoCodes.json";
+
+    private static readonly Lazy<HashSet<string>> BundledIcaoCodes = new(LoadBundledCodes);
 
     public static string? Resolve(string icao)
     {
@@ -29,8 +32,16 @@ public static class AirlineLogoCatalog
             }
         }
 
-        return BundledIcaoCodes.Contains(normalizedIcao)
+        return BundledIcaoCodes.Value.Contains(normalizedIcao)
             ? $"pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/{normalizedIcao}.png"
             : null;
+    }
+
+    private static HashSet<string> LoadBundledCodes()
+    {
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(BundledCodesResource)
+            ?? throw new InvalidOperationException("The bundled airline-logo index is missing.");
+        return JsonSerializer.Deserialize<string[]>(stream)?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 }

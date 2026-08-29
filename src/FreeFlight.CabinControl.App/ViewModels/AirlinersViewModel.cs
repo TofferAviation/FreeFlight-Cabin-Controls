@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.App.Views;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Persistence;
@@ -17,7 +18,8 @@ public sealed class AirlinersViewModel : PageViewModel
     private readonly List<AirlineProfileViewModel> _catalog;
     private AirlineProfileViewModel _activeAirline;
     private string _searchText = string.Empty;
-    private string _activeFilter = AllFilter;
+    private string _activeFilter = "Real-world";
+    private string _selectedCatalogSource = "Real-world operators";
     private string _selectionStatus = "Airline selection is stored locally";
 
     public AirlinersViewModel(
@@ -32,6 +34,7 @@ public sealed class AirlinersViewModel : PageViewModel
         _catalog = CreateCatalog(settings.CustomAirlineProfiles);
         _activeAirline = _catalog.FirstOrDefault(profile =>
             string.Equals(profile.Id, settings.ActiveAirlineId, StringComparison.OrdinalIgnoreCase))
+            ?? _catalog.FirstOrDefault(profile => profile.Icao == "BAW")
             ?? _catalog[0];
         _activeAirline.IsActive = true;
 
@@ -89,22 +92,59 @@ public sealed class AirlinersViewModel : PageViewModel
 
     public int AvailableProfileCount => _catalog.Count;
 
+    public int RealWorldOperatorCount => _catalog.Count(profile => profile.Type == "Real-world");
+
     public int InstalledPackCount => _catalog.Count(profile => profile.IsInstalled);
+
+    public IReadOnlyList<string> CatalogSources { get; } =
+        ["Real-world operators", "vAMSYS virtual airline"];
+
+    public string SelectedCatalogSource
+    {
+        get => _selectedCatalogSource;
+        set
+        {
+            if (SetProperty(ref _selectedCatalogSource, value))
+            {
+                ActiveFilter = value == "Real-world operators" ? "Real-world" : "vAMSYS";
+                ApplyFilter();
+            }
+        }
+    }
+
+    public bool IsVamsysConnected => false;
+
+    public string AirlineSourceStatus => IsVamsysConnected
+        ? "Showing the virtual airline authorized through vAMSYS"
+        : "No vAMSYS airline connected · the virtual-airline catalog is empty";
+
+    public bool HasVisibleAirlines => VisibleAirlines.Count > 0;
+
+    public string EmptyCatalogMessage => ActiveFilter == "vAMSYS"
+        ? "No virtual airline is available. Connect vAMSYS to display the airline authorized for your account."
+        : "No scheduled real-world operator matches the current search.";
 
     private static List<AirlineProfileViewModel> CreateCatalog(
         IEnumerable<CustomAirlineProfileSettings> customProfiles)
     {
-        var catalog = new List<AirlineProfileViewModel>
-        {
+        var catalog = RealWorldOperatorCatalog.All
+            .Select(entry => new AirlineProfileViewModel(
+                entry.Id,
+                entry.Name,
+                entry.Icao,
+                "Real-world",
+                "Base branding package",
+                false))
+            .ToList();
+
+        catalog.AddRange([
         new("freeflight.virtual", "FreeFlight Virtual", "FFV", "Virtual Airline", "FreeFlight Cabin Pack", true),
-        new("british-airways", "British Airways", "BAW", "Real-world", "British Airways 777 pack", false),
-        new("norwegian", "Norwegian", "NOZ", "Real-world", "Norwegian Cabin Pack", false),
-        new("nordic-air", "Nordic Air", "NDA", "Real-world", "Nordic Air Cabin Pack", false),
-        new("british-atlantic", "British Atlantic", "BAT", "Real-world", "British Atlantic Pack", false),
-        new("emirates-sky", "Emirates Sky", "EMS", "Real-world", "Emirates Sky Pack", false),
-        new("pacific-crown", "Pacific Crown", "PCR", "Real-world", "Pacific Crown Pack", false),
+        new("nordic-air", "Nordic Air", "NDA", "Virtual Airline", "Nordic Air Cabin Pack", false),
+        new("british-atlantic", "British Atlantic", "BAT", "Virtual Airline", "British Atlantic Pack", false),
+        new("emirates-sky", "Emirates Sky", "EMS", "Virtual Airline", "Emirates Sky Pack", false),
+        new("pacific-crown", "Pacific Crown", "PCR", "Virtual Airline", "Pacific Crown Pack", false),
         new("global-charter", "Global Charter", "GCR", "Virtual Airline", "Global Charter Pack", false)
-        };
+        ]);
 
         catalog.AddRange(customProfiles
             .Where(profile => !string.IsNullOrWhiteSpace(profile.Id)
@@ -163,7 +203,9 @@ public sealed class AirlinersViewModel : PageViewModel
     private void ApplyFilter()
     {
         var search = SearchText.Trim();
-        var matches = _catalog.Where(profile =>
+        var matches = ActiveFilter == "vAMSYS" && !IsVamsysConnected
+            ? Enumerable.Empty<AirlineProfileViewModel>()
+            : _catalog.Where(profile =>
             (string.IsNullOrEmpty(search)
              || profile.Name.Contains(search, StringComparison.CurrentCultureIgnoreCase)
              || profile.Icao.Contains(search, StringComparison.OrdinalIgnoreCase))
@@ -174,12 +216,16 @@ public sealed class AirlinersViewModel : PageViewModel
         {
             VisibleAirlines.Add(profile);
         }
+
+        OnPropertyChanged(nameof(HasVisibleAirlines));
+        OnPropertyChanged(nameof(EmptyCatalogMessage));
     }
 
     private bool MatchesActiveFilter(AirlineProfileViewModel profile) => ActiveFilter switch
     {
         "Real-world" => profile.Type == "Real-world",
         "Virtual Airlines" => profile.Type == "Virtual Airline",
+        "vAMSYS" => profile.Type == "vAMSYS",
         "Installed Packs" => profile.IsInstalled,
         _ => true
     };

@@ -1,0 +1,3086 @@
+{
+  "snapshotDate": "2026-08-26",
+  "sourceWorkbook": "global_passenger_jet_operators_2026-08-26.xlsx",
+  "operators": [
+    {
+      "name": "2Excel Aviation",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "9 Air",
+      "icao": "JYH",
+      "source": "https://www.flightradar24.com/data/airlines/aq-jyh/fleet"
+    },
+    {
+      "name": "Advanced Air",
+      "icao": "WSN",
+      "source": "https://www.flightradar24.com/data/airlines/an-wsn/fleet"
+    },
+    {
+      "name": "Aegean Airlines",
+      "icao": "AEE",
+      "source": "https://www.flightradar24.com/data/airlines/a3-aee/fleet"
+    },
+    {
+      "name": "Aer Lingus",
+      "icao": "EIN",
+      "source": "https://www.flightradar24.com/data/airlines/ei-ein/fleet"
+    },
+    {
+      "name": "Aero Contractors",
+      "icao": "NIG",
+      "source": "https://www.flightradar24.com/data/airlines/n2-nig/fleet"
+    },
+    {
+      "name": "Aero Dili",
+      "icao": "DTL",
+      "source": "https://www.flightradar24.com/data/airlines/8g-dtl/fleet"
+    },
+    {
+      "name": "Aero K",
+      "icao": "EOK",
+      "source": "https://www.flightradar24.com/data/airlines/rf-eok/fleet"
+    },
+    {
+      "name": "Aero Mongolia",
+      "icao": "MNG",
+      "source": "https://www.flightradar24.com/data/airlines/m0-mng/fleet"
+    },
+    {
+      "name": "Aero Nomad",
+      "icao": "ANK",
+      "source": "https://www.flightradar24.com/data/airlines/ka-ank/fleet"
+    },
+    {
+      "name": "Aeroflot",
+      "icao": "AFL",
+      "source": "https://www.flightradar24.com/data/airlines/su-afl/fleet"
+    },
+    {
+      "name": "Aeroitalia",
+      "icao": "AEZ",
+      "source": "https://www.flightradar24.com/data/airlines/xz-aez/fleet"
+    },
+    {
+      "name": "Aerolineas Argentinas",
+      "icao": "ARG",
+      "source": "https://www.flightradar24.com/data/airlines/ar-arg/fleet"
+    },
+    {
+      "name": "Aeromexico",
+      "icao": "AMX",
+      "source": "https://www.flightradar24.com/data/airlines/am-amx/fleet"
+    },
+    {
+      "name": "Aeromexico Connect",
+      "icao": "SLI",
+      "source": "https://www.flightradar24.com/data/airlines/5d-sli/fleet"
+    },
+    {
+      "name": "Aeroregional",
+      "icao": "RER",
+      "source": "https://www.flightradar24.com/data/airlines/6g-rer/fleet"
+    },
+    {
+      "name": "Aerovias DAP",
+      "icao": "DAP",
+      "source": "https://www.flightradar24.com/data/airlines/v5-dap/fleet"
+    },
+    {
+      "name": "Africa Charter Airline",
+      "icao": "FSK",
+      "source": "https://www.flightradar24.com/data/airlines/fsk/fleet"
+    },
+    {
+      "name": "Africa World Airlines",
+      "icao": "AFW",
+      "source": "https://www.flightradar24.com/data/airlines/aw-afw/fleet"
+    },
+    {
+      "name": "African Express Airways",
+      "icao": "AXK",
+      "source": "https://www.flightradar24.com/data/airlines/xu-axk/fleet"
+    },
+    {
+      "name": "Afriqiyah Airways",
+      "icao": "AAW",
+      "source": "https://www.flightradar24.com/data/airlines/8u-aaw/fleet"
+    },
+    {
+      "name": "Air Algerie",
+      "icao": "DAH",
+      "source": "https://www.flightradar24.com/data/airlines/ah-dah/fleet"
+    },
+    {
+      "name": "Air Anka",
+      "icao": "TAH",
+      "source": "https://www.flightradar24.com/data/airlines/6k-tah/fleet"
+    },
+    {
+      "name": "Air Arabia",
+      "icao": "ABY",
+      "source": "https://www.flightradar24.com/data/airlines/g9-aby/fleet"
+    },
+    {
+      "name": "Air Arabia Abu Dhabi",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Air Arabia Egypt",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Air Arabia Maroc",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Air Astana",
+      "icao": "KZR",
+      "source": "https://www.flightradar24.com/data/airlines/kc-kzr/fleet"
+    },
+    {
+      "name": "Air Astra",
+      "icao": "AWA",
+      "source": "https://www.flightradar24.com/data/airlines/2a-awa/fleet"
+    },
+    {
+      "name": "Air Atlanta Europe",
+      "icao": "AAE",
+      "source": "https://www.flightradar24.com/data/airlines/ct-aae/fleet"
+    },
+    {
+      "name": "Air Austral",
+      "icao": "REU",
+      "source": "https://www.flightradar24.com/data/airlines/uu-reu/fleet"
+    },
+    {
+      "name": "Air Botswana",
+      "icao": "BOT",
+      "source": "https://www.flightradar24.com/data/airlines/bp-bot/fleet"
+    },
+    {
+      "name": "Air Burkina",
+      "icao": "VBW",
+      "source": "https://www.flightradar24.com/data/airlines/2j-vbw/fleet"
+    },
+    {
+      "name": "Air Busan",
+      "icao": "ABL",
+      "source": "https://www.flightradar24.com/data/airlines/bx-abl/fleet"
+    },
+    {
+      "name": "Air Cairo",
+      "icao": "MSC",
+      "source": "https://www.flightradar24.com/data/airlines/sm-msc/fleet"
+    },
+    {
+      "name": "Air Cambodia",
+      "icao": "KHV",
+      "source": "https://www.flightradar24.com/data/airlines/k6-khv/fleet"
+    },
+    {
+      "name": "Air Canada",
+      "icao": "ACA",
+      "source": "https://www.flightradar24.com/data/airlines/ac-aca/fleet"
+    },
+    {
+      "name": "Air Canada Rouge",
+      "icao": "ROU",
+      "source": "https://www.flightradar24.com/data/airlines/rv-rou/fleet"
+    },
+    {
+      "name": "Air Caraibes",
+      "icao": "FWI",
+      "source": "https://www.flightradar24.com/data/airlines/tx-fwi/fleet"
+    },
+    {
+      "name": "Air Century",
+      "icao": "CEY",
+      "source": "https://www.flightradar24.com/data/airlines/y2-cey/fleet"
+    },
+    {
+      "name": "Air Changan",
+      "icao": "CGN",
+      "source": "https://www.flightradar24.com/data/airlines/9h-cgn/fleet"
+    },
+    {
+      "name": "Air China",
+      "icao": "CCA",
+      "source": "https://www.flightradar24.com/data/airlines/ca-cca/fleet"
+    },
+    {
+      "name": "Air Congo",
+      "icao": "DRC",
+      "source": "https://www.flightradar24.com/data/airlines/4h-drc/fleet"
+    },
+    {
+      "name": "Air Corsica",
+      "icao": "CCM",
+      "source": "https://www.flightradar24.com/data/airlines/xk-ccm/fleet"
+    },
+    {
+      "name": "Air Côte d'Ivoire",
+      "icao": "VRE",
+      "source": "https://www.flightradar24.com/data/airlines/hf-vre/fleet"
+    },
+    {
+      "name": "Air Do",
+      "icao": "ADO",
+      "source": "https://www.flightradar24.com/data/airlines/hd-ado/fleet"
+    },
+    {
+      "name": "Air Dolomiti",
+      "icao": "DLA",
+      "source": "https://www.flightradar24.com/data/airlines/en-dla/fleet"
+    },
+    {
+      "name": "Air Europa",
+      "icao": "AEA",
+      "source": "https://www.flightradar24.com/data/airlines/ux-aea/fleet"
+    },
+    {
+      "name": "Air France",
+      "icao": "AFR",
+      "source": "https://www.flightradar24.com/data/airlines/af-afr/fleet"
+    },
+    {
+      "name": "Air France Hop",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Air Greenland",
+      "icao": "GRL",
+      "source": "https://www.flightradar24.com/data/airlines/gl-grl/fleet"
+    },
+    {
+      "name": "Air Guilin",
+      "icao": "CGH",
+      "source": "https://www.flightradar24.com/data/airlines/gt-cgh/fleet"
+    },
+    {
+      "name": "Air Horizont",
+      "icao": "HAT",
+      "source": "https://www.flightradar24.com/data/airlines/ht-hat/fleet"
+    },
+    {
+      "name": "Air India",
+      "icao": "AIC",
+      "source": "https://www.flightradar24.com/data/airlines/ai-aic/fleet"
+    },
+    {
+      "name": "Air India Express",
+      "icao": "AXB",
+      "source": "https://www.flightradar24.com/data/airlines/ix-axb/fleet"
+    },
+    {
+      "name": "Air Inuit",
+      "icao": "AIE",
+      "source": "https://www.flightradar24.com/data/airlines/3h-aie/fleet"
+    },
+    {
+      "name": "Air Japan",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Air Koryo",
+      "icao": "KOR",
+      "source": "https://www.flightradar24.com/data/airlines/js-kor/fleet"
+    },
+    {
+      "name": "Air Libya",
+      "icao": "TLR",
+      "source": "https://www.flightradar24.com/data/airlines/7i-tlr/fleet"
+    },
+    {
+      "name": "Air Macau",
+      "icao": "AMU",
+      "source": "https://www.flightradar24.com/data/airlines/nx-amu/fleet"
+    },
+    {
+      "name": "Air Manas",
+      "icao": "MBB",
+      "source": "https://www.flightradar24.com/data/airlines/zm-mbb/fleet"
+    },
+    {
+      "name": "Air Mauritius",
+      "icao": "MAU",
+      "source": "https://www.flightradar24.com/data/airlines/mk-mau/fleet"
+    },
+    {
+      "name": "Air Mediterranean",
+      "icao": "MAR",
+      "source": "https://www.flightradar24.com/data/airlines/mv-mar/fleet"
+    },
+    {
+      "name": "Air Montenegro",
+      "icao": "MNE",
+      "source": "https://www.flightradar24.com/data/airlines/4o-mne/fleet"
+    },
+    {
+      "name": "Air New Zealand",
+      "icao": "ANZ",
+      "source": "https://www.flightradar24.com/data/airlines/nz-anz/fleet"
+    },
+    {
+      "name": "Air Niugini",
+      "icao": "ANG",
+      "source": "https://www.flightradar24.com/data/airlines/px-ang/fleet"
+    },
+    {
+      "name": "Air North",
+      "icao": "ANT",
+      "source": "https://www.flightradar24.com/data/airlines/4n-ant/fleet"
+    },
+    {
+      "name": "Air Nostrum",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Air Peace",
+      "icao": "APK",
+      "source": "https://www.flightradar24.com/data/airlines/p4-apk/fleet"
+    },
+    {
+      "name": "Air Premia",
+      "icao": "APZ",
+      "source": "https://www.flightradar24.com/data/airlines/yp-apz/fleet"
+    },
+    {
+      "name": "Air Samarkand",
+      "icao": "UZS",
+      "source": "https://www.flightradar24.com/data/airlines/9s-uzs/fleet"
+    },
+    {
+      "name": "Air Senegal",
+      "icao": "SZN",
+      "source": "https://www.flightradar24.com/data/airlines/hc-szn/fleet"
+    },
+    {
+      "name": "Air Seoul",
+      "icao": "ASV",
+      "source": "https://www.flightradar24.com/data/airlines/rs-asv/fleet"
+    },
+    {
+      "name": "Air Serbia",
+      "icao": "ASL",
+      "source": "https://www.flightradar24.com/data/airlines/ju-asl/fleet"
+    },
+    {
+      "name": "Air Seychelles",
+      "icao": "SEY",
+      "source": "https://www.flightradar24.com/data/airlines/hm-sey/fleet"
+    },
+    {
+      "name": "Air Tahiti Nui",
+      "icao": "THT",
+      "source": "https://www.flightradar24.com/data/airlines/tn-tht/fleet"
+    },
+    {
+      "name": "Air Tanzania",
+      "icao": "ATC",
+      "source": "https://www.flightradar24.com/data/airlines/tc-atc/fleet"
+    },
+    {
+      "name": "Air Transat",
+      "icao": "TSC",
+      "source": "https://www.flightradar24.com/data/airlines/ts-tsc/fleet"
+    },
+    {
+      "name": "Air Travel",
+      "icao": "OTC",
+      "source": "https://www.flightradar24.com/data/airlines/a6-otc/fleet"
+    },
+    {
+      "name": "Air Wisconsin",
+      "icao": "AWI",
+      "source": "https://www.flightradar24.com/data/airlines/zw-awi/fleet"
+    },
+    {
+      "name": "Air Zimbabwe",
+      "icao": "AZW",
+      "source": "https://www.flightradar24.com/data/airlines/um-azw/fleet"
+    },
+    {
+      "name": "AirAsia",
+      "icao": "AXM",
+      "source": "https://www.flightradar24.com/data/airlines/ak-axm/fleet"
+    },
+    {
+      "name": "AirAsia Cambodia",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "AirAsia X",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "airBaltic",
+      "icao": "BTI",
+      "source": "https://www.flightradar24.com/data/airlines/bt-bti/fleet"
+    },
+    {
+      "name": "airblue",
+      "icao": "ABQ",
+      "source": "https://www.flightradar24.com/data/airlines/pa-abq/fleet"
+    },
+    {
+      "name": "Aircalin",
+      "icao": "ACI",
+      "source": "https://www.flightradar24.com/data/airlines/sb-aci/fleet"
+    },
+    {
+      "name": "AirExplore",
+      "icao": "AXE",
+      "source": "https://www.flightradar24.com/data/airlines/ed-axe/fleet"
+    },
+    {
+      "name": "Airhub Airlines",
+      "icao": "GJM",
+      "source": "https://www.flightradar24.com/data/airlines/re-gjm/fleet"
+    },
+    {
+      "name": "Airlink",
+      "icao": "LNK",
+      "source": "https://www.flightradar24.com/data/airlines/4z-lnk/fleet"
+    },
+    {
+      "name": "Airnorth",
+      "icao": "ANO",
+      "source": "https://www.flightradar24.com/data/airlines/tl-ano/fleet"
+    },
+    {
+      "name": "AirSial",
+      "icao": "SIF",
+      "source": "https://www.flightradar24.com/data/airlines/pf-sif/fleet"
+    },
+    {
+      "name": "AJet",
+      "icao": "TKJ",
+      "source": "https://www.flightradar24.com/data/airlines/vf-tkj/fleet"
+    },
+    {
+      "name": "Akasa Air",
+      "icao": "AKJ",
+      "source": "https://www.flightradar24.com/data/airlines/qp-akj/fleet"
+    },
+    {
+      "name": "Alaska Airlines",
+      "icao": "ASA",
+      "source": "https://www.flightradar24.com/data/airlines/as-asa/fleet"
+    },
+    {
+      "name": "Alexandria Airlines",
+      "icao": "KHH",
+      "source": "https://www.flightradar24.com/data/airlines/dq-khh/fleet"
+    },
+    {
+      "name": "Alfa Airlines",
+      "icao": "AAJ",
+      "source": "https://www.flightradar24.com/data/airlines/5e-aaj/fleet"
+    },
+    {
+      "name": "ALK Airlines",
+      "icao": "VBB",
+      "source": "https://www.flightradar24.com/data/airlines/vbb/fleet"
+    },
+    {
+      "name": "All Nippon Airways",
+      "icao": "ANA",
+      "source": "https://www.flightradar24.com/data/airlines/nh-ana/fleet"
+    },
+    {
+      "name": "Allegiant Air",
+      "icao": "AAY",
+      "source": "https://www.flightradar24.com/data/airlines/g4-aay/fleet"
+    },
+    {
+      "name": "Alliance Airlines",
+      "icao": "UTY",
+      "source": "https://www.flightradar24.com/data/airlines/qq-uty/fleet"
+    },
+    {
+      "name": "AlMasria Universal Airlines",
+      "icao": "LMU",
+      "source": "https://www.flightradar24.com/data/airlines/uj-lmu/fleet"
+    },
+    {
+      "name": "Alrosa",
+      "icao": "DRU",
+      "source": "https://www.flightradar24.com/data/airlines/6r-dru/fleet"
+    },
+    {
+      "name": "AMC Airlines",
+      "icao": "AMV",
+      "source": "https://www.flightradar24.com/data/airlines/amv/fleet"
+    },
+    {
+      "name": "Amelia",
+      "icao": "AIA",
+      "source": "https://www.flightradar24.com/data/airlines/8r-aia/fleet"
+    },
+    {
+      "name": "American Airlines",
+      "icao": "AAL",
+      "source": "https://www.flightradar24.com/data/airlines/aa-aal/fleet"
+    },
+    {
+      "name": "Ameristar",
+      "icao": "AJI",
+      "source": "https://www.flightradar24.com/data/airlines/7z-aji/fleet"
+    },
+    {
+      "name": "Andes Lineas Aereas",
+      "icao": "ANS",
+      "source": "https://www.flightradar24.com/data/airlines/o4-ans/fleet"
+    },
+    {
+      "name": "Angara Airlines",
+      "icao": "AGU",
+      "source": "https://www.flightradar24.com/data/airlines/agu/fleet"
+    },
+    {
+      "name": "Animawings",
+      "icao": "AWG",
+      "source": "https://www.flightradar24.com/data/airlines/a2-awg/fleet"
+    },
+    {
+      "name": "Arajet",
+      "icao": "DWI",
+      "source": "https://www.flightradar24.com/data/airlines/dm-dwi/fleet"
+    },
+    {
+      "name": "Ariana Afghan Airlines",
+      "icao": "AFG",
+      "source": "https://www.flightradar24.com/data/airlines/fg-afg/fleet"
+    },
+    {
+      "name": "Arik Air",
+      "icao": "ARA",
+      "source": "https://www.flightradar24.com/data/airlines/w3-ara/fleet"
+    },
+    {
+      "name": "Arkia",
+      "icao": "AIZ",
+      "source": "https://www.flightradar24.com/data/airlines/iz-aiz/fleet"
+    },
+    {
+      "name": "Armenia Airways",
+      "icao": "AMW",
+      "source": "https://www.flightradar24.com/data/airlines/6a-amw/fleet"
+    },
+    {
+      "name": "Aruba Airlines",
+      "icao": "ARU",
+      "source": "https://www.flightradar24.com/data/airlines/ag-aru/fleet"
+    },
+    {
+      "name": "Ascend Airways",
+      "icao": "SYG",
+      "source": "https://www.flightradar24.com/data/airlines/yd-syg/fleet"
+    },
+    {
+      "name": "Asiana Airlines",
+      "icao": "AAR",
+      "source": "https://www.flightradar24.com/data/airlines/oz-aar/fleet"
+    },
+    {
+      "name": "ASKY Airlines",
+      "icao": "SKK",
+      "source": "https://www.flightradar24.com/data/airlines/kp-skk/fleet"
+    },
+    {
+      "name": "ATA Airlines",
+      "icao": "TBZ",
+      "source": "https://www.flightradar24.com/data/airlines/i3-tbz/fleet"
+    },
+    {
+      "name": "Atlantic Airways",
+      "icao": "FLI",
+      "source": "https://www.flightradar24.com/data/airlines/rc-fli/fleet"
+    },
+    {
+      "name": "Aurora",
+      "icao": "SHU",
+      "source": "https://www.flightradar24.com/data/airlines/hz-shu/fleet"
+    },
+    {
+      "name": "Austrian Airlines",
+      "icao": "AUA",
+      "source": "https://www.flightradar24.com/data/airlines/os-aua/fleet"
+    },
+    {
+      "name": "AVA Airlines",
+      "icao": "AXV",
+      "source": "https://www.flightradar24.com/data/airlines/axv/fleet"
+    },
+    {
+      "name": "Avelo Airlines",
+      "icao": "VXP",
+      "source": "https://www.flightradar24.com/data/airlines/xp-vxp/fleet"
+    },
+    {
+      "name": "Avia Traffic",
+      "icao": "AVJ",
+      "source": "https://www.flightradar24.com/data/airlines/yk-avj/fleet"
+    },
+    {
+      "name": "Avianca",
+      "icao": "AVA",
+      "source": "https://www.flightradar24.com/data/airlines/av-ava/fleet"
+    },
+    {
+      "name": "Aviation Horizons",
+      "icao": "HZS",
+      "source": "https://www.flightradar24.com/data/airlines/zs-hzs/fleet"
+    },
+    {
+      "name": "Avion Express",
+      "icao": "NVD",
+      "source": "https://www.flightradar24.com/data/airlines/x9-nvd/fleet"
+    },
+    {
+      "name": "Avior Airlines",
+      "icao": "ROI",
+      "source": "https://www.flightradar24.com/data/airlines/9v-roi/fleet"
+    },
+    {
+      "name": "Azerbaijan Airlines",
+      "icao": "AHY",
+      "source": "https://www.flightradar24.com/data/airlines/j2-ahy/fleet"
+    },
+    {
+      "name": "Azimuth",
+      "icao": "AZO",
+      "source": "https://www.flightradar24.com/data/airlines/a4-azo/fleet"
+    },
+    {
+      "name": "Azores Airlines",
+      "icao": "RZO",
+      "source": "https://www.flightradar24.com/data/airlines/s4-rzo/fleet"
+    },
+    {
+      "name": "Azul",
+      "icao": "AZU",
+      "source": "https://www.flightradar24.com/data/airlines/ad-azu/fleet"
+    },
+    {
+      "name": "Azur Air",
+      "icao": "AZV",
+      "source": "https://www.flightradar24.com/data/airlines/zf-azv/fleet"
+    },
+    {
+      "name": "BA Euroflyer",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Badr Airlines",
+      "icao": "BDR",
+      "source": "https://www.flightradar24.com/data/airlines/j4-bdr/fleet"
+    },
+    {
+      "name": "Bahamasair",
+      "icao": "BHS",
+      "source": "https://www.flightradar24.com/data/airlines/up-bhs/fleet"
+    },
+    {
+      "name": "Bamboo Airways",
+      "icao": "BAV",
+      "source": "https://www.flightradar24.com/data/airlines/qh-bav/fleet"
+    },
+    {
+      "name": "Bangkok Airways",
+      "icao": "BKP",
+      "source": "https://www.flightradar24.com/data/airlines/pg-bkp/fleet"
+    },
+    {
+      "name": "Batik Air",
+      "icao": "BTK",
+      "source": "https://www.flightradar24.com/data/airlines/id-btk/fleet"
+    },
+    {
+      "name": "BBN Airlines",
+      "icao": "BBT",
+      "source": "https://www.flightradar24.com/data/airlines/b5-bbt/fleet"
+    },
+    {
+      "name": "BBN Airlines Indonesia",
+      "icao": "BBL",
+      "source": "https://www.flightradar24.com/data/airlines/0b-bbl/fleet"
+    },
+    {
+      "name": "BBN Airlines Thailand",
+      "icao": "THB",
+      "source": "https://www.flightradar24.com/data/airlines/tz-thb/fleet"
+    },
+    {
+      "name": "Belavia",
+      "icao": "BRU",
+      "source": "https://www.flightradar24.com/data/airlines/b2-bru/fleet"
+    },
+    {
+      "name": "beOnd",
+      "icao": "BYD",
+      "source": "https://www.flightradar24.com/data/airlines/b4-byd/fleet"
+    },
+    {
+      "name": "BermudAir",
+      "icao": "BMA",
+      "source": "https://www.flightradar24.com/data/airlines/2t-bma/fleet"
+    },
+    {
+      "name": "Berniq Airways",
+      "icao": "BNL",
+      "source": "https://www.flightradar24.com/data/airlines/nb-bnl/fleet"
+    },
+    {
+      "name": "BH Air",
+      "icao": "BGH",
+      "source": "https://www.flightradar24.com/data/airlines/8h-bgh/fleet"
+    },
+    {
+      "name": "Bhutan Airlines",
+      "icao": "BTN",
+      "source": "https://www.flightradar24.com/data/airlines/b3-btn/fleet"
+    },
+    {
+      "name": "Biman Bangladesh Airlines",
+      "icao": "BBC",
+      "source": "https://www.flightradar24.com/data/airlines/bg-bbc/fleet"
+    },
+    {
+      "name": "Binter Canarias",
+      "icao": "IBB",
+      "source": "https://www.flightradar24.com/data/airlines/nt-ibb/fleet"
+    },
+    {
+      "name": "Bluebird Airways",
+      "icao": "BBG",
+      "source": "https://www.flightradar24.com/data/airlines/bz-bbg/fleet"
+    },
+    {
+      "name": "Boliviana de Aviacion",
+      "icao": "BOV",
+      "source": "https://www.flightradar24.com/data/airlines/ob-bov/fleet"
+    },
+    {
+      "name": "Brazza Airlines",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Breeze Airways",
+      "icao": "MXY",
+      "source": "https://www.flightradar24.com/data/airlines/mx-mxy/fleet"
+    },
+    {
+      "name": "British Airways",
+      "icao": "BAW",
+      "source": "https://www.flightradar24.com/data/airlines/ba-baw/fleet"
+    },
+    {
+      "name": "British Airways CityFlyer",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Brussels Airlines",
+      "icao": "BEL",
+      "source": "https://www.flightradar24.com/data/airlines/sn-bel/fleet"
+    },
+    {
+      "name": "Bul Air",
+      "icao": "BVL",
+      "source": "https://www.flightradar24.com/data/airlines/lb-bvl/fleet"
+    },
+    {
+      "name": "Bulgaria Air",
+      "icao": "LZB",
+      "source": "https://www.flightradar24.com/data/airlines/fb-lzb/fleet"
+    },
+    {
+      "name": "Buraq Air",
+      "icao": "BRQ",
+      "source": "https://www.flightradar24.com/data/airlines/uz-brq/fleet"
+    },
+    {
+      "name": "Buzz",
+      "icao": "RYS",
+      "source": "https://www.flightradar24.com/data/airlines/rr-rys/fleet"
+    },
+    {
+      "name": "Cabo Verde Airlines",
+      "icao": "TCV",
+      "source": "https://www.flightradar24.com/data/airlines/vr-tcv/fleet"
+    },
+    {
+      "name": "Camair-Co",
+      "icao": "CRC",
+      "source": "https://www.flightradar24.com/data/airlines/qc-crc/fleet"
+    },
+    {
+      "name": "Cambodia Airways",
+      "icao": "KME",
+      "source": "https://www.flightradar24.com/data/airlines/kr-kme/fleet"
+    },
+    {
+      "name": "Canadian Airways Congo",
+      "icao": "TWC",
+      "source": "https://www.flightradar24.com/data/airlines/twc/fleet"
+    },
+    {
+      "name": "Canadian North",
+      "icao": "AKT",
+      "source": "https://www.flightradar24.com/data/airlines/5t-akt/fleet"
+    },
+    {
+      "name": "Capital Airlines",
+      "icao": "CBJ",
+      "source": "https://www.flightradar24.com/data/airlines/jd-cbj/fleet"
+    },
+    {
+      "name": "Caribbean Airlines",
+      "icao": "BWA",
+      "source": "https://www.flightradar24.com/data/airlines/bw-bwa/fleet"
+    },
+    {
+      "name": "Carpatair",
+      "icao": "KRP",
+      "source": "https://www.flightradar24.com/data/airlines/v3-krp/fleet"
+    },
+    {
+      "name": "Caspian Airlines",
+      "icao": "CPN",
+      "source": "https://www.flightradar24.com/data/airlines/iv-cpn/fleet"
+    },
+    {
+      "name": "Cathay Pacific",
+      "icao": "CPA",
+      "source": "https://www.flightradar24.com/data/airlines/cx-cpa/fleet"
+    },
+    {
+      "name": "Cayman Airways",
+      "icao": "CAY",
+      "source": "https://www.flightradar24.com/data/airlines/kx-cay/fleet"
+    },
+    {
+      "name": "Cebu Pacific",
+      "icao": "CEB",
+      "source": "https://www.flightradar24.com/data/airlines/5j-ceb/fleet"
+    },
+    {
+      "name": "CemAir",
+      "icao": "KEM",
+      "source": "https://www.flightradar24.com/data/airlines/5z-kem/fleet"
+    },
+    {
+      "name": "Centrum Air",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Chabahar Airlines",
+      "icao": "IRU",
+      "source": "https://www.flightradar24.com/data/airlines/iru/fleet"
+    },
+    {
+      "name": "Chair Airlines",
+      "icao": "CSW",
+      "source": "https://www.flightradar24.com/data/airlines/cs-csw/fleet"
+    },
+    {
+      "name": "Chengdu Airlines",
+      "icao": "UEA",
+      "source": "https://www.flightradar24.com/data/airlines/eu-uea/fleet"
+    },
+    {
+      "name": "China Airlines",
+      "icao": "CAL",
+      "source": "https://www.flightradar24.com/data/airlines/ci-cal/fleet"
+    },
+    {
+      "name": "China Eastern Airlines",
+      "icao": "CES",
+      "source": "https://www.flightradar24.com/data/airlines/mu-ces/fleet"
+    },
+    {
+      "name": "China Express Airlines",
+      "icao": "HXA",
+      "source": "https://www.flightradar24.com/data/airlines/g5-hxa/fleet"
+    },
+    {
+      "name": "China Southern Airlines",
+      "icao": "CSN",
+      "source": "https://www.flightradar24.com/data/airlines/cz-csn/fleet"
+    },
+    {
+      "name": "China United Airlines",
+      "icao": "CUA",
+      "source": "https://www.flightradar24.com/data/airlines/kn-cua/fleet"
+    },
+    {
+      "name": "Chingis Airlines Unity",
+      "icao": "FOM",
+      "source": "https://www.flightradar24.com/data/airlines/nv-fom/fleet"
+    },
+    {
+      "name": "Chongqing Airlines",
+      "icao": "CQN",
+      "source": "https://www.flightradar24.com/data/airlines/oq-cqn/fleet"
+    },
+    {
+      "name": "Chrono Aviation",
+      "icao": "NDL",
+      "source": "https://www.flightradar24.com/data/airlines/mb-ndl/fleet"
+    },
+    {
+      "name": "Citilink",
+      "icao": "CTV",
+      "source": "https://www.flightradar24.com/data/airlines/qg-ctv/fleet"
+    },
+    {
+      "name": "CityJet",
+      "icao": "BCY",
+      "source": "https://www.flightradar24.com/data/airlines/wx-bcy/fleet"
+    },
+    {
+      "name": "Colorful Guizhou Airlines",
+      "icao": "CGZ",
+      "source": "https://www.flightradar24.com/data/airlines/gy-cgz/fleet"
+    },
+    {
+      "name": "CommuteAir",
+      "icao": "UCA",
+      "source": "https://www.flightradar24.com/data/airlines/c5-uca/fleet"
+    },
+    {
+      "name": "Compagnie Africaine d'Aviation",
+      "icao": "DBP",
+      "source": "https://www.flightradar24.com/data/airlines/bu-dbp/fleet"
+    },
+    {
+      "name": "Condor",
+      "icao": "CFG",
+      "source": "https://www.flightradar24.com/data/airlines/de-cfg/fleet"
+    },
+    {
+      "name": "Contour Aviation",
+      "icao": "VTE",
+      "source": "https://www.flightradar24.com/data/airlines/lf-vte/fleet"
+    },
+    {
+      "name": "Conviasa",
+      "icao": "VCV",
+      "source": "https://www.flightradar24.com/data/airlines/v0-vcv/fleet"
+    },
+    {
+      "name": "Copa Airlines",
+      "icao": "CMP",
+      "source": "https://www.flightradar24.com/data/airlines/cm-cmp/fleet"
+    },
+    {
+      "name": "Corendon Airlines",
+      "icao": "CAI",
+      "source": "https://www.flightradar24.com/data/airlines/xc-cai/fleet"
+    },
+    {
+      "name": "Corsair",
+      "icao": "CRL",
+      "source": "https://www.flightradar24.com/data/airlines/ss-crl/fleet"
+    },
+    {
+      "name": "Croatia Airlines",
+      "icao": "CTN",
+      "source": "https://www.flightradar24.com/data/airlines/ou-ctn/fleet"
+    },
+    {
+      "name": "Cronos Airlines",
+      "icao": "CRA",
+      "source": "https://www.flightradar24.com/data/airlines/c8-cra/fleet"
+    },
+    {
+      "name": "Crown Airlines",
+      "icao": "CWN",
+      "source": "https://www.flightradar24.com/data/airlines/fq-cwn/fleet"
+    },
+    {
+      "name": "Cubana",
+      "icao": "CUB",
+      "source": "https://www.flightradar24.com/data/airlines/cu-cub/fleet"
+    },
+    {
+      "name": "Cyprus Airways",
+      "icao": "CYP",
+      "source": "https://www.flightradar24.com/data/airlines/cy-cyp/fleet"
+    },
+    {
+      "name": "Daallo Airlines",
+      "icao": "DAO",
+      "source": "https://www.flightradar24.com/data/airlines/d3-dao/fleet"
+    },
+    {
+      "name": "Dalian Airlines",
+      "icao": "CCD",
+      "source": "https://www.flightradar24.com/data/airlines/ccd/fleet"
+    },
+    {
+      "name": "Dan Air",
+      "icao": "DNA",
+      "source": "https://www.flightradar24.com/data/airlines/dn-dna/fleet"
+    },
+    {
+      "name": "DAT",
+      "icao": "DTR",
+      "source": "https://www.flightradar24.com/data/airlines/dx-dtr/fleet"
+    },
+    {
+      "name": "Delta Air Lines",
+      "icao": "DAL",
+      "source": "https://www.flightradar24.com/data/airlines/dl-dal/fleet"
+    },
+    {
+      "name": "Discover Airlines",
+      "icao": "OCN",
+      "source": "https://www.flightradar24.com/data/airlines/4y-ocn/fleet"
+    },
+    {
+      "name": "Donghai Airlines",
+      "icao": "EPA",
+      "source": "https://www.flightradar24.com/data/airlines/dz-epa/fleet"
+    },
+    {
+      "name": "Drukair",
+      "icao": "DRK",
+      "source": "https://www.flightradar24.com/data/airlines/kb-drk/fleet"
+    },
+    {
+      "name": "Eastar Jet",
+      "icao": "ESR",
+      "source": "https://www.flightradar24.com/data/airlines/ze-esr/fleet"
+    },
+    {
+      "name": "easyJet",
+      "icao": "EZY",
+      "source": "https://www.flightradar24.com/data/airlines/u2-ezy/fleet"
+    },
+    {
+      "name": "EcoJet",
+      "icao": "ECO",
+      "source": "https://www.flightradar24.com/data/airlines/8j-eco/fleet"
+    },
+    {
+      "name": "Edelweiss",
+      "icao": "EDW",
+      "source": "https://www.flightradar24.com/data/airlines/wk-edw/fleet"
+    },
+    {
+      "name": "Egyptair",
+      "icao": "MSR",
+      "source": "https://www.flightradar24.com/data/airlines/ms-msr/fleet"
+    },
+    {
+      "name": "El Al",
+      "icao": "ELY",
+      "source": "https://www.flightradar24.com/data/airlines/ly-ely/fleet"
+    },
+    {
+      "name": "Electra Airways",
+      "icao": "EAF",
+      "source": "https://www.flightradar24.com/data/airlines/3e-eaf/fleet"
+    },
+    {
+      "name": "Emirates",
+      "icao": "UAE",
+      "source": "https://www.flightradar24.com/data/airlines/ek-uae/fleet"
+    },
+    {
+      "name": "Endeavor Air",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Enter Air",
+      "icao": "ENT",
+      "source": "https://www.flightradar24.com/data/airlines/e4-ent/fleet"
+    },
+    {
+      "name": "Enugu Air",
+      "icao": "ENU",
+      "source": "https://www.flightradar24.com/data/airlines/ee-enu/fleet"
+    },
+    {
+      "name": "Envoy Air",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Estelar",
+      "icao": "ETR",
+      "source": "https://www.flightradar24.com/data/airlines/es-etr/fleet"
+    },
+    {
+      "name": "Eswatini Air",
+      "icao": "SZL",
+      "source": "https://www.flightradar24.com/data/airlines/rn-szl/fleet"
+    },
+    {
+      "name": "ETF Airways",
+      "icao": "EZZ",
+      "source": "https://www.flightradar24.com/data/airlines/2e-ezz/fleet"
+    },
+    {
+      "name": "Ethiopian Airlines",
+      "icao": "ETH",
+      "source": "https://www.flightradar24.com/data/airlines/et-eth/fleet"
+    },
+    {
+      "name": "Etihad Airways",
+      "icao": "ETD",
+      "source": "https://www.flightradar24.com/data/airlines/ey-etd/fleet"
+    },
+    {
+      "name": "EuroAtlantic Airways",
+      "icao": "MMZ",
+      "source": "https://www.flightradar24.com/data/airlines/yu-mmz/fleet"
+    },
+    {
+      "name": "European Air Charter",
+      "icao": "BUC",
+      "source": "https://www.flightradar24.com/data/airlines/h6-buc/fleet"
+    },
+    {
+      "name": "Eurowings",
+      "icao": "EWG",
+      "source": "https://www.flightradar24.com/data/airlines/ew-ewg/fleet"
+    },
+    {
+      "name": "EVA Air",
+      "icao": "EVA",
+      "source": "https://www.flightradar24.com/data/airlines/br-eva/fleet"
+    },
+    {
+      "name": "Fanjet Express",
+      "icao": "FJE",
+      "source": "https://www.flightradar24.com/data/airlines/7f-fje/fleet"
+    },
+    {
+      "name": "fastjet Zimbabwe",
+      "icao": "FJW",
+      "source": "https://www.flightradar24.com/data/airlines/fn-fjw/fleet"
+    },
+    {
+      "name": "Federal Airlines",
+      "icao": "FDR",
+      "source": "https://www.flightradar24.com/data/airlines/c8-fdr/fleet"
+    },
+    {
+      "name": "Fiji Airways",
+      "icao": "FJI",
+      "source": "https://www.flightradar24.com/data/airlines/fj-fji/fleet"
+    },
+    {
+      "name": "Finnair",
+      "icao": "FIN",
+      "source": "https://www.flightradar24.com/data/airlines/ay-fin/fleet"
+    },
+    {
+      "name": "Firefly",
+      "icao": "FFM",
+      "source": "https://www.flightradar24.com/data/airlines/fy-ffm/fleet"
+    },
+    {
+      "name": "FitsAir",
+      "icao": "EXV",
+      "source": "https://www.flightradar24.com/data/airlines/8d-exv/fleet"
+    },
+    {
+      "name": "Flair Airlines",
+      "icao": "FLE",
+      "source": "https://www.flightradar24.com/data/airlines/f8-fle/fleet"
+    },
+    {
+      "name": "Fly AllWays",
+      "icao": "EDR",
+      "source": "https://www.flightradar24.com/data/airlines/8w-edr/fleet"
+    },
+    {
+      "name": "Fly Angola",
+      "icao": "FLA",
+      "source": "https://www.flightradar24.com/data/airlines/eq-fla/fleet"
+    },
+    {
+      "name": "Fly Baghdad",
+      "icao": "FBA",
+      "source": "https://www.flightradar24.com/data/airlines/if-fba/fleet"
+    },
+    {
+      "name": "Fly Cham",
+      "icao": "FYC",
+      "source": "https://www.flightradar24.com/data/airlines/fyc/fleet"
+    },
+    {
+      "name": "Fly Jinnah",
+      "icao": "FJL",
+      "source": "https://www.flightradar24.com/data/airlines/9p-fjl/fleet"
+    },
+    {
+      "name": "Fly Khiva",
+      "icao": "FKH",
+      "source": "https://www.flightradar24.com/data/airlines/2u-fkh/fleet"
+    },
+    {
+      "name": "Fly Kish",
+      "icao": "TKN",
+      "source": "https://www.flightradar24.com/data/airlines/tkn/fleet"
+    },
+    {
+      "name": "Fly OYA",
+      "icao": "OYA",
+      "source": "https://www.flightradar24.com/data/airlines/yi-oya/fleet"
+    },
+    {
+      "name": "Fly2Sky",
+      "icao": "VAW",
+      "source": "https://www.flightradar24.com/data/airlines/f6-vaw/fleet"
+    },
+    {
+      "name": "Fly4 Airlines",
+      "icao": "FFA",
+      "source": "https://www.flightradar24.com/data/airlines/f4-ffa/fleet"
+    },
+    {
+      "name": "flyadeal",
+      "icao": "FAD",
+      "source": "https://www.flightradar24.com/data/airlines/f3-fad/fleet"
+    },
+    {
+      "name": "flyaden",
+      "icao": "QFF",
+      "source": "https://www.flightradar24.com/data/airlines/dh-qff/fleet"
+    },
+    {
+      "name": "FlyArystan",
+      "icao": "AYN",
+      "source": "https://www.flightradar24.com/data/airlines/fs-ayn/fleet"
+    },
+    {
+      "name": "Flybondi",
+      "icao": "FBZ",
+      "source": "https://www.flightradar24.com/data/airlines/fo-fbz/fleet"
+    },
+    {
+      "name": "flydubai",
+      "icao": "FDB",
+      "source": "https://www.flightradar24.com/data/airlines/fz-fdb/fleet"
+    },
+    {
+      "name": "FlyGabon",
+      "icao": "ABS",
+      "source": "https://www.flightradar24.com/data/airlines/j7-abs/fleet"
+    },
+    {
+      "name": "Flylili",
+      "icao": "LIL",
+      "source": "https://www.flightradar24.com/data/airlines/lil/fleet"
+    },
+    {
+      "name": "FlyNamibia",
+      "icao": "FLN",
+      "source": "https://www.flightradar24.com/data/airlines/wv-fln/fleet"
+    },
+    {
+      "name": "flynas",
+      "icao": "KNE",
+      "source": "https://www.flightradar24.com/data/airlines/xy-kne/fleet"
+    },
+    {
+      "name": "FlyOne",
+      "icao": "FIA",
+      "source": "https://www.flightradar24.com/data/airlines/5f-fia/fleet"
+    },
+    {
+      "name": "FlyPersia",
+      "icao": "FPI",
+      "source": "https://www.flightradar24.com/data/airlines/fp-fpi/fleet"
+    },
+    {
+      "name": "FlySafair",
+      "icao": "SFR",
+      "source": "https://www.flightradar24.com/data/airlines/fa-sfr/fleet"
+    },
+    {
+      "name": "FlyX Aero",
+      "icao": "FXZ",
+      "source": "https://www.flightradar24.com/data/airlines/x2-fxz/fleet"
+    },
+    {
+      "name": "FLYYO",
+      "icao": "DIR",
+      "source": "https://www.flightradar24.com/data/airlines/4d-dir/fleet"
+    },
+    {
+      "name": "Freebird Airlines",
+      "icao": "FHY",
+      "source": "https://www.flightradar24.com/data/airlines/fh-fhy/fleet"
+    },
+    {
+      "name": "French bee",
+      "icao": "FBU",
+      "source": "https://www.flightradar24.com/data/airlines/bf-fbu/fleet"
+    },
+    {
+      "name": "Frontier",
+      "icao": "FFT",
+      "source": "https://www.flightradar24.com/data/airlines/f9-fft/fleet"
+    },
+    {
+      "name": "Fuji Dream Airlines",
+      "icao": "FDA",
+      "source": "https://www.flightradar24.com/data/airlines/jh-fda/fleet"
+    },
+    {
+      "name": "Fuzhou Airlines",
+      "icao": "FZA",
+      "source": "https://www.flightradar24.com/data/airlines/fu-fza/fleet"
+    },
+    {
+      "name": "Galistair Infinite Aviation",
+      "icao": "GTR",
+      "source": "https://www.flightradar24.com/data/airlines/8s-gtr/fleet"
+    },
+    {
+      "name": "Garuda Indonesia",
+      "icao": "GIA",
+      "source": "https://www.flightradar24.com/data/airlines/ga-gia/fleet"
+    },
+    {
+      "name": "Gazpromavia",
+      "icao": "GZP",
+      "source": "https://www.flightradar24.com/data/airlines/4g-gzp/fleet"
+    },
+    {
+      "name": "Georgian Airways",
+      "icao": "TGZ",
+      "source": "https://www.flightradar24.com/data/airlines/a9-tgz/fleet"
+    },
+    {
+      "name": "German Airways",
+      "icao": "GER",
+      "source": "https://www.flightradar24.com/data/airlines/zq-ger/fleet"
+    },
+    {
+      "name": "GetJet Airlines",
+      "icao": "GJT",
+      "source": "https://www.flightradar24.com/data/airlines/gw-gjt/fleet"
+    },
+    {
+      "name": "Ghadames Air Transport",
+      "icao": "GMS",
+      "source": "https://www.flightradar24.com/data/airlines/nj-gms/fleet"
+    },
+    {
+      "name": "Global (Iraq)",
+      "icao": "GEA",
+      "source": "https://www.flightradar24.com/data/airlines/ig-gea/fleet"
+    },
+    {
+      "name": "GlobalX",
+      "icao": "GXA",
+      "source": "https://www.flightradar24.com/data/airlines/g6-gxa/fleet"
+    },
+    {
+      "name": "Go2Sky",
+      "icao": "RLX",
+      "source": "https://www.flightradar24.com/data/airlines/6g-rlx/fleet"
+    },
+    {
+      "name": "GoJet",
+      "icao": "GJS",
+      "source": "https://www.flightradar24.com/data/airlines/g7-gjs/fleet"
+    },
+    {
+      "name": "GOL",
+      "icao": "GLO",
+      "source": "https://www.flightradar24.com/data/airlines/g3-glo/fleet"
+    },
+    {
+      "name": "GP Aviation",
+      "icao": "GPX",
+      "source": "https://www.flightradar24.com/data/airlines/iv-gpx/fleet"
+    },
+    {
+      "name": "Grand China Air",
+      "icao": "GDC",
+      "source": "https://www.flightradar24.com/data/airlines/cn-gdc/fleet"
+    },
+    {
+      "name": "Greater Bay Airlines",
+      "icao": "HGB",
+      "source": "https://www.flightradar24.com/data/airlines/hb-hgb/fleet"
+    },
+    {
+      "name": "Green Africa",
+      "icao": "GWG",
+      "source": "https://www.flightradar24.com/data/airlines/q9-gwg/fleet"
+    },
+    {
+      "name": "Gridiron Air",
+      "icao": "RZN",
+      "source": "https://www.flightradar24.com/data/airlines/gi-rzn/fleet"
+    },
+    {
+      "name": "Gulf Air",
+      "icao": "GFA",
+      "source": "https://www.flightradar24.com/data/airlines/gf-gfa/fleet"
+    },
+    {
+      "name": "GullivAir",
+      "icao": "GBG",
+      "source": "https://www.flightradar24.com/data/airlines/g2-gbg/fleet"
+    },
+    {
+      "name": "GX Airlines",
+      "icao": "CBG",
+      "source": "https://www.flightradar24.com/data/airlines/gx-cbg/fleet"
+    },
+    {
+      "name": "Hainan Airlines",
+      "icao": "CHH",
+      "source": "https://www.flightradar24.com/data/airlines/hu-chh/fleet"
+    },
+    {
+      "name": "Hawaiian Airlines",
+      "icao": "HAL",
+      "source": "https://www.flightradar24.com/data/airlines/ha-hal/fleet"
+    },
+    {
+      "name": "Hayways",
+      "icao": "HYY",
+      "source": "https://www.flightradar24.com/data/airlines/y5-hyy/fleet"
+    },
+    {
+      "name": "Hebei Airlines",
+      "icao": "HBH",
+      "source": "https://www.flightradar24.com/data/airlines/ns-hbh/fleet"
+    },
+    {
+      "name": "HelloJets",
+      "icao": "HLJ",
+      "source": "https://www.flightradar24.com/data/airlines/h3-hlj/fleet"
+    },
+    {
+      "name": "Helvetic Airways",
+      "icao": "OAW",
+      "source": "https://www.flightradar24.com/data/airlines/2l-oaw/fleet"
+    },
+    {
+      "name": "Heston Airlines",
+      "icao": "HST",
+      "source": "https://www.flightradar24.com/data/airlines/hn-hst/fleet"
+    },
+    {
+      "name": "Hi Fly",
+      "icao": "HFY",
+      "source": "https://www.flightradar24.com/data/airlines/5k-hfy/fleet"
+    },
+    {
+      "name": "Himalaya Airlines",
+      "icao": "HIM",
+      "source": "https://www.flightradar24.com/data/airlines/h9-him/fleet"
+    },
+    {
+      "name": "HiSky",
+      "icao": "HYM",
+      "source": "https://www.flightradar24.com/data/airlines/h7-hym/fleet"
+    },
+    {
+      "name": "HK express",
+      "icao": "HKE",
+      "source": "https://www.flightradar24.com/data/airlines/uo-hke/fleet"
+    },
+    {
+      "name": "Hong Kong Airlines",
+      "icao": "CRK",
+      "source": "https://www.flightradar24.com/data/airlines/hx-crk/fleet"
+    },
+    {
+      "name": "Horizon Air",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Hunnu Air",
+      "icao": "MML",
+      "source": "https://www.flightradar24.com/data/airlines/mr-mml/fleet"
+    },
+    {
+      "name": "I-Fly",
+      "icao": "RSY",
+      "source": "https://www.flightradar24.com/data/airlines/f7-rsy/fleet"
+    },
+    {
+      "name": "Iberia",
+      "icao": "IBE",
+      "source": "https://www.flightradar24.com/data/airlines/ib-ibe/fleet"
+    },
+    {
+      "name": "Iberia Express",
+      "icao": "IBS",
+      "source": "https://www.flightradar24.com/data/airlines/i2-ibs/fleet"
+    },
+    {
+      "name": "Iberojet",
+      "icao": "EVE",
+      "source": "https://www.flightradar24.com/data/airlines/e9-eve/fleet"
+    },
+    {
+      "name": "Ibex Airlines",
+      "icao": "IBX",
+      "source": "https://www.flightradar24.com/data/airlines/fw-ibx/fleet"
+    },
+    {
+      "name": "Ibom Air",
+      "icao": "IAN",
+      "source": "https://www.flightradar24.com/data/airlines/qi-ian/fleet"
+    },
+    {
+      "name": "Icelandair",
+      "icao": "ICE",
+      "source": "https://www.flightradar24.com/data/airlines/fi-ice/fleet"
+    },
+    {
+      "name": "Ikar",
+      "icao": "KAR",
+      "source": "https://www.flightradar24.com/data/airlines/eo-kar/fleet"
+    },
+    {
+      "name": "IndiGo",
+      "icao": "IGO",
+      "source": "https://www.flightradar24.com/data/airlines/6e-igo/fleet"
+    },
+    {
+      "name": "Indonesia AirAsia",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "interCaribbean Airways",
+      "icao": "IWY",
+      "source": "https://www.flightradar24.com/data/airlines/jy-iwy/fleet"
+    },
+    {
+      "name": "IrAero",
+      "icao": "IAE",
+      "source": "https://www.flightradar24.com/data/airlines/io-iae/fleet"
+    },
+    {
+      "name": "Iran Air",
+      "icao": "IRA",
+      "source": "https://www.flightradar24.com/data/airlines/ir-ira/fleet"
+    },
+    {
+      "name": "Iran Airtour",
+      "icao": "IRB",
+      "source": "https://www.flightradar24.com/data/airlines/b9-irb/fleet"
+    },
+    {
+      "name": "Iran Aseman Airlines",
+      "icao": "IRC",
+      "source": "https://www.flightradar24.com/data/airlines/ep-irc/fleet"
+    },
+    {
+      "name": "Iraqi Airways",
+      "icao": "IAW",
+      "source": "https://www.flightradar24.com/data/airlines/ia-iaw/fleet"
+    },
+    {
+      "name": "Israir Airlines",
+      "icao": "ISR",
+      "source": "https://www.flightradar24.com/data/airlines/6h-isr/fleet"
+    },
+    {
+      "name": "ITA Airways",
+      "icao": "ITY",
+      "source": "https://www.flightradar24.com/data/airlines/az-ity/fleet"
+    },
+    {
+      "name": "Izhavia",
+      "icao": "IZA",
+      "source": "https://www.flightradar24.com/data/airlines/i8-iza/fleet"
+    },
+    {
+      "name": "J-Air",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Japan Airlines",
+      "icao": "JAL",
+      "source": "https://www.flightradar24.com/data/airlines/jl-jal/fleet"
+    },
+    {
+      "name": "Japan Transocean Air",
+      "icao": "JTA",
+      "source": "https://www.flightradar24.com/data/airlines/nu-jta/fleet"
+    },
+    {
+      "name": "Jazeera Airways",
+      "icao": "JZR",
+      "source": "https://www.flightradar24.com/data/airlines/j9-jzr/fleet"
+    },
+    {
+      "name": "Jeju Air",
+      "icao": "JJA",
+      "source": "https://www.flightradar24.com/data/airlines/7c-jja/fleet"
+    },
+    {
+      "name": "Jet2",
+      "icao": "EXS",
+      "source": "https://www.flightradar24.com/data/airlines/ls-exs/fleet"
+    },
+    {
+      "name": "JetBlue",
+      "icao": "JBU",
+      "source": "https://www.flightradar24.com/data/airlines/b6-jbu/fleet"
+    },
+    {
+      "name": "JetSMART",
+      "icao": "JAT",
+      "source": "https://www.flightradar24.com/data/airlines/ja-jat/fleet"
+    },
+    {
+      "name": "Jetstar",
+      "icao": "JST",
+      "source": "https://www.flightradar24.com/data/airlines/jq-jst/fleet"
+    },
+    {
+      "name": "Jettime",
+      "icao": "JTD",
+      "source": "https://www.flightradar24.com/data/airlines/jp-jtd/fleet"
+    },
+    {
+      "name": "Jiangxi Air",
+      "icao": "CJX",
+      "source": "https://www.flightradar24.com/data/airlines/ry-cjx/fleet"
+    },
+    {
+      "name": "Jin Air",
+      "icao": "JNA",
+      "source": "https://www.flightradar24.com/data/airlines/lj-jna/fleet"
+    },
+    {
+      "name": "Jordan Aviation",
+      "icao": "JAV",
+      "source": "https://www.flightradar24.com/data/airlines/r5-jav/fleet"
+    },
+    {
+      "name": "JSX",
+      "icao": "JSX",
+      "source": "https://www.flightradar24.com/data/airlines/xe-jsx/fleet"
+    },
+    {
+      "name": "Jubba Airways",
+      "icao": "JBW",
+      "source": "https://www.flightradar24.com/data/airlines/3j-jbw/fleet"
+    },
+    {
+      "name": "Juneyao Air",
+      "icao": "DKH",
+      "source": "https://www.flightradar24.com/data/airlines/ho-dkh/fleet"
+    },
+    {
+      "name": "KaiserAir",
+      "icao": "KAI",
+      "source": "https://www.flightradar24.com/data/airlines/ki-kai/fleet"
+    },
+    {
+      "name": "Kam Air",
+      "icao": "KMF",
+      "source": "https://www.flightradar24.com/data/airlines/rq-kmf/fleet"
+    },
+    {
+      "name": "Karun Airlines",
+      "icao": "KRU",
+      "source": "https://www.flightradar24.com/data/airlines/kru/fleet"
+    },
+    {
+      "name": "Kenya Airways",
+      "icao": "KQA",
+      "source": "https://www.flightradar24.com/data/airlines/kq-kqa/fleet"
+    },
+    {
+      "name": "Key Lime Air",
+      "icao": "LYM",
+      "source": "https://www.flightradar24.com/data/airlines/kg-lym/fleet"
+    },
+    {
+      "name": "Kish Air",
+      "icao": "KIS",
+      "source": "https://www.flightradar24.com/data/airlines/kis/fleet"
+    },
+    {
+      "name": "KlasJet",
+      "icao": "KLJ",
+      "source": "https://www.flightradar24.com/data/airlines/kj-klj/fleet"
+    },
+    {
+      "name": "KLM",
+      "icao": "KLM",
+      "source": "https://www.flightradar24.com/data/airlines/kl-klm/fleet"
+    },
+    {
+      "name": "KLM Cityhopper",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "KM Malta Airlines",
+      "icao": "KMM",
+      "source": "https://www.flightradar24.com/data/airlines/km-kmm/fleet"
+    },
+    {
+      "name": "Korean Air",
+      "icao": "KAL",
+      "source": "https://www.flightradar24.com/data/airlines/ke-kal/fleet"
+    },
+    {
+      "name": "Kunming Airlines",
+      "icao": "KNA",
+      "source": "https://www.flightradar24.com/data/airlines/ky-kna/fleet"
+    },
+    {
+      "name": "Kuwait Airways",
+      "icao": "KAC",
+      "source": "https://www.flightradar24.com/data/airlines/ku-kac/fleet"
+    },
+    {
+      "name": "La Compagnie",
+      "icao": "DJT",
+      "source": "https://www.flightradar24.com/data/airlines/b0-djt/fleet"
+    },
+    {
+      "name": "LAM",
+      "icao": "LAM",
+      "source": "https://www.flightradar24.com/data/airlines/tm-lam/fleet"
+    },
+    {
+      "name": "Lao Airlines",
+      "icao": "LAO",
+      "source": "https://www.flightradar24.com/data/airlines/qv-lao/fleet"
+    },
+    {
+      "name": "Laser Airlines",
+      "icao": "LER",
+      "source": "https://www.flightradar24.com/data/airlines/ql-ler/fleet"
+    },
+    {
+      "name": "LATAM Airlines",
+      "icao": "LAN",
+      "source": "https://www.flightradar24.com/data/airlines/la-lan/fleet"
+    },
+    {
+      "name": "Lauda Europe",
+      "icao": "LDA",
+      "source": "https://www.flightradar24.com/data/airlines/lw-lda/fleet"
+    },
+    {
+      "name": "LEAV Aviation",
+      "icao": "NGN",
+      "source": "https://www.flightradar24.com/data/airlines/kk-ngn/fleet"
+    },
+    {
+      "name": "Level",
+      "icao": "LVL",
+      "source": "https://www.flightradar24.com/data/airlines/ll-lvl/fleet"
+    },
+    {
+      "name": "Liat Air",
+      "icao": "GAO",
+      "source": "https://www.flightradar24.com/data/airlines/5l-gao/fleet"
+    },
+    {
+      "name": "Libyan Airlines",
+      "icao": "LAA",
+      "source": "https://www.flightradar24.com/data/airlines/ln-laa/fleet"
+    },
+    {
+      "name": "Libyan Wings",
+      "icao": "LWA",
+      "source": "https://www.flightradar24.com/data/airlines/yl-lwa/fleet"
+    },
+    {
+      "name": "Lift",
+      "icao": "GBB",
+      "source": "https://www.flightradar24.com/data/airlines/ge-gbb/fleet"
+    },
+    {
+      "name": "Lion Air",
+      "icao": "LNI",
+      "source": "https://www.flightradar24.com/data/airlines/jt-lni/fleet"
+    },
+    {
+      "name": "Loganair",
+      "icao": "LOG",
+      "source": "https://www.flightradar24.com/data/airlines/lm-log/fleet"
+    },
+    {
+      "name": "LongJiang Airlines",
+      "icao": "SNG",
+      "source": "https://www.flightradar24.com/data/airlines/lt-sng/fleet"
+    },
+    {
+      "name": "Loong Air",
+      "icao": "CDC",
+      "source": "https://www.flightradar24.com/data/airlines/gj-cdc/fleet"
+    },
+    {
+      "name": "LOT",
+      "icao": "LOT",
+      "source": "https://www.flightradar24.com/data/airlines/lo-lot/fleet"
+    },
+    {
+      "name": "Lucky Air",
+      "icao": "LKE",
+      "source": "https://www.flightradar24.com/data/airlines/8l-lke/fleet"
+    },
+    {
+      "name": "Lufthansa",
+      "icao": "DLH",
+      "source": "https://www.flightradar24.com/data/airlines/lh-dlh/fleet"
+    },
+    {
+      "name": "Lufthansa City",
+      "icao": "LHX",
+      "source": "https://www.flightradar24.com/data/airlines/vl-lhx/fleet"
+    },
+    {
+      "name": "Luxair",
+      "icao": "LGL",
+      "source": "https://www.flightradar24.com/data/airlines/lg-lgl/fleet"
+    },
+    {
+      "name": "Magnicharters",
+      "icao": "GMT",
+      "source": "https://www.flightradar24.com/data/airlines/uj-gmt/fleet"
+    },
+    {
+      "name": "Mahan Air",
+      "icao": "IRM",
+      "source": "https://www.flightradar24.com/data/airlines/w5-irm/fleet"
+    },
+    {
+      "name": "Malawi Airlines",
+      "icao": "MWI",
+      "source": "https://www.flightradar24.com/data/airlines/3w-mwi/fleet"
+    },
+    {
+      "name": "Malaysia Airlines",
+      "icao": "MAS",
+      "source": "https://www.flightradar24.com/data/airlines/mh-mas/fleet"
+    },
+    {
+      "name": "Maldivian",
+      "icao": "DQA",
+      "source": "https://www.flightradar24.com/data/airlines/q2-dqa/fleet"
+    },
+    {
+      "name": "Maleth-Aero",
+      "icao": "MLT",
+      "source": "https://www.flightradar24.com/data/airlines/db-mlt/fleet"
+    },
+    {
+      "name": "Malta Air",
+      "icao": "MAY",
+      "source": "https://www.flightradar24.com/data/airlines/mw-may/fleet"
+    },
+    {
+      "name": "Malta MedAir",
+      "icao": "MMO",
+      "source": "https://www.flightradar24.com/data/airlines/mt-mmo/fleet"
+    },
+    {
+      "name": "Manasik Aviation",
+      "icao": "MNM",
+      "source": "https://www.flightradar24.com/data/airlines/xn-mnm/fleet"
+    },
+    {
+      "name": "Mandarin Airlines",
+      "icao": "MDA",
+      "source": "https://www.flightradar24.com/data/airlines/ae-mda/fleet"
+    },
+    {
+      "name": "Marabu",
+      "icao": "MBU",
+      "source": "https://www.flightradar24.com/data/airlines/di-mbu/fleet"
+    },
+    {
+      "name": "Marathon Airlines",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Mauritania Airlines",
+      "icao": "MAI",
+      "source": "https://www.flightradar24.com/data/airlines/l6-mai/fleet"
+    },
+    {
+      "name": "Mavi Gök Airlines",
+      "icao": "MGH",
+      "source": "https://www.flightradar24.com/data/airlines/4m-mgh/fleet"
+    },
+    {
+      "name": "Max Air",
+      "icao": "NGL",
+      "source": "https://www.flightradar24.com/data/airlines/vm-ngl/fleet"
+    },
+    {
+      "name": "MEA",
+      "icao": "MEA",
+      "source": "https://www.flightradar24.com/data/airlines/me-mea/fleet"
+    },
+    {
+      "name": "Medsky Airways",
+      "icao": "MNS",
+      "source": "https://www.flightradar24.com/data/airlines/bm-mns/fleet"
+    },
+    {
+      "name": "Mehr Airways",
+      "icao": "MEH",
+      "source": "https://www.flightradar24.com/data/airlines/meh/fleet"
+    },
+    {
+      "name": "Meraj Airlines",
+      "icao": "MRJ",
+      "source": "https://www.flightradar24.com/data/airlines/mrj/fleet"
+    },
+    {
+      "name": "Mesa Airlines",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Mexicana",
+      "icao": "MXA",
+      "source": "https://www.flightradar24.com/data/airlines/xn-mxa/fleet"
+    },
+    {
+      "name": "MHS Aviation",
+      "icao": "MHV",
+      "source": "https://www.flightradar24.com/data/airlines/m2-mhv/fleet"
+    },
+    {
+      "name": "MIAT Mongolian Airlines",
+      "icao": "MGL",
+      "source": "https://www.flightradar24.com/data/airlines/om-mgl/fleet"
+    },
+    {
+      "name": "MinRes Air",
+      "icao": "MIN",
+      "source": "https://www.flightradar24.com/data/airlines/ml-min/fleet"
+    },
+    {
+      "name": "Nam Air",
+      "icao": "LKN",
+      "source": "https://www.flightradar24.com/data/airlines/in-lkn/fleet"
+    },
+    {
+      "name": "Nasim Airlines",
+      "icao": "NSN",
+      "source": "https://www.flightradar24.com/data/airlines/nsn/fleet"
+    },
+    {
+      "name": "National Airlines",
+      "icao": "NCR",
+      "source": "https://www.flightradar24.com/data/airlines/n8-ncr/fleet"
+    },
+    {
+      "name": "National Airways",
+      "icao": "NAE",
+      "source": "https://www.flightradar24.com/data/airlines/9y-nae/fleet"
+    },
+    {
+      "name": "National Jet Systems",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Nauru Airlines",
+      "icao": "RON",
+      "source": "https://www.flightradar24.com/data/airlines/on-ron/fleet"
+    },
+    {
+      "name": "Neos",
+      "icao": "NOS",
+      "source": "https://www.flightradar24.com/data/airlines/no-nos/fleet"
+    },
+    {
+      "name": "Nepal Airlines",
+      "icao": "RNA",
+      "source": "https://www.flightradar24.com/data/airlines/ra-rna/fleet"
+    },
+    {
+      "name": "Nesma Airlines",
+      "icao": "NMA",
+      "source": "https://www.flightradar24.com/data/airlines/ne-nma/fleet"
+    },
+    {
+      "name": "New Pacific Airlines",
+      "icao": "RVF",
+      "source": "https://www.flightradar24.com/data/airlines/7h-rvf/fleet"
+    },
+    {
+      "name": "Nile Air",
+      "icao": "NIA",
+      "source": "https://www.flightradar24.com/data/airlines/np-nia/fleet"
+    },
+    {
+      "name": "Nok Air",
+      "icao": "NOK",
+      "source": "https://www.flightradar24.com/data/airlines/dd-nok/fleet"
+    },
+    {
+      "name": "Nolinor Aviation",
+      "icao": "NRL",
+      "source": "https://www.flightradar24.com/data/airlines/n5-nrl/fleet"
+    },
+    {
+      "name": "NordStar",
+      "icao": "TYA",
+      "source": "https://www.flightradar24.com/data/airlines/y7-tya/fleet"
+    },
+    {
+      "name": "Nordwind Airlines",
+      "icao": "NWS",
+      "source": "https://www.flightradar24.com/data/airlines/n4-nws/fleet"
+    },
+    {
+      "name": "Norse",
+      "icao": "NBT",
+      "source": "https://www.flightradar24.com/data/airlines/n0-nbt/fleet"
+    },
+    {
+      "name": "North Cariboo Air",
+      "icao": "NCB",
+      "source": "https://www.flightradar24.com/data/airlines/ncb/fleet"
+    },
+    {
+      "name": "North-West Air Company",
+      "icao": "NWC",
+      "source": "https://www.flightradar24.com/data/airlines/0e-nwc/fleet"
+    },
+    {
+      "name": "Norwegian",
+      "icao": "NOZ",
+      "source": "https://www.flightradar24.com/data/airlines/dy-noz/fleet"
+    },
+    {
+      "name": "Nouvelair",
+      "icao": "LBT",
+      "source": "https://www.flightradar24.com/data/airlines/bj-lbt/fleet"
+    },
+    {
+      "name": "Okay Airways",
+      "icao": "OKA",
+      "source": "https://www.flightradar24.com/data/airlines/bk-oka/fleet"
+    },
+    {
+      "name": "Oman Air",
+      "icao": "OMA",
+      "source": "https://www.flightradar24.com/data/airlines/wy-oma/fleet"
+    },
+    {
+      "name": "Omni Air International",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Overland Airways",
+      "icao": "OLA",
+      "source": "https://www.flightradar24.com/data/airlines/of-ola/fleet"
+    },
+    {
+      "name": "Pakistan International Airlines",
+      "icao": "PIA",
+      "source": "https://www.flightradar24.com/data/airlines/pk-pia/fleet"
+    },
+    {
+      "name": "Paranair",
+      "icao": "AZP",
+      "source": "https://www.flightradar24.com/data/airlines/zp-azp/fleet"
+    },
+    {
+      "name": "Parata Air",
+      "icao": "PTA",
+      "source": "https://www.flightradar24.com/data/airlines/we-pta/fleet"
+    },
+    {
+      "name": "Pars Air",
+      "icao": "PRS",
+      "source": "https://www.flightradar24.com/data/airlines/prs/fleet"
+    },
+    {
+      "name": "Peach",
+      "icao": "APJ",
+      "source": "https://www.flightradar24.com/data/airlines/mm-apj/fleet"
+    },
+    {
+      "name": "Pegasus",
+      "icao": "PGT",
+      "source": "https://www.flightradar24.com/data/airlines/pc-pgt/fleet"
+    },
+    {
+      "name": "Pelita Air",
+      "icao": "PAS",
+      "source": "https://www.flightradar24.com/data/airlines/ip-pas/fleet"
+    },
+    {
+      "name": "People's",
+      "icao": "PEV",
+      "source": "https://www.flightradar24.com/data/airlines/pe-pev/fleet"
+    },
+    {
+      "name": "Petroleum Air Services",
+      "icao": "PER",
+      "source": "https://www.flightradar24.com/data/airlines/uf-per/fleet"
+    },
+    {
+      "name": "Philippine Airlines",
+      "icao": "PAL",
+      "source": "https://www.flightradar24.com/data/airlines/pr-pal/fleet"
+    },
+    {
+      "name": "Philippines AirAsia",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Piedmont Airlines",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Plus Ultra",
+      "icao": "PUE",
+      "source": "https://www.flightradar24.com/data/airlines/pu-pue/fleet"
+    },
+    {
+      "name": "Pobeda",
+      "icao": "PBD",
+      "source": "https://www.flightradar24.com/data/airlines/dp-pbd/fleet"
+    },
+    {
+      "name": "Porter",
+      "icao": "PTR",
+      "source": "https://www.flightradar24.com/data/airlines/p3-ptr/fleet"
+    },
+    {
+      "name": "Privilege Style",
+      "icao": "PVG",
+      "source": "https://www.flightradar24.com/data/airlines/p6-pvg/fleet"
+    },
+    {
+      "name": "Proflight Zambia",
+      "icao": "PFZ",
+      "source": "https://www.flightradar24.com/data/airlines/p0-pfz/fleet"
+    },
+    {
+      "name": "PSA Airlines",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Qanot Sharq",
+      "icao": "QNT",
+      "source": "https://www.flightradar24.com/data/airlines/hh-qnt/fleet"
+    },
+    {
+      "name": "Qantas",
+      "icao": "QFA",
+      "source": "https://www.flightradar24.com/data/airlines/qf-qfa/fleet"
+    },
+    {
+      "name": "QantasLink",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Qatar Airways",
+      "icao": "QTR",
+      "source": "https://www.flightradar24.com/data/airlines/qr-qtr/fleet"
+    },
+    {
+      "name": "Qeshm Airlines",
+      "icao": "QSM",
+      "source": "https://www.flightradar24.com/data/airlines/qb-qsm/fleet"
+    },
+    {
+      "name": "Qingdao Airlines",
+      "icao": "QDA",
+      "source": "https://www.flightradar24.com/data/airlines/qw-qda/fleet"
+    },
+    {
+      "name": "Raimon Airways",
+      "icao": "RAI",
+      "source": "https://www.flightradar24.com/data/airlines/rai/fleet"
+    },
+    {
+      "name": "Rano Air",
+      "icao": "RAN",
+      "source": "https://www.flightradar24.com/data/airlines/r4-ran/fleet"
+    },
+    {
+      "name": "RED Air",
+      "icao": "REA",
+      "source": "https://www.flightradar24.com/data/airlines/l5-rea/fleet"
+    },
+    {
+      "name": "Red Sea Airlines",
+      "icao": "RSX",
+      "source": "https://www.flightradar24.com/data/airlines/4s-rsx/fleet"
+    },
+    {
+      "name": "Red Wings",
+      "icao": "RWZ",
+      "source": "https://www.flightradar24.com/data/airlines/wz-rwz/fleet"
+    },
+    {
+      "name": "Republic Airways",
+      "icao": "RPA",
+      "source": "https://www.flightradar24.com/data/airlines/yx-rpa/fleet"
+    },
+    {
+      "name": "Riyadh Air",
+      "icao": "RXI",
+      "source": "https://www.flightradar24.com/data/airlines/rx-rxi/fleet"
+    },
+    {
+      "name": "Rossiya",
+      "icao": "SDM",
+      "source": "https://www.flightradar24.com/data/airlines/fv-sdm/fleet"
+    },
+    {
+      "name": "Rotana Jet",
+      "icao": "RJD",
+      "source": "https://www.flightradar24.com/data/airlines/rg-rjd/fleet"
+    },
+    {
+      "name": "Royal Air Maroc",
+      "icao": "RAM",
+      "source": "https://www.flightradar24.com/data/airlines/at-ram/fleet"
+    },
+    {
+      "name": "Royal Brunei Airlines",
+      "icao": "RBA",
+      "source": "https://www.flightradar24.com/data/airlines/bi-rba/fleet"
+    },
+    {
+      "name": "Royal Jordanian",
+      "icao": "RJA",
+      "source": "https://www.flightradar24.com/data/airlines/rj-rja/fleet"
+    },
+    {
+      "name": "Royalair Philippines",
+      "icao": "RYL",
+      "source": "https://www.flightradar24.com/data/airlines/rw-ryl/fleet"
+    },
+    {
+      "name": "Ruili Airlines",
+      "icao": "RLH",
+      "source": "https://www.flightradar24.com/data/airlines/dr-rlh/fleet"
+    },
+    {
+      "name": "RusJet",
+      "icao": "RSJ",
+      "source": "https://www.flightradar24.com/data/airlines/rsj/fleet"
+    },
+    {
+      "name": "Rusline",
+      "icao": "RLU",
+      "source": "https://www.flightradar24.com/data/airlines/7r-rlu/fleet"
+    },
+    {
+      "name": "Rutaca Airlines",
+      "icao": "RUC",
+      "source": "https://www.flightradar24.com/data/airlines/5r-ruc/fleet"
+    },
+    {
+      "name": "RwandAir",
+      "icao": "RWD",
+      "source": "https://www.flightradar24.com/data/airlines/wb-rwd/fleet"
+    },
+    {
+      "name": "Ryanair",
+      "icao": "RYR",
+      "source": "https://www.flightradar24.com/data/airlines/fr-ryr/fleet"
+    },
+    {
+      "name": "Ryanair UK",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "S7 Airlines",
+      "icao": "SBI",
+      "source": "https://www.flightradar24.com/data/airlines/s7-sbi/fleet"
+    },
+    {
+      "name": "Saha Airlines",
+      "icao": "IRZ",
+      "source": "https://www.flightradar24.com/data/airlines/irz/fleet"
+    },
+    {
+      "name": "SalamAir",
+      "icao": "OMS",
+      "source": "https://www.flightradar24.com/data/airlines/ov-oms/fleet"
+    },
+    {
+      "name": "SAS",
+      "icao": "SAS",
+      "source": "https://www.flightradar24.com/data/airlines/sk-sas/fleet"
+    },
+    {
+      "name": "SAS Link",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "SATENA",
+      "icao": "NSE",
+      "source": "https://www.flightradar24.com/data/airlines/9r-nse/fleet"
+    },
+    {
+      "name": "Saudia",
+      "icao": "SVA",
+      "source": "https://www.flightradar24.com/data/airlines/sv-sva/fleet"
+    },
+    {
+      "name": "Saurya Airlines",
+      "icao": "SAU",
+      "source": "https://www.flightradar24.com/data/airlines/sau/fleet"
+    },
+    {
+      "name": "SCAT",
+      "icao": "VSV",
+      "source": "https://www.flightradar24.com/data/airlines/dv-vsv/fleet"
+    },
+    {
+      "name": "Scoot",
+      "icao": "TGW",
+      "source": "https://www.flightradar24.com/data/airlines/tr-tgw/fleet"
+    },
+    {
+      "name": "Shanghai Airlines",
+      "icao": "CSH",
+      "source": "https://www.flightradar24.com/data/airlines/fm-csh/fleet"
+    },
+    {
+      "name": "Shenzhen Airlines",
+      "icao": "CSZ",
+      "source": "https://www.flightradar24.com/data/airlines/zh-csz/fleet"
+    },
+    {
+      "name": "Shirak Avia",
+      "icao": "SHS",
+      "source": "https://www.flightradar24.com/data/airlines/5g-shs/fleet"
+    },
+    {
+      "name": "Shree Airlines",
+      "icao": "SHA",
+      "source": "https://www.flightradar24.com/data/airlines/n9-sha/fleet"
+    },
+    {
+      "name": "Sichuan Airlines",
+      "icao": "CSC",
+      "source": "https://www.flightradar24.com/data/airlines/3u-csc/fleet"
+    },
+    {
+      "name": "Sierra Pacific Airlines",
+      "icao": "SPA",
+      "source": "https://www.flightradar24.com/data/airlines/si-spa/fleet"
+    },
+    {
+      "name": "Singapore Airlines",
+      "icao": "SIA",
+      "source": "https://www.flightradar24.com/data/airlines/sq-sia/fleet"
+    },
+    {
+      "name": "SKY Airline",
+      "icao": "SKU",
+      "source": "https://www.flightradar24.com/data/airlines/h2-sku/fleet"
+    },
+    {
+      "name": "Sky Angkor Airlines",
+      "icao": "SWM",
+      "source": "https://www.flightradar24.com/data/airlines/za-swm/fleet"
+    },
+    {
+      "name": "SKY express",
+      "icao": "SEH",
+      "source": "https://www.flightradar24.com/data/airlines/gq-seh/fleet"
+    },
+    {
+      "name": "Sky Mali",
+      "icao": "FML",
+      "source": "https://www.flightradar24.com/data/airlines/ml-fml/fleet"
+    },
+    {
+      "name": "Sky Vision Airlines",
+      "icao": "SVI",
+      "source": "https://www.flightradar24.com/data/airlines/0s-svi/fleet"
+    },
+    {
+      "name": "SKYhigh Dominicana",
+      "icao": "SHH",
+      "source": "https://www.flightradar24.com/data/airlines/do-shh/fleet"
+    },
+    {
+      "name": "SkyLine Express",
+      "icao": "UTN",
+      "source": "https://www.flightradar24.com/data/airlines/qu-utn/fleet"
+    },
+    {
+      "name": "Skymark Airlines",
+      "icao": "SKY",
+      "source": "https://www.flightradar24.com/data/airlines/bc-sky/fleet"
+    },
+    {
+      "name": "SkyUp Airlines",
+      "icao": "SQP",
+      "source": "https://www.flightradar24.com/data/airlines/pq-sqp/fleet"
+    },
+    {
+      "name": "SkyWest Airlines",
+      "icao": "SKW",
+      "source": "https://www.flightradar24.com/data/airlines/oo-skw/fleet"
+    },
+    {
+      "name": "SkyWest Charter",
+      "icao": "SCW",
+      "source": "https://www.flightradar24.com/data/airlines/cw-scw/fleet"
+    },
+    {
+      "name": "Smartavia",
+      "icao": "AUL",
+      "source": "https://www.flightradar24.com/data/airlines/5n-aul/fleet"
+    },
+    {
+      "name": "SmartLynx Airlines",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "SmartLynx Malta",
+      "icao": "LYX",
+      "source": "https://www.flightradar24.com/data/airlines/2n-lyx/fleet"
+    },
+    {
+      "name": "Smartwings",
+      "icao": "TVS",
+      "source": "https://www.flightradar24.com/data/airlines/qs-tvs/fleet"
+    },
+    {
+      "name": "Solaseed Air",
+      "icao": "SNJ",
+      "source": "https://www.flightradar24.com/data/airlines/6j-snj/fleet"
+    },
+    {
+      "name": "Solenta Aviation",
+      "icao": "SET",
+      "source": "https://www.flightradar24.com/data/airlines/set/fleet"
+    },
+    {
+      "name": "Solomon Airlines",
+      "icao": "SOL",
+      "source": "https://www.flightradar24.com/data/airlines/ie-sol/fleet"
+    },
+    {
+      "name": "Somon Air",
+      "icao": "SMR",
+      "source": "https://www.flightradar24.com/data/airlines/sz-smr/fleet"
+    },
+    {
+      "name": "South African Airways",
+      "icao": "SAA",
+      "source": "https://www.flightradar24.com/data/airlines/sa-saa/fleet"
+    },
+    {
+      "name": "Southwest Airlines",
+      "icao": "SWA",
+      "source": "https://www.flightradar24.com/data/airlines/wn-swa/fleet"
+    },
+    {
+      "name": "Southwind Airlines",
+      "icao": "STW",
+      "source": "https://www.flightradar24.com/data/airlines/2s-stw/fleet"
+    },
+    {
+      "name": "SpiceJet",
+      "icao": "SEJ",
+      "source": "https://www.flightradar24.com/data/airlines/sg-sej/fleet"
+    },
+    {
+      "name": "Spring Airlines",
+      "icao": "CQH",
+      "source": "https://www.flightradar24.com/data/airlines/9c-cqh/fleet"
+    },
+    {
+      "name": "Spring Japan",
+      "icao": "SJO",
+      "source": "https://www.flightradar24.com/data/airlines/ij-sjo/fleet"
+    },
+    {
+      "name": "SriLankan Airlines",
+      "icao": "ALK",
+      "source": "https://www.flightradar24.com/data/airlines/ul-alk/fleet"
+    },
+    {
+      "name": "Sriwijaya Air",
+      "icao": "SJY",
+      "source": "https://www.flightradar24.com/data/airlines/sj-sjy/fleet"
+    },
+    {
+      "name": "Star Air",
+      "icao": "SDG",
+      "source": "https://www.flightradar24.com/data/airlines/s5-sdg/fleet"
+    },
+    {
+      "name": "Star East Airlines",
+      "icao": "SEK",
+      "source": "https://www.flightradar24.com/data/airlines/4r-sek/fleet"
+    },
+    {
+      "name": "Star Peru",
+      "icao": "SRU",
+      "source": "https://www.flightradar24.com/data/airlines/2i-sru/fleet"
+    },
+    {
+      "name": "Starflyer",
+      "icao": "SFJ",
+      "source": "https://www.flightradar24.com/data/airlines/7g-sfj/fleet"
+    },
+    {
+      "name": "STARLUX",
+      "icao": "SJX",
+      "source": "https://www.flightradar24.com/data/airlines/jx-sjx/fleet"
+    },
+    {
+      "name": "Sudan Airways",
+      "icao": "SUD",
+      "source": "https://www.flightradar24.com/data/airlines/sd-sud/fleet"
+    },
+    {
+      "name": "Sun Country Airlines",
+      "icao": "SCX",
+      "source": "https://www.flightradar24.com/data/airlines/sy-scx/fleet"
+    },
+    {
+      "name": "Sun PhuQuoc Airways",
+      "icao": "SPQ",
+      "source": "https://www.flightradar24.com/data/airlines/9g-spq/fleet"
+    },
+    {
+      "name": "Sun-Air",
+      "icao": "SUS",
+      "source": "https://www.flightradar24.com/data/airlines/ez-sus/fleet"
+    },
+    {
+      "name": "Sunclass Airlines",
+      "icao": "VKG",
+      "source": "https://www.flightradar24.com/data/airlines/dk-vkg/fleet"
+    },
+    {
+      "name": "Sundair",
+      "icao": "SDR",
+      "source": "https://www.flightradar24.com/data/airlines/sr-sdr/fleet"
+    },
+    {
+      "name": "SunExpress",
+      "icao": "SXS",
+      "source": "https://www.flightradar24.com/data/airlines/xq-sxs/fleet"
+    },
+    {
+      "name": "Sunrise Airways",
+      "icao": "KSZ",
+      "source": "https://www.flightradar24.com/data/airlines/s6-ksz/fleet"
+    },
+    {
+      "name": "Super Air Jet",
+      "icao": "SJV",
+      "source": "https://www.flightradar24.com/data/airlines/iu-sjv/fleet"
+    },
+    {
+      "name": "Surinam Airways",
+      "icao": "SLM",
+      "source": "https://www.flightradar24.com/data/airlines/py-slm/fleet"
+    },
+    {
+      "name": "Swiftair",
+      "icao": "SWT",
+      "source": "https://www.flightradar24.com/data/airlines/wt-swt/fleet"
+    },
+    {
+      "name": "Swiss",
+      "icao": "SWR",
+      "source": "https://www.flightradar24.com/data/airlines/lx-swr/fleet"
+    },
+    {
+      "name": "Syrian Air",
+      "icao": "SYR",
+      "source": "https://www.flightradar24.com/data/airlines/rb-syr/fleet"
+    },
+    {
+      "name": "T'way Air",
+      "icao": "TWB",
+      "source": "https://www.flightradar24.com/data/airlines/tw-twb/fleet"
+    },
+    {
+      "name": "TAAG Angola Airlines",
+      "icao": "DTA",
+      "source": "https://www.flightradar24.com/data/airlines/dt-dta/fleet"
+    },
+    {
+      "name": "Taban Airlines",
+      "icao": "TBN",
+      "source": "https://www.flightradar24.com/data/airlines/tbn/fleet"
+    },
+    {
+      "name": "TagAirlines",
+      "icao": "TGU",
+      "source": "https://www.flightradar24.com/data/airlines/5u-tgu/fleet"
+    },
+    {
+      "name": "Tailwind Airlines",
+      "icao": "TWI",
+      "source": "https://www.flightradar24.com/data/airlines/ti-twi/fleet"
+    },
+    {
+      "name": "TAP Air Portugal",
+      "icao": "TAP",
+      "source": "https://www.flightradar24.com/data/airlines/tp-tap/fleet"
+    },
+    {
+      "name": "Tarco Air",
+      "icao": "TQQ",
+      "source": "https://www.flightradar24.com/data/airlines/3t-tqq/fleet"
+    },
+    {
+      "name": "Tarom",
+      "icao": "ROT",
+      "source": "https://www.flightradar24.com/data/airlines/ro-rot/fleet"
+    },
+    {
+      "name": "Terra Avia",
+      "icao": "TVR",
+      "source": "https://www.flightradar24.com/data/airlines/t8-tvr/fleet"
+    },
+    {
+      "name": "Tez Jet Airlines",
+      "icao": "TEZ",
+      "source": "https://www.flightradar24.com/data/airlines/k9-tez/fleet"
+    },
+    {
+      "name": "Thai AirAsia",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Thai AirAsia X",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Thai Airways",
+      "icao": "THA",
+      "source": "https://www.flightradar24.com/data/airlines/tg-tha/fleet"
+    },
+    {
+      "name": "Thai Lion Air",
+      "icao": "TLM",
+      "source": "https://www.flightradar24.com/data/airlines/sl-tlm/fleet"
+    },
+    {
+      "name": "Thai VietJet Air",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Tian Jiao Airlines",
+      "icao": "NMG",
+      "source": "https://www.flightradar24.com/data/airlines/9d-nmg/fleet"
+    },
+    {
+      "name": "Tianjin Airlines",
+      "icao": "GCR",
+      "source": "https://www.flightradar24.com/data/airlines/gs-gcr/fleet"
+    },
+    {
+      "name": "Tigerair Taiwan",
+      "icao": "TTW",
+      "source": "https://www.flightradar24.com/data/airlines/it-ttw/fleet"
+    },
+    {
+      "name": "Titan Airways",
+      "icao": "AWC",
+      "source": "https://www.flightradar24.com/data/airlines/zt-awc/fleet"
+    },
+    {
+      "name": "Trade Air",
+      "icao": "TDR",
+      "source": "https://www.flightradar24.com/data/airlines/c3-tdr/fleet"
+    },
+    {
+      "name": "Trans Air Congo",
+      "icao": "TSG",
+      "source": "https://www.flightradar24.com/data/airlines/tsg/fleet"
+    },
+    {
+      "name": "Transair Hawaii",
+      "icao": "MUI",
+      "source": "https://www.flightradar24.com/data/airlines/r9-mui/fleet"
+    },
+    {
+      "name": "Transair Senegal",
+      "icao": "GTS",
+      "source": "https://www.flightradar24.com/data/airlines/r2-gts/fleet"
+    },
+    {
+      "name": "Transavia",
+      "icao": "TRA",
+      "source": "https://www.flightradar24.com/data/airlines/hv-tra/fleet"
+    },
+    {
+      "name": "TransNusa",
+      "icao": "TNU",
+      "source": "https://www.flightradar24.com/data/airlines/8b-tnu/fleet"
+    },
+    {
+      "name": "Trigana Air",
+      "icao": "TGN",
+      "source": "https://www.flightradar24.com/data/airlines/il-tgn/fleet"
+    },
+    {
+      "name": "TUI Airways",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "TUI fly",
+      "icao": "TUI",
+      "source": "https://www.flightradar24.com/data/airlines/x3-tui/fleet"
+    },
+    {
+      "name": "TUI fly Belgium",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "TUI fly Netherlands",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "TUI fly Nordic",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Tunisair",
+      "icao": "TAR",
+      "source": "https://www.flightradar24.com/data/airlines/tu-tar/fleet"
+    },
+    {
+      "name": "Tunisair Express",
+      "icao": "TUX",
+      "source": "https://www.flightradar24.com/data/airlines/ug-tux/fleet"
+    },
+    {
+      "name": "Turkish Airlines",
+      "icao": "THY",
+      "source": "https://www.flightradar24.com/data/airlines/tk-thy/fleet"
+    },
+    {
+      "name": "Turkmenistan Airlines",
+      "icao": "TUA",
+      "source": "https://www.flightradar24.com/data/airlines/t5-tua/fleet"
+    },
+    {
+      "name": "Turpial Airlines",
+      "icao": "VTU",
+      "source": "https://www.flightradar24.com/data/airlines/t9-vtu/fleet"
+    },
+    {
+      "name": "Tus Air",
+      "icao": "CYF",
+      "source": "https://www.flightradar24.com/data/airlines/u8-cyf/fleet"
+    },
+    {
+      "name": "Uganda Airlines",
+      "icao": "UGD",
+      "source": "https://www.flightradar24.com/data/airlines/ur-ugd/fleet"
+    },
+    {
+      "name": "Ultimate Jet",
+      "icao": "UJC",
+      "source": "https://www.flightradar24.com/data/airlines/ue-ujc/fleet"
+    },
+    {
+      "name": "UmzaXpress",
+      "icao": "UMZ",
+      "source": "https://www.flightradar24.com/data/airlines/uy-umz/fleet"
+    },
+    {
+      "name": "United Airlines",
+      "icao": "UAL",
+      "source": "https://www.flightradar24.com/data/airlines/ua-ual/fleet"
+    },
+    {
+      "name": "United Nigeria Airlines",
+      "icao": "NUA",
+      "source": "https://www.flightradar24.com/data/airlines/un-nua/fleet"
+    },
+    {
+      "name": "UR Airlines",
+      "icao": "UBD",
+      "source": "https://www.flightradar24.com/data/airlines/ud-ubd/fleet"
+    },
+    {
+      "name": "Ural Airlines",
+      "icao": "SVR",
+      "source": "https://www.flightradar24.com/data/airlines/u6-svr/fleet"
+    },
+    {
+      "name": "Urumqi Air",
+      "icao": "CUH",
+      "source": "https://www.flightradar24.com/data/airlines/uq-cuh/fleet"
+    },
+    {
+      "name": "US-Bangla Airlines",
+      "icao": "UBG",
+      "source": "https://www.flightradar24.com/data/airlines/bs-ubg/fleet"
+    },
+    {
+      "name": "USC",
+      "icao": "USY",
+      "source": "https://www.flightradar24.com/data/airlines/xg-usy/fleet"
+    },
+    {
+      "name": "UTair",
+      "icao": "UTA",
+      "source": "https://www.flightradar24.com/data/airlines/ut-uta/fleet"
+    },
+    {
+      "name": "UVT Aero",
+      "icao": "UVT",
+      "source": "https://www.flightradar24.com/data/airlines/rt-uvt/fleet"
+    },
+    {
+      "name": "Uzbekistan Airways",
+      "icao": "UZB",
+      "source": "https://www.flightradar24.com/data/airlines/hy-uzb/fleet"
+    },
+    {
+      "name": "Valletta Airlines",
+      "icao": "HOT",
+      "source": "https://www.flightradar24.com/data/airlines/hot/fleet"
+    },
+    {
+      "name": "ValueJet",
+      "icao": "FVJ",
+      "source": "https://www.flightradar24.com/data/airlines/vk-fvj/fleet"
+    },
+    {
+      "name": "Varesh Airlines",
+      "icao": "VRH",
+      "source": "https://www.flightradar24.com/data/airlines/vrh/fleet"
+    },
+    {
+      "name": "Venezolana",
+      "icao": "VNE",
+      "source": "https://www.flightradar24.com/data/airlines/ww-vne/fleet"
+    },
+    {
+      "name": "Victory Air",
+      "icao": "FTN",
+      "source": "https://www.flightradar24.com/data/airlines/ftn/fleet"
+    },
+    {
+      "name": "VietJet Air",
+      "icao": "VJC",
+      "source": "https://www.flightradar24.com/data/airlines/vj-vjc/fleet"
+    },
+    {
+      "name": "Vietnam Airlines",
+      "icao": "HVN",
+      "source": "https://www.flightradar24.com/data/airlines/vn-hvn/fleet"
+    },
+    {
+      "name": "Vietravel Airlines",
+      "icao": "VAG",
+      "source": "https://www.flightradar24.com/data/airlines/vu-vag/fleet"
+    },
+    {
+      "name": "Virgin Atlantic",
+      "icao": "VIR",
+      "source": "https://www.flightradar24.com/data/airlines/vs-vir/fleet"
+    },
+    {
+      "name": "Virgin Australia",
+      "icao": "VOZ",
+      "source": "https://www.flightradar24.com/data/airlines/va-voz/fleet"
+    },
+    {
+      "name": "Vise Air",
+      "icao": "VAF",
+      "source": "https://www.flightradar24.com/data/airlines/v9-vaf/fleet"
+    },
+    {
+      "name": "Viva",
+      "icao": "VIV",
+      "source": "https://www.flightradar24.com/data/airlines/vb-viv/fleet"
+    },
+    {
+      "name": "Volaris",
+      "icao": "VOI",
+      "source": "https://www.flightradar24.com/data/airlines/y4-voi/fleet"
+    },
+    {
+      "name": "Volotea",
+      "icao": "VOE",
+      "source": "https://www.flightradar24.com/data/airlines/v7-voe/fleet"
+    },
+    {
+      "name": "Voyageur Airways",
+      "icao": "VAL",
+      "source": "https://www.flightradar24.com/data/airlines/vc-val/fleet"
+    },
+    {
+      "name": "Vueling",
+      "icao": "VLG",
+      "source": "https://www.flightradar24.com/data/airlines/vy-vlg/fleet"
+    },
+    {
+      "name": "Wamos Air",
+      "icao": "PLM",
+      "source": "https://www.flightradar24.com/data/airlines/eb-plm/fleet"
+    },
+    {
+      "name": "West Air",
+      "icao": "CHB",
+      "source": "https://www.flightradar24.com/data/airlines/pn-chb/fleet"
+    },
+    {
+      "name": "Western Air",
+      "icao": "WST",
+      "source": "https://www.flightradar24.com/data/airlines/wu-wst/fleet"
+    },
+    {
+      "name": "WestJet",
+      "icao": "WJA",
+      "source": "https://www.flightradar24.com/data/airlines/ws-wja/fleet"
+    },
+    {
+      "name": "White",
+      "icao": "WHT",
+      "source": "https://www.flightradar24.com/data/airlines/wi-wht/fleet"
+    },
+    {
+      "name": "Wideroe",
+      "icao": "WIF",
+      "source": "https://www.flightradar24.com/data/airlines/wf-wif/fleet"
+    },
+    {
+      "name": "Windrose Airlines",
+      "icao": "WRC",
+      "source": "https://www.flightradar24.com/data/airlines/7w-wrc/fleet"
+    },
+    {
+      "name": "Wingo",
+      "icao": "RPB",
+      "source": "https://www.flightradar24.com/data/airlines/p5-rpb/fleet"
+    },
+    {
+      "name": "Wizz Air",
+      "icao": "WZZ",
+      "source": "https://www.flightradar24.com/data/airlines/w6-wzz/fleet"
+    },
+    {
+      "name": "Wizz Air Malta",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "Wizz Air UK",
+      "icao": "",
+      "source": "https://www.ch-aviation.com/airlines"
+    },
+    {
+      "name": "World Atlantic Airlines",
+      "icao": "WAL",
+      "source": "https://www.flightradar24.com/data/airlines/wl-wal/fleet"
+    },
+    {
+      "name": "World2Fly",
+      "icao": "WFL",
+      "source": "https://www.flightradar24.com/data/airlines/2w-wfl/fleet"
+    },
+    {
+      "name": "XEJet",
+      "icao": "XEJ",
+      "source": "https://www.flightradar24.com/data/airlines/4u-xej/fleet"
+    },
+    {
+      "name": "Xiamen Air",
+      "icao": "CXA",
+      "source": "https://www.flightradar24.com/data/airlines/mf-cxa/fleet"
+    },
+    {
+      "name": "Xizang Airlines",
+      "icao": "TBA",
+      "source": "https://www.flightradar24.com/data/airlines/tv-tba/fleet"
+    },
+    {
+      "name": "Yakutia Airlines",
+      "icao": "SYL",
+      "source": "https://www.flightradar24.com/data/airlines/r3-syl/fleet"
+    },
+    {
+      "name": "Yamal Airlines",
+      "icao": "LLM",
+      "source": "https://www.flightradar24.com/data/airlines/yc-llm/fleet"
+    },
+    {
+      "name": "Yazd Airways",
+      "icao": "DZD",
+      "source": "https://www.flightradar24.com/data/airlines/dzd/fleet"
+    },
+    {
+      "name": "Yemenia",
+      "icao": "IYE",
+      "source": "https://www.flightradar24.com/data/airlines/iy-iye/fleet"
+    },
+    {
+      "name": "Zagros Airlines",
+      "icao": "IZG",
+      "source": "https://www.flightradar24.com/data/airlines/zo-izg/fleet"
+    },
+    {
+      "name": "Zambia Airways",
+      "icao": "AZB",
+      "source": "https://www.flightradar24.com/data/airlines/zn-azb/fleet"
+    },
+    {
+      "name": "Zipair",
+      "icao": "TZP",
+      "source": "https://www.flightradar24.com/data/airlines/zg-tzp/fleet"
+    }
+  ]
+}

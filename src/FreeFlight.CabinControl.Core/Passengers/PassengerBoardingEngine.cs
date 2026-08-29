@@ -2,8 +2,8 @@ namespace FreeFlight.CabinControl.Core.Passengers;
 
 public sealed class PassengerBoardingEngine
 {
-    private const double PassengerWalkingSpeed = 205d;
-    private const double BaseSpawnIntervalSeconds = 0.55d;
+    private const double PassengerWalkingSpeed = 155d;
+    private const double BaseSpawnIntervalSeconds = 0.42d;
     private readonly PassengerCabinLayoutDefinition _layoutDefinition;
     private readonly IReadOnlyList<CabinSeat> _cabinSeats;
     private readonly List<BoardingPassenger> _passengers = [];
@@ -13,6 +13,8 @@ public sealed class PassengerBoardingEngine
     private readonly List<BoardingPassenger> _lastDeboardedPassengers = [];
     private readonly List<BoardingPassenger> _deboardingQueue = [];
     private readonly HashSet<BoardingDoor> _openDoors = [];
+    private readonly HashSet<int> _boardingHoldPassengerIds = [];
+    private readonly HashSet<int> _noShowPassengerIds = [];
     private int _nextPassengerIndex;
     private int _nextDeboardingPassengerIndex;
     private int _boardedCount;
@@ -35,11 +37,15 @@ public sealed class PassengerBoardingEngine
 
     public int TargetPassengerCount { get; private set; }
 
+    public int ExpectedBoardingCount => Math.Max(0, TargetPassengerCount - NoShowCount);
+
     public int BoardedCount => _boardedCount;
+
+    public int NoShowCount => _noShowPassengerIds.Count;
 
     public int DeboardedCount => _deboardedCount;
 
-    public int OnBoardCount => Math.Max(0, TargetPassengerCount - DeboardedCount);
+    public int OnBoardCount => Math.Max(0, ExpectedBoardingCount - DeboardedCount);
 
     public int WalkingCount => _activePassengers.Count;
 
@@ -47,9 +53,9 @@ public sealed class PassengerBoardingEngine
 
     public int InCabinCount => WalkingCount + OccupyingCount;
 
-    public int RemainingCount => Math.Max(0, TargetPassengerCount - BoardedCount);
+    public int RemainingCount => Math.Max(0, ExpectedBoardingCount - BoardedCount);
 
-    public int WaitingCount => Math.Max(0, TargetPassengerCount - BoardedCount - InCabinCount);
+    public int WaitingCount => Math.Max(0, ExpectedBoardingCount - BoardedCount - InCabinCount);
 
     public int OpenDoorCount => _openDoors.Count;
 
@@ -57,7 +63,9 @@ public sealed class PassengerBoardingEngine
 
     public int WaitingInCurrentBoardingGroup => _passengers.Count(passenger =>
         passenger.BoardingGroup == CurrentBoardingGroup &&
-        passenger.MovementState == PassengerMovementState.Waiting);
+        passenger.MovementState == PassengerMovementState.Waiting &&
+        !_boardingHoldPassengerIds.Contains(passenger.Id) &&
+        !_noShowPassengerIds.Contains(passenger.Id));
 
     public IReadOnlyList<int> BoardingGroups => _passengers
         .Select(passenger => passenger.BoardingGroup)
@@ -65,13 +73,13 @@ public sealed class PassengerBoardingEngine
         .Order()
         .ToArray();
 
-    public double Progress => TargetPassengerCount == 0
-        ? 0d
-        : BoardedCount / (double)TargetPassengerCount;
+    public double Progress => ExpectedBoardingCount == 0
+        ? TargetPassengerCount == 0 ? 0d : 1d
+        : BoardedCount / (double)ExpectedBoardingCount;
 
-    public double DeboardingProgress => TargetPassengerCount == 0
+    public double DeboardingProgress => ExpectedBoardingCount == 0
         ? 0d
-        : DeboardedCount / (double)TargetPassengerCount;
+        : DeboardedCount / (double)ExpectedBoardingCount;
 
     public BoardingRunState State { get; private set; } = BoardingRunState.Ready;
 
@@ -124,6 +132,12 @@ public sealed class PassengerBoardingEngine
             return;
         }
 
+        if (ExpectedBoardingCount == 0)
+        {
+            State = BoardingRunState.Complete;
+            return;
+        }
+
         if (State is BoardingRunState.Complete or BoardingRunState.DeboardingComplete)
         {
             return;
@@ -149,6 +163,8 @@ public sealed class PassengerBoardingEngine
         _deboardingQueue.Clear();
         var random = new Random(778_300 + TargetPassengerCount + ((int)Layout * 997));
         _deboardingQueue.AddRange(_passengers
+            .Where(passenger => !_noShowPassengerIds.Contains(passenger.Id) &&
+                                passenger.MovementState == PassengerMovementState.Seated)
             .Select(passenger => new
             {
                 Passenger = passenger,
@@ -181,6 +197,90 @@ public sealed class PassengerBoardingEngine
         InitializeManifest();
     }
 
+    public PassengerBoardingSession CaptureSession() => new(
+        Layout,
+        TargetPassengerCount,
+        State,
+        Operation,
+        CurrentBoardingGroup,
+        _openDoors.Order().ToArray(),
+        _passengers.Select(passenger => new BoardingPassengerSession(
+            passenger.Id,
+            passenger.Door,
+            passenger.MovementState,
+            passenger.Position,
+            passenger.CabinActivity,
+            passenger.SeatbeltFastened,
+            _boardingHoldPassengerIds.Contains(passenger.Id),
+            _noShowPassengerIds.Contains(passenger.Id))).ToArray());
+
+    public bool RestoreSession(PassengerBoardingSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        if (session.Layout != Layout || session.TargetPassengerCount != TargetPassengerCount)
+        {
+            return false;
+        }
+
+        InitializeManifest();
+        Operation = session.Operation;
+        _openDoors.Clear();
+        foreach (var door in session.OpenDoors)
+        {
+            _openDoors.Add(door);
+        }
+
+        var states = session.Passengers.ToDictionary(item => item.PassengerId);
+        foreach (var passenger in _passengers)
+        {
+            if (!states.TryGetValue(passenger.Id, out var saved))
+            {
+                continue;
+            }
+
+            if (saved.IsBoardingHeld) _boardingHoldPassengerIds.Add(passenger.Id);
+            if (saved.IsNoShow) _noShowPassengerIds.Add(passenger.Id);
+            passenger.Door = saved.Door;
+            passenger.Waypoints.Clear();
+            var restoredMovement = saved.MovementState;
+            if (restoredMovement is PassengerMovementState.Walking or PassengerMovementState.OccupyingSeat)
+            {
+                restoredMovement = session.Operation == PassengerOperation.Deboarding
+                    ? PassengerMovementState.Seated
+                    : PassengerMovementState.Waiting;
+            }
+
+            passenger.MovementState = restoredMovement;
+            passenger.Position = restoredMovement == PassengerMovementState.Waiting
+                ? default
+                : saved.Position;
+            passenger.CabinActivity = restoredMovement == PassengerMovementState.Seated
+                ? saved.CabinActivity
+                : restoredMovement switch
+                {
+                    PassengerMovementState.Deboarded => PassengerCabinActivity.OffAircraft,
+                    _ => PassengerCabinActivity.AwaitingBoarding
+                };
+            passenger.SeatbeltFastened = restoredMovement == PassengerMovementState.Seated && saved.SeatbeltFastened;
+            passenger.SecondsUntilActivityChange = 30d + (passenger.Id % 90);
+        }
+
+        _boardedCount = _passengers.Count(passenger => passenger.MovementState == PassengerMovementState.Seated);
+        _deboardedCount = _passengers.Count(passenger => passenger.MovementState == PassengerMovementState.Deboarded);
+        _currentBoardingGroup = session.CurrentBoardingGroup;
+        _nextPassengerIndex = 0;
+        _nextDeboardingPassengerIndex = 0;
+        _spawnAccumulator = 0d;
+        State = session.State switch
+        {
+            BoardingRunState.Complete => BoardingRunState.Complete,
+            BoardingRunState.DeboardingComplete => BoardingRunState.DeboardingComplete,
+            BoardingRunState.Ready => BoardingRunState.Ready,
+            _ => BoardingRunState.Paused
+        };
+        return true;
+    }
+
     public bool TryBoardPassenger(int passengerId)
     {
         if (Operation != PassengerOperation.Boarding)
@@ -189,7 +289,10 @@ public sealed class PassengerBoardingEngine
         }
 
         var passenger = _passengers.FirstOrDefault(candidate => candidate.Id == passengerId);
-        if (passenger is null || passenger.MovementState == PassengerMovementState.Seated)
+        if (passenger is null ||
+            passenger.MovementState == PassengerMovementState.Seated ||
+            _boardingHoldPassengerIds.Contains(passengerId) ||
+            _noShowPassengerIds.Contains(passengerId))
         {
             return false;
         }
@@ -201,9 +304,45 @@ public sealed class PassengerBoardingEngine
         passenger.Waypoints.Clear();
         passenger.MovementState = PassengerMovementState.Seated;
         passenger.SecondsUntilSecured = 0d;
+        passenger.CabinActivity = PassengerCabinActivity.SeatbeltFastened;
+        passenger.SeatbeltFastened = true;
+        passenger.SecondsUntilActivityChange = 15d;
         _boardedCount++;
         _lastSeatedPassengers.Add(passenger);
-        if (_boardedCount >= TargetPassengerCount)
+        if (_boardedCount >= ExpectedBoardingCount)
+        {
+            State = BoardingRunState.Complete;
+        }
+
+        return true;
+    }
+
+    public bool SetPassengerBoardingHold(int passengerId, bool isHeld)
+    {
+        var passenger = _passengers.FirstOrDefault(candidate => candidate.Id == passengerId);
+        if (passenger is null || passenger.MovementState != PassengerMovementState.Waiting)
+        {
+            return false;
+        }
+
+        return isHeld
+            ? _boardingHoldPassengerIds.Add(passengerId)
+            : _boardingHoldPassengerIds.Remove(passengerId);
+    }
+
+    public bool MarkPassengerNoShow(int passengerId)
+    {
+        var passenger = _passengers.FirstOrDefault(candidate => candidate.Id == passengerId);
+        if (passenger is null ||
+            passenger.MovementState != PassengerMovementState.Waiting ||
+            !_noShowPassengerIds.Add(passengerId))
+        {
+            return false;
+        }
+
+        _boardingHoldPassengerIds.Remove(passengerId);
+        SkipAlreadyProcessedPassengers();
+        if (_boardedCount >= ExpectedBoardingCount)
         {
             State = BoardingRunState.Complete;
         }
@@ -230,7 +369,7 @@ public sealed class PassengerBoardingEngine
 
         SecureOccupiedPassengers(scaledSeconds);
         MoveActivePassengers(scaledSeconds);
-        if (_boardedCount >= TargetPassengerCount)
+        if (_boardedCount >= ExpectedBoardingCount)
         {
             State = BoardingRunState.Complete;
             return;
@@ -248,7 +387,7 @@ public sealed class PassengerBoardingEngine
         var spawnInterval = _nextPassengerIndex < _passengers.Count
             ? GetSpawnInterval(_passengers[_nextPassengerIndex]) / _openDoors.Count
             : BaseSpawnIntervalSeconds;
-        var activeLimit = _openDoors.Count * 8;
+        var activeLimit = _openDoors.Count * 16;
         if (_nextPassengerIndex < _passengers.Count &&
             _passengers[_nextPassengerIndex].BoardingGroup != _currentBoardingGroup &&
             _spawnAccumulator >= spawnInterval &&
@@ -271,10 +410,135 @@ public sealed class PassengerBoardingEngine
         }
     }
 
+    public void UpdateCabinActivities(TimeSpan elapsed, bool seatbeltSignOn, string flightPhase)
+    {
+        var seconds = Math.Clamp(elapsed.TotalSeconds, 0d, 5d);
+        if (seconds <= 0d)
+        {
+            return;
+        }
+
+        foreach (var passenger in _passengers)
+        {
+            if (passenger.MovementState != PassengerMovementState.Seated)
+            {
+                passenger.CabinActivity = passenger.MovementState switch
+                {
+                    PassengerMovementState.Waiting => PassengerCabinActivity.AwaitingBoarding,
+                    PassengerMovementState.Walking when Operation == PassengerOperation.Deboarding => PassengerCabinActivity.Deboarding,
+                    PassengerMovementState.Walking => PassengerCabinActivity.WalkingToSeat,
+                    PassengerMovementState.OccupyingSeat => PassengerCabinActivity.SettlingIn,
+                    PassengerMovementState.Deboarded => PassengerCabinActivity.OffAircraft,
+                    _ => passenger.CabinActivity
+                };
+                passenger.SeatbeltFastened = false;
+                continue;
+            }
+
+            if (seatbeltSignOn)
+            {
+                passenger.SeatbeltFastened = true;
+                if (passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
+                    PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat)
+                {
+                    passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
+                    if (!MoveActivityPassenger(passenger, passenger.Seat.X, passenger.Seat.Y, seconds * 310d))
+                    {
+                        continue;
+                    }
+                }
+
+                passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
+                passenger.CabinActivity = PassengerCabinActivity.SeatbeltFastened;
+                passenger.SecondsUntilActivityChange = 15d;
+                continue;
+            }
+
+            passenger.SeatbeltFastened = false;
+            switch (passenger.CabinActivity)
+            {
+                case PassengerCabinActivity.WalkingToLavatory:
+                {
+                    var lavatoryX = _cabinSeats.Max(seat => seat.X) + 18d;
+                    if (MoveActivityPassenger(passenger, lavatoryX, passenger.Seat.AisleY, seconds * 95d))
+                    {
+                        passenger.CabinActivity = PassengerCabinActivity.UsingLavatory;
+                        passenger.SecondsUntilActivityChange = 45d + ((passenger.Id * 13) % 75);
+                    }
+                    continue;
+                }
+                case PassengerCabinActivity.UsingLavatory:
+                    passenger.SecondsUntilActivityChange -= seconds;
+                    if (passenger.SecondsUntilActivityChange <= 0d)
+                    {
+                        passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
+                    }
+                    continue;
+                case PassengerCabinActivity.ReturningToSeat:
+                    if (MoveActivityPassenger(passenger, passenger.Seat.X, passenger.Seat.Y, seconds * 105d))
+                    {
+                        SelectNextSeatedActivity(passenger, flightPhase);
+                    }
+                    continue;
+            }
+
+            passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
+            passenger.SecondsUntilActivityChange -= seconds;
+            if (passenger.SecondsUntilActivityChange <= 0d ||
+                passenger.CabinActivity is PassengerCabinActivity.SeatbeltFastened or PassengerCabinActivity.SettlingIn)
+            {
+                SelectNextSeatedActivity(passenger, flightPhase);
+            }
+        }
+    }
+
+    private static bool MoveActivityPassenger(BoardingPassenger passenger, double targetX, double targetY, double distance)
+    {
+        var deltaX = targetX - passenger.Position.X;
+        var deltaY = targetY - passenger.Position.Y;
+        var remaining = Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+        if (remaining <= distance || remaining < 0.01d)
+        {
+            passenger.Position = new CabinPoint(targetX, targetY);
+            return true;
+        }
+
+        var ratio = distance / remaining;
+        passenger.Position = new CabinPoint(
+            passenger.Position.X + (deltaX * ratio),
+            passenger.Position.Y + (deltaY * ratio));
+        return false;
+    }
+
+    private static void SelectNextSeatedActivity(BoardingPassenger passenger, string flightPhase)
+    {
+        passenger.ActivitySequence++;
+        var phaseSeed = string.IsNullOrWhiteSpace(flightPhase)
+            ? 0
+            : StringComparer.OrdinalIgnoreCase.GetHashCode(flightPhase);
+        var selector = Math.Abs((passenger.Id * 31) + (passenger.ActivitySequence * 17) + phaseSeed);
+        passenger.CabinActivity = (selector % 17) switch
+        {
+            0 when !string.Equals(flightPhase, "TAXI", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.WalkingToLavatory,
+            1 or 2 => PassengerCabinActivity.Sleeping,
+            3 or 4 or 5 => PassengerCabinActivity.WatchingMovie,
+            6 or 7 => PassengerCabinActivity.UsingPhone,
+            8 or 9 => PassengerCabinActivity.Reading,
+            10 => PassengerCabinActivity.Gaming,
+            11 => PassengerCabinActivity.Working,
+            _ => PassengerCabinActivity.Talking
+        };
+        passenger.SecondsUntilActivityChange = passenger.CabinActivity == PassengerCabinActivity.WalkingToLavatory
+            ? 0d
+            : 75d + (selector % 240);
+    }
+
     private void SkipAlreadyProcessedPassengers()
     {
         while (_nextPassengerIndex < _passengers.Count &&
-               _passengers[_nextPassengerIndex].MovementState != PassengerMovementState.Waiting)
+               (_passengers[_nextPassengerIndex].MovementState != PassengerMovementState.Waiting ||
+                _boardingHoldPassengerIds.Contains(_passengers[_nextPassengerIndex].Id) ||
+                _noShowPassengerIds.Contains(_passengers[_nextPassengerIndex].Id)))
         {
             _nextPassengerIndex++;
         }
@@ -288,6 +552,8 @@ public sealed class PassengerBoardingEngine
         _lastSeatedPassengers.Clear();
         _lastDeboardedPassengers.Clear();
         _deboardingQueue.Clear();
+        _boardingHoldPassengerIds.Clear();
+        _noShowPassengerIds.Clear();
         _nextPassengerIndex = 0;
         _nextDeboardingPassengerIndex = 0;
         _boardedCount = 0;
@@ -332,10 +598,17 @@ public sealed class PassengerBoardingEngine
         var entry = GetDoorEntryPoint(door);
         passenger.Door = door;
         passenger.MovementState = PassengerMovementState.Walking;
+        passenger.CabinActivity = PassengerCabinActivity.WalkingToSeat;
+        passenger.SeatbeltFastened = false;
         passenger.Position = entry;
+        var cabinCrossingY = _cabinSeats
+            .Select(seat => seat.AisleY)
+            .Distinct()
+            .Average();
         passenger.Waypoints = new Queue<CabinPoint>(
         [
-            new CabinPoint(entry.X, 166d),
+            new CabinPoint(entry.X, 174d),
+            new CabinPoint(entry.X, cabinCrossingY),
             new CabinPoint(entry.X, passenger.Seat.AisleY),
             new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
             new CabinPoint(passenger.Seat.X, passenger.Seat.Y)
@@ -346,7 +619,7 @@ public sealed class PassengerBoardingEngine
     private void TickDeboarding(double scaledSeconds)
     {
         MoveActivePassengers(scaledSeconds);
-        if (_deboardedCount >= TargetPassengerCount)
+        if (_deboardedCount >= ExpectedBoardingCount)
         {
             State = BoardingRunState.DeboardingComplete;
             return;
@@ -363,7 +636,7 @@ public sealed class PassengerBoardingEngine
         var spawnInterval = _nextDeboardingPassengerIndex < _deboardingQueue.Count
             ? GetSpawnInterval(_deboardingQueue[_nextDeboardingPassengerIndex]) / _openDoors.Count
             : BaseSpawnIntervalSeconds;
-        var activeLimit = _openDoors.Count * 8;
+        var activeLimit = _openDoors.Count * 16;
         while (_spawnAccumulator >= spawnInterval &&
                _nextDeboardingPassengerIndex < _deboardingQueue.Count &&
                _activePassengers.Count < activeLimit)
@@ -382,6 +655,8 @@ public sealed class PassengerBoardingEngine
         var exit = GetDoorEntryPoint(door);
         passenger.Door = door;
         passenger.MovementState = PassengerMovementState.Walking;
+        passenger.CabinActivity = PassengerCabinActivity.Deboarding;
+        passenger.SeatbeltFastened = false;
         passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
         passenger.Waypoints = new Queue<CabinPoint>(
         [
@@ -430,6 +705,8 @@ public sealed class PassengerBoardingEngine
             if (Operation == PassengerOperation.Deboarding)
             {
                 passenger.MovementState = PassengerMovementState.Deboarded;
+                passenger.CabinActivity = PassengerCabinActivity.OffAircraft;
+                passenger.SeatbeltFastened = false;
                 _activePassengers.RemoveAt(index);
                 _deboardedCount++;
                 _lastDeboardedPassengers.Add(passenger);
@@ -437,6 +714,7 @@ public sealed class PassengerBoardingEngine
             }
 
             passenger.MovementState = PassengerMovementState.OccupyingSeat;
+            passenger.CabinActivity = PassengerCabinActivity.SettlingIn;
             passenger.SecondsUntilSecured = 6d + ((passenger.Id % 5) * 1.5d);
             _activePassengers.RemoveAt(index);
             _occupyingPassengers.Add(passenger);
@@ -455,6 +733,9 @@ public sealed class PassengerBoardingEngine
             }
 
             passenger.MovementState = PassengerMovementState.Seated;
+            passenger.CabinActivity = PassengerCabinActivity.SeatbeltFastened;
+            passenger.SeatbeltFastened = true;
+            passenger.SecondsUntilActivityChange = 15d + (passenger.Id % 20);
             _occupyingPassengers.RemoveAt(index);
             _boardedCount++;
             _lastSeatedPassengers.Add(passenger);
@@ -596,6 +877,7 @@ public sealed class PassengerBoardingEngine
             _ => "None"
         };
         var bookingNumber = Math.Abs((passengerId * 173) + seed) % 10_000;
+        var emailName = $"{firstName}.{lastName}".ToLowerInvariant();
         return new PassengerProfile(
             $"{firstName} {lastName}",
             random.Next(18, 83),
@@ -604,7 +886,8 @@ public sealed class PassengerBoardingEngine
             tier,
             random.Next(0, 3),
             assistance,
-            $"FF{bookingNumber:0000}");
+            $"FF{bookingNumber:0000}",
+            $"{emailName}.p{passengerId:000}@passengers.freeflight.test");
     }
 
     private static readonly string[] FirstNames =

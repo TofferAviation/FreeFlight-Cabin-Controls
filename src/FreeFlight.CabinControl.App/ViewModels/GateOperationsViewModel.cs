@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Integration;
 using FreeFlight.CabinControl.Core.Operations;
 using FreeFlight.CabinControl.Core.Passengers;
 
@@ -14,6 +15,7 @@ namespace FreeFlight.CabinControl.App.ViewModels;
 
 public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 {
+    private static readonly TimeSpan LatePassengerGracePeriod = TimeSpan.FromMinutes(10);
     private readonly AppSettings _settings;
     private readonly PassengerFlowViewModel _passengers;
     private readonly IOperationsClock _operationsClock;
@@ -29,6 +31,12 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private string _operationMessage = "No passenger list loaded. Import SimBrief or enter a manual passenger count.";
     private PrinterDestination? _selectedPrinter;
     private string _printerStatusMessage = "Checking Windows printers…";
+    private bool _hasDeparted;
+    private bool _hasLanded;
+    private string _liveFlightPhase = "Preflight";
+    private double _liveAltitudeFeet;
+    private string _flightBannerMessage = string.Empty;
+    private bool _pushbackActive;
 
     public GateOperationsViewModel(
         AppSettings settings,
@@ -217,7 +225,9 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public AircraftGateAssignment GateAssignment => DepartureGateAssignment;
     public string GateNumber => DepartureGateAssignment.GateNumber;
     public string ArrivalGateNumber => ArrivalGateAssignment.GateNumber;
-    public string GateHeader => $"DEP {GateNumber}  →  ARR {ArrivalGateNumber}";
+    public string GateHeader => IsSimBriefSynced
+        ? $"DEP {GateNumber}  →  ARR {ArrivalGateNumber}"
+        : "DEP --  →  ARR --";
     public string GateAssignmentSummary => DepartureGateAssignment.Summary;
     public string AircraftName => AircraftGateAssignmentService.DescribeAircraft(DetectedAircraftIcao);
     public bool IsSimBriefSynced => _passengers.HasSimBriefFlight;
@@ -232,8 +242,36 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         : "No passenger list loaded — import SimBrief or enter a manual passenger count.";
     public int CheckedInPassengers => PassengerRecords.Count(passenger => passenger.IsCheckedIn);
     public int BoardedPassengers => PassengerRecords.Count(passenger => passenger.IsBoarded);
+    public int LatePassengers => PassengerRecords.Count(passenger => passenger.IsLate);
+    public int NoShowPassengers => PassengerRecords.Count(passenger => passenger.IsNoShow);
+    public PassengerNoShowForecast NoShowForecast => PassengerNoShowForecastService.Calculate(
+        FlightNumber,
+        OriginIata,
+        DestinationIata,
+        TotalPassengers);
+    public int ForecastNoShowRate => NoShowForecast.RatePercent;
+    public int ForecastNoShowPassengers => NoShowForecast.ForecastPassengerCount;
+    public string NoShowForecastSummary =>
+        $"{ForecastNoShowPassengers} forecast no-shows · {ForecastNoShowRate}% · {NoShowForecast.ProfileLabel}";
+    public string NoShowForecastCompact =>
+        $"Forecast {ForecastNoShowPassengers} no-show · {ForecastNoShowRate}%";
     public int TotalBags => PassengerRecords.Sum(passenger => passenger.CheckedBags);
-    public int LoadedBags => PassengerRecords.Where(passenger => passenger.IsBagLoaded).Sum(passenger => passenger.CheckedBags);
+    public int PlannedBags => PassengerRecords
+        .Where(passenger => passenger.IsCheckedIn && !passenger.IsNoShow)
+        .Sum(passenger => passenger.CheckedBags);
+    public int LoadedBags => PassengerRecords.Sum(passenger => passenger.LoadedBagCount);
+    public int AwaitingBags => PassengerRecords.Sum(passenger => passenger.AwaitingBagCount);
+    public int PlannedBaggageWeightKg => PassengerRecords
+        .Where(passenger => passenger.IsCheckedIn && !passenger.IsNoShow)
+        .Sum(passenger => passenger.PlannedBaggageWeightKg);
+    public int LoadedBaggageWeightKg => PassengerRecords.Sum(passenger => passenger.LoadedBaggageWeightKg);
+    public int BaggageWeightDeltaKg => LoadedBaggageWeightKg - PlannedBaggageWeightKg;
+    public int BaggageDiscrepancyPassengers => PassengerRecords.Count(passenger => passenger.HasBaggageDiscrepancy);
+    public bool HasBaggageDiscrepancies => BaggageDiscrepancyPassengers > 0;
+    public string BaggageReconciliationLabel => HasBaggageDiscrepancies
+        ? $"{BaggageDiscrepancyPassengers} baggage discrepancies · final load sheet blocked"
+        : $"{LoadedBags}/{PlannedBags} accepted bags loaded · {LoadedBaggageWeightKg:N0} kg actual";
+    public string BaggageReconciliationColor => HasBaggageDiscrepancies ? "#FF6666" : "#58E68A";
     public int CheckedInPercent => Percentage(CheckedInPassengers, TotalPassengers);
     public int BoardedPercent => Percentage(BoardedPassengers, TotalPassengers);
     public int BagsLoadedPercent => Percentage(LoadedBags, TotalBags);
@@ -261,7 +299,9 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string GateActionLabel => IsGateOpen ? "Close Gate" : "Open Gate";
     public string GateActionGlyph => IsGateOpen ? "\uE77A" : "\uE7C8";
     public bool CanBoardPassengers => _hasGateAccess() && IsGateOpen && (!_gateHasClosed || _settings.ManualGateOverride);
-    public string ReadinessGateStatus => IsGateOpen
+    public string ReadinessGateStatus => !IsSimBriefSynced
+        ? "Awaiting SimBrief flight plan"
+        : IsGateOpen
         ? $"DEP {OriginIata} {GateNumber} open · ARR {DestinationIata} {ArrivalGateNumber}"
         : $"DEP {OriginIata} {GateNumber} → ARR {DestinationIata} {ArrivalGateNumber}";
 
@@ -285,7 +325,18 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string FinalBoardingAt => FormatTime(TurnaroundSchedule.FinalBoarding);
     public string GateClosesAt => FormatTime(TurnaroundSchedule.GateClose);
     public string TurnaroundSummary => $"{_settings.TurnaroundMinutes} MIN TURNAROUND";
-    public string TimelinePhaseLabel => TurnaroundSchedule.GetStage(_operationsClock.Now) switch
+    public bool IsArrivalMode => _hasDeparted;
+    public string TimelineTitle => IsArrivalMode ? "LIVE FLIGHT & ARRIVAL TIMELINE" : "FLIGHT TIMELINE";
+    public string TimelineContext => IsArrivalMode ? $"{OriginIata} → {DestinationIata}" : TurnaroundSummary;
+    public string FlightBannerMessage => _flightBannerMessage;
+    public bool HasFlightBannerMessage => !string.IsNullOrWhiteSpace(FlightBannerMessage);
+    public string TimelinePhaseLabel => _pushbackActive && !IsArrivalMode
+        ? "PUSHBACK ACTIVE"
+        : IsArrivalMode
+        ? _hasLanded ? "ARRIVED" : _liveFlightPhase.ToUpperInvariant()
+        : !IsSimBriefSynced
+        ? "FLIGHT LOADED · AWAITING SIMBRIEF"
+        : TurnaroundSchedule.GetStage(_operationsClock.Now) switch
     {
         TurnaroundStage.AwaitingTurnaround => "AWAITING TURNAROUND",
         TurnaroundStage.Turnaround => "TURNAROUND IN PROGRESS",
@@ -294,7 +345,11 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         TurnaroundStage.GateClosing => "GATE CLOSING",
         _ => "DEPARTURE DUE"
     };
-    public string TimelinePhaseColor => TurnaroundSchedule.GetStage(_operationsClock.Now) switch
+    public string TimelinePhaseColor => _pushbackActive && !IsArrivalMode
+        ? "#F0C64E"
+        : IsArrivalMode
+        ? _hasLanded ? "#58E68A" : "#63B9FF"
+        : TurnaroundSchedule.GetStage(_operationsClock.Now) switch
     {
         TurnaroundStage.Turnaround or TurnaroundStage.GateOpen or TurnaroundStage.Boarding => "#58E68A",
         TurnaroundStage.GateClosing or TurnaroundStage.Departure => "#F0C64E",
@@ -337,6 +392,38 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(TimelinePhaseColor));
         OnPropertyChanged(nameof(CanBoardPassengers));
         OnPropertyChanged(nameof(ReadinessGateStatus));
+        ApplyNoShowForecast();
+        RefreshTimelineEvents();
+    }
+
+    public void ApplyCabinTelemetry(CabinTelemetrySnapshot snapshot)
+    {
+        _liveFlightPhase = snapshot.FlightPhase;
+        _liveAltitudeFeet = snapshot.AltitudeFeet;
+        _pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d;
+        var wasArrivalMode = _hasDeparted;
+        if (!snapshot.OnGround)
+        {
+            _hasDeparted = true;
+            _hasLanded = false;
+            _flightBannerMessage = string.Empty;
+        }
+        else if (_hasDeparted && !_hasLanded)
+        {
+            _hasLanded = true;
+            _flightBannerMessage = $"Welcome to {AirportName(DestinationIata)}!";
+        }
+
+        if (wasArrivalMode != _hasDeparted)
+        {
+            OnPropertyChanged(nameof(IsArrivalMode));
+            OnPropertyChanged(nameof(TimelineTitle));
+            OnPropertyChanged(nameof(TimelineContext));
+        }
+        OnPropertyChanged(nameof(FlightBannerMessage));
+        OnPropertyChanged(nameof(HasFlightBannerMessage));
+        OnPropertyChanged(nameof(TimelinePhaseLabel));
+        OnPropertyChanged(nameof(TimelinePhaseColor));
         RefreshTimelineEvents();
     }
 
@@ -434,7 +521,14 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             return;
         }
 
-        passenger.IsCheckedIn = true;
+        if (passenger.IsNoShow)
+        {
+            OperationMessage = $"{passenger.FullName} is recorded as a no-show after the 10-minute late limit.";
+            return;
+        }
+
+        passenger.MarkCheckedIn();
+        _passengers.SetPassengerBoardingHold(passenger.PassengerId, false);
         passenger.BoardingPassStatus = passenger.BoardingPassStatus == "Unissued" ? "Ready to Print" : passenger.BoardingPassStatus;
         SelectedPassenger = passenger;
         OperationMessage = $"{passenger.FullName} checked in for {FlightNumber}.";
@@ -456,6 +550,12 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         if (!CanBoardPassengers)
         {
             OperationMessage = "The passenger cannot board while the gate is closed.";
+            return;
+        }
+
+        if (passenger.IsNoShow)
+        {
+            OperationMessage = $"{passenger.FullName} is recorded as a no-show and cannot board.";
             return;
         }
 
@@ -489,8 +589,9 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             return;
         }
 
-        passenger.IsBagLoaded = !passenger.IsBagLoaded;
+        passenger.ToggleBaggageLoadedState();
         SelectedPassenger = passenger;
+        OperationMessage = passenger.BaggageOperationMessage;
         NotifyOperationalMetrics();
     }
 
@@ -608,6 +709,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
         SelectedPassenger = PassengerRecords.FirstOrDefault();
         RefreshVisiblePassengers();
+        ApplyNoShowForecast();
         OperationMessage = PassengerListStatus;
         NotifyOperationalMetrics();
     }
@@ -651,9 +753,8 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
                 passenger.PropertyChanged -= HandleGatePassengerPropertyChanged;
             }
 
-            PassengerRecords.Clear();
-            _passengersById.Clear();
-            SelectedPassenger = null;
+            RebuildPassengerRecords();
+            return;
         }
 
         if (e.NewItems is not null)
@@ -664,6 +765,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             }
         }
 
+        ApplyNoShowForecast();
         RefreshVisiblePassengers();
         SelectedPassenger ??= PassengerRecords.FirstOrDefault();
         OperationMessage = PassengerListStatus;
@@ -682,6 +784,12 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             }
 
             NotifyOperationalMetrics();
+            if (_passengers.BoardingState == BoardingRunState.DeboardingComplete)
+            {
+                _flightBannerMessage = "See you next time, Captain!";
+                OnPropertyChanged(nameof(FlightBannerMessage));
+                OnPropertyChanged(nameof(HasFlightBannerMessage));
+            }
         }
         else if (e.PropertyName is nameof(PassengerFlowViewModel.HasSimBriefFlight) or
                  nameof(PassengerFlowViewModel.ImportedFlightNumber) or
@@ -706,10 +814,81 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     {
         if (e.PropertyName is nameof(GatePassengerViewModel.IsCheckedIn) or
             nameof(GatePassengerViewModel.IsBoarded) or
-            nameof(GatePassengerViewModel.IsBagLoaded) or
+            nameof(GatePassengerViewModel.IsLate) or
+            nameof(GatePassengerViewModel.IsNoShow) or
+            nameof(GatePassengerViewModel.LoadedBaggageWeightKg) or
             nameof(GatePassengerViewModel.BoardingPassStatus))
         {
             NotifyOperationalMetrics();
+        }
+    }
+
+    private void ApplyNoShowForecast()
+    {
+        var forecast = NoShowForecast;
+        var routeKey = $"{FlightNumber}|{OriginIata}|{DestinationIata}";
+        var forecastCandidateIds = PassengerRecords
+            .OrderBy(passenger => GetForecastRank(routeKey, passenger.PassengerId))
+            .Take(forecast.ForecastPassengerCount)
+            .Select(passenger => passenger.PassengerId)
+            .ToHashSet();
+
+        foreach (var passenger in PassengerRecords)
+        {
+            var isCandidate = forecastCandidateIds.Contains(passenger.PassengerId);
+            passenger.ApplyNoShowForecastCandidate(isCandidate);
+            _passengers.SetPassengerBoardingHold(
+                passenger.PassengerId,
+                isCandidate && !passenger.IsCheckedIn && !passenger.IsBoarded && !passenger.IsNoShow);
+        }
+    }
+
+    private static long GetForecastRank(string routeKey, int passengerId)
+    {
+        var stableSeed = $"{routeKey}|{passengerId}".Aggregate(
+            23,
+            (current, character) => unchecked((current * 37) + character));
+        return Math.Abs((long)stableSeed);
+    }
+
+    private void UpdateLatePassengerStates()
+    {
+        var now = _operationsClock.Now;
+        var lateWindowStarts = TurnaroundSchedule.FinalBoarding;
+        var noShowDeadline = new[]
+        {
+            lateWindowStarts.Add(LatePassengerGracePeriod),
+            TurnaroundSchedule.GateClose
+        }.Min();
+        foreach (var passenger in PassengerRecords)
+        {
+            passenger.RefreshOperationalState();
+            if (passenger.IsCheckedIn || passenger.IsBoarded || passenger.IsNoShow)
+            {
+                passenger.UpdateLateStatus(false, 0);
+                continue;
+            }
+
+            if (now >= noShowDeadline)
+            {
+                if (_passengers.MarkPassengerNoShow(passenger.PassengerId))
+                {
+                    passenger.MarkNoShow();
+                }
+
+                continue;
+            }
+
+            var isLate = now >= lateWindowStarts;
+            var remainingMinutes = isLate
+                ? Math.Max(1, (int)Math.Ceiling((noShowDeadline - now).TotalMinutes))
+                : 0;
+            passenger.UpdateLateStatus(isLate, remainingMinutes);
+        }
+
+        if (_passengers.BoardingState == BoardingRunState.Complete && NoShowPassengers > 0)
+        {
+            OperationMessage = $"Boarding completed with {BoardedPassengers} boarded and {NoShowPassengers} no-show passenger(s).";
         }
     }
 
@@ -721,8 +900,24 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(PassengerListStatus));
         OnPropertyChanged(nameof(CheckedInPassengers));
         OnPropertyChanged(nameof(BoardedPassengers));
+        OnPropertyChanged(nameof(LatePassengers));
+        OnPropertyChanged(nameof(NoShowPassengers));
+        OnPropertyChanged(nameof(NoShowForecast));
+        OnPropertyChanged(nameof(ForecastNoShowRate));
+        OnPropertyChanged(nameof(ForecastNoShowPassengers));
+        OnPropertyChanged(nameof(NoShowForecastSummary));
+        OnPropertyChanged(nameof(NoShowForecastCompact));
         OnPropertyChanged(nameof(TotalBags));
+        OnPropertyChanged(nameof(PlannedBags));
         OnPropertyChanged(nameof(LoadedBags));
+        OnPropertyChanged(nameof(AwaitingBags));
+        OnPropertyChanged(nameof(PlannedBaggageWeightKg));
+        OnPropertyChanged(nameof(LoadedBaggageWeightKg));
+        OnPropertyChanged(nameof(BaggageWeightDeltaKg));
+        OnPropertyChanged(nameof(BaggageDiscrepancyPassengers));
+        OnPropertyChanged(nameof(HasBaggageDiscrepancies));
+        OnPropertyChanged(nameof(BaggageReconciliationLabel));
+        OnPropertyChanged(nameof(BaggageReconciliationColor));
         OnPropertyChanged(nameof(CheckedInPercent));
         OnPropertyChanged(nameof(BoardedPercent));
         OnPropertyChanged(nameof(BagsLoadedPercent));
@@ -741,6 +936,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     public void RefreshOperationalClock()
     {
+        UpdateLatePassengerStates();
         OnPropertyChanged(nameof(CurrentClockTime));
         OnPropertyChanged(nameof(CurrentClockDate));
         OnPropertyChanged(nameof(ClockSourceLabel));
@@ -753,6 +949,23 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
     private void RefreshTimelineEvents()
     {
+        if (IsArrivalMode)
+        {
+            RefreshArrivalTimelineEvents();
+            return;
+        }
+
+        if (!IsSimBriefSynced)
+        {
+            TimelineEvents[0].Update("Awaiting SimBrief plan", FlightTimelineEventState.Current);
+            for (var index = 1; index < TimelineEvents.Count; index++)
+            {
+                TimelineEvents[index].Update("—", FlightTimelineEventState.Pending);
+            }
+
+            return;
+        }
+
         var schedule = TurnaroundSchedule;
         var stage = schedule.GetStage(_operationsClock.Now);
         var activeIndex = stage switch
@@ -764,18 +977,36 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             _ => 5
         };
 
-        TimelineEvents[0].Update(
-            SimBriefImportLabel,
-            IsSimBriefSynced
-                ? FlightTimelineEventState.Complete
-                : stage == TurnaroundStage.AwaitingTurnaround
-                    ? FlightTimelineEventState.Current
-                    : FlightTimelineEventState.Pending);
+        TimelineEvents[0].Update(SimBriefImportLabel, FlightTimelineEventState.Complete);
         TimelineEvents[1].Update(FormatTime(schedule.TurnaroundStart), TimelineState(1, activeIndex));
         TimelineEvents[2].Update(FormatTime(schedule.GateOpen), TimelineState(2, activeIndex));
         TimelineEvents[3].Update(FormatTime(schedule.BoardingStart), TimelineState(3, activeIndex));
         TimelineEvents[4].Update(FormatTime(schedule.GateClose), TimelineState(4, activeIndex));
         TimelineEvents[5].Update(FormatTime(schedule.Departure), TimelineState(5, activeIndex));
+    }
+
+    private void RefreshArrivalTimelineEvents()
+    {
+        var phase = _liveFlightPhase.ToUpperInvariant();
+        var activeIndex = _hasLanded ? 4 : phase switch
+        {
+            var value when value.Contains("CLIMB", StringComparison.Ordinal) => 1,
+            var value when value.Contains("CRUISE", StringComparison.Ordinal) => 2,
+            var value when value.Contains("DESCENT", StringComparison.Ordinal) || value.Contains("APPROACH", StringComparison.Ordinal) => 3,
+            _ => 0
+        };
+        var altitudeLabel = _liveAltitudeFeet > 0d ? $"{_liveAltitudeFeet:N0} ft" : "LIVE";
+        TimelineEvents[0].Update("Departure", ScheduledDeparture, FlightTimelineEventState.Complete);
+        TimelineEvents[1].Update("Climb", activeIndex == 1 ? altitudeLabel : "", TimelineState(1, activeIndex));
+        TimelineEvents[2].Update("Cruise", activeIndex == 2 ? altitudeLabel : "", TimelineState(2, activeIndex));
+        TimelineEvents[3].Update("Descent", activeIndex == 3 ? altitudeLabel : "", TimelineState(3, activeIndex));
+        TimelineEvents[4].Update("Arrival", _hasLanded ? DestinationIata : "—", TimelineState(4, activeIndex));
+        var deboardingState = _passengers.BoardingState == BoardingRunState.DeboardingComplete
+            ? FlightTimelineEventState.Complete
+            : _passengers.BoardingState == BoardingRunState.Deboarding
+                ? FlightTimelineEventState.Current
+                : FlightTimelineEventState.Pending;
+        TimelineEvents[5].Update("Deboarding", deboardingState == FlightTimelineEventState.Complete ? "Complete" : "—", deboardingState);
     }
 
     private DateTimeOffset ResolveScheduledDeparture()
@@ -850,7 +1081,7 @@ public sealed class FlightTimelineEventViewModel : ObservableObject
         Glyph = glyph;
     }
 
-    public string Label { get; }
+    public string Label { get; private set; }
     public string Glyph { get; }
 
     public string TimeLabel
@@ -905,6 +1136,16 @@ public sealed class FlightTimelineEventViewModel : ObservableObject
         TimeLabel = timeLabel;
         State = state;
     }
+
+    public void Update(string label, string timeLabel, FlightTimelineEventState state)
+    {
+        if (!string.Equals(Label, label, StringComparison.Ordinal))
+        {
+            Label = label;
+            OnPropertyChanged(nameof(Label));
+        }
+        Update(timeLabel, state);
+    }
 }
 
 public sealed class GatePassengerViewModel : ObservableObject
@@ -913,8 +1154,13 @@ public sealed class GatePassengerViewModel : ObservableObject
     private IReadOnlyList<TicketQrCell>? _qrCells;
     private IReadOnlyList<TicketBarcodeCell>? _boardingBarcodeCells;
     private bool _isCheckedIn;
-    private bool _isBagLoaded;
     private bool _isBoarded;
+    private bool _isLate;
+    private bool _isNoShow;
+    private bool _checkInConfirmed;
+    private bool _isForecastNoShowCandidate;
+    private bool _isUpdatingBags;
+    private int _lateMinutesRemaining;
     private bool _manuallyBoarded;
     private string _boardingPassStatus;
     private string _lastPrintedLabel = "—";
@@ -923,8 +1169,17 @@ public sealed class GatePassengerViewModel : ObservableObject
     {
         _source = source;
         var random = new Random(generationSeed + (source.PassengerId * 7_919) + source.SeatNumber.Sum(character => character * 31));
-        _isCheckedIn = source.PassengerId % 5 != 0;
-        _isBagLoaded = source.CheckedBags == 0 || source.PassengerId % 4 != 0;
+        _isCheckedIn = true;
+        CheckedBagRecords = [];
+        for (var bagIndex = 1; bagIndex <= source.CheckedBags; bagIndex++)
+        {
+            var bag = new PassengerCheckedBagViewModel(
+                $"125{source.PassengerId:0000}{bagIndex:00}",
+                12 + random.Next(13),
+                source.PassengerId % 4 == 0 ? PassengerCheckedBagState.AwaitingLoading : PassengerCheckedBagState.Loaded);
+            bag.PropertyChanged += HandleCheckedBagPropertyChanged;
+            CheckedBagRecords.Add(bag);
+        }
         _boardingPassStatus = source.PassengerId % 19 == 0
             ? "Reprint Required"
             : source.PassengerId % 7 == 0
@@ -938,7 +1193,7 @@ public sealed class GatePassengerViewModel : ObservableObject
             .ToString("dd MMM yyyy", CultureInfo.InvariantCulture);
         DocumentNumber = random.Next(10_000_000, 99_999_999).ToString(CultureInfo.InvariantCulture);
         ExecutiveClubNumber = random.NextInt64(1_000_000_000L, 9_999_999_999L).ToString(CultureInfo.InvariantCulture);
-        Email = BuildEmail(source.FullName);
+        Email = source.Email;
         Phone = $"+44 7700 {random.Next(100000, 999999)}";
         RefreshOperationalState();
     }
@@ -974,6 +1229,18 @@ public sealed class GatePassengerViewModel : ObservableObject
         : $"Executive Club {FrequentFlyerTier}";
     public bool IsClubMember => FrequentFlyerTier != "None";
     public int CheckedBags => _source.CheckedBags;
+    public ObservableCollection<PassengerCheckedBagViewModel> CheckedBagRecords { get; }
+    public int LoadedBagCount => CheckedBagRecords.Count(bag => bag.State == PassengerCheckedBagState.Loaded);
+    public int AwaitingBagCount => CheckedBagRecords.Count(bag => bag.State == PassengerCheckedBagState.AwaitingLoading);
+    public int OffloadedBagCount => CheckedBagRecords.Count(bag => bag.State == PassengerCheckedBagState.OffloadedNoShow);
+    public int PlannedBaggageWeightKg => CheckedBagRecords.Sum(bag => bag.WeightKg);
+    public int LoadedBaggageWeightKg => CheckedBagRecords
+        .Where(bag => bag.State == PassengerCheckedBagState.Loaded)
+        .Sum(bag => bag.WeightKg);
+    public int AwaitingBaggageWeightKg => CheckedBagRecords
+        .Where(bag => bag.State == PassengerCheckedBagState.AwaitingLoading)
+        .Sum(bag => bag.WeightKg);
+    public int EstimatedBagCount => CheckedBagRecords.Count(bag => bag.IsEstimatedWeight);
     public string Assistance => _source.Assistance;
     public string AssistanceLabel => Assistance == "None" ? "—" : Assistance;
     public string TicketNumber { get; }
@@ -995,23 +1262,57 @@ public sealed class GatePassengerViewModel : ObservableObject
         {
             if (SetProperty(ref _isCheckedIn, value))
             {
+                if (value)
+                {
+                    UpdateLateStatus(false, 0);
+                }
+
+                OnPropertyChanged(nameof(CheckInLabel));
+                OnPropertyChanged(nameof(CheckInColor));
+                NotifyBaggagePresentationChanged();
+            }
+        }
+    }
+
+    public bool IsLate
+    {
+        get => _isLate;
+        private set
+        {
+            if (SetProperty(ref _isLate, value))
+            {
                 OnPropertyChanged(nameof(CheckInLabel));
                 OnPropertyChanged(nameof(CheckInColor));
             }
         }
     }
 
-    public bool IsBagLoaded
+    public bool IsNoShow
     {
-        get => _isBagLoaded;
-        set
+        get => _isNoShow;
+        private set
         {
-            if (SetProperty(ref _isBagLoaded, value))
+            if (SetProperty(ref _isNoShow, value))
             {
-                OnPropertyChanged(nameof(BaggageLabel));
-                OnPropertyChanged(nameof(BaggageColor));
+                OnPropertyChanged(nameof(CheckInLabel));
+                OnPropertyChanged(nameof(CheckInColor));
+                OnPropertyChanged(nameof(BoardingLabel));
+                OnPropertyChanged(nameof(BoardingColor));
+                NotifyBaggagePresentationChanged();
             }
         }
+    }
+
+    public bool IsForecastNoShowCandidate
+    {
+        get => _isForecastNoShowCandidate;
+        private set => SetProperty(ref _isForecastNoShowCandidate, value);
+    }
+
+    public bool IsBagLoaded
+    {
+        get => CheckedBags == 0 || LoadedBagCount == CheckedBags;
+        set => SetAllBagsState(value ? PassengerCheckedBagState.Loaded : PassengerCheckedBagState.AwaitingLoading);
     }
 
     public bool IsBoarded
@@ -1023,6 +1324,7 @@ public sealed class GatePassengerViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(BoardingLabel));
                 OnPropertyChanged(nameof(BoardingColor));
+                NotifyBaggagePresentationChanged();
             }
         }
     }
@@ -1045,12 +1347,57 @@ public sealed class GatePassengerViewModel : ObservableObject
         set => SetProperty(ref _lastPrintedLabel, value);
     }
 
-    public string CheckInLabel => IsCheckedIn ? "✓ Checked In" : "Not Checked In";
-    public string CheckInColor => IsCheckedIn ? "#58E68A" : "#FF6666";
-    public string BoardingLabel => IsBoarded ? "✓ Boarded" : "◷ Waiting";
-    public string BoardingColor => IsBoarded ? "#58E68A" : "#F0C64E";
-    public string BaggageLabel => CheckedBags == 0 ? "No checked bags" : IsBagLoaded ? "▣ Bag Loaded" : "Bag Not Loaded";
-    public string BaggageColor => CheckedBags == 0 ? "#8DA0B8" : IsBagLoaded ? "#58E68A" : "#FF6666";
+    public string CheckInLabel => IsNoShow
+        ? "✕ No Show"
+        : IsCheckedIn
+            ? "✓ Checked In"
+            : IsLate ? $"Late · {_lateMinutesRemaining} min" : "Not Checked In";
+    public string CheckInColor => IsCheckedIn ? "#58E68A" : IsLate ? "#F0C64E" : "#FF6666";
+    public string BoardingLabel => IsNoShow ? "✕ Not Boarded" : IsBoarded ? "✓ Boarded" : "◷ Waiting";
+    public string BoardingColor => IsNoShow ? "#FF6666" : IsBoarded ? "#58E68A" : "#F0C64E";
+    public bool HasBaggageDiscrepancy => CheckedBags > 0 &&
+        ((IsBoarded && LoadedBagCount != CheckedBags) ||
+         (IsNoShow && LoadedBagCount > 0) ||
+         (!IsCheckedIn && LoadedBagCount > 0));
+    public string BaggageCompactLabel => CheckedBags == 0
+        ? "No hold bag"
+        : HasBaggageDiscrepancy
+            ? $"⚠ Discrepancy {LoadedBagCount}/{CheckedBags}"
+            : OffloadedBagCount == CheckedBags
+                ? "Offloaded · No-show"
+                : IsBagLoaded
+                    ? $"✓ Loaded {LoadedBagCount}/{CheckedBags}"
+                    : $"Awaiting {AwaitingBagCount}/{CheckedBags}";
+    public string BaggageLabel => CheckedBags == 0
+        ? "No checked baggage — carry-on not tracked separately"
+        : HasBaggageDiscrepancy
+            ? $"Baggage discrepancy — {LoadedBagCount}/{CheckedBags} loaded"
+            : OffloadedBagCount == CheckedBags
+                ? $"Offloaded — passenger no-show · {PlannedBaggageWeightKg} kg"
+                : IsBagLoaded
+                    ? $"Loaded — {LoadedBagCount} bag(s) · {LoadedBaggageWeightKg} kg"
+                    : $"Awaiting loading — {AwaitingBagCount} bag(s) · {AwaitingBaggageWeightKg} kg";
+    public string BaggageWeightLabel => CheckedBags == 0
+        ? "0 kg hold baggage"
+        : $"{PlannedBaggageWeightKg} kg planned · {LoadedBaggageWeightKg} kg loaded" +
+          (EstimatedBagCount > 0 ? $" · {EstimatedBagCount} est." : string.Empty);
+    public string BaggageColor => CheckedBags == 0
+        ? "#8DA0B8"
+        : HasBaggageDiscrepancy
+            ? "#FF6666"
+            : OffloadedBagCount == CheckedBags
+                ? "#8FC8FF"
+                : IsBagLoaded ? "#58E68A" : "#F0C64E";
+    public string BaggageActionLabel => CheckedBags == 0
+        ? "No Hold Bag"
+        : IsNoShow ? "Offloaded" : IsBagLoaded ? "Mark Awaiting" : "Confirm Load";
+    public string BaggageOperationMessage => CheckedBags == 0
+        ? $"{FullName} has no checked baggage. Carry-on is represented by the passenger standard mass."
+        : IsBagLoaded
+            ? $"{LoadedBagCount} bag(s) for {FullName} confirmed loaded at {LoadedBaggageWeightKg} kg."
+            : OffloadedBagCount == CheckedBags
+                ? $"{CheckedBags} bag(s) for {FullName} are offloaded because the passenger is a no-show."
+                : $"{AwaitingBagCount} bag(s) for {FullName} are awaiting aircraft loading.";
     public string BoardingPassStatusColor => BoardingPassStatus switch
     {
         "Printed" => "#58E68A",
@@ -1062,13 +1409,152 @@ public sealed class GatePassengerViewModel : ObservableObject
     public void MarkManuallyBoarded()
     {
         _manuallyBoarded = true;
+        MarkCheckedIn();
         IsBoarded = true;
+    }
+
+    public void MarkCheckedIn()
+    {
+        _checkInConfirmed = true;
+        IsCheckedIn = true;
+    }
+
+    public void ApplyNoShowForecastCandidate(bool isCandidate)
+    {
+        IsForecastNoShowCandidate = isCandidate;
+        if (_checkInConfirmed || IsBoarded || IsNoShow)
+        {
+            return;
+        }
+
+        IsCheckedIn = !isCandidate;
+        if (isCandidate)
+        {
+            SetAllBagsState(PassengerCheckedBagState.AwaitingLoading);
+            MarkBaggageWeightsEstimated();
+        }
+        if (isCandidate && BoardingPassStatus == "Printed")
+        {
+            BoardingPassStatus = "Ready to Print";
+        }
+        else if (!isCandidate && BoardingPassStatus == "Ready to Print")
+        {
+            BoardingPassStatus = "Printed";
+        }
     }
 
     public void RefreshOperationalState()
     {
         var sourceBoarded = _source.StatusLabel is "Walking to seat" or "Occupying seat" or "Seated · secured" or "Deboarded";
-        IsBoarded = _manuallyBoarded || sourceBoarded;
+        if (sourceBoarded && !IsNoShow)
+        {
+            MarkCheckedIn();
+        }
+
+        IsBoarded = !IsNoShow && (_manuallyBoarded || sourceBoarded);
+    }
+
+    public void UpdateLateStatus(bool isLate, int minutesRemaining)
+    {
+        var normalizedMinutes = isLate ? Math.Max(1, minutesRemaining) : 0;
+        if (_lateMinutesRemaining != normalizedMinutes)
+        {
+            _lateMinutesRemaining = normalizedMinutes;
+            OnPropertyChanged(nameof(CheckInLabel));
+        }
+
+        IsLate = isLate && !IsCheckedIn && !IsNoShow;
+    }
+
+    public void MarkNoShow()
+    {
+        UpdateLateStatus(false, 0);
+        IsNoShow = true;
+        IsBoarded = false;
+        if (CheckedBags > 0)
+        {
+            SetAllBagsState(PassengerCheckedBagState.OffloadedNoShow);
+        }
+    }
+
+    public void ToggleBaggageLoadedState()
+    {
+        if (CheckedBags == 0 || IsNoShow)
+        {
+            return;
+        }
+
+        SetAllBagsState(IsBagLoaded
+            ? PassengerCheckedBagState.AwaitingLoading
+            : PassengerCheckedBagState.Loaded);
+    }
+
+    private void SetAllBagsState(PassengerCheckedBagState state)
+    {
+        _isUpdatingBags = true;
+        try
+        {
+            foreach (var bag in CheckedBagRecords)
+            {
+                bag.State = state;
+            }
+        }
+        finally
+        {
+            _isUpdatingBags = false;
+        }
+
+        NotifyBaggageStateChanged();
+    }
+
+    private void MarkBaggageWeightsEstimated()
+    {
+        _isUpdatingBags = true;
+        try
+        {
+            foreach (var bag in CheckedBagRecords)
+            {
+                bag.MarkWeightEstimated();
+            }
+        }
+        finally
+        {
+            _isUpdatingBags = false;
+        }
+
+        NotifyBaggageStateChanged();
+    }
+
+    private void HandleCheckedBagPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!_isUpdatingBags)
+        {
+            NotifyBaggageStateChanged();
+        }
+    }
+
+    private void NotifyBaggageStateChanged()
+    {
+        OnPropertyChanged(nameof(IsBagLoaded));
+        OnPropertyChanged(nameof(LoadedBagCount));
+        OnPropertyChanged(nameof(AwaitingBagCount));
+        OnPropertyChanged(nameof(OffloadedBagCount));
+        OnPropertyChanged(nameof(PlannedBaggageWeightKg));
+        OnPropertyChanged(nameof(LoadedBaggageWeightKg));
+        OnPropertyChanged(nameof(AwaitingBaggageWeightKg));
+        OnPropertyChanged(nameof(EstimatedBagCount));
+        NotifyBaggagePresentationChanged();
+    }
+
+    private void NotifyBaggagePresentationChanged()
+    {
+        OnPropertyChanged(nameof(HasBaggageDiscrepancy));
+        OnPropertyChanged(nameof(BaggageCompactLabel));
+        OnPropertyChanged(nameof(BaggageLabel));
+        OnPropertyChanged(nameof(BaggageWeightLabel));
+        OnPropertyChanged(nameof(BaggageColor));
+        OnPropertyChanged(nameof(BaggageActionLabel));
+        OnPropertyChanged(nameof(BaggageOperationMessage));
     }
 
     private static string BuildEmail(string fullName)
@@ -1132,6 +1618,105 @@ public sealed class GatePassengerViewModel : ObservableObject
         return localRow is 0 or 6 || localColumn is 0 or 6 ||
                localRow is >= 2 and <= 4 && localColumn is >= 2 and <= 4;
     }
+}
+
+public enum PassengerCheckedBagState
+{
+    AwaitingLoading,
+    Loaded,
+    OffloadedNoShow
+}
+
+public sealed class PassengerCheckedBagViewModel : ObservableObject
+{
+    private int _weightKg;
+    private PassengerCheckedBagState _state;
+    private bool _isEstimatedWeight;
+
+    public PassengerCheckedBagViewModel(string tagNumber, int weightKg, PassengerCheckedBagState state)
+    {
+        TagNumber = tagNumber;
+        _weightKg = Math.Clamp(weightKg, 1, 50);
+        _state = state;
+        _isEstimatedWeight = state != PassengerCheckedBagState.Loaded;
+    }
+
+    public string TagNumber { get; }
+
+    public int WeightKg
+    {
+        get => _weightKg;
+        set
+        {
+            var weightChanged = SetProperty(ref _weightKg, Math.Clamp(value, 1, 50));
+            var sourceChanged = _isEstimatedWeight;
+            _isEstimatedWeight = false;
+            if (weightChanged || sourceChanged)
+            {
+                OnPropertyChanged(nameof(WeightLabel));
+                OnPropertyChanged(nameof(IsEstimatedWeight));
+                OnPropertyChanged(nameof(WeightSourceLabel));
+            }
+        }
+    }
+
+    public bool IsEstimatedWeight => _isEstimatedWeight;
+
+    public void MarkWeightEstimated()
+    {
+        if (_isEstimatedWeight)
+        {
+            return;
+        }
+
+        _isEstimatedWeight = true;
+        OnPropertyChanged(nameof(IsEstimatedWeight));
+        OnPropertyChanged(nameof(WeightLabel));
+        OnPropertyChanged(nameof(WeightSourceLabel));
+    }
+
+    public PassengerCheckedBagState State
+    {
+        get => _state;
+        set
+        {
+            if (SetProperty(ref _state, value))
+            {
+                if (value == PassengerCheckedBagState.Loaded && _isEstimatedWeight)
+                {
+                    _isEstimatedWeight = false;
+                    OnPropertyChanged(nameof(IsEstimatedWeight));
+                    OnPropertyChanged(nameof(WeightLabel));
+                    OnPropertyChanged(nameof(WeightSourceLabel));
+                }
+
+                OnPropertyChanged(nameof(CompactStatusLabel));
+                OnPropertyChanged(nameof(StatusLabel));
+                OnPropertyChanged(nameof(StatusColor));
+            }
+        }
+    }
+
+    public string WeightLabel => IsEstimatedWeight ? $"{WeightKg} kg est." : $"{WeightKg} kg";
+    public string WeightSourceLabel => IsEstimatedWeight ? "Estimated until the load scan or manual weight entry" : "Actual confirmed bag weight";
+    public string CompactStatusLabel => State switch
+    {
+        PassengerCheckedBagState.Loaded => "Loaded",
+        PassengerCheckedBagState.OffloadedNoShow => "Offloaded",
+        _ => "Awaiting load"
+    };
+    public string StatusLabel => State switch
+    {
+        PassengerCheckedBagState.Loaded => "Loaded",
+        PassengerCheckedBagState.OffloadedNoShow => "Offloaded — no-show",
+        _ => "Awaiting loading"
+    };
+    public string StatusColor => State switch
+    {
+        PassengerCheckedBagState.Loaded => "#58E68A",
+        PassengerCheckedBagState.OffloadedNoShow => "#8FC8FF",
+        _ => "#F0C64E"
+    };
 }
 
 public sealed record TicketQrCell(bool IsDark);

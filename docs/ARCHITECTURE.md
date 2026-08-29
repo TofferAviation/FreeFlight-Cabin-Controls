@@ -10,9 +10,11 @@ The gate-operations view model is the shared presentation boundary for Overview,
 
 Boarding-pass identities and personal details are deterministic fictional preview data generated locally from a user-controlled seed. The current printer controls update a simulated print state only. A future Windows printer adapter must sit behind a separate service boundary so UI state and passenger logic do not depend on printer drivers.
 
-### X-Plane bridge plugin
+### X-Plane bridge
 
-The future native C++ plugin will own X-Plane SDK access, simulator dataref sampling, X-Plane audio-bus playback, and simulator-side screen rendering. It must remain lightweight and must not block X-Plane's main thread.
+The Windows application connects directly to X-Plane 12.1.1 or newer through X-Plane's built-in loopback Web API. REST discovers the simulator version and session-scoped dataref IDs; WebSockets streams the selected values at up to 10 Hz. The bridge reconnects automatically, treats a missing simulator as a normal offline state, and never blocks the WPF thread.
+
+A later native C++ plugin is only needed for capabilities the Web API does not provide, such as simulator audio-bus playback or simulator-side screen rendering. If added, it must remain lightweight and must not block X-Plane's main thread.
 
 ### Aircraft adapter
 
@@ -24,14 +26,14 @@ Airline presentation and media are data. A pack may declare branding, languages,
 
 ## Communication boundary
 
-The first Windows implementation will use local named pipes. The protocol will be versioned independently and will exchange immutable telemetry snapshots and explicit commands. Disconnects must fail safe on both sides.
+The first Windows implementation uses X-Plane's HTTP/WebSocket server on `127.0.0.1`, default port `8086`. X-Plane dataref IDs are rediscovered on every simulator session because they are not stable across restarts. The application converts updates into immutable `CabinTelemetrySnapshot` records before any view model receives them. Disconnects fail safe to manual cabin controls.
 
 ## Delivery order
 
 1. Visually approved application shell.
 2. Settings and content-pack foundation.
-3. Native bridge handshake and live telemetry.
-4. Flight-phase state machine.
+3. Built-in Web API handshake and live telemetry. ✓
+4. Flight-phase state machine. ✓
 5. X-Plane audio playback and announcement scheduler.
 6. Cabin zones and passenger simulation.
 7. Single-screen in-aircraft rendering feasibility test.

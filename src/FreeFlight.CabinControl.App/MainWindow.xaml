@@ -50,25 +50,26 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="132" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="54" />
+                        <RowDefinition Height="116" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel Margin="26,8,24,8">
-                        <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/FreeFlightBrand.png"
-                               Width="185"
-                               Height="82"
-                               Stretch="Uniform" />
-                        <TextBlock Text="C A B I N   C O N T R O L"
-                                   Margin="12,-5,0,0"
-                                   FontFamily="Segoe UI Variable Display, Segoe UI"
-                                   FontSize="12"
-                                   FontWeight="Bold"
-                                   FontStyle="Italic"
-                                   Foreground="{StaticResource MetallicBrandTextBrush}">
-                            <TextBlock.Effect>
-                                <DropShadowEffect Color="#258DFF" BlurRadius="7" ShadowDepth="0" Opacity="0.42" />
-                            </TextBlock.Effect>
-                        </TextBlock>
+                    <StackPanel Margin="12,4,12,5"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Top">
+                        <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/FreeFlightHeaderMark.png"
+                               Width="184"
+                               Height="64"
+                               HorizontalAlignment="Center"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
+                        <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/FreeFlightHeaderWordmark.png"
+                               Width="218"
+                               Height="54"
+                               Margin="0,-2,0,0"
+                               HorizontalAlignment="Center"
+                               Stretch="Uniform"
+                               SnapsToDevicePixels="True"
+                               RenderOptions.BitmapScalingMode="HighQuality" />
                     </StackPanel>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -87,7 +88,6 @@
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Settings, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Settings" />
-
                         <TextBlock Text="GATE OPERATIONS" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="{Binding GateLogin.NavigationLabel}"
@@ -134,19 +134,17 @@
                                          IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=BoardingPasses, Mode=OneWay}"
                                          Command="{Binding NavigateCommand}"
                                          CommandParameter="BoardingPasses" />
-                            <RadioButton Style="{StaticResource CompactNavRadioStyle}"
-                                         Content="Cabin"
-                                         Tag="&#xE7C8;"
-                                         GroupName="Navigation"
-                                         Margin="22,1,8,1"
-                                         Padding="14,0"
-                                         IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Passengers, Mode=OneWay}"
-                                         Command="{Binding NavigateCommand}"
-                                         CommandParameter="Passengers"
-                                         ToolTip="Live cabin and passenger flow" />
                         </StackPanel>
 
                         <TextBlock Text="CABIN SYSTEMS" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Live Cabin"
+                                     Tag="&#xE7C8;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Passengers, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="Passengers"
+                                     ToolTip="Live cabin overview for gate, taxi and flight operations" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Airliners"
                                      Tag="&#xE709;"
@@ -179,12 +177,56 @@
                     </StackPanel>
                     </ScrollViewer>
 
-                    <TextBlock Grid.Row="2"
-                               Text="v0.1.0-dev"
-                               Margin="30,0"
-                               VerticalAlignment="Center"
-                               Foreground="{StaticResource TextMutedBrush}"
-                               FontSize="12" />
+                    <Border Grid.Row="2"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Padding="20,10,18,8"
+                            ToolTip="{Binding Status.ConnectionDetail}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="9"
+                                         Height="9"
+                                         Margin="0,0,8,0"
+                                         VerticalAlignment="Center"
+                                         Fill="{Binding Status.ConnectionColor}" />
+                                <TextBlock Text="{Binding Status.ConnectionLabel}"
+                                           Foreground="{Binding Status.ConnectionColor}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <Grid Grid.Row="1" Margin="17,5,0,0">
+                                <TextBlock Text="{Binding Status.ConnectionSource}"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           FontSize="10"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Settings.Version}"
+                                           HorizontalAlignment="Right"
+                                           Foreground="{StaticResource TextMutedBrush}"
+                                           FontSize="10" />
+                            </Grid>
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="17,8,0,0">
+                                <Button Content="Check Updates"
+                                        Click="SettingsView_CheckForUpdatesRequested"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        Height="27"
+                                        Padding="8,2"
+                                        FontSize="10" />
+                                <Button Content="Changelog"
+                                        Click="OpenChangelogButton_Click"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Height="27"
+                                        Padding="8,2"
+                                        Margin="6,0,0,0"
+                                        FontSize="10" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
@@ -244,6 +286,8 @@
                     <views:PerformanceView DataContext="{Binding Performance}"
                                            Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Performance}" />
                     <views:SettingsView DataContext="{Binding Settings}"
+                                        PreviewUpdateRequested="SettingsView_PreviewUpdateRequested"
+                                        CheckForUpdatesRequested="SettingsView_CheckForUpdatesRequested"
                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Settings}" />
                     <views:GateDeskView DataContext="{Binding Operations}"
                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=GateDesk}" />

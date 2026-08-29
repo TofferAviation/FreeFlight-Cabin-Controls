@@ -1,0 +1,22 @@
+{
+  "profileId": "freeflight.ba.b772.272",
+  "airline": "British Airways",
+  "icao": "B772",
+  "aircraft": "Boeing 777-200ER",
+  "cabinCapacity": 272,
+  "cabins": {
+    "clubWorld": 48,
+    "worldTravellerPlus": 40,
+    "worldTraveller": 184
+  },
+  "standardPassengerMassKgIncludingCabinBag": 84,
+  "defaultCheckedBagMassKg": 18,
+  "referenceDryOperatingWeightKg": 145150,
+  "structuralLimitsKg": {
+    "maximumZeroFuelWeight": 208652,
+    "maximumTakeoffWeight": 297550,
+    "maximumLandingWeight": 213188,
+    "maximumRampWeight": 298650
+  },
+  "usage": "Cabin/load-planning reference for a SimBrief B772 airframe. Verify DOW/DOI against the exact simulator aircraft before dispatch."
+}

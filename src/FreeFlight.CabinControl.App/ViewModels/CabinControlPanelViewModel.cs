@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Integration;
 using FreeFlight.CabinControl.Core.Persistence;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
@@ -41,6 +42,10 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private bool _hasLocalSafetyVideo;
     private bool _isUsingLocalSafetyVideo;
     private Uri? _safetyVideoLocalSource;
+    private DateTimeOffset? _pushbackStartedAt;
+    private bool _automaticSafetyVideoTriggered;
+    private bool _isWidebodyAircraft = true;
+    private string _aircraftMediaEligibility = "Wide-body safety media enabled";
 
     public CabinControlPanelViewModel(
         AppSettings settings,
@@ -180,6 +185,51 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     {
         get => _safetyVideoPreviewStatus;
         private set => SetProperty(ref _safetyVideoPreviewStatus, value);
+    }
+
+    public bool IsWidebodyAircraft
+    {
+        get => _isWidebodyAircraft;
+        private set => SetProperty(ref _isWidebodyAircraft, value);
+    }
+
+    public string AircraftMediaEligibility
+    {
+        get => _aircraftMediaEligibility;
+        private set => SetProperty(ref _aircraftMediaEligibility, value);
+    }
+
+    public void ApplyFlightTelemetry(CabinTelemetrySnapshot snapshot, string aircraftDescription)
+    {
+        IsWidebodyAircraft = IsWidebody(aircraftDescription);
+        AircraftMediaEligibility = IsWidebodyAircraft
+            ? "Wide-body detected · safety video automation available"
+            : "Single-aisle aircraft detected · audio safety demonstration only";
+
+        var groundSpeed = snapshot.Signals.GetValueOrDefault("groundspeed_mps");
+        var pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d ||
+                             (snapshot.OnGround && groundSpeed >= 0.35d);
+        if (!snapshot.OnGround)
+        {
+            _pushbackStartedAt = null;
+            return;
+        }
+
+        if (!pushbackActive)
+        {
+            return;
+        }
+
+        _pushbackStartedAt ??= snapshot.Timestamp;
+        if (!_automaticSafetyVideoTriggered &&
+            snapshot.Timestamp - _pushbackStartedAt >= TimeSpan.FromMinutes(2))
+        {
+            _automaticSafetyVideoTriggered = true;
+            if (IsWidebodyAircraft && _settings.AutomaticAnnouncementsEnabled)
+            {
+                StartSafetyVideo(automatic: true);
+            }
+        }
     }
 
     public string SelectedPanel
@@ -637,10 +687,17 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         LastAction = "Media and command queue cleared";
     }
 
-    private void StartSafetyVideo()
+    private void StartSafetyVideo(bool automatic = false)
     {
         if (IsSafetyVideoInProgress)
         {
+            return;
+        }
+
+        if (!IsWidebodyAircraft)
+        {
+            SafetyVideoPreviewStatus = "Safety video is reserved for detected wide-body aircraft";
+            LastAction = "Safety video held — use the audio demonstration for this single-aisle aircraft";
             return;
         }
 
@@ -656,10 +713,25 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         SafetyVideoLocalSource = new Uri(SafetyVideoLocalFilePath, UriKind.Absolute);
         IsSafetyVideoInProgress = true;
         IsUsingLocalSafetyVideo = true;
-        SafetyVideoPreviewStatus = "Announcement in progress — local British Airways MP4";
+        SafetyVideoPreviewStatus = automatic
+            ? "Automatic safety video started · two minutes after pushback"
+            : "Announcement in progress — local British Airways MP4";
         LastAction = Status.IsConnected
             ? "Safety video started and queued for the aircraft bridge"
             : "Local safety video preview started; aircraft playback remains staged locally";
+    }
+
+    private static bool IsWidebody(string aircraftDescription)
+    {
+        var normalized = (aircraftDescription ?? string.Empty)
+            .Replace("-", string.Empty, StringComparison.Ordinal)
+            .Replace(" ", string.Empty, StringComparison.Ordinal)
+            .ToUpperInvariant();
+        string[] widebodyFamilies =
+        [
+            "B74", "B76", "B77", "B78", "A30", "A31", "A33", "A34", "A35", "A38", "MD11", "DC10", "L1011"
+        ];
+        return widebodyFamilies.Any(normalized.Contains);
     }
 
     private void StopSafetyVideo()

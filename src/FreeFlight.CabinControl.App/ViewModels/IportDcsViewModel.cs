@@ -2,9 +2,12 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
+using Microsoft.Win32;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
 
@@ -47,7 +50,9 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     private int _taxiFuelKg = 1_200;
     private int _tripFuelKg = 11_340;
     private int _additionalWeightKg;
+    private bool _isLoadSheetFinalized;
     private bool _isLoadingFlightState;
+    private string _appliedLiveAircraftProfile = string.Empty;
 
     public IportDcsViewModel(GateOperationsViewModel operations, GateLoginViewModel gateLogin)
         : base("Iport DCS", "Advanced coded departure-control workspace")
@@ -100,10 +105,13 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         SelectModuleCommand = new RelayCommand(SelectModule);
         SelectServiceCommand = new RelayCommand(SelectService);
         ToggleServiceMenuCommand = new RelayCommand(_ => IsServiceMenuOpen = !IsServiceMenuOpen);
+        HelpCommand = new RelayCommand(_ => ShowContextHelp());
         LoadActionCommand = new RelayCommand(parameter =>
         {
             CommandStatus = parameter as string ?? "Load Control action completed.";
         });
+        FinalizeLoadSheetCommand = new RelayCommand(_ => FinalizeLoadSheet());
+        ExportFinalLoadPlanCommand = new RelayCommand(_ => ExportFinalLoadPlan());
         SelectPassengerCommand = new RelayCommand(SelectPassenger);
         FindPassengerCommand = new RelayCommand(_ => FindPassenger(PassengerLookup));
         ManualBoardCommand = new RelayCommand(_ => ManualBoard());
@@ -120,6 +128,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         _operations.PropertyChanged += HandleOperationsPropertyChanged;
         _operations.PassengerRecords.CollectionChanged += HandlePassengerRecordsChanged;
         _gateLogin.PropertyChanged += HandleGateLoginPropertyChanged;
+        ApplyLiveAircraftLoadProfile();
         RefreshFlightList();
         RefreshMonitorEvents();
     }
@@ -142,7 +151,12 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public ICommand ToggleServiceMenuCommand { get; }
 
+    public ICommand HelpCommand { get; }
+
     public ICommand LoadActionCommand { get; }
+
+    public ICommand FinalizeLoadSheetCommand { get; }
+    public ICommand ExportFinalLoadPlanCommand { get; }
 
     public ICommand SelectPassengerCommand { get; }
 
@@ -159,6 +173,46 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     public ICommand RefreshCommand { get; }
 
     public ICommand ToggleGateCommand { get; }
+
+    public bool HandleFunctionKey(int functionNumber)
+    {
+        switch (functionNumber)
+        {
+            case 1:
+                ShowContextHelp();
+                return true;
+            case 2 when IsLoadControlService:
+                LoadActionCommand.Execute("Load Control action menu opened.");
+                return true;
+            case 2:
+                ToggleGateCommand.Execute(null);
+                return true;
+            case 3 when IsLoadControlService:
+                LoadActionCommand.Execute("Free-text load message opened.");
+                return true;
+            case 4 when IsCustomerServiceTabsVisible:
+                SelectModuleCommand.Execute(SeatmapModule);
+                return true;
+            case 5 when IsCustomerServiceTabsVisible:
+                RefreshCommand.Execute(null);
+                return true;
+            case 10 when IsCustomerServiceTabsVisible:
+                CheckInCommand.Execute(null);
+                return true;
+            case 11 when IsCustomerServiceTabsVisible:
+                PrintCommand.Execute(null);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void ShowContextHelp()
+    {
+        CommandStatus = IsLoadControlService
+            ? "Load Control keys: F2 action menu · F3 free text · finalize once passengers and bags reconcile."
+            : "Customer Service keys: F2 gate action · F4 seatmap · F5 refresh · F10 check in · F11 print boarding pass.";
+    }
 
     public string ActiveModule
     {
@@ -281,6 +335,10 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(SelectedFlightStatusLabel));
             OnPropertyChanged(nameof(SelectedCheckedInPassengers));
             OnPropertyChanged(nameof(SelectedBookedPassengers));
+            OnPropertyChanged(nameof(SelectedBoardedPassengers));
+            OnPropertyChanged(nameof(SelectedLoadedBags));
+            OnPropertyChanged(nameof(SelectedPlannedBaggageWeightKg));
+            OnPropertyChanged(nameof(SelectedLoadedBaggageWeightKg));
             RefreshDerivedProperties();
         }
     }
@@ -347,11 +405,29 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public string SelectedFlightStatusLabel => SelectedFlight?.StatusLabel ?? "Flight open";
 
-    public int SelectedCheckedInPassengers => SelectedFlight?.CheckedInPassengers ?? _operations.CheckedInPassengers;
+    public int SelectedCheckedInPassengers => SelectedFlight is { IsLive: false } selected
+        ? selected.CheckedInPassengers
+        : _operations.CheckedInPassengers;
 
-    public int SelectedBookedPassengers => SelectedFlight?.BookedPassengers ?? _operations.TotalPassengers;
+    public int SelectedBookedPassengers => SelectedFlight is { IsLive: false } selected
+        ? selected.BookedPassengers
+        : _operations.TotalPassengers;
 
-    public int SelectedLoadedBags => SelectedFlight?.LoadedBags ?? _operations.LoadedBags;
+    public int SelectedBoardedPassengers => SelectedFlight is { IsLive: false } selected
+        ? selected.BoardedPassengers
+        : _operations.BoardedPassengers;
+
+    public int SelectedLoadedBags => SelectedFlight is { IsLive: false } selected
+        ? selected.LoadedBags
+        : _operations.LoadedBags;
+
+    public int SelectedPlannedBaggageWeightKg => SelectedFlight is { IsLive: false } selected
+        ? selected.PlannedBaggageWeightKg
+        : _operations.PlannedBaggageWeightKg;
+
+    public int SelectedLoadedBaggageWeightKg => SelectedFlight is { IsLive: false } selected
+        ? selected.LoadedBaggageWeightKg
+        : _operations.LoadedBaggageWeightKg;
 
     public int NotBoardedPassengers => Math.Max(0, SelectedBookedPassengers - _operations.BoardedPassengers);
 
@@ -370,7 +446,13 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         }
     }
 
-    public int TrafficLoadKg => (SelectedCheckedInPassengers * 84) + (SelectedLoadedBags * 18);
+    public int PassengerWeightKg => SelectedBoardedPassengers * 84;
+
+    public int PlannedTrafficLoadKg => (SelectedCheckedInPassengers * 84) + SelectedPlannedBaggageWeightKg;
+
+    public int TrafficLoadKg => PassengerWeightKg + SelectedLoadedBaggageWeightKg;
+
+    public int TrafficLoadDeltaKg => TrafficLoadKg - PlannedTrafficLoadKg;
 
     public int ZeroFuelWeightKg => DryOperatingWeightKg + TrafficLoadKg;
 
@@ -448,7 +530,12 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public int UnderloadKg => Math.Max(0, AllowedTrafficLoadKg - TrafficLoadKg);
 
-    public int CargoWeightKg => SelectedLoadedBags * 18;
+    public int CargoWeightKg => SelectedLoadedBaggageWeightKg;
+
+    public string BaggageLoadLabel =>
+        $"Planned {SelectedPlannedBaggageWeightKg:N0} kg / Actual {SelectedLoadedBaggageWeightKg:N0} kg";
+
+    public string CarryOnWeightLabel => "84 kg passenger standard mass includes cabin baggage";
 
     public double DryOperatingIndex
     {
@@ -477,11 +564,11 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public string LoadPlanLabel => "Load plan No. 3";
 
-    public string LoadSheetLabel => "Load sheet No. 2";
+    public string LoadSheetLabel => IsLoadSheetFinalized ? "Load sheet FINAL" : "Load sheet DRAFT";
 
     public string LoadDistributionLabel => $"0A{_operations.FirstCount + _operations.ClubWorldCount}.0B{_operations.WorldTravellerPlusCount + _operations.WorldTravellerCount}";
 
-    public string ActualCountsLabel => $"M {_operations.FirstCount + _operations.ClubWorldCount} / F {_operations.WorldTravellerPlusCount} / C 0 / O 0 | TTL: {SelectedCheckedInPassengers}+0";
+    public string ActualCountsLabel => $"M {_operations.FirstCount + _operations.ClubWorldCount} / F {_operations.WorldTravellerPlusCount} / C 0 / O 0 | TTL: {SelectedBoardedPassengers}+0";
 
     public string FlightVariationsLabel => "BRITISH AIRWAYS STANDARD (84/18/35/0)";
 
@@ -489,17 +576,65 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public string LoadFactorLabel => SelectedBookedPassengers == 0
         ? "0%"
-        : $"{Math.Round(SelectedCheckedInPassengers * 100d / SelectedBookedPassengers):0}%";
+        : $"{Math.Round(SelectedBoardedPassengers * 100d / SelectedBookedPassengers):0}%";
 
     public string BoardingCounterSummary => $"J {_operations.ClubWorldCount + _operations.FirstCount}   W {_operations.WorldTravellerPlusCount}   Y {_operations.WorldTravellerCount}";
 
     public string StatusLabel => SelectedFlight?.StatusLabel ?? (_operations.IsGateOpen ? "Open for Boarding" : "Open for Check-In");
 
+    public bool IsLoadSheetFinalized
+    {
+        get => _isLoadSheetFinalized;
+        private set
+        {
+            if (SetProperty(ref _isLoadSheetFinalized, value))
+            {
+                OnPropertyChanged(nameof(LoadSheetLabel));
+                OnPropertyChanged(nameof(LoadSheetReadinessLabel));
+                OnPropertyChanged(nameof(LoadSheetReadinessColor));
+                OnPropertyChanged(nameof(WbStatusLabel));
+                OnPropertyChanged(nameof(WbStatusColor));
+            }
+        }
+    }
+
+    public bool ArePassengersFinalized => _operations.HasPassengerList &&
+        _operations.BoardedPassengers + _operations.NoShowPassengers == _operations.TotalPassengers;
+
+    public bool CanFinalizeLoadSheet => ArePassengersFinalized &&
+        !_operations.HasBaggageDiscrepancies &&
+        _operations.PassengerRecords
+            .Where(passenger => passenger.IsBoarded)
+            .All(passenger => passenger.IsBagLoaded) &&
+        _operations.PassengerRecords
+            .Where(passenger => passenger.IsNoShow)
+            .All(passenger => passenger.LoadedBagCount == 0);
+
+    public string LoadSheetReadinessLabel => IsLoadSheetFinalized
+        ? $"FINAL · {TrafficLoadKg:N0} kg traffic load"
+        : !ArePassengersFinalized
+            ? $"DRAFT · {_operations.TotalPassengers - _operations.BoardedPassengers - _operations.NoShowPassengers} passengers unresolved"
+            : _operations.HasBaggageDiscrepancies
+                ? $"BLOCKED · {_operations.BaggageDiscrepancyPassengers} baggage discrepancies"
+                : "READY TO FINALIZE";
+
+    public string LoadSheetReadinessColor => IsLoadSheetFinalized || CanFinalizeLoadSheet
+        ? "#16843D"
+        : _operations.HasBaggageDiscrepancies ? "#C61D2F" : "#B47B00";
+
     public string WbStatusLabel => ZeroFuelWeightKg > MaxZeroFuelWeightKg ||
         TakeoffWeightKg > MaxTakeoffWeightKg ||
         LandingWeightKg > MaxLandingWeightKg
         ? "CHECK LOAD LIMITS"
-        : "W&B READY";
+        : _operations.HasBaggageDiscrepancies
+            ? "BAGGAGE RECONCILIATION"
+            : IsLoadSheetFinalized ? "LOAD SHEET FINAL" : "W&B DRAFT";
+    public string WbStatusColor => ZeroFuelWeightKg > MaxZeroFuelWeightKg ||
+        TakeoffWeightKg > MaxTakeoffWeightKg ||
+        LandingWeightKg > MaxLandingWeightKg ||
+        _operations.HasBaggageDiscrepancies
+        ? "#C61D2F"
+        : IsLoadSheetFinalized ? "#16843D" : "#B47B00";
 
     public void Dispose()
     {
@@ -607,6 +742,90 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         CommandStatus = message;
     }
 
+    private void FinalizeLoadSheet()
+    {
+        if (!CanFinalizeLoadSheet)
+        {
+            IsLoadSheetFinalized = false;
+            CommandStatus = _operations.HasBaggageDiscrepancies
+                ? $"Load sheet blocked: {_operations.BaggageDiscrepancyPassengers} passenger baggage record(s) require reconciliation."
+                : $"Load sheet remains draft: {_operations.TotalPassengers - _operations.BoardedPassengers - _operations.NoShowPassengers} passenger record(s) are unresolved.";
+            RefreshDerivedProperties();
+            return;
+        }
+
+        IsLoadSheetFinalized = true;
+        CommandStatus = $"Final load sheet approved: {SelectedBoardedPassengers} boarded, {SelectedLoadedBags} bags / {SelectedLoadedBaggageWeightKg:N0} kg, traffic load {TrafficLoadKg:N0} kg.";
+        RefreshDerivedProperties();
+    }
+
+    private void ExportFinalLoadPlan()
+    {
+        if (!IsLoadSheetFinalized)
+        {
+            CommandStatus = CanFinalizeLoadSheet
+                ? "Finalize the load sheet before exporting the operational flight-plan supplement."
+                : LoadSheetReadinessLabel;
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "Export final FreeFlight load sheet",
+            Filter = "Operational load sheet (*.txt)|*.txt|All files (*.*)|*.*",
+            DefaultExt = ".txt",
+            AddExtension = true,
+            FileName = $"{_operations.FlightNumber}-{_operations.OriginIata}-{_operations.DestinationIata}-FINAL-LOADSHEET.txt"
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            CommandStatus = "Final load-sheet export cancelled.";
+            return;
+        }
+
+        var content = new StringBuilder()
+            .AppendLine("FREEFLIGHT CABIN CONTROL — FINAL OPERATIONAL LOAD SHEET")
+            .AppendLine(new string('=', 68))
+            .AppendLine($"FLIGHT       {_operations.FlightNumber}")
+            .AppendLine($"ROUTE        {_operations.OriginIata} - {_operations.DestinationIata}")
+            .AppendLine($"AIRCRAFT     {_operations.AircraftName} ({_operations.DetectedAircraftIcao})")
+            .AppendLine($"DEPARTURE    {_operations.FlightDateLong} {_operations.ScheduledDeparture}")
+            .AppendLine($"GATES        DEP {_operations.GateNumber} / ARR {_operations.ArrivalGateNumber}")
+            .AppendLine($"SOURCE       {(_operations.IsSimBriefSynced ? "Imported SimBrief OFP retained" : "Manual local flight")}")
+            .AppendLine()
+            .AppendLine("FINAL TRAFFIC")
+            .AppendLine($"  Passengers       {SelectedBoardedPassengers} boarded / {_operations.NoShowPassengers} no-show")
+            .AppendLine($"  Cabin split      {BoardingCounterSummary}")
+            .AppendLine($"  Passenger mass   {PassengerWeightKg:N0} kg (84 kg incl. cabin baggage)")
+            .AppendLine($"  Checked baggage  {SelectedLoadedBags} bag(s) / {SelectedLoadedBaggageWeightKg:N0} kg")
+            .AppendLine($"  Traffic load     {TrafficLoadKg:N0} kg")
+            .AppendLine()
+            .AppendLine("FINAL WEIGHTS")
+            .AppendLine($"  Dry operating    {DryOperatingWeightKg:N0} kg")
+            .AppendLine($"  Zero fuel        {ZeroFuelWeightKg:N0} kg  (limit {MaxZeroFuelWeightKg:N0})")
+            .AppendLine($"  Takeoff fuel     {TakeoffFuelKg:N0} kg")
+            .AppendLine($"  Taxi fuel        {TaxiFuelKg:N0} kg")
+            .AppendLine($"  Trip fuel        {TripFuelKg:N0} kg")
+            .AppendLine($"  Ramp weight      {RampWeightKg:N0} kg  (limit {MaxRampWeightKg:N0})")
+            .AppendLine($"  Takeoff weight   {TakeoffWeightKg:N0} kg  (limit {MaxTakeoffWeightKg:N0})")
+            .AppendLine($"  Landing weight   {LandingWeightKg:N0} kg  (limit {MaxLandingWeightKg:N0})")
+            .AppendLine($"  Underload        {UnderloadKg:N0} kg")
+            .AppendLine()
+            .AppendLine("This document supplements the imported SimBrief route with the final")
+            .AppendLine("passenger and baggage figures. It does not overwrite the upstream OFP.")
+            .AppendLine($"FINALIZED    {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}")
+            .ToString();
+        try
+        {
+            File.WriteAllText(dialog.FileName, content, Encoding.UTF8);
+            CommandStatus = $"Final load sheet exported to {dialog.FileName}.";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            CommandStatus = $"Load-sheet export failed: {exception.Message}";
+        }
+    }
+
     private void InitializeFlightStates()
     {
         _flightStates[_operations.FlightNumber] = new IportLoadFlightState(
@@ -623,6 +842,9 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             _operations.CheckedInPassengers,
             _operations.TotalPassengers,
             _operations.LoadedBags,
+            _operations.BoardedPassengers,
+            _operations.PlannedBaggageWeightKg,
+            _operations.LoadedBaggageWeightKg,
             _dryOperatingWeightKg,
             _dryOperatingIndex,
             _takeoffFuelKg,
@@ -633,11 +855,11 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         _flightStates["BA281"] = new IportLoadFlightState(
             "BA281", _operations.FlightDateShort, AddMinutes(_operations.ScheduledDeparture, 40),
             "LHR", "LAX", "C55", "Boeing 777-200ER", "B772", AddMinutes(_operations.ScheduledDeparture, 15),
-            "Dispatcher assigned", 198, 244, 174, 165_400, 44.10, 96_000, 84_600, 1_100, 0, false);
+            "Dispatcher assigned", 198, 244, 174, 186, 3_564, 3_132, 165_400, 44.10, 96_000, 84_600, 1_100, 0, false);
         _flightStates["BA274"] = new IportLoadFlightState(
             "BA274", _operations.FlightDateShort, AddMinutes(_operations.ScheduledDeparture, 75),
             "LHR", "LAS", "B36", "Boeing 777-200ER", "B772", AddMinutes(_operations.ScheduledDeparture, 50),
-            "Dispatcher assigned", 162, 231, 139, 166_250, 46.35, 88_500, 76_900, 1_050, 0, false);
+            "Dispatcher assigned", 162, 231, 139, 151, 2_916, 2_502, 166_250, 46.35, 88_500, 76_900, 1_050, 0, false);
     }
 
     private void SaveCurrentFlightState()
@@ -694,11 +916,42 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     {
         var selectedFlightNumber = SelectedFlight?.FlightNumber ?? _operations.FlightNumber;
         SaveCurrentFlightState();
+        if (!_flightStates.ContainsKey(_operations.FlightNumber))
+        {
+            _flightStates[_operations.FlightNumber] = new IportLoadFlightState(
+                _operations.FlightNumber,
+                _operations.FlightDateShort,
+                _operations.ScheduledDeparture,
+                _operations.OriginIata,
+                _operations.DestinationIata,
+                _operations.GateNumber,
+                _operations.AircraftName,
+                _operations.DetectedAircraftIcao,
+                _operations.BoardingBeginsAt,
+                _operations.IsGateOpen ? "Open for Boarding" : "Flight open",
+                _operations.CheckedInPassengers,
+                _operations.TotalPassengers,
+                _operations.LoadedBags,
+                _operations.BoardedPassengers,
+                _operations.PlannedBaggageWeightKg,
+                _operations.LoadedBaggageWeightKg,
+                _dryOperatingWeightKg,
+                _dryOperatingIndex,
+                _takeoffFuelKg,
+                _tripFuelKg,
+                _taxiFuelKg,
+                _additionalWeightKg,
+                true);
+        }
+
         if (_flightStates.TryGetValue(_operations.FlightNumber, out var liveState))
         {
             liveState.CheckedInPassengers = _operations.CheckedInPassengers;
             liveState.BookedPassengers = _operations.TotalPassengers;
             liveState.LoadedBags = _operations.LoadedBags;
+            liveState.BoardedPassengers = _operations.BoardedPassengers;
+            liveState.PlannedBaggageWeightKg = _operations.PlannedBaggageWeightKg;
+            liveState.LoadedBaggageWeightKg = _operations.LoadedBaggageWeightKg;
             liveState.AircraftName = _operations.AircraftName;
             liveState.AircraftIcao = _operations.DetectedAircraftIcao;
             liveState.StatusLabel = _operations.IsGateOpen ? "Open for Boarding" : "Flight open";
@@ -735,7 +988,16 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(CurrentClock));
         OnPropertyChanged(nameof(NotBoardedPassengers));
         OnPropertyChanged(nameof(StandbyPassengers));
+        OnPropertyChanged(nameof(SelectedCheckedInPassengers));
+        OnPropertyChanged(nameof(SelectedBookedPassengers));
+        OnPropertyChanged(nameof(SelectedBoardedPassengers));
+        OnPropertyChanged(nameof(SelectedLoadedBags));
+        OnPropertyChanged(nameof(SelectedPlannedBaggageWeightKg));
+        OnPropertyChanged(nameof(SelectedLoadedBaggageWeightKg));
+        OnPropertyChanged(nameof(PassengerWeightKg));
+        OnPropertyChanged(nameof(PlannedTrafficLoadKg));
         OnPropertyChanged(nameof(TrafficLoadKg));
+        OnPropertyChanged(nameof(TrafficLoadDeltaKg));
         OnPropertyChanged(nameof(ZeroFuelWeightKg));
         OnPropertyChanged(nameof(TakeoffWeightKg));
         OnPropertyChanged(nameof(LandingWeightKg));
@@ -745,18 +1007,29 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(AllowedTrafficLoadKg));
         OnPropertyChanged(nameof(UnderloadKg));
         OnPropertyChanged(nameof(CargoWeightKg));
+        OnPropertyChanged(nameof(BaggageLoadLabel));
+        OnPropertyChanged(nameof(CarryOnWeightLabel));
         OnPropertyChanged(nameof(LoadDistributionLabel));
         OnPropertyChanged(nameof(ActualCountsLabel));
         OnPropertyChanged(nameof(LoadFactorLabel));
         OnPropertyChanged(nameof(BoardingCounterSummary));
         OnPropertyChanged(nameof(StatusLabel));
         OnPropertyChanged(nameof(WbStatusLabel));
+        OnPropertyChanged(nameof(WbStatusColor));
+        OnPropertyChanged(nameof(ArePassengersFinalized));
+        OnPropertyChanged(nameof(CanFinalizeLoadSheet));
+        OnPropertyChanged(nameof(LoadSheetReadinessLabel));
+        OnPropertyChanged(nameof(LoadSheetReadinessColor));
+        OnPropertyChanged(nameof(LoadSheetLabel));
         OnPropertyChanged(nameof(BoardingPointLabel));
         RefreshEnvelopePositions();
     }
 
     private void RefreshLoadCalculations()
     {
+        OnPropertyChanged(nameof(PlannedTrafficLoadKg));
+        OnPropertyChanged(nameof(TrafficLoadKg));
+        OnPropertyChanged(nameof(TrafficLoadDeltaKg));
         OnPropertyChanged(nameof(ZeroFuelWeightKg));
         OnPropertyChanged(nameof(TakeoffWeightKg));
         OnPropertyChanged(nameof(LandingWeightKg));
@@ -780,12 +1053,68 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     private void HandleOperationsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(GateOperationsViewModel.DetectedAircraftIcao))
+        {
+            ApplyLiveAircraftLoadProfile();
+        }
+
         if (e.PropertyName == nameof(GateOperationsViewModel.SelectedPassenger))
         {
             OnPropertyChanged(nameof(SelectedPassenger));
         }
 
-        RefreshDerivedProperties();
+        if (IsLoadSheetFinalized && e.PropertyName is
+            nameof(GateOperationsViewModel.BoardedPassengers) or
+            nameof(GateOperationsViewModel.NoShowPassengers) or
+            nameof(GateOperationsViewModel.LoadedBags) or
+            nameof(GateOperationsViewModel.LoadedBaggageWeightKg) or
+            nameof(GateOperationsViewModel.PlannedBaggageWeightKg) or
+            nameof(GateOperationsViewModel.BaggageDiscrepancyPassengers))
+        {
+            IsLoadSheetFinalized = false;
+            CommandStatus = "Operational load changed — the load sheet returned to draft.";
+        }
+
+        if (e.PropertyName is nameof(GateOperationsViewModel.ReprintBoardingPasses) or
+            nameof(GateOperationsViewModel.CurrentClockTime) or
+            nameof(GateOperationsViewModel.FlightNumber) or
+            nameof(GateOperationsViewModel.OriginIata) or
+            nameof(GateOperationsViewModel.DestinationIata) or
+            nameof(GateOperationsViewModel.GateNumber) or
+            nameof(GateOperationsViewModel.AircraftName) or
+            nameof(GateOperationsViewModel.DetectedAircraftIcao) or
+            nameof(GateOperationsViewModel.ScheduledDeparture) or
+            nameof(GateOperationsViewModel.BoardingBeginsAt) or
+            nameof(GateOperationsViewModel.IsGateOpen))
+        {
+            RefreshDerivedProperties();
+        }
+    }
+
+    private void ApplyLiveAircraftLoadProfile()
+    {
+        var icao = _operations.DetectedAircraftIcao.Trim().ToUpperInvariant();
+        if (string.Equals(_appliedLiveAircraftProfile, icao, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var referenceDow = icao switch
+        {
+            "B772" or "B77E" => 145_150,
+            "B773" or "B77W" => 167_800,
+            _ => 0
+        };
+        if (referenceDow == 0)
+        {
+            return;
+        }
+
+        _appliedLiveAircraftProfile = icao;
+        _dryOperatingWeightKg = referenceDow;
+        OnPropertyChanged(nameof(DryOperatingWeightKg));
+        RefreshLoadCalculations();
+        CommandStatus = $"Applied bundled {icao} cabin/load reference profile. Verify DOW and DOI against the exact aircraft add-on.";
     }
 
     private void HandlePassengerRecordsChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -881,6 +1210,9 @@ public sealed class IportFlightSummary : ObservableObject
         int checkedInPassengers,
         int bookedPassengers,
         int loadedBags,
+        int boardedPassengers,
+        int plannedBaggageWeightKg,
+        int loadedBaggageWeightKg,
         bool isLive)
     {
         FlightNumber = flightNumber;
@@ -896,6 +1228,9 @@ public sealed class IportFlightSummary : ObservableObject
         CheckedInPassengers = checkedInPassengers;
         BookedPassengers = bookedPassengers;
         LoadedBags = loadedBags;
+        BoardedPassengers = boardedPassengers;
+        PlannedBaggageWeightKg = plannedBaggageWeightKg;
+        LoadedBaggageWeightKg = loadedBaggageWeightKg;
         IsLive = isLive;
     }
 
@@ -947,6 +1282,12 @@ public sealed class IportFlightSummary : ObservableObject
 
     public int LoadedBags { get; }
 
+    public int BoardedPassengers { get; }
+
+    public int PlannedBaggageWeightKg { get; }
+
+    public int LoadedBaggageWeightKg { get; }
+
     public bool IsLive { get; }
 
     public bool IsSelected
@@ -989,6 +1330,9 @@ internal sealed class IportLoadFlightState(
     int checkedInPassengers,
     int bookedPassengers,
     int loadedBags,
+    int boardedPassengers,
+    int plannedBaggageWeightKg,
+    int loadedBaggageWeightKg,
     int dryOperatingWeightKg,
     double dryOperatingIndex,
     int takeoffFuelKg,
@@ -1010,6 +1354,9 @@ internal sealed class IportLoadFlightState(
     public int CheckedInPassengers { get; set; } = checkedInPassengers;
     public int BookedPassengers { get; set; } = bookedPassengers;
     public int LoadedBags { get; set; } = loadedBags;
+    public int BoardedPassengers { get; set; } = boardedPassengers;
+    public int PlannedBaggageWeightKg { get; set; } = plannedBaggageWeightKg;
+    public int LoadedBaggageWeightKg { get; set; } = loadedBaggageWeightKg;
     public int DryOperatingWeightKg { get; set; } = dryOperatingWeightKg;
     public double DryOperatingIndex { get; set; } = dryOperatingIndex;
     public int TakeoffFuelKg { get; set; } = takeoffFuelKg;
@@ -1032,6 +1379,9 @@ internal sealed class IportLoadFlightState(
         CheckedInPassengers,
         BookedPassengers,
         LoadedBags,
+        BoardedPassengers,
+        PlannedBaggageWeightKg,
+        LoadedBaggageWeightKg,
         IsLive);
 }
 

@@ -70,6 +70,22 @@ public sealed class AppSettings
 
     public string PerformanceMode { get; set; } = "Balanced";
 
+    public bool XPlaneAutoConnect { get; set; } = true;
+
+    public string XPlaneExecutablePath { get; set; } = string.Empty;
+
+    public int XPlaneWebApiPort { get; set; } = 8086;
+
+    public bool SyncXPlaneDoors { get; set; } = true;
+
+    public bool Msfs2024AutoConnect { get; set; } = true;
+
+    public string PreferredSimulator { get; set; } = "Auto";
+
+    public bool AutomaticallyCheckForUpdates { get; set; } = true;
+
+    public string UpdateChannel { get; set; } = "Stable";
+
     public int PassengerPreviewBookedCount { get; set; } = 219;
 
     public double PassengerPreviewSpeed { get; set; } = 2d;

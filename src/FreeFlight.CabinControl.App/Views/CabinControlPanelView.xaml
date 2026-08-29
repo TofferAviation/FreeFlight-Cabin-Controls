@@ -85,8 +85,8 @@
             <Grid Grid.Row="0">
                 <StackPanel><TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" /><TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" /></StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Ellipse Width="13" Height="13" Fill="{StaticResource WarningBrush}" Margin="0,0,10,0" />
-                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{StaticResource WarningBrush}" FontSize="14" FontWeight="SemiBold" />
+                    <Ellipse Width="13" Height="13" Fill="{Binding Status.ConnectionColor}" Margin="0,0,10,0" />
+                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{Binding Status.ConnectionColor}" FontSize="14" FontWeight="SemiBold" />
                 </StackPanel>
             </Grid>
             <Grid Grid.Row="2">
@@ -426,7 +426,7 @@
                 <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="14">
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <StackPanel><TextBlock Text="Safety Video" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="British Airways local MP4 source" Style="{StaticResource MutedTextStyle}" Margin="0,3,0,8" /></StackPanel>
+                        <StackPanel><TextBlock Text="Safety Video" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding AircraftMediaEligibility}" Style="{StaticResource MutedTextStyle}" Margin="0,3,0,8" TextWrapping="Wrap" /></StackPanel>
                         <Border Grid.Row="1" Tag="InlineSafetyVideoPreview" Height="148" Background="#020711" BorderBrush="#40526A" BorderThickness="1" CornerRadius="7" ClipToBounds="True">
                             <Grid><Border Background="#260F3158" />
                                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
