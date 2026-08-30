@@ -17,3 +17,11 @@ Airline customization is built into the product boundary from the beginning. It 
 Only media with documented redistribution permission may be committed or shipped. Free distribution does not itself grant permission to reproduce or redistribute protected recordings, video, music, or logos.
 
 The public repository contains only a generic example manifest. Private development packs belong under `content-packs/private/` and are excluded by `.gitignore`.
+
+## Passenger ambience
+
+An optional local cabin loop is supported at:
+
+`content-packs/freeflight-generic/audio/ambience/Passenger_Cabin_Ambience_Loop.mp3`
+
+The Audio page plays and loops this file locally with live master and ambience volume. No passenger recording is bundled without documented redistribution permission.

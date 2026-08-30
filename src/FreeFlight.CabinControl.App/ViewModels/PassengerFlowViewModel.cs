@@ -41,6 +41,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private string _importedDestination = string.Empty;
     private string _importedAircraftIcao = string.Empty;
     private DateTimeOffset? _importedScheduledDepartureLocal;
+    private DateTimeOffset? _importedScheduledArrivalLocal;
     private DateTimeOffset? _lastSimBriefSyncTime;
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
     private bool _seatbeltSignOn = true;
@@ -51,6 +52,11 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private DateTimeOffset? _crewRestCycleStartedAt;
     private CabinCrewRestAssignment _crewRestAssignment;
     private int _lastAnnouncedCrewRestGroup;
+    private bool _seatbeltSignalAvailable;
+    private bool _preDepartureDrinksStarted;
+    private bool _preDepartureDrinksActive;
+    private bool _isArrivalPreparation;
+    private string _crewRestStatusOverride = "CREW REST · staged long-haul rotation";
 
     public PassengerFlowViewModel(
         AppSettings settings,
@@ -90,6 +96,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         SelectPassengerCommand = new RelayCommand(SelectPassenger);
         ClosePassengerDetailsCommand = new RelayCommand(_ => ClearPassengerSelection());
         SyncSimBriefCommand = new AsyncRelayCommand(SyncSimBriefAsync, ShowSimBriefError);
+        ToggleSeatbeltSignCommand = new RelayCommand(_ => ToggleSeatbeltFailSafe());
 
         _animationTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -120,6 +127,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public ICommand SelectPassengerCommand { get; }
     public ICommand ClosePassengerDetailsCommand { get; }
     public ICommand SyncSimBriefCommand { get; }
+    public ICommand ToggleSeatbeltSignCommand { get; }
     public ObservableCollection<PassengerMarkerViewModel> PassengerMarkers { get; } = [];
     public ObservableCollection<CabinCrewMarkerViewModel> CabinCrewMarkers { get; } = [];
     public BulkObservableCollection<PassengerManifestEntryViewModel> PassengerManifest { get; } = [];
@@ -134,6 +142,11 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public bool IsBritishAirways777300 => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300;
     public bool SeatbeltSignOn => _seatbeltSignOn;
     public string SeatbeltSignLabel => SeatbeltSignOn ? "SEAT BELTS ON" : "SEAT BELTS OFF";
+    public bool SeatbeltSignalAvailable => _seatbeltSignalAvailable;
+    public bool CanManuallyToggleSeatbeltSign => !_settings.SyncSimulatorSeatbeltSign || !SeatbeltSignalAvailable;
+    public string SeatbeltControlStatus => CanManuallyToggleSeatbeltSign
+        ? "Manual fail-safe · click to toggle"
+        : "Live simulator annunciator";
     public string LiveFlightPhase => _liveFlightPhase;
     public string AircraftMovementLabel => _isPushbackActive ? "PUSHBACK ACTIVE" : _isAircraftMoving ? "AIRCRAFT MOVING" : "STATIONARY";
     public string LiveCabinStatus => $"{LiveFlightPhase.ToUpperInvariant()} · {AircraftMovementLabel} · {SeatbeltSignLabel}";
@@ -145,7 +158,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         {
             if (!_crewRestAssignment.IsActive)
             {
-                return "CREW REST · 3h 30m cruise rotations";
+                return _crewRestStatusOverride;
             }
 
             var hours = (int)_crewRestAssignment.Remaining.TotalHours;
@@ -226,7 +239,17 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(LiveCabinStatus));
         }
 
-        if (_seatbeltSignOn != snapshot.SeatbeltSignOn)
+        var seatbeltSignalAvailable = snapshot.Signals.GetValueOrDefault("seatbelt_signal_available") >= 0.5d;
+        if (_seatbeltSignalAvailable != seatbeltSignalAvailable)
+        {
+            _seatbeltSignalAvailable = seatbeltSignalAvailable;
+            OnPropertyChanged(nameof(SeatbeltSignalAvailable));
+            OnPropertyChanged(nameof(CanManuallyToggleSeatbeltSign));
+            OnPropertyChanged(nameof(SeatbeltControlStatus));
+        }
+
+        if (_settings.SyncSimulatorSeatbeltSign && seatbeltSignalAvailable &&
+            _seatbeltSignOn != snapshot.SeatbeltSignOn)
         {
             _seatbeltSignOn = snapshot.SeatbeltSignOn;
             OnPropertyChanged(nameof(SeatbeltSignOn));
@@ -241,6 +264,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(LiveCabinStatus));
         }
 
+        UpdatePreDepartureWelcomeService();
         UpdateCabinCrewRest();
         RefreshCrewMarkers();
     }
@@ -606,7 +630,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         LastSimBriefSyncTime,
         _engine.CaptureSession(),
         _crewRestCycleStartedAt,
-        LiveFlightPhase);
+        LiveFlightPhase,
+        _importedScheduledArrivalLocal);
 
     public bool RestoreFlightSession(FlightSessionSnapshot snapshot)
     {
@@ -627,6 +652,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ImportedAircraftIcao = snapshot.ImportedAircraftIcao;
         ImportedScheduledDepartureLocal = snapshot.ImportedScheduledDepartureLocal;
         LastSimBriefSyncTime = snapshot.LastSimBriefSyncTime;
+        _importedScheduledArrivalLocal = snapshot.ImportedScheduledArrivalLocal;
         _crewRestCycleStartedAt = snapshot.CrewRestCycleStartedAt;
         _liveFlightPhase = string.IsNullOrWhiteSpace(snapshot.LiveFlightPhase)
             ? "Preflight"
@@ -694,6 +720,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             ImportedAircraftIcao = summary.AircraftIcao;
             ApplyImportedAircraftCabinProfile(summary.AircraftIcao);
             ImportedScheduledDepartureLocal = summary.ScheduledDepartureUtc?.ToLocalTime();
+            _importedScheduledArrivalLocal = summary.EstimatedArrivalUtc?.ToLocalTime();
             if (ImportedScheduledDepartureLocal is { } scheduledDeparture)
             {
                 _settings.ScheduledDepartureLocal = scheduledDeparture.ToString("HH:mm", CultureInfo.InvariantCulture);
@@ -732,6 +759,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         }
 
         _engine.UpdateCabinActivities(_cabinActivityTimer.Interval, _seatbeltSignOn, _liveFlightPhase);
+        UpdatePreDepartureWelcomeService();
+        UpdateCabinCrewRest();
         RefreshFromEngine();
         _activityPulseTicks++;
         if (_activityPulseTicks % 15 == 0 && _engine.BoardedCount > 0)
@@ -807,6 +836,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         _animationTimer.Stop();
         _engine.Reset();
+        ResetCabinServiceState();
         ClearPassengerVisuals();
         RebuildManifest();
         ActivityLog.Clear();
@@ -828,6 +858,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _engine.SetDoorOpen(BoardingDoor.L1, l1WasOpen);
         _engine.SetDoorOpen(BoardingDoor.L2, l2WasOpen);
         ClearPassengerVisuals();
+        ResetCabinServiceState();
         RebuildManifest();
 
         _settings.PassengerCabinLayoutId = profile.Id;
@@ -879,6 +910,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _settings.PassengerPreviewBookedCount = bookedCount;
         _engine.ConfigurePassengerCount(Math.Min(bookedCount, CabinCapacity));
         ClearPassengerVisuals();
+        ResetCabinServiceState();
         RebuildManifest();
         AddActivity(simBriefPriority
             ? $"SimBrief set the booked load to {bookedCount} passengers"
@@ -979,6 +1011,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void RefreshFromEngine()
     {
+        UpdatePreDepartureWelcomeService();
         RefreshCrewMarkers();
         var visiblePassengers = _engine.Passengers
             .Where(passenger => passenger.MovementState is not (PassengerMovementState.Waiting or PassengerMovementState.Deboarded))
@@ -1105,13 +1138,35 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 var restSlot = _crewRestAssignment.RestGroup == 1
                     ? index
                     : index - (CabinCrewMarkers.Count / 2);
-                var restX = 865d + (restSlot * 26d);
+                var restX = 820d + (restSlot * 30d);
                 crew.Update(
-                    Math.Clamp(restX, 865d, 1008d),
-                    20d,
+                    Math.Clamp(restX, 820d, 998d),
+                    109.5d,
                     $"Crew rest group {_crewRestAssignment.RestGroup} · {CrewRestStatus}",
                     true,
                     true);
+                continue;
+            }
+
+            if (_preDepartureDrinksActive && index is 2 or 3)
+            {
+                crew.Update(
+                    index == 2 ? 315d : 430d,
+                    index == 2 ? 84d : 135d,
+                    "Offering Champagne or orange juice before departure",
+                    false,
+                    false);
+                continue;
+            }
+
+            if (_isArrivalPreparation && !secured)
+            {
+                crew.Update(
+                    92d + (index * 82d),
+                    index % 2 == 0 ? 84d : 135d,
+                    "Preparing the cabin for arrival",
+                    false,
+                    false);
                 continue;
             }
 
@@ -1150,6 +1205,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private void UpdateCabinCrewRest()
     {
         var isCruise = LiveFlightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase);
+        var timeUntilLanding = GetTimeUntilLanding();
+        _isArrivalPreparation = timeUntilLanding is { } arrivalRemaining && arrivalRemaining <= TimeSpan.FromHours(1d) ||
+                                LiveFlightPhase.Contains("Approach", StringComparison.OrdinalIgnoreCase) ||
+                                LiveFlightPhase.Contains("Descent", StringComparison.OrdinalIgnoreCase);
         if (!isCruise)
         {
             if (_crewRestAssignment.IsActive)
@@ -1160,6 +1219,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             _crewRestCycleStartedAt = null;
             _crewRestAssignment = default;
             _lastAnnouncedCrewRestGroup = 0;
+            _crewRestStatusOverride = _isArrivalPreparation
+                ? "ALL CREW ON DUTY · preparing cabin for arrival"
+                : "CREW REST · staged long-haul rotation";
             NotifyCrewRestChanged();
             return;
         }
@@ -1173,14 +1235,79 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _crewRestAssignment = CabinCrewRestSchedule.Evaluate(
             _crewRestCycleStartedAt.Value,
             currentTime,
-            ExpectedCabinCrewCount);
+            ExpectedCabinCrewCount,
+            timeUntilLanding);
+        if (!_crewRestAssignment.IsActive)
+        {
+            var elapsed = currentTime - _crewRestCycleStartedAt.Value;
+            _crewRestStatusOverride = timeUntilLanding is { } landing && landing <= CabinCrewRestSchedule.ArrivalRestCutoff
+                ? "ALL CREW ON DUTY · landing within 3 hours"
+                : elapsed < CabinCrewRestSchedule.FirstRestDuration + CabinCrewRestSchedule.SecondShiftExtraDuty
+                    ? "ALL CREW ON DUTY · second shift remains on duty"
+                    : "ALL CREW ON DUTY · scheduled rest complete";
+        }
         if (_crewRestAssignment.IsActive && _lastAnnouncedCrewRestGroup != _crewRestAssignment.RestGroup)
         {
             _lastAnnouncedCrewRestGroup = _crewRestAssignment.RestGroup;
-            AddActivity($"Cabin crew rest group {_crewRestAssignment.RestGroup} started · {RestingCrewCount} crew · 3h 30m block");
+            var durationLabel = _crewRestAssignment.RestGroup == 1 ? "3h 30m" : "2h";
+            AddActivity($"Cabin crew rest group {_crewRestAssignment.RestGroup} started · {RestingCrewCount} crew · {durationLabel} block");
         }
 
         NotifyCrewRestChanged();
+    }
+
+    private void UpdatePreDepartureWelcomeService()
+    {
+        var preDeparture = !_isAircraftMoving && !_isPushbackActive &&
+                           (LiveFlightPhase.Contains("Preflight", StringComparison.OrdinalIgnoreCase) ||
+                            LiveFlightPhase.Contains("Boarding", StringComparison.OrdinalIgnoreCase));
+        if (_preDepartureDrinksActive && !preDeparture)
+        {
+            _preDepartureDrinksActive = false;
+            AddActivity("Pre-departure welcome drinks completed");
+        }
+
+        if (_preDepartureDrinksStarted || !preDeparture || !_engine.StartPreDepartureDrinkSelection())
+        {
+            return;
+        }
+
+        _preDepartureDrinksStarted = true;
+        _preDepartureDrinksActive = true;
+        AddActivity("First and front Club World boarded · crew offering Champagne or orange juice");
+    }
+
+    private TimeSpan? GetTimeUntilLanding()
+    {
+        if (_importedScheduledArrivalLocal is not { } arrival)
+        {
+            return null;
+        }
+
+        return arrival > _operationsClock.Now ? arrival - _operationsClock.Now : TimeSpan.Zero;
+    }
+
+    private void ToggleSeatbeltFailSafe()
+    {
+        if (!CanManuallyToggleSeatbeltSign)
+        {
+            AddActivity("Seat-belt sign is controlled by the live simulator annunciator");
+            return;
+        }
+
+        _seatbeltSignOn = !_seatbeltSignOn;
+        OnPropertyChanged(nameof(SeatbeltSignOn));
+        OnPropertyChanged(nameof(SeatbeltSignLabel));
+        OnPropertyChanged(nameof(LiveCabinStatus));
+        AddActivity($"Manual seat-belt fail-safe set to {(SeatbeltSignOn ? "ON" : "OFF")}");
+        _engine.UpdateCabinActivities(TimeSpan.FromSeconds(1), _seatbeltSignOn, _liveFlightPhase);
+        RefreshFromEngine();
+    }
+
+    private void ResetCabinServiceState()
+    {
+        _preDepartureDrinksStarted = false;
+        _preDepartureDrinksActive = false;
     }
 
     private void NotifyCrewRestChanged()
@@ -1264,6 +1391,8 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
 
     public void Update(double x, double y, string activity, bool isSecured, bool isResting)
     {
+        x = Math.Clamp(x, 24d, 1009d);
+        y = Math.Clamp(y, 36d, 156d);
         if (Math.Abs(_x - x) > 0.01d)
         {
             _x = x;
@@ -1291,6 +1420,8 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     private PassengerMovementState _movementState;
     private PassengerOperation _operation;
     private string _activityLabel = "Awaiting boarding";
+    private string _markerColor = "#33B8E8";
+    private string _markerBorderColor = "#D9F6FF";
 
     public PassengerMarkerViewModel(BoardingPassenger passenger)
     {
@@ -1362,6 +1493,8 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     public bool IsWalking => MovementState == PassengerMovementState.Walking;
     public bool IsOccupyingSeat => MovementState == PassengerMovementState.OccupyingSeat;
     public bool IsSecured => MovementState == PassengerMovementState.Seated;
+    public string MarkerColor { get => _markerColor; private set => SetProperty(ref _markerColor, value); }
+    public string MarkerBorderColor { get => _markerBorderColor; private set => SetProperty(ref _markerBorderColor, value); }
     public double MarkerSize => IsWalking ? 12d : 10d;
     public string ToolTip => $"{FullName} • Seat {SeatNumber} • Group {BoardingGroup} • {CabinClassName} • {DoorLabel} • {_activityLabel}";
 
@@ -1372,6 +1505,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         Y = passenger.Position.Y;
         MovementState = passenger.MovementState;
         _activityLabel = PassengerManifestEntryViewModel.FormatActivity(passenger.CabinActivity);
+        (MarkerColor, MarkerBorderColor) = GetActivityColors(passenger);
         var doorLabel = passenger.Door?.ToString() ?? string.Empty;
         if (!string.Equals(DoorLabel, doorLabel, StringComparison.Ordinal))
         {
@@ -1381,6 +1515,29 @@ public sealed class PassengerMarkerViewModel : ObservableObject
 
         OnPropertyChanged(nameof(ToolTip));
     }
+
+    private static (string Fill, string Border) GetActivityColors(BoardingPassenger passenger) => passenger.CabinActivity switch
+    {
+        PassengerCabinActivity.SeatbeltFastened => ("#58E68A", "#D9FFE6"),
+        PassengerCabinActivity.SettlingIn => ("#FF9D45", "#FFE0BE"),
+        PassengerCabinActivity.SelectingWelcomeDrink => ("#F0C64E", "#FFF0AA"),
+        PassengerCabinActivity.Sleeping => ("#9B86FF", "#E3DCFF"),
+        PassengerCabinActivity.WatchingMovie => ("#2E90FF", "#D4E9FF"),
+        PassengerCabinActivity.Gaming => ("#B76CFF", "#ECD8FF"),
+        PassengerCabinActivity.UsingPhone => ("#4CB8FF", "#D9F2FF"),
+        PassengerCabinActivity.Reading => ("#E8AE4A", "#FFF0C2"),
+        PassengerCabinActivity.Working => ("#46C8C2", "#D5FFFC"),
+        PassengerCabinActivity.Talking => ("#E06CCB", "#FFDDF8"),
+        PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat => ("#20D7D1", "#D6FFFD"),
+        PassengerCabinActivity.WalkingToSeat or PassengerCabinActivity.Deboarding => ("#33B8E8", "#D9F6FF"),
+        _ => passenger.Seat.CabinClass switch
+        {
+            PassengerCabinClass.First => ("#C978ED", "#F1D7FF"),
+            PassengerCabinClass.Business => ("#2E90FF", "#D4E9FF"),
+            PassengerCabinClass.PremiumEconomy => ("#F0C64E", "#FFF0AA"),
+            _ => ("#21CED8", "#D6FCFF")
+        }
+    };
 
     private static string FormatCabinClass(PassengerCabinClass cabinClass) => cabinClass switch
     {
@@ -1497,6 +1654,7 @@ public sealed class PassengerManifestEntryViewModel : ObservableObject
         PassengerCabinActivity.AwaitingBoarding => "Awaiting boarding",
         PassengerCabinActivity.WalkingToSeat => "Walking to seat",
         PassengerCabinActivity.SettlingIn => "Stowing bags / settling in",
+        PassengerCabinActivity.SelectingWelcomeDrink => "Choosing Champagne or orange juice",
         PassengerCabinActivity.SeatbeltFastened => "Seated with seat belt fastened",
         PassengerCabinActivity.WatchingMovie => "Watching a movie",
         PassengerCabinActivity.Gaming => "Gaming",

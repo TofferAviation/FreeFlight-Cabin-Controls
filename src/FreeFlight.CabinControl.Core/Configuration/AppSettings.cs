@@ -78,6 +78,8 @@ public sealed class AppSettings
 
     public bool SyncXPlaneDoors { get; set; } = true;
 
+    public bool SyncSimulatorSeatbeltSign { get; set; } = true;
+
     public bool Msfs2024AutoConnect { get; set; } = true;
 
     public string PreferredSimulator { get; set; } = "Auto";

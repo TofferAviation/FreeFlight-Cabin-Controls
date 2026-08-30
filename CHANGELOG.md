@@ -2,6 +2,28 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.4.0] - Unreleased
+
+### Added
+
+- First Class and the first 12 Club World passengers now receive a pre-departure welcome-drink service once that cabin section has completed boarding, with Champagne or orange juice shown as the live activity.
+- Passenger ambience now has a real loopable local-audio channel, independent volume and enable controls, Audio-page playback state, and a documented redistribution-safe content-pack slot.
+- The seat-belt annunciator now has an explicit manual fail-safe: when simulator synchronization is disabled or no dependable simulator signal is available, the 777-style icon can be clicked to toggle cabin behaviour.
+
+### Changed
+
+- X-Plane seat-belt synchronization now prioritizes the illuminated annunciator, discovers aircraft-specific numeric seat-belt signals, and retains both standard cockpit switch datarefs as fallbacks.
+- Passenger cabin movement now follows persistent seat-to-aisle-to-lavatory routes instead of selecting a new location every update; activity colors remain attached to each passenger throughout the movement.
+- Cabin crew positions are clamped inside the aircraft, with dedicated positions for welcome-drink service, arrival preparation, entrance greeting, normal duty, secured seating, and crew rest.
+- Crew rest now operates as a 3.5-hour first-shift block, a two-hour second-shift duty handover, and a two-hour second-shift rest block. Rest is prohibited inside three hours of landing, and all crew prepare the cabin inside the final hour.
+- Application and GitHub release versioning advanced to the `0.4.x` line; the first release is `v0.4.0` and later accepted releases increment the patch tag.
+
+### Fixed
+
+- Passengers no longer teleport, disappear, or leave the cabin bounds during in-flight activity changes or when returning to their seats for the seat-belt sign.
+- Boarding paths now preserve the exact center line through the selected aircraft door before crossing to the assigned cabin aisle.
+- Cabin crew markers can no longer render outside the cabin plan.
+
 ## [0.3.0] - 2026-08-29
 
 ### Added

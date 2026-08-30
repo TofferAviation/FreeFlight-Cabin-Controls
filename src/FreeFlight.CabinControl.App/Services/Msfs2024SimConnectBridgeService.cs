@@ -214,6 +214,8 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
             ["door_l1_ratio"] = Math.Clamp(telemetry.Exit1Percent / 100d, 0d, 1d),
             ["door_l2_ratio"] = Math.Clamp(telemetry.Exit2Percent / 100d, 0d, 1d),
             ["sim_local_time_sec"] = telemetry.LocalTimeSeconds,
+            ["seatbelt_signal_available"] = 1d,
+            ["seatbelt_signal_raw"] = telemetry.SeatbeltSign,
             ["pushback_active"] = telemetry.PushbackState >= 0.5d ||
                                   (onGround && telemetry.GroundSpeed >= 0.35d && telemetry.AltitudeAglFeet < 15d)
                 ? 1d

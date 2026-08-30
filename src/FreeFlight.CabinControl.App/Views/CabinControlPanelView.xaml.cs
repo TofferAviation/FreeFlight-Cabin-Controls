@@ -9,6 +9,8 @@ public partial class CabinControlPanelView
     private CabinControlPanelViewModel? _attachedViewModel;
     private readonly MediaPlayer _boardingMusicPlayer = new();
     private Uri? _boardingMusicSource;
+    private readonly MediaPlayer _passengerAmbiencePlayer = new();
+    private Uri? _passengerAmbienceSource;
 
     public CabinControlPanelView()
     {
@@ -18,6 +20,8 @@ public partial class CabinControlPanelView
         DataContextChanged += HandleDataContextChanged;
         _boardingMusicPlayer.MediaEnded += HandleBoardingMusicEnded;
         _boardingMusicPlayer.MediaFailed += HandleBoardingMusicFailed;
+        _passengerAmbiencePlayer.MediaEnded += HandlePassengerAmbienceEnded;
+        _passengerAmbiencePlayer.MediaFailed += HandlePassengerAmbienceFailed;
     }
 
     private void HandleLoaded(object sender, System.Windows.RoutedEventArgs e)
@@ -31,6 +35,8 @@ public partial class CabinControlPanelView
         SafetyVideoMediaElement.Source = null;
         _boardingMusicPlayer.Close();
         _boardingMusicSource = null;
+        _passengerAmbiencePlayer.Close();
+        _passengerAmbienceSource = null;
         AttachToViewModel(null);
     }
 
@@ -63,6 +69,7 @@ public partial class CabinControlPanelView
         _attachedViewModel.PropertyChanged += HandleViewModelPropertyChanged;
         UpdateLocalSafetyVideoPlayback();
         UpdateBoardingMusicPlayback();
+        UpdatePassengerAmbiencePlayback();
     }
 
     private void HandleViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -78,6 +85,13 @@ public partial class CabinControlPanelView
             nameof(CabinControlPanelViewModel.BoardingMusicOutputVolume))
         {
             UpdateBoardingMusicPlayback();
+        }
+
+        if (e.PropertyName is nameof(CabinControlPanelViewModel.PassengerAmbienceLocalSource) or
+            nameof(CabinControlPanelViewModel.IsPassengerAmbiencePlaying) or
+            nameof(CabinControlPanelViewModel.PassengerAmbienceOutputVolume))
+        {
+            UpdatePassengerAmbiencePlayback();
         }
     }
 
@@ -116,6 +130,43 @@ public partial class CabinControlPanelView
         _boardingMusicPlayer.Close();
         _boardingMusicSource = null;
         _attachedViewModel?.ReportBoardingMusicPlaybackFailure(e.ErrorException?.Message);
+    }
+
+    private void UpdatePassengerAmbiencePlayback()
+    {
+        var viewModel = _attachedViewModel;
+        _passengerAmbiencePlayer.Volume = viewModel?.PassengerAmbienceOutputVolume ?? 0d;
+        if (viewModel?.IsPassengerAmbiencePlaying == true && viewModel.PassengerAmbienceLocalSource is not null)
+        {
+            if (_passengerAmbienceSource != viewModel.PassengerAmbienceLocalSource)
+            {
+                _passengerAmbienceSource = viewModel.PassengerAmbienceLocalSource;
+                _passengerAmbiencePlayer.Open(_passengerAmbienceSource);
+            }
+
+            _passengerAmbiencePlayer.Play();
+            return;
+        }
+
+        _passengerAmbiencePlayer.Stop();
+    }
+
+    private void HandlePassengerAmbienceEnded(object? sender, EventArgs e)
+    {
+        if (_attachedViewModel?.IsPassengerAmbiencePlaying != true)
+        {
+            return;
+        }
+
+        _passengerAmbiencePlayer.Position = TimeSpan.Zero;
+        _passengerAmbiencePlayer.Play();
+    }
+
+    private void HandlePassengerAmbienceFailed(object? sender, ExceptionEventArgs e)
+    {
+        _passengerAmbiencePlayer.Close();
+        _passengerAmbienceSource = null;
+        _attachedViewModel?.ReportPassengerAmbiencePlaybackFailure(e.ErrorException?.Message);
     }
 
     private void UpdateLocalSafetyVideoPlayback()

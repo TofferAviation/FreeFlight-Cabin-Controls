@@ -158,11 +158,15 @@
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="20" /></Grid.RowDefinitions>
                         <Grid>
-                            <StackPanel>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
                                 <TextBlock Text="{Binding OperationProgressLabel}" Style="{StaticResource MetricLabelStyle}" />
                                 <TextBlock Text="{Binding OperationProgress, StringFormat={}{0:F0}%}" Style="{StaticResource MetricValueStyle}" />
                             </StackPanel>
-                            <StackPanel HorizontalAlignment="Right">
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Right" Margin="8,0,0,0">
                                 <TextBlock Text="PREVIEW ETA" Style="{StaticResource MetricLabelStyle}" HorizontalAlignment="Right" />
                                 <TextBlock Text="{Binding OperationEta}" FontSize="18" Foreground="#F0C64E" HorizontalAlignment="Right" />
                             </StackPanel>
@@ -174,8 +178,8 @@
 
             <Grid Grid.Row="4">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="3.5*" MinWidth="560" />
-                    <ColumnDefinition Width="1.1*" MinWidth="260" MaxWidth="330" />
+                    <ColumnDefinition Width="3.5*" MinWidth="460" />
+                    <ColumnDefinition Width="1.1*" MinWidth="220" MaxWidth="330" />
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0" Padding="16,12">
@@ -228,7 +232,15 @@
                                     ToolTip="{Binding BoardingGroupDetail}"
                                     Visibility="{Binding IsOperationalCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <StackPanel Orientation="Horizontal">
-                                    <Border Width="72" Height="30" CornerRadius="5" Margin="0,0,7,0">
+                                    <Button Width="72"
+                                            Height="30"
+                                            Margin="0,0,7,0"
+                                            Padding="0"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Command="{Binding ToggleSeatbeltSignCommand}"
+                                            ToolTip="{Binding SeatbeltControlStatus}">
+                                    <Border CornerRadius="5">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="#131D2B" />
@@ -245,7 +257,7 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <Viewbox Margin="4" ToolTip="{Binding SeatbeltSignLabel}" Stretch="Uniform">
+                                        <Viewbox Margin="4" Stretch="Uniform">
                                             <Canvas Width="66" Height="22">
                                                 <Path Data="F0 M 1,7 L 10,7 L 14,3 L 31,3 L 31,19 L 14,19 L 10,15 L 1,15 Z M 17,7 L 27,7 L 27,15 L 17,15 Z">
                                                     <Path.Style>
@@ -265,9 +277,11 @@
                                             </Canvas>
                                         </Viewbox>
                                     </Border>
+                                    </Button>
                                     <StackPanel>
                                         <TextBlock Text="{Binding BoardingGroupStatus}" Foreground="#F0C64E" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" />
                                         <TextBlock Text="{Binding BoardingGroupDetail}" Foreground="#C6B56F" FontSize="8" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding SeatbeltControlStatus}" Foreground="#8FC8FF" FontSize="7" HorizontalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -419,8 +433,8 @@
                                                 <Button.Template>
                                                     <ControlTemplate TargetType="Button">
                                                         <Grid>
-                                                            <Ellipse x:Name="PassengerHead" Width="5" Height="5" Fill="#33B8E8" Stroke="#D9F6FF" StrokeThickness="0.7" Opacity="0.9" HorizontalAlignment="Center" VerticalAlignment="Top" />
-                                                            <Border x:Name="PassengerBody" Width="8" Height="7" Background="#33B8E8" BorderBrush="#D9F6FF" BorderThickness="0.7" CornerRadius="4,4,3,3" Opacity="0.9" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                                                            <Ellipse x:Name="PassengerHead" Width="5" Height="5" Fill="{Binding MarkerColor}" Stroke="{Binding MarkerBorderColor}" StrokeThickness="0.7" Opacity="0.9" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                                                            <Border x:Name="PassengerBody" Width="8" Height="7" Background="{Binding MarkerColor}" BorderBrush="{Binding MarkerBorderColor}" BorderThickness="0.7" CornerRadius="4,4,3,3" Opacity="0.9" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                                                             <Ellipse x:Name="WalkingRing"
                                                                      Stroke="#FFFFFF"
                                                                      StrokeThickness="1.2"
@@ -432,29 +446,9 @@
                                                                 <Setter TargetName="PassengerHead" Property="StrokeThickness" Value="1.5" />
                                                                 <Setter TargetName="PassengerBody" Property="BorderThickness" Value="1.5" />
                                                             </Trigger>
-                                                            <DataTrigger Binding="{Binding CabinClassName}" Value="First">
-                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#C978ED" /><Setter TargetName="PassengerBody" Property="Background" Value="#C978ED" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CabinClassName}" Value="Business">
-                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#2E90FF" /><Setter TargetName="PassengerBody" Property="Background" Value="#2E90FF" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CabinClassName}" Value="Premium Economy">
-                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#F0C64E" /><Setter TargetName="PassengerBody" Property="Background" Value="#F0C64E" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CabinClassName}" Value="Economy">
-                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#21CED8" /><Setter TargetName="PassengerBody" Property="Background" Value="#21CED8" />
-                                                            </DataTrigger>
                                                             <DataTrigger Binding="{Binding IsWalking}" Value="True">
                                                                 <Setter TargetName="PassengerHead" Property="Opacity" Value="1" /><Setter TargetName="PassengerBody" Property="Opacity" Value="1" />
                                                                 <Setter TargetName="WalkingRing" Property="Visibility" Value="Visible" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsOccupyingSeat}" Value="True">
-                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#FF9D45" /><Setter TargetName="PassengerBody" Property="Background" Value="#FF9D45" />
-                                                                <Setter TargetName="PassengerHead" Property="Stroke" Value="#FFE0BE" /><Setter TargetName="PassengerBody" Property="BorderBrush" Value="#FFE0BE" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsSecured}" Value="True">
-                                                                <Setter TargetName="PassengerHead" Property="Fill" Value="#58E68A" /><Setter TargetName="PassengerBody" Property="Background" Value="#58E68A" />
-                                                                <Setter TargetName="PassengerHead" Property="Stroke" Value="#D9FFE6" /><Setter TargetName="PassengerBody" Property="BorderBrush" Value="#D9FFE6" />
                                                             </DataTrigger>
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>

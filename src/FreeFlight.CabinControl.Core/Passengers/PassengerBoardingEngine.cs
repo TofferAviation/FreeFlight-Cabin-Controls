@@ -242,6 +242,7 @@ public sealed class PassengerBoardingEngine
             if (saved.IsNoShow) _noShowPassengerIds.Add(passenger.Id);
             passenger.Door = saved.Door;
             passenger.Waypoints.Clear();
+            passenger.ActivityWaypoints.Clear();
             var restoredMovement = saved.MovementState;
             if (restoredMovement is PassengerMovementState.Walking or PassengerMovementState.OccupyingSeat)
             {
@@ -302,6 +303,7 @@ public sealed class PassengerBoardingEngine
         passenger.Door ??= SelectDoor(passenger);
         passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
         passenger.Waypoints.Clear();
+        passenger.ActivityWaypoints.Clear();
         passenger.MovementState = PassengerMovementState.Seated;
         passenger.SecondsUntilSecured = 0d;
         passenger.CabinActivity = PassengerCabinActivity.SeatbeltFastened;
@@ -437,18 +439,21 @@ public sealed class PassengerBoardingEngine
 
             if (seatbeltSignOn)
             {
-                passenger.SeatbeltFastened = true;
                 if (passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
                     PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat)
                 {
                     passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
-                    if (!MoveActivityPassenger(passenger, passenger.Seat.X, passenger.Seat.Y, seconds * 310d))
+                    EnsureReturnToSeatRoute(passenger);
+                    passenger.SeatbeltFastened = false;
+                    if (!MoveAlongActivityRoute(passenger, seconds * 42d))
                     {
                         continue;
                     }
                 }
 
                 passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
+                passenger.ActivityWaypoints.Clear();
+                passenger.SeatbeltFastened = true;
                 passenger.CabinActivity = PassengerCabinActivity.SeatbeltFastened;
                 passenger.SecondsUntilActivityChange = 15d;
                 continue;
@@ -459,8 +464,8 @@ public sealed class PassengerBoardingEngine
             {
                 case PassengerCabinActivity.WalkingToLavatory:
                 {
-                    var lavatoryX = _cabinSeats.Max(seat => seat.X) + 18d;
-                    if (MoveActivityPassenger(passenger, lavatoryX, passenger.Seat.AisleY, seconds * 95d))
+                    EnsureLavatoryRoute(passenger);
+                    if (MoveAlongActivityRoute(passenger, seconds * 28d))
                     {
                         passenger.CabinActivity = PassengerCabinActivity.UsingLavatory;
                         passenger.SecondsUntilActivityChange = 45d + ((passenger.Id * 13) % 75);
@@ -472,10 +477,12 @@ public sealed class PassengerBoardingEngine
                     if (passenger.SecondsUntilActivityChange <= 0d)
                     {
                         passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
+                        passenger.ActivityWaypoints.Clear();
                     }
                     continue;
                 case PassengerCabinActivity.ReturningToSeat:
-                    if (MoveActivityPassenger(passenger, passenger.Seat.X, passenger.Seat.Y, seconds * 105d))
+                    EnsureReturnToSeatRoute(passenger);
+                    if (MoveAlongActivityRoute(passenger, seconds * 30d))
                     {
                         SelectNextSeatedActivity(passenger, flightPhase);
                     }
@@ -483,6 +490,7 @@ public sealed class PassengerBoardingEngine
             }
 
             passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
+            passenger.ActivityWaypoints.Clear();
             passenger.SecondsUntilActivityChange -= seconds;
             if (passenger.SecondsUntilActivityChange <= 0d ||
                 passenger.CabinActivity is PassengerCabinActivity.SeatbeltFastened or PassengerCabinActivity.SettlingIn)
@@ -492,22 +500,87 @@ public sealed class PassengerBoardingEngine
         }
     }
 
-    private static bool MoveActivityPassenger(BoardingPassenger passenger, double targetX, double targetY, double distance)
+    public bool StartPreDepartureDrinkSelection()
     {
-        var deltaX = targetX - passenger.Position.X;
-        var deltaY = targetY - passenger.Position.Y;
-        var remaining = Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
-        if (remaining <= distance || remaining < 0.01d)
+        var firstCabin = _passengers
+            .Where(passenger => passenger.Seat.CabinClass == PassengerCabinClass.First)
+            .ToArray();
+        var frontBusiness = _passengers
+            .Where(passenger => passenger.Seat.CabinClass == PassengerCabinClass.Business)
+            .OrderBy(passenger => passenger.Seat.X)
+            .ThenBy(passenger => passenger.Seat.Number, StringComparer.Ordinal)
+            .Take(12)
+            .ToArray();
+        if (firstCabin.Length == 0 || frontBusiness.Length < 12 ||
+            firstCabin.Any(passenger => passenger.MovementState != PassengerMovementState.Seated) ||
+            frontBusiness.Any(passenger => passenger.MovementState != PassengerMovementState.Seated))
         {
-            passenger.Position = new CabinPoint(targetX, targetY);
-            return true;
+            return false;
         }
 
-        var ratio = distance / remaining;
-        passenger.Position = new CabinPoint(
-            passenger.Position.X + (deltaX * ratio),
-            passenger.Position.Y + (deltaY * ratio));
-        return false;
+        foreach (var passenger in firstCabin.Concat(frontBusiness))
+        {
+            passenger.CabinActivity = PassengerCabinActivity.SelectingWelcomeDrink;
+            passenger.SecondsUntilActivityChange = 180d + ((passenger.Id * 13) % 180);
+        }
+
+        return true;
+    }
+
+    private void EnsureLavatoryRoute(BoardingPassenger passenger)
+    {
+        if (passenger.ActivityWaypoints.Count > 0)
+        {
+            return;
+        }
+
+        var lavatoryX = Math.Min(1010d, _cabinSeats.Max(seat => seat.X) + 18d);
+        passenger.ActivityWaypoints = new Queue<CabinPoint>(
+        [
+            new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
+            new CabinPoint(lavatoryX, passenger.Seat.AisleY)
+        ]);
+    }
+
+    private void EnsureReturnToSeatRoute(BoardingPassenger passenger)
+    {
+        if (passenger.ActivityWaypoints.Count > 0)
+        {
+            return;
+        }
+
+        passenger.ActivityWaypoints = new Queue<CabinPoint>(
+        [
+            new CabinPoint(passenger.Position.X, passenger.Seat.AisleY),
+            new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
+            new CabinPoint(passenger.Seat.X, passenger.Seat.Y)
+        ]);
+    }
+
+    private static bool MoveAlongActivityRoute(BoardingPassenger passenger, double distance)
+    {
+        while (distance > 0d && passenger.ActivityWaypoints.Count > 0)
+        {
+            var target = passenger.ActivityWaypoints.Peek();
+            var deltaX = target.X - passenger.Position.X;
+            var deltaY = target.Y - passenger.Position.Y;
+            var remaining = Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+            if (remaining <= distance || remaining < 0.01d)
+            {
+                passenger.Position = target;
+                passenger.ActivityWaypoints.Dequeue();
+                distance -= remaining;
+                continue;
+            }
+
+            var ratio = distance / remaining;
+            passenger.Position = new CabinPoint(
+                passenger.Position.X + (deltaX * ratio),
+                passenger.Position.Y + (deltaY * ratio));
+            distance = 0d;
+        }
+
+        return passenger.ActivityWaypoints.Count == 0;
     }
 
     private static void SelectNextSeatedActivity(BoardingPassenger passenger, string flightPhase)
@@ -531,6 +604,7 @@ public sealed class PassengerBoardingEngine
         passenger.SecondsUntilActivityChange = passenger.CabinActivity == PassengerCabinActivity.WalkingToLavatory
             ? 0d
             : 75d + (selector % 240);
+        passenger.ActivityWaypoints.Clear();
     }
 
     private void SkipAlreadyProcessedPassengers()
@@ -600,6 +674,7 @@ public sealed class PassengerBoardingEngine
         passenger.MovementState = PassengerMovementState.Walking;
         passenger.CabinActivity = PassengerCabinActivity.WalkingToSeat;
         passenger.SeatbeltFastened = false;
+        passenger.ActivityWaypoints.Clear();
         passenger.Position = entry;
         var cabinCrossingY = _cabinSeats
             .Select(seat => seat.AisleY)
@@ -657,6 +732,7 @@ public sealed class PassengerBoardingEngine
         passenger.MovementState = PassengerMovementState.Walking;
         passenger.CabinActivity = PassengerCabinActivity.Deboarding;
         passenger.SeatbeltFastened = false;
+        passenger.ActivityWaypoints.Clear();
         passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
         passenger.Waypoints = new Queue<CabinPoint>(
         [

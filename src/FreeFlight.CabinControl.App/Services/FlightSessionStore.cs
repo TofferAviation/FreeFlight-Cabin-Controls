@@ -19,7 +19,8 @@ public sealed record FlightSessionSnapshot(
     DateTimeOffset? LastSimBriefSyncTime,
     PassengerBoardingSession Boarding,
     DateTimeOffset? CrewRestCycleStartedAt = null,
-    string LiveFlightPhase = "Preflight");
+    string LiveFlightPhase = "Preflight",
+    DateTimeOffset? ImportedScheduledArrivalLocal = null);
 
 public sealed class FlightSessionStore
 {

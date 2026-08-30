@@ -28,7 +28,10 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger boarding completes", PassengerBoardingCompletesAsync),
     ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
     ("Seat-belt sign controls cabin activities", SeatbeltSignControlsCabinActivitiesAsync),
-    ("Cabin crew rest rotates in 3.5-hour blocks", CabinCrewRestRotatesAsync),
+    ("Cabin movement follows stable activity routes", CabinMovementFollowsStableRoutesAsync),
+    ("Door entry stays centred through the aisle crossing", DoorEntryStaysCentredAsync),
+    ("Front-cabin boarding starts welcome drinks", FrontCabinBoardingStartsWelcomeDrinksAsync),
+    ("Cabin crew rest follows staged long-haul shifts", CabinCrewRestRotatesAsync),
     ("Unfinished passenger session restores", UnfinishedPassengerSessionRestoresAsync),
     ("Boarding groups run in numeric order", BoardingGroupsRunInNumericOrderAsync),
     ("Passenger deboarding completes", PassengerDeboardingCompletesAsync),
@@ -533,13 +536,105 @@ static Task CabinCrewRestRotatesAsync()
     Assert(CabinCrewRestSchedule.IsCrewMemberResting(0, 12, firstBlock), "A group-one crew member was not resting.");
     Assert(!CabinCrewRestSchedule.IsCrewMemberResting(6, 12, firstBlock), "A working group-two crew member was incorrectly resting.");
 
-    var secondBlock = CabinCrewRestSchedule.Evaluate(
+    var dutyOverlap = CabinCrewRestSchedule.Evaluate(
         cruiseStartedAt,
         cruiseStartedAt.AddHours(3.5d).AddMinutes(1),
         12);
-    AssertEqual(2, secondBlock.RestGroup, "Crew rest did not rotate after 3.5 hours.");
+    Assert(!dutyOverlap.IsActive, "The second shift did not remain on duty for its additional two hours.");
+
+    var secondBlock = CabinCrewRestSchedule.Evaluate(
+        cruiseStartedAt,
+        cruiseStartedAt.AddHours(5.5d).AddMinutes(1),
+        12,
+        TimeSpan.FromHours(5));
+    AssertEqual(2, secondBlock.RestGroup, "The second crew-rest group did not begin after the duty overlap.");
+    AssertEqual(TimeSpan.FromMinutes(119), secondBlock.Remaining, "The two-hour second rest countdown was incorrect.");
     Assert(!CabinCrewRestSchedule.IsCrewMemberResting(0, 12, secondBlock), "The first rest group did not return to duty.");
     Assert(CabinCrewRestSchedule.IsCrewMemberResting(6, 12, secondBlock), "The second rest group did not begin its block.");
+
+    var arrivalCutoff = CabinCrewRestSchedule.Evaluate(
+        cruiseStartedAt,
+        cruiseStartedAt.AddHours(5.5d).AddMinutes(1),
+        12,
+        TimeSpan.FromHours(3));
+    Assert(!arrivalCutoff.IsActive, "Crew rest continued inside the three-hour arrival cutoff.");
+    return Task.CompletedTask;
+}
+
+static Task FrontCabinBoardingStartsWelcomeDrinksAsync()
+{
+    var engine = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777300);
+    var firstCabin = engine.Passengers.Where(passenger => passenger.Seat.CabinClass == PassengerCabinClass.First).ToArray();
+    var frontBusiness = engine.Passengers
+        .Where(passenger => passenger.Seat.CabinClass == PassengerCabinClass.Business)
+        .OrderBy(passenger => passenger.Seat.X)
+        .ThenBy(passenger => passenger.Seat.Number, StringComparer.Ordinal)
+        .Take(12)
+        .ToArray();
+    foreach (var passenger in firstCabin.Concat(frontBusiness))
+    {
+        Assert(engine.TryBoardPassenger(passenger.Id), $"Could not board welcome-drink passenger {passenger.Seat.Number}.");
+    }
+
+    Assert(engine.StartPreDepartureDrinkSelection(), "Welcome-drink service did not begin after the front cabins boarded.");
+    Assert(firstCabin.Concat(frontBusiness).All(passenger =>
+            passenger.CabinActivity == PassengerCabinActivity.SelectingWelcomeDrink),
+        "Champagne/orange-juice selection was not assigned to every eligible front-cabin passenger.");
+    return Task.CompletedTask;
+}
+
+static Task DoorEntryStaysCentredAsync()
+{
+    var engine = new PassengerBoardingEngine(40, PassengerCabinLayout.BritishAirways777300);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    BoardingPassenger? enteringPassenger = null;
+    for (var index = 0; index < 20 && enteringPassenger is null; index++)
+    {
+        engine.Tick(TimeSpan.FromSeconds(0.1d));
+        enteringPassenger = engine.Passengers.FirstOrDefault(passenger => passenger.MovementState == PassengerMovementState.Walking);
+    }
+
+    Assert(enteringPassenger is not null, "No passenger entered through L2 for the doorway-centre check.");
+    Assert(enteringPassenger!.Door == BoardingDoor.L2, "The doorway-centre passenger did not enter through L2.");
+    AssertNear(228d, enteringPassenger.Position.X, "The passenger was not centred on the BA 777-300ER L2 doorway corridor.");
+    Assert(enteringPassenger.Position.Y > 109.5d, "The doorway-centre check advanced beyond the cabin crossing too early.");
+    return Task.CompletedTask;
+}
+
+static Task CabinMovementFollowsStableRoutesAsync()
+{
+    var engine = new PassengerBoardingEngine(24, PassengerCabinLayout.BritishAirways777300);
+    foreach (var passenger in engine.Passengers)
+    {
+        Assert(engine.TryBoardPassenger(passenger.Id), "A passenger could not be seated for the cabin movement check.");
+    }
+
+    BoardingPassenger? movingPassenger = null;
+    for (var index = 0; index < 1000 && movingPassenger is null; index++)
+    {
+        engine.UpdateCabinActivities(TimeSpan.FromSeconds(5), false, "Cruise");
+        movingPassenger = engine.Passengers.FirstOrDefault(passenger =>
+            passenger.CabinActivity == PassengerCabinActivity.WalkingToLavatory);
+    }
+
+    Assert(movingPassenger is not null, "No deterministic passenger began a lavatory trip.");
+    var previous = movingPassenger!.Position;
+    for (var index = 0; index < 40 && movingPassenger.CabinActivity == PassengerCabinActivity.WalkingToLavatory; index++)
+    {
+        engine.UpdateCabinActivities(TimeSpan.FromSeconds(1), false, "Cruise");
+        var distance = Math.Sqrt(
+            Math.Pow(movingPassenger.Position.X - previous.X, 2) +
+            Math.Pow(movingPassenger.Position.Y - previous.Y, 2));
+        Assert(distance <= 28.01d, $"A moving passenger teleported {distance:F1} cabin pixels in one second.");
+        Assert(movingPassenger.Position.X is >= 0d and <= 1010d && movingPassenger.Position.Y is >= 0d and <= 192d,
+            "A moving passenger left the cabin canvas.");
+        previous = movingPassenger.Position;
+    }
+
+    engine.UpdateCabinActivities(TimeSpan.FromSeconds(1), true, "Cruise");
+    Assert(movingPassenger.CabinActivity is PassengerCabinActivity.ReturningToSeat or PassengerCabinActivity.SeatbeltFastened,
+        "The passenger did not begin returning to the assigned seat when the sign illuminated.");
     return Task.CompletedTask;
 }
 

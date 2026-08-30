@@ -46,6 +46,9 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     private bool _automaticSafetyVideoTriggered;
     private bool _isWidebodyAircraft = true;
     private string _aircraftMediaEligibility = "Wide-body safety media enabled";
+    private bool _isPassengerAmbiencePlaying;
+    private Uri? _passengerAmbienceLocalSource;
+    private string _passengerAmbienceStatus = "Passenger ambience loop is not installed";
 
     public CabinControlPanelViewModel(
         AppSettings settings,
@@ -62,10 +65,15 @@ public sealed class CabinControlPanelViewModel : PageViewModel
             AppContext.BaseDirectory, "content-packs", "british-airways", "audio", "boarding");
         SafetyVideoLocalFilePath = safetyVideoLocalFilePath ?? Path.Combine(
             AppContext.BaseDirectory, "content-packs", "british-airways", "media", "BA_Safety_Video.mp4");
+        PassengerAmbienceLocalFilePath = Path.Combine(
+            AppContext.BaseDirectory, "content-packs", "freeflight-generic", "audio", "ambience", "Passenger_Cabin_Ambience_Loop.mp3");
         _hasLocalSafetyVideo = File.Exists(SafetyVideoLocalFilePath);
         _safetyVideoPreviewStatus = _hasLocalSafetyVideo
             ? "Built-in British Airways safety video ready"
             : "Local BA_Safety_Video.mp4 is not installed";
+        _passengerAmbienceStatus = File.Exists(PassengerAmbienceLocalFilePath)
+            ? "Local passenger ambience loop ready"
+            : "Add Passenger_Cabin_Ambience_Loop.mp3 to the FreeFlight ambience content pack";
         SelectFirstInstalledBoardingProgram();
         RefreshSelectedBoardingProgram();
         Status = status;
@@ -79,6 +87,11 @@ public sealed class CabinControlPanelViewModel : PageViewModel
         StopSafetyVideoCommand = new RelayCommand(_ => StopSafetyVideo());
         ClearQueueCommand = new RelayCommand(_ => ClearQueue());
         SaveCommand = new AsyncRelayCommand(SaveAsync, ShowSaveError);
+
+        if (_settings.PassengerAmbienceEnabled)
+        {
+            StartPassengerAmbience();
+        }
     }
 
     public SharedStatusViewModel Status { get; }
@@ -156,6 +169,35 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     }
 
     public string SafetyVideoLocalFilePath { get; }
+
+    public string PassengerAmbienceLocalFilePath { get; }
+
+    public bool HasPassengerAmbience => File.Exists(PassengerAmbienceLocalFilePath);
+
+    public Uri? PassengerAmbienceLocalSource
+    {
+        get => _passengerAmbienceLocalSource;
+        private set => SetProperty(ref _passengerAmbienceLocalSource, value);
+    }
+
+    public bool IsPassengerAmbiencePlaying
+    {
+        get => _isPassengerAmbiencePlaying;
+        private set => SetProperty(ref _isPassengerAmbiencePlaying, value);
+    }
+
+    public string PassengerAmbienceStatus
+    {
+        get => _passengerAmbienceStatus;
+        private set => SetProperty(ref _passengerAmbienceStatus, value);
+    }
+
+    public double PassengerAmbienceOutputVolume => _settings.PassengerAmbienceEnabled
+        ? Math.Clamp(
+            (_settings.PassengerAmbienceVolume / 100d) * (_settings.MasterVolume / 100d),
+            0d,
+            1d)
+        : 0d;
 
     public bool HasLocalSafetyVideo
     {
@@ -767,6 +809,74 @@ public sealed class CabinControlPanelViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(SafetyVideoVolume));
         OnPropertyChanged(nameof(BoardingMusicOutputVolume));
+        OnPropertyChanged(nameof(PassengerAmbienceOutputVolume));
+    }
+
+    internal void SetPassengerAmbienceEnabled(bool enabled)
+    {
+        _settings.PassengerAmbienceEnabled = enabled;
+        OnPropertyChanged(nameof(PassengerAmbienceOutputVolume));
+        if (!enabled)
+        {
+            StopPassengerAmbience();
+        }
+        else
+        {
+            StartPassengerAmbience();
+        }
+    }
+
+    internal void SetPassengerAmbienceVolume(int volumePercent)
+    {
+        _settings.PassengerAmbienceVolume = Math.Clamp(volumePercent, 0, 100);
+        OnPropertyChanged(nameof(PassengerAmbienceOutputVolume));
+    }
+
+    internal void TogglePassengerAmbience()
+    {
+        if (IsPassengerAmbiencePlaying)
+        {
+            StopPassengerAmbience();
+        }
+        else
+        {
+            StartPassengerAmbience();
+        }
+    }
+
+    private void StartPassengerAmbience()
+    {
+        if (!HasPassengerAmbience)
+        {
+            IsPassengerAmbiencePlaying = false;
+            PassengerAmbienceLocalSource = null;
+            PassengerAmbienceStatus = "Add Passenger_Cabin_Ambience_Loop.mp3 to the FreeFlight ambience content pack";
+            return;
+        }
+
+        _settings.PassengerAmbienceEnabled = true;
+        PassengerAmbienceLocalSource = new Uri(PassengerAmbienceLocalFilePath, UriKind.Absolute);
+        IsPassengerAmbiencePlaying = true;
+        PassengerAmbienceStatus = "Passenger ambience loop playing";
+        OnPropertyChanged(nameof(PassengerAmbienceOutputVolume));
+    }
+
+    private void StopPassengerAmbience()
+    {
+        IsPassengerAmbiencePlaying = false;
+        PassengerAmbienceLocalSource = null;
+        PassengerAmbienceStatus = HasPassengerAmbience
+            ? "Local passenger ambience loop ready"
+            : "Passenger ambience loop is not installed";
+    }
+
+    internal void ReportPassengerAmbiencePlaybackFailure(string? details)
+    {
+        IsPassengerAmbiencePlaying = false;
+        PassengerAmbienceLocalSource = null;
+        PassengerAmbienceStatus = string.IsNullOrWhiteSpace(details)
+            ? "Passenger ambience playback failed"
+            : $"Passenger ambience playback failed: {details}";
     }
 
     internal void SetBoardingMusicEnabled(bool enabled) => BoardingMusicEnabled = enabled;

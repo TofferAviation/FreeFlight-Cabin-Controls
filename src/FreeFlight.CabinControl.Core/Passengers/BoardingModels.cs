@@ -52,6 +52,7 @@ public enum PassengerCabinActivity
     AwaitingBoarding,
     WalkingToSeat,
     SettlingIn,
+    SelectingWelcomeDrink,
     SeatbeltFastened,
     WatchingMovie,
     Gaming,
@@ -115,6 +116,8 @@ public sealed class BoardingPassenger
     public CabinPoint Position { get; internal set; }
 
     internal Queue<CabinPoint> Waypoints { get; set; } = new();
+
+    internal Queue<CabinPoint> ActivityWaypoints { get; set; } = new();
 
     internal double SecondsUntilSecured { get; set; }
 

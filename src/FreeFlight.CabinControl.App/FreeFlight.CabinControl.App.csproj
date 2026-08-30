@@ -7,7 +7,7 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
@@ -125,6 +125,27 @@
   <ItemGroup Condition="Exists('..\..\content-packs\british-airways\audio\boarding\ATTRIBUTION.md')">
     <Content Include="..\..\content-packs\british-airways\audio\boarding\ATTRIBUTION.md">
       <Link>content-packs\british-airways\audio\boarding\ATTRIBUTION.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\freeflight-generic\audio\ambience\README.md')">
+    <Content Include="..\..\content-packs\freeflight-generic\audio\ambience\README.md">
+      <Link>content-packs\freeflight-generic\audio\ambience\README.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="Exists('..\..\content-packs\private\freeflight-generic\audio\ambience\Passenger_Cabin_Ambience_Loop.mp3')">
+    <Content Include="..\..\content-packs\private\freeflight-generic\audio\ambience\Passenger_Cabin_Ambience_Loop.mp3">
+      <Link>content-packs\freeflight-generic\audio\ambience\Passenger_Cabin_Ambience_Loop.mp3</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup Condition="!Exists('..\..\content-packs\private\freeflight-generic\audio\ambience\Passenger_Cabin_Ambience_Loop.mp3') And Exists('..\..\content-packs\freeflight-generic\audio\ambience\Passenger_Cabin_Ambience_Loop.mp3')">
+    <Content Include="..\..\content-packs\freeflight-generic\audio\ambience\Passenger_Cabin_Ambience_Loop.mp3">
+      <Link>content-packs\freeflight-generic\audio\ambience\Passenger_Cabin_Ambience_Loop.mp3</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

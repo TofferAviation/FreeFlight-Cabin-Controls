@@ -220,6 +220,27 @@ internal static class Program
                 throw new InvalidOperationException("The live cabin did not expose its 3.5-hour cabin-crew rest rotation.");
             }
 
+            if (viewModel.Passengers.CabinCrewMarkers.Any(marker =>
+                    marker.CanvasLeft < 18d || marker.CanvasLeft > 1003d ||
+                    marker.CanvasTop < 30d || marker.CanvasTop > 150d))
+            {
+                throw new InvalidOperationException("A cabin-crew marker was rendered outside the aircraft interior.");
+            }
+
+            var previousSeatbeltState = viewModel.Passengers.SeatbeltSignOn;
+            if (!viewModel.Passengers.CanManuallyToggleSeatbeltSign)
+            {
+                throw new InvalidOperationException("The manual seat-belt fail-safe was unavailable without a dependable simulator signal.");
+            }
+
+            viewModel.Passengers.ToggleSeatbeltSignCommand.Execute(null);
+            if (viewModel.Passengers.SeatbeltSignOn == previousSeatbeltState)
+            {
+                throw new InvalidOperationException("The manual seat-belt fail-safe did not toggle the cabin sign.");
+            }
+
+            viewModel.Passengers.ToggleSeatbeltSignCommand.Execute(null);
+
             Render(window, Path.Combine(outputDirectory, "passengers-crew-rest.png"));
             window.Width = 1120;
             window.Height = 700;

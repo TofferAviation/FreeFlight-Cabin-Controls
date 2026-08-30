@@ -4,7 +4,7 @@ FreeFlight Cabin Control is a Windows desktop application with a live X-Plane 12
 
 ## Current baseline
 
-Version `0.3.x` is the current application line. GitHub release builds receive an automatically increasing patch number and are offered through the in-application updater. It provides:
+Version `0.4.x` is the current application line. GitHub release builds receive an automatically increasing patch number and are offered through the in-application updater. It provides:
 
 - operational Overview, Gate Desk, Iport DCS, Passenger Manifest, Boarding Passes, Cabin, Settings, Airliners, Cabin Area Control Panel, Audio, and Diagnostics navigation;
 - a Real Tracker community section with the supplied FlightLogger presentation and an explicit browser link to `https://flightlogger.app/`; it is an external destination and receives no simulator, passenger, or unfinished-flight data from FreeFlight;
@@ -21,6 +21,8 @@ Version `0.3.x` is the current application line. GitHub release builds receive a
 - a searchable local airline catalog with persistent selection and custom airline profiles;
 - an original simulator-free Passenger Flow page with profile-specific seat coordinates, mixed partial-load allocation, boarding-group calls with randomized within-group flow, varied passenger walking and entry timing, congestion slowdowns, complete boarding/deboarding, boarding-ticket-based L1/L2 routing, two-aisle movement, optional 30–45 minute real operations, accelerated previews, and a selected passenger's destination-seat highlight;
 - a full passenger manifest with deterministic fictional names and profiles, live operational status, seat and booking details revealed only when a passenger dot or manifest row is selected;
+- stable in-flight passenger movement with activity-specific colors, routed lavatory trips, seat-belt-triggered returns, and a pre-departure Champagne/orange-juice service for First Class and the first 12 Club World seats;
+- two-stage cabin-crew rest with a 3.5-hour first block and two-hour second block, no rest inside three hours of landing, full arrival preparation in the final hour, and crew markers constrained to the aircraft interior;
 - optional SimBrief latest-OFP import using the user's numeric Pilot ID, giving the planned OFP passenger count priority over manual load controls and synchronizing flight number, route, and scheduled off-block time without storing a SimBrief password;
 - ICAO-driven airline-logo resolution with BAW and NOZ starter mappings and letter fallbacks;
 - a fully coded Cabin Area Control Panel built on reference-locked 1040×812 instrument geometry and a 716×512 live LCD coordinate system, with a CSCP hierarchy and 15 live operational screens that preserve the supplied FF777 proportions without using the page renders at runtime;
@@ -33,7 +35,8 @@ Version `0.3.x` is the current application line. GitHub release builds receive a
 - a Display Controls brightness bar whose numeric value, filled range, and pointer move together;
 - a safe vAMSYS authorization entry point, pending an approved Pilot API client registration;
 - enumeration and persistent selection of active Windows playback endpoints;
-- automatic X-Plane 12.1.1+ connection through the simulator's built-in local Web API, with API-version negotiation, live dataref discovery, WebSocket telemetry, automatic retry, aircraft identity, flight phase, altitude, ground speed, vertical speed, on-ground state, engine state, seatbelt sign, and optional standard L1/L2 door synchronization;
+- automatic X-Plane 12.1.1+ connection through the simulator's built-in local Web API, with API-version negotiation, live dataref discovery, WebSocket telemetry, automatic retry, aircraft identity, flight phase, altitude, ground speed, vertical speed, on-ground state, engine state, illuminated and aircraft-specific seatbelt-sign discovery, a manual seatbelt fail-safe, and optional standard L1/L2 door synchronization;
+- a loopable local passenger-ambience audio channel with independent enable and volume controls when a redistribution-cleared recording is installed through its content-pack slot;
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;
 - real process CPU and memory sampling for the desktop application;

@@ -44,6 +44,7 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         SafetyDemonstrationCommand = new RelayCommand(_ => ToggleSafetyDemonstration());
         BoardingMusicCommand = new RelayCommand(_ => ToggleBoardingMusic());
         NowPlayingCommand = new RelayCommand(_ => ToggleNowPlaying());
+        PassengerAmbienceCommand = new RelayCommand(_ => TogglePassengerAmbience());
         RefreshOutputDevicesCommand = new RelayCommand(_ => RefreshOutputDevices());
         if (_cabinPanel is not null)
         {
@@ -71,6 +72,8 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
     public ICommand BoardingMusicCommand { get; }
 
     public ICommand NowPlayingCommand { get; }
+
+    public ICommand PassengerAmbienceCommand { get; }
 
     public ICommand RefreshOutputDevicesCommand { get; }
 
@@ -108,7 +111,9 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         ? _cabinPanel?.SafetyVideoTitle ?? "Safety demonstration"
         : IsBoardingMusicInProgress
             ? $"Boarding Music — Program {_cabinPanel?.SelectedBoardingProgram}"
-            : "No audio playing";
+            : IsPassengerAmbiencePlaying
+                ? "Passenger Cabin Ambience"
+                : "No audio playing";
 
     public string NowPlayingDescription
     {
@@ -128,9 +133,12 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
                     : $"Program {_cabinPanel?.SelectedBoardingProgram} continues with audio muted";
             }
 
-            return _cabinPanel?.HasLocalSafetyVideo == true
-                ? "Safety demonstration and four boarding programs ready"
-                : "Four boarding programs ready; local BA safety demonstration is not installed";
+            if (IsPassengerAmbiencePlaying)
+            {
+                return $"Local looping ambience at {PassengerAmbienceVolume}%";
+            }
+
+            return _cabinPanel?.PassengerAmbienceStatus ?? "Passenger ambience content pack not installed";
         }
     }
 
@@ -138,7 +146,9 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
 
     public bool IsBoardingMusicInProgress => _cabinPanel?.IsBoardingMusicPlaying == true;
 
-    public bool IsAnyAudioPlaying => IsSafetyDemonstrationInProgress || IsBoardingMusicInProgress;
+    public bool IsPassengerAmbiencePlaying => _cabinPanel?.IsPassengerAmbiencePlaying == true;
+
+    public bool IsAnyAudioPlaying => IsSafetyDemonstrationInProgress || IsBoardingMusicInProgress || IsPassengerAmbiencePlaying;
 
     public string NowPlayingActionGlyph => IsAnyAudioPlaying ? "\uE71A" : "\uE768";
 
@@ -159,6 +169,16 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
     public string BoardingMusicActionLabel => IsBoardingMusicInProgress
         ? "Stop boarding music"
         : "Play a random boarding program";
+
+    public string PassengerAmbienceActionGlyph => IsPassengerAmbiencePlaying ? "\uE71A" : "\uE768";
+
+    public string PassengerAmbienceActionLabel => IsPassengerAmbiencePlaying
+        ? "Stop passenger ambience"
+        : _cabinPanel?.HasPassengerAmbience == true
+            ? "Start passenger ambience"
+            : "Install Passenger_Cabin_Ambience_Loop.mp3 to enable playback";
+
+    public string PassengerAmbienceStatus => _cabinPanel?.PassengerAmbienceStatus ?? "Passenger ambience unavailable";
 
     public string SaveStatus
     {
@@ -206,7 +226,9 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         set
         {
             _settings.PassengerAmbienceEnabled = value;
+            _cabinPanel?.SetPassengerAmbienceEnabled(value);
             OnPropertyChanged();
+            OnPropertyChanged(nameof(PassengerAmbienceStatus));
         }
     }
 
@@ -215,8 +237,10 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         get => _settings.PassengerAmbienceVolume;
         set
         {
-            _settings.PassengerAmbienceVolume = value;
+            _settings.PassengerAmbienceVolume = Math.Clamp(value, 0, 100);
+            _cabinPanel?.SetPassengerAmbienceVolume(_settings.PassengerAmbienceVolume);
             OnPropertyChanged();
+            OnPropertyChanged(nameof(NowPlayingDescription));
         }
     }
 
@@ -370,7 +394,9 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
             ? _cabinPanel?.SafetyVideoVolume ?? 0d
             : IsBoardingMusicInProgress
                 ? _cabinPanel?.BoardingMusicOutputVolume ?? 0d
-                : 0d;
+                : IsPassengerAmbiencePlaying
+                    ? _cabinPanel?.PassengerAmbienceOutputVolume ?? 0d
+                    : 0d;
 
         if (!IsAnyAudioPlaying || effectiveOutput <= 0d)
         {
@@ -441,11 +467,17 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
         {
             ToggleBoardingMusic();
         }
+        else if (IsPassengerAmbiencePlaying)
+        {
+            TogglePassengerAmbience();
+        }
         else
         {
             ToggleSafetyDemonstration();
         }
     }
+
+    private void TogglePassengerAmbience() => _cabinPanel?.TogglePassengerAmbience();
 
     private void HandleCabinPanelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -458,7 +490,11 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
             nameof(CabinControlPanelViewModel.BoardingMusicLevel) or
             nameof(CabinControlPanelViewModel.BoardingMusicOutputVolume) or
             nameof(CabinControlPanelViewModel.BoardingMusicPreviewStatus);
-        if (!safetyChanged && !boardingMusicChanged)
+        var ambienceChanged = e.PropertyName is nameof(CabinControlPanelViewModel.IsPassengerAmbiencePlaying) or
+            nameof(CabinControlPanelViewModel.PassengerAmbienceLocalSource) or
+            nameof(CabinControlPanelViewModel.PassengerAmbienceOutputVolume) or
+            nameof(CabinControlPanelViewModel.PassengerAmbienceStatus);
+        if (!safetyChanged && !boardingMusicChanged && !ambienceChanged)
         {
             return;
         }
@@ -477,6 +513,15 @@ public sealed class AudioViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(BoardingMusicVolume));
             OnPropertyChanged(nameof(BoardingMusicActionGlyph));
             OnPropertyChanged(nameof(BoardingMusicActionLabel));
+        }
+
+
+        if (ambienceChanged)
+        {
+            OnPropertyChanged(nameof(IsPassengerAmbiencePlaying));
+            OnPropertyChanged(nameof(PassengerAmbienceActionGlyph));
+            OnPropertyChanged(nameof(PassengerAmbienceActionLabel));
+            OnPropertyChanged(nameof(PassengerAmbienceStatus));
         }
 
         OnPropertyChanged(nameof(NowPlaying));

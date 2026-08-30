@@ -137,6 +137,12 @@ public sealed class SettingsViewModel : PageViewModel
         set => SetSetting(value, current => _settings.SyncXPlaneDoors = current);
     }
 
+    public bool SyncSimulatorSeatbeltSign
+    {
+        get => _settings.SyncSimulatorSeatbeltSign;
+        set => SetSetting(value, current => _settings.SyncSimulatorSeatbeltSign = current);
+    }
+
     public bool AutomaticallyCheckForUpdates
     {
         get => _settings.AutomaticallyCheckForUpdates;
@@ -486,6 +492,7 @@ public sealed class SettingsViewModel : PageViewModel
         XPlaneAutoConnect = defaults.XPlaneAutoConnect;
         XPlaneWebApiPort = defaults.XPlaneWebApiPort;
         SyncXPlaneDoors = defaults.SyncXPlaneDoors;
+        SyncSimulatorSeatbeltSign = defaults.SyncSimulatorSeatbeltSign;
         XPlaneExecutablePath = defaults.XPlaneExecutablePath;
         Msfs2024AutoConnect = defaults.Msfs2024AutoConnect;
         AutomaticallyCheckForUpdates = defaults.AutomaticallyCheckForUpdates;

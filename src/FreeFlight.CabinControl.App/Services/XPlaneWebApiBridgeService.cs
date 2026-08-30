@@ -19,7 +19,9 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
     private const string VerticalSpeed = "sim/flightmodel/position/vh_ind_fpm";
     private const string OnGroundAny = "sim/flightmodel/failures/onground_any";
     private const string GearOnGround = "sim/flightmodel2/gear/on_ground";
-    private const string SeatbeltSign = "sim/cockpit2/switches/fasten_seat_belts";
+    private const string SeatbeltAnnunciator = "sim/cockpit2/annunciators/fasten_seatbelt";
+    private const string SeatbeltSwitch = "sim/cockpit2/switches/fasten_seat_belts";
+    private const string LegacySeatbeltSwitch = "sim/cockpit/switches/fasten_seat_belts";
     private const string DoorOpenRatio = "sim/flightmodel2/misc/door_open_ratio";
     private const string EnginesRunning = "sim/flightmodel/engine/ENGN_running";
     private const string AircraftIcao = "sim/aircraft/view/acf_ICAO";
@@ -37,7 +39,9 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         VerticalSpeed,
         OnGroundAny,
         GearOnGround,
-        SeatbeltSign,
+        SeatbeltAnnunciator,
+        SeatbeltSwitch,
+        LegacySeatbeltSwitch,
         DoorOpenRatio,
         EnginesRunning,
         AircraftIcao,
@@ -278,20 +282,26 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
         var discovered = new Dictionary<string, XPlaneDataref>(StringComparer.Ordinal);
         var customDoorCount = 0;
+        var customSeatbeltCount = 0;
         foreach (var item in document.RootElement.GetProperty("data").EnumerateArray())
         {
             var name = item.GetProperty("name").GetString();
             var valueType = item.GetProperty("value_type").GetString() ?? "float";
             var isRequested = name is not null && RequestedDatarefs.Contains(name);
             var isDoorCandidate = name is not null && customDoorCount < 48 && IsDoorCandidate(name, valueType);
-            if (name is null || (!isRequested && !isDoorCandidate))
+            var isSeatbeltCandidate = name is not null && customSeatbeltCount < 32 && IsSeatbeltCandidate(name, valueType);
+            if (name is null || (!isRequested && !isDoorCandidate && !isSeatbeltCandidate))
             {
                 continue;
             }
 
-            if (!isRequested)
+            if (!isRequested && isDoorCandidate)
             {
                 customDoorCount++;
+            }
+            if (!isRequested && isSeatbeltCandidate)
+            {
+                customSeatbeltCount++;
             }
 
             discovered[name] = new XPlaneDataref(
@@ -391,7 +401,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         var verticalSpeed = GetScalar(VerticalSpeed);
         var onGround = GetScalar(OnGroundAny) >= 0.5d || GetArray(GearOnGround).Any(value => value >= 0.5d);
         var anyEngineRunning = GetArray(EnginesRunning).Any(value => value >= 0.5d);
-        var seatbeltSignOn = GetScalar(SeatbeltSign) >= 0.5d;
+        var seatbeltSignal = ResolveSeatbeltSignal();
+        var seatbeltSignOn = seatbeltSignal.IsAvailable && seatbeltSignal.Value >= 0.5d;
         var (l1DoorRatio, l2DoorRatio) = ResolveDoorRatios();
         var phase = XPlaneFlightPhaseClassifier.Classify(
             onGround,
@@ -408,6 +419,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             ["simulator_fps"] = GetScalar(FrameRatePeriod) > 0.0001d ? 1d / GetScalar(FrameRatePeriod) : 0d,
             ["simulator_running_time_sec"] = GetScalar(SimulatorRunningTime),
             ["sim_local_time_sec"] = GetScalar(SimulatorLocalTime),
+            ["seatbelt_signal_available"] = seatbeltSignal.IsAvailable ? 1d : 0d,
+            ["seatbelt_signal_raw"] = seatbeltSignal.IsAvailable ? seatbeltSignal.Value : double.NaN,
             ["pushback_active"] = onGround && groundSpeed >= 0.35d && altitudeAglFeet < 15d ? 1d : 0d
         };
         if (!double.IsNaN(l1DoorRatio))
@@ -480,6 +493,34 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         return (l1, l2);
     }
 
+    private (bool IsAvailable, double Value) ResolveSeatbeltSignal()
+    {
+        if (_values.TryGetValue(SeatbeltAnnunciator, out var annunciator))
+        {
+            return (true, annunciator.Scalar);
+        }
+
+        var custom = _values
+            .Where(pair => !RequestedDatarefs.Contains(pair.Key) && IsSeatbeltCandidate(pair.Key, "float"))
+            .Select(pair => new { pair.Value.Scalar, Score = ScoreSeatbeltName(pair.Key) })
+            .Where(item => item.Score > 0 && double.IsFinite(item.Scalar))
+            .OrderByDescending(item => item.Score)
+            .FirstOrDefault();
+        if (custom is not null)
+        {
+            return (true, custom.Scalar);
+        }
+
+        if (_values.TryGetValue(SeatbeltSwitch, out var cockpitSwitch))
+        {
+            return (true, cockpitSwitch.Scalar);
+        }
+
+        return _values.TryGetValue(LegacySeatbeltSwitch, out var legacySwitch)
+            ? (true, legacySwitch.Scalar)
+            : (false, 0d);
+    }
+
     private static double ResolveNamedDoor(
         IEnumerable<KeyValuePair<string, XPlaneValue>> candidates,
         int doorNumber)
@@ -528,6 +569,39 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
                (value.Contains("open", StringComparison.Ordinal) || value.Contains("ratio", StringComparison.Ordinal) ||
                 value.Contains("position", StringComparison.Ordinal) || value.Contains("pos", StringComparison.Ordinal) ||
                 value.Contains("status", StringComparison.Ordinal));
+    }
+
+    private static bool IsSeatbeltCandidate(string name, string valueType)
+    {
+        var value = name.ToLowerInvariant();
+        var numeric = !valueType.Contains("data", StringComparison.OrdinalIgnoreCase) &&
+                      !valueType.Contains("string", StringComparison.OrdinalIgnoreCase);
+        return numeric &&
+               ((value.Contains("seat", StringComparison.Ordinal) && value.Contains("belt", StringComparison.Ordinal)) ||
+                (value.Contains("fasten", StringComparison.Ordinal) && value.Contains("seat", StringComparison.Ordinal)));
+    }
+
+    private static int ScoreSeatbeltName(string name)
+    {
+        var value = name.ToLowerInvariant();
+        var score = 1;
+        if (value.Contains("annunciator", StringComparison.Ordinal) ||
+            value.Contains("light", StringComparison.Ordinal) ||
+            value.Contains("status", StringComparison.Ordinal) ||
+            value.Contains("sign_on", StringComparison.Ordinal))
+        {
+            score += 30;
+        }
+        if (value.Contains("switch", StringComparison.Ordinal) || value.Contains("command", StringComparison.Ordinal))
+        {
+            score -= 10;
+        }
+        if (!value.StartsWith("sim/", StringComparison.Ordinal))
+        {
+            score += 8;
+        }
+
+        return score;
     }
 
     private static double NormalizeDoorRatio(double value)

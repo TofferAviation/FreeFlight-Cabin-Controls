@@ -11,7 +11,8 @@ public sealed record SimBriefFlightSummary(
     string Destination,
     string AircraftIcao,
     DateTimeOffset? ScheduledDepartureUtc,
-    DateTimeOffset? GeneratedAtUtc);
+    DateTimeOffset? GeneratedAtUtc,
+    DateTimeOffset? EstimatedArrivalUtc = null);
 
 public interface ISimBriefClient
 {
@@ -68,7 +69,9 @@ public sealed class SimBriefClient : ISimBriefClient
             ReadAircraftIcao(root),
             ReadUnixTimestamp(root, "times", "est_out") ??
             ReadUnixTimestamp(root, "times", "sched_out"),
-            ReadUnixTimestamp(root, "params", "time_generated"));
+            ReadUnixTimestamp(root, "params", "time_generated"),
+            ReadUnixTimestamp(root, "times", "est_in") ??
+            ReadUnixTimestamp(root, "times", "sched_in"));
     }
 
     private static string ReadAircraftIcao(JsonElement root)

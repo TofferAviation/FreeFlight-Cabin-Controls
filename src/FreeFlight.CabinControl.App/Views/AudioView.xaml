@@ -154,11 +154,11 @@
                 <Grid.RowDefinitions><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
 
-                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,8" Padding="18,14">
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,8" Padding="18,14" ToolTip="{Binding PassengerAmbienceStatus}">
                     <Grid><Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition /></Grid.RowDefinitions>
                         <Grid><TextBlock Text="Passenger Ambience" Style="{StaticResource AudioCardLabelStyle}" /><ToggleButton IsChecked="{Binding PassengerAmbienceEnabled}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
                         <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="55" /><ColumnDefinition Width="45" /></Grid.ColumnDefinitions>
-                            <Slider Maximum="100" Value="{Binding PassengerAmbienceVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding PassengerAmbienceVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="&#xE768;" Command="{Binding PreviewCommand}" />
+                            <Slider Maximum="100" Value="{Binding PassengerAmbienceVolume}" Margin="0,0,8,0" /><TextBlock Grid.Column="1" Text="{Binding PassengerAmbienceVolume, StringFormat={}{0}%}" Foreground="#4CACFF" VerticalAlignment="Center" /><Button Grid.Column="2" Style="{StaticResource CircleButtonStyle}" Width="38" Height="38" Content="{Binding PassengerAmbienceActionGlyph}" Command="{Binding PassengerAmbienceCommand}" ToolTip="{Binding PassengerAmbienceActionLabel}" />
                         </Grid>
                     </Grid>
                 </Border>
