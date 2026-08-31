@@ -2,7 +2,26 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.0] - Unreleased
+## [0.4.1] - Unreleased
+
+### Added
+
+- A real vAMSYS Pilot API client boundary using Authorization Code + PKCE, cryptographic state verification, the native FreeFlight callback URI, Windows-user encrypted token storage, automatic refresh, revoked-consent handling, and the minimum `identity:basic pilot:read` scopes.
+- Connected vAMSYS pilots now receive a shared account control in the top-right application header with their name, pilot callsign, airline and optional local profile picture.
+- The connected-account window keeps personal identity read-only and redirects those changes to vAMSYS, while allowing local FreeFlight profile pictures and custom page backgrounds.
+- Background appearance preferences include 10–20 blur intensity, 10–20 percent image strength, and an option to apply the image across all parent pages.
+
+### Changed
+
+- The vAMSYS airline catalog now remains empty until a verified Pilot API profile is loaded, then contains only the airline authorized by that airline-scoped OAuth client.
+- The shared flight header now uses proportional columns so the connected-account control remains usable without covering flight, route, gate, aircraft or SimBrief information.
+- Application version advanced to 0.4.1.
+
+### Security
+
+- FreeFlight never requests or stores a vAMSYS password or OAuth client secret. Access and refresh tokens are encrypted to the signed-in Windows user and local appearance images never leave the computer.
+
+## [0.4.0] - 2026-08-30
 
 ### Added
 

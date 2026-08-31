@@ -24,7 +24,35 @@ public partial class App
             "CabinControl");
         _logService = new FileLogService(Path.Combine(settingsDirectory, "logs"));
         _logService.Information("FreeFlight Cabin Control starting.");
-        var (settings, settingsStore) = await LoadSettingsAsync(settingsDirectory);
+        var (settings, settingsStore, activeSettingsDirectory) = await LoadSettingsAsync(settingsDirectory);
+
+        var vamsysService = new VamsysOAuthService(settings, activeSettingsDirectory);
+        var oauthCallback = e.Args.FirstOrDefault(argument =>
+            argument.StartsWith("freeflight-cabin-control://", StringComparison.OrdinalIgnoreCase));
+        if (oauthCallback is not null)
+        {
+            try
+            {
+                await vamsysService.HandleAuthorizationCallbackAsync(oauthCallback);
+                MessageBox.Show(
+                    "Your vAMSYS account was connected. Return to the open FreeFlight window.",
+                    "vAMSYS connected",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception exception)
+            {
+                _logService.Error("vAMSYS authorization callback failed.", exception);
+                MessageBox.Show(
+                    exception.Message,
+                    "vAMSYS connection failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+
+            Shutdown();
+            return;
+        }
 
         var simulatorBridge = new AutomaticSimulatorBridgeService(settings, _logService);
         var flightSessionStore = new FlightSessionStore(
@@ -37,7 +65,9 @@ public partial class App
             _logService.LogDirectory,
             simulatorBridge: simulatorBridge,
             flightSessionStore: flightSessionStore,
-            updateService: updateService);
+            updateService: updateService,
+            vamsysService: vamsysService,
+            settingsDirectory: activeSettingsDirectory);
         MainWindow = new MainWindow
         {
             DataContext = viewModel
@@ -63,7 +93,7 @@ public partial class App
         e.Handled = true;
     }
 
-    private async Task<(AppSettings Settings, ISettingsStore Store)> LoadSettingsAsync(string preferredDirectory)
+    private async Task<(AppSettings Settings, ISettingsStore Store, string Directory)> LoadSettingsAsync(string preferredDirectory)
     {
         var candidates = new[]
         {
@@ -90,7 +120,7 @@ public partial class App
             {
                 var settings = await store.LoadAsync();
                 _logService?.Information($"Application settings loaded from {candidate}.");
-                return (settings, store);
+                return (settings, store, candidate);
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
             {
@@ -99,7 +129,7 @@ public partial class App
         }
 
         _logService?.Information("No writable settings file was available; defaults are in use for this session.");
-        return (new AppSettings(), fallbackStore);
+        return (new AppSettings(), fallbackStore, candidates[^1]);
     }
 
     private static bool CanWriteToDirectory(string directory)

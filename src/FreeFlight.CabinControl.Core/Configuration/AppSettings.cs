@@ -62,6 +62,24 @@ public sealed class AppSettings
 
     public List<CustomAirlineProfileSettings> CustomAirlineProfiles { get; set; } = [];
 
+    public string VamsysClientId { get; set; } = string.Empty;
+
+    public string VamsysAirlineName { get; set; } = string.Empty;
+
+    public string VamsysAirlineIcao { get; set; } = string.Empty;
+
+    public string VamsysRedirectUri { get; set; } = "freeflight-cabin-control://oauth/vamsys";
+
+    public string AccountProfileImagePath { get; set; } = string.Empty;
+
+    public string AccountBackgroundImagePath { get; set; } = string.Empty;
+
+    public double AccountBackgroundBlurRadius { get; set; } = 14d;
+
+    public int AccountBackgroundOpacityPercent { get; set; } = 15;
+
+    public bool ApplyAccountBackgroundAcrossPages { get; set; } = true;
+
     public string Theme { get; set; } = "FreeFlight Dark";
 
     public string AccentColor { get; set; } = "#1476FF";

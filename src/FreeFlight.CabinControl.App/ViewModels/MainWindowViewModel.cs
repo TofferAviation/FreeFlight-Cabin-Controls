@@ -34,7 +34,9 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         IBoardingPassPrinterService? boardingPassPrinterService = null,
         ISimulatorBridge? simulatorBridge = null,
         FlightSessionStore? flightSessionStore = null,
-        UpdateService? updateService = null)
+        UpdateService? updateService = null,
+        IVamsysOAuthService? vamsysService = null,
+        string? settingsDirectory = null)
     {
         _settings = settings;
         _simulatorBridge = simulatorBridge;
@@ -43,7 +45,15 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _operationsClock = resolvedOperationsClock;
         Status = new SharedStatusViewModel();
         GateLogin = new GateLoginViewModel(settings, resolvedOperationsClock);
-        Airliners = new AirlinersViewModel(settings, settingsStore, Status);
+        var resolvedSettingsDirectory = settingsDirectory ??
+                                        Path.GetDirectoryName(logDirectory) ??
+                                        Path.GetTempPath();
+        Airliners = new AirlinersViewModel(
+            settings,
+            settingsStore,
+            Status,
+            vamsysService ?? new VamsysOAuthService(settings, resolvedSettingsDirectory),
+            resolvedSettingsDirectory);
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
         var savedFlight = _flightSessionStore?.Load();
         if (savedFlight is not null && savedFlight.Boarding.State != BoardingRunState.DeboardingComplete)
@@ -152,6 +162,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _simulatorBridge.Dispose();
         }
         GateLogin.Dispose();
+        Airliners.Dispose();
         Audio.Dispose();
         IportDcs.Dispose();
         Operations.Dispose();

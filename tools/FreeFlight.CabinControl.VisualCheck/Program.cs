@@ -1,4 +1,7 @@
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Text;
 using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
@@ -36,6 +39,8 @@ internal static class Program
         {
             throw new InvalidOperationException("GitHub release tags were not parsed into reliable application versions.");
         }
+
+        VerifyVamsysOAuthBoundary(outputDirectory);
 
         try
         {
@@ -131,7 +136,13 @@ internal static class Program
             new DateTime(2026, 8, 25, 17, 50, 0, DateTimeKind.Local));
         var operationsClock = new FixedOperationsClock(fixedClockTime);
         var printerService = new FakeBoardingPassPrinterService();
-        var previewSettings = new AppSettings { AutomaticallyCheckForUpdates = false };
+        var previewSettings = new AppSettings
+        {
+            AutomaticallyCheckForUpdates = false,
+            VamsysClientId = "42",
+            VamsysAirlineName = "British Airways Virtual",
+            VamsysAirlineIcao = "BAW"
+        };
         var viewModel = new MainWindowViewModel(
             previewSettings,
             new JsonSettingsStore(settingsPath),
@@ -140,7 +151,9 @@ internal static class Program
             boardingMusicDirectory,
             new FakeSimBriefClient(),
             operationsClock,
-            printerService);
+            printerService,
+            vamsysService: new FakeVamsysOAuthService(),
+            settingsDirectory: outputDirectory);
         Console.WriteLine("Application view model created; constructing the window.");
         var window = new CabinControlWindow
         {
@@ -157,7 +170,14 @@ internal static class Program
 
         Console.WriteLine("Opening the application window for visual verification.");
         window.Show();
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
         Console.WriteLine("Application window opened; rendering Overview.");
+        if (!viewModel.Airliners.IsVamsysConnected ||
+            viewModel.Airliners.VamsysDisplayName != "Kristoffer Eriksen" ||
+            viewModel.Airliners.VisibleAirlines.Count != 1)
+        {
+            throw new InvalidOperationException("The connected vAMSYS profile did not populate the shared account and airline catalog.");
+        }
         if (viewModel.Operations.CurrentClockTime != "17:50:00" ||
             viewModel.Operations.ClockSourceLabel != "LOCAL TIME" ||
             viewModel.Operations.TurnaroundStartsAt != "17:30" ||
@@ -168,6 +188,36 @@ internal static class Program
         }
 
         Render(window, Path.Combine(outputDirectory, "dashboard.png"));
+
+        if (string.Equals(
+                Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_VAMSYS_ONLY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            Render(window, Path.Combine(outputDirectory, "vamsys-account-header.png"));
+            window.Width = 1120;
+            window.Height = 700;
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            Render(window, Path.Combine(outputDirectory, "vamsys-account-header-minimum-window.png"));
+            var accountWindow = new VamsysAccountWindow
+            {
+                DataContext = viewModel.Airliners,
+                Owner = window,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                Left = -20000,
+                Top = 0,
+                ShowActivated = false,
+                ShowInTaskbar = false
+            };
+            accountWindow.Show();
+            accountWindow.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            Render(accountWindow, Path.Combine(outputDirectory, "vamsys-account-settings.png"));
+            accountWindow.Close();
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered focused vAMSYS account checks to {outputDirectory}");
+            return 0;
+        }
 
         if (string.Equals(
                 Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_FLIGHTLOGGER_ONLY"),
@@ -463,6 +513,7 @@ internal static class Program
                     throw new InvalidOperationException("The imported real-world operator catalog did not contain 616 entries.");
                 }
 
+                viewModel.Airliners.SelectedCatalogSource = "Real-world operators";
                 var britishAirways = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "BAW");
                 var norwegian = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "NOZ");
                 var ryanair = viewModel.Airliners.VisibleAirlines.Single(profile => profile.Icao == "RYR");
@@ -472,9 +523,10 @@ internal static class Program
                 }
 
                 viewModel.Airliners.SelectedCatalogSource = "vAMSYS virtual airline";
-                if (viewModel.Airliners.VisibleAirlines.Count != 0)
+                if (viewModel.Airliners.VisibleAirlines.Count != 1 ||
+                    viewModel.Airliners.VisibleAirlines.Single().Type != "vAMSYS")
                 {
-                    throw new InvalidOperationException("Virtual airlines were shown before vAMSYS authorization.");
+                    throw new InvalidOperationException("The vAMSYS catalog did not contain only the authorized airline.");
                 }
 
                 viewModel.Airliners.SelectedCatalogSource = "Real-world operators";
@@ -1650,6 +1702,62 @@ internal static class Program
         Console.WriteLine($"Validated local boarding-music playback: {path}");
     }
 
+    private static void VerifyVamsysOAuthBoundary(string outputDirectory)
+    {
+        var testDirectory = Path.Combine(outputDirectory, $"vamsys-oauth-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(testDirectory);
+        Uri? authorizationUri = null;
+        var settings = new AppSettings
+        {
+            VamsysClientId = "42",
+            VamsysAirlineName = "Test Virtual",
+            VamsysAirlineIcao = "TST"
+        };
+        using var httpClient = new HttpClient(new FakeVamsysHttpHandler());
+        using var service = new VamsysOAuthService(
+            settings,
+            testDirectory,
+            httpClient,
+            uri => authorizationUri = uri,
+            () => { },
+            bytes => bytes.Select(value => (byte)(value ^ 0xA5)).ToArray(),
+            bytes => bytes.Select(value => (byte)(value ^ 0xA5)).ToArray());
+
+        service.BeginAuthorizationAsync().GetAwaiter().GetResult();
+        if (authorizationUri is null ||
+            !authorizationUri.Query.Contains("code_challenge_method=S256", StringComparison.Ordinal) ||
+            !authorizationUri.Query.Contains("scope=identity%3Abasic%20pilot%3Aread", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The vAMSYS authorization URL did not use the minimum PKCE scopes and S256 challenge.");
+        }
+
+        var state = authorizationUri.Query.TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.Split('=', 2))
+            .Where(pair => pair.Length == 2)
+            .ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1]))["state"];
+        var callback = $"{VamsysOAuthService.DefaultRedirectUri}?code=visual-code&state={Uri.EscapeDataString(state)}";
+        service.HandleAuthorizationCallbackAsync(callback).GetAwaiter().GetResult();
+        var profile = service.TryGetPilotProfileAsync().GetAwaiter().GetResult();
+        if (profile is null || profile.DisplayName != "Visual Pilot" || profile.PilotUsername != "TST001")
+        {
+            throw new InvalidOperationException("The vAMSYS callback did not produce the authenticated airline profile.");
+        }
+
+        var credentialPath = Path.Combine(testDirectory, "vamsys-oauth.dat");
+        var protectedBytes = File.ReadAllBytes(credentialPath);
+        if (Encoding.UTF8.GetString(protectedBytes).Contains("visual-access-token", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The vAMSYS credential file exposed the access token as plaintext.");
+        }
+
+        service.DisconnectAsync().GetAwaiter().GetResult();
+        if (File.Exists(credentialPath))
+        {
+            throw new InvalidOperationException("Disconnecting vAMSYS did not remove the local credential file.");
+        }
+    }
+
     private static T? FindVisualChild<T>(DependencyObject parent, Predicate<T> predicate)
         where T : DependencyObject
     {
@@ -1691,6 +1799,87 @@ internal static class Program
                 new DateTimeOffset(new DateTime(2026, 8, 25, 18, 30, 0, DateTimeKind.Local)).ToUniversalTime(),
                 DateTimeOffset.UtcNow));
         }
+    }
+
+    private sealed class FakeVamsysOAuthService : IVamsysOAuthService
+    {
+        private bool _connected = true;
+
+        public bool IsConfigured => true;
+
+        public Task BeginAuthorizationAsync(CancellationToken cancellationToken = default)
+        {
+            _connected = true;
+            return Task.CompletedTask;
+        }
+
+        public Task HandleAuthorizationCallbackAsync(string callbackUri, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<VamsysPilotProfile?> TryGetPilotProfileAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<VamsysPilotProfile?>(_connected
+                ? new VamsysPilotProfile(
+                    1001,
+                    2002,
+                    3003,
+                    "Kristoffer",
+                    "Eriksen",
+                    "pilot@example.test",
+                    "BAW1234",
+                    "Senior First Officer",
+                    "British Airways Virtual",
+                    "BAW")
+                : null);
+
+        public Task DisconnectAsync(CancellationToken cancellationToken = default)
+        {
+            _connected = false;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeVamsysHttpHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+            if (path == "/oauth/token")
+            {
+                var form = request.Content is null
+                    ? string.Empty
+                    : await request.Content.ReadAsStringAsync(cancellationToken);
+                if (!form.Contains("client_id=42", StringComparison.Ordinal) ||
+                    (!form.Contains("code_verifier=", StringComparison.Ordinal) &&
+                     !form.Contains("refresh_token=", StringComparison.Ordinal)))
+                {
+                    return Json(HttpStatusCode.BadRequest, "{\"error\":\"invalid_request\",\"message\":\"Missing PKCE fields\"}");
+                }
+
+                return Json(HttpStatusCode.OK,
+                    "{\"token_type\":\"Bearer\",\"expires_in\":3600,\"access_token\":\"visual-access-token\",\"refresh_token\":\"visual-refresh-token\"}");
+            }
+
+            if (path == "/api/v3/pilot/user")
+            {
+                return Json(HttpStatusCode.OK,
+                    "{\"data\":{\"id\":1001,\"first_name\":\"Visual\",\"last_name\":\"Pilot\",\"email\":\"visual@example.test\"}}");
+            }
+
+            if (path == "/api/v3/pilot/profile")
+            {
+                return Json(HttpStatusCode.OK,
+                    "{\"data\":{\"id\":2002,\"airline_id\":3003,\"username\":\"TST001\",\"rank\":{\"name\":\"Captain\"}}}");
+            }
+
+            return Json(HttpStatusCode.NotFound, "{\"message\":\"Not found\"}");
+        }
+
+        private static HttpResponseMessage Json(HttpStatusCode status, string json) => new(status)
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
     }
 
     private sealed class FixedOperationsClock(DateTimeOffset now) : IOperationsClock

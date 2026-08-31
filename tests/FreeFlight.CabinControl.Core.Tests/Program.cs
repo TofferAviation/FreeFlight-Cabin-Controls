@@ -96,6 +96,14 @@ static async Task SettingsRoundTripAsync()
             AudioOutputDeviceName = "Test speakers",
             ActiveAirlinePackId = "test.airline",
             ActiveAirlineId = "custom.tst",
+            VamsysClientId = "42",
+            VamsysAirlineName = "Test Virtual",
+            VamsysAirlineIcao = "TST",
+            AccountProfileImagePath = @"C:\Profiles\pilot.png",
+            AccountBackgroundImagePath = @"C:\Profiles\cabin.jpg",
+            AccountBackgroundBlurRadius = 18d,
+            AccountBackgroundOpacityPercent = 17,
+            ApplyAccountBackgroundAcrossPages = false,
             PassengerPreviewBookedCount = 196,
             PassengerPreviewSpeed = 4d,
             PassengerCabinLayoutId = "british-airways.777-300",
@@ -154,6 +162,12 @@ static async Task SettingsRoundTripAsync()
         AssertEqual("test-endpoint", actual.AudioOutputDeviceId, "Audio endpoint id was not persisted.");
         AssertEqual("test.airline", actual.ActiveAirlinePackId, "Airline pack id was not persisted.");
         AssertEqual("custom.tst", actual.ActiveAirlineId, "Active airline id was not persisted.");
+        AssertEqual("42", actual.VamsysClientId, "vAMSYS public client ID was not persisted.");
+        AssertEqual("TST", actual.VamsysAirlineIcao, "vAMSYS airline ICAO was not persisted.");
+        AssertEqual(@"C:\Profiles\pilot.png", actual.AccountProfileImagePath, "Local account picture was not persisted.");
+        AssertEqual(18d, actual.AccountBackgroundBlurRadius, "Background blur preference was not persisted.");
+        AssertEqual(17, actual.AccountBackgroundOpacityPercent, "Background strength preference was not persisted.");
+        AssertEqual(false, actual.ApplyAccountBackgroundAcrossPages, "Parent-page background preference was not persisted.");
         AssertEqual(196, actual.PassengerPreviewBookedCount, "Preview passenger count was not persisted.");
         AssertEqual(4d, actual.PassengerPreviewSpeed, "Preview boarding speed was not persisted.");
         AssertEqual("british-airways.777-300", actual.PassengerCabinLayoutId, "Cabin layout selection was not persisted.");

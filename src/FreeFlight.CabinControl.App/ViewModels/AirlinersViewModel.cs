@@ -1,35 +1,49 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.App.Views;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Persistence;
+using Microsoft.Win32;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
 
-public sealed class AirlinersViewModel : PageViewModel
+public sealed class AirlinersViewModel : PageViewModel, IDisposable
 {
     private const string AllFilter = "All";
     private readonly AppSettings _settings;
     private readonly ISettingsStore _settingsStore;
+    private readonly IVamsysOAuthService _vamsysService;
+    private readonly string _profileAssetsDirectory;
+    private readonly DispatcherTimer _vamsysPollTimer;
     private readonly List<AirlineProfileViewModel> _catalog;
     private AirlineProfileViewModel _activeAirline;
     private string _searchText = string.Empty;
     private string _activeFilter = "Real-world";
     private string _selectedCatalogSource = "Real-world operators";
     private string _selectionStatus = "Airline selection is stored locally";
+    private string _vamsysConnectionStatus = "Developer registration required";
+    private VamsysPilotProfile? _vamsysProfile;
+    private DateTimeOffset _vamsysPollDeadline;
+    private bool _isVamsysBusy;
 
     public AirlinersViewModel(
         AppSettings settings,
         ISettingsStore settingsStore,
-        SharedStatusViewModel status)
+        SharedStatusViewModel status,
+        IVamsysOAuthService vamsysService,
+        string settingsDirectory)
         : base("Airliners", "Choose your airline experience")
     {
         _settings = settings;
         _settingsStore = settingsStore;
+        _vamsysService = vamsysService;
+        _profileAssetsDirectory = Path.Combine(settingsDirectory, "profile-assets");
         Status = status;
         _catalog = CreateCatalog(settings.CustomAirlineProfiles);
         _activeAirline = _catalog.FirstOrDefault(profile =>
@@ -41,9 +55,22 @@ public sealed class AirlinersViewModel : PageViewModel
         SelectAirlineCommand = new RelayCommand(SelectAirline);
         FilterCommand = new RelayCommand(SetFilter);
         ChangeAirlineCommand = new RelayCommand(_ => ResetCatalog());
-        ConnectVamsysCommand = new RelayCommand(_ => OpenVamsysSetup());
+        ConnectVamsysCommand = new AsyncRelayCommand(ConnectVamsysAsync, ShowVamsysError);
+        DisconnectVamsysCommand = new AsyncRelayCommand(DisconnectVamsysAsync, ShowVamsysError);
+        OpenAccountProfileCommand = new RelayCommand(_ => OpenAccountProfile());
+        OpenVamsysAccountCommand = new RelayCommand(_ => OpenVamsysAccount());
+        ChooseProfileImageCommand = new AsyncRelayCommand(ChooseProfileImageAsync, ShowVamsysError);
+        ChooseBackgroundImageCommand = new AsyncRelayCommand(ChooseBackgroundImageAsync, ShowVamsysError);
+        RemoveProfileImageCommand = new AsyncRelayCommand(RemoveProfileImageAsync, ShowVamsysError);
+        RemoveBackgroundImageCommand = new AsyncRelayCommand(RemoveBackgroundImageAsync, ShowVamsysError);
         CreateProfileCommand = new RelayCommand(_ => CreateCustomProfile());
+        _vamsysPollTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1.5)
+        };
+        _vamsysPollTimer.Tick += HandleVamsysPollTick;
         ApplyFilter();
+        _ = RefreshVamsysProfileAsync();
     }
 
     public SharedStatusViewModel Status { get; }
@@ -57,6 +84,20 @@ public sealed class AirlinersViewModel : PageViewModel
     public ICommand ChangeAirlineCommand { get; }
 
     public ICommand ConnectVamsysCommand { get; }
+
+    public ICommand DisconnectVamsysCommand { get; }
+
+    public ICommand OpenAccountProfileCommand { get; }
+
+    public ICommand OpenVamsysAccountCommand { get; }
+
+    public ICommand ChooseProfileImageCommand { get; }
+
+    public ICommand ChooseBackgroundImageCommand { get; }
+
+    public ICommand RemoveProfileImageCommand { get; }
+
+    public ICommand RemoveBackgroundImageCommand { get; }
 
     public ICommand CreateProfileCommand { get; }
 
@@ -112,10 +153,129 @@ public sealed class AirlinersViewModel : PageViewModel
         }
     }
 
-    public bool IsVamsysConnected => false;
+    public bool IsVamsysConnected => _vamsysProfile is not null;
+
+    public bool IsVamsysBusy
+    {
+        get => _isVamsysBusy;
+        private set
+        {
+            if (SetProperty(ref _isVamsysBusy, value))
+            {
+                OnPropertyChanged(nameof(VamsysActionLabel));
+            }
+        }
+    }
+
+    public string VamsysConnectionStatus
+    {
+        get => _vamsysConnectionStatus;
+        private set => SetProperty(ref _vamsysConnectionStatus, value);
+    }
+
+    public string VamsysActionLabel => IsVamsysBusy
+        ? "Waiting for vAMSYS…"
+        : IsVamsysConnected
+            ? "Reconnect vAMSYS"
+            : _vamsysService.IsConfigured
+                ? "Connect vAMSYS"
+                : "Configure vAMSYS";
+
+    public string VamsysDisplayName => _vamsysProfile?.DisplayName ?? "vAMSYS pilot";
+
+    public string VamsysPilotLabel => _vamsysProfile is null
+        ? string.Empty
+        : $"{_vamsysProfile.PilotUsername} · {_vamsysProfile.AirlineIcao}";
+
+    public string VamsysEmail => _vamsysProfile?.Email ?? string.Empty;
+
+    public string VamsysRank => string.IsNullOrWhiteSpace(_vamsysProfile?.RankName)
+        ? "Pilot"
+        : _vamsysProfile.RankName;
+
+    public string VamsysAvatarInitials
+    {
+        get
+        {
+            var parts = VamsysDisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length switch
+            {
+                0 => "VA",
+                1 => parts[0][..1].ToUpperInvariant(),
+                _ => $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant()
+            };
+        }
+    }
+
+    public Uri? AccountProfileImageUri => ToExistingFileUri(_settings.AccountProfileImagePath);
+
+    public bool HasAccountProfileImage => AccountProfileImageUri is not null;
+
+    public Uri? AccountBackgroundImageUri => ToExistingFileUri(_settings.AccountBackgroundImagePath);
+
+    public Uri? ActiveBackgroundImageUri => ApplyAccountBackgroundAcrossPages
+        ? AccountBackgroundImageUri
+        : null;
+
+    public bool HasActiveBackgroundImage => ActiveBackgroundImageUri is not null;
+
+    public double AccountBackgroundOpacity => Math.Clamp(_settings.AccountBackgroundOpacityPercent, 10, 20) / 100d;
+
+    public int AccountBackgroundOpacityPercent
+    {
+        get => Math.Clamp(_settings.AccountBackgroundOpacityPercent, 10, 20);
+        set
+        {
+            var clamped = Math.Clamp(value, 10, 20);
+            if (_settings.AccountBackgroundOpacityPercent == clamped)
+            {
+                return;
+            }
+
+            _settings.AccountBackgroundOpacityPercent = clamped;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AccountBackgroundOpacity));
+            _ = SaveAppearanceAsync();
+        }
+    }
+
+    public double AccountBackgroundBlurRadius
+    {
+        get => Math.Clamp(_settings.AccountBackgroundBlurRadius, 10d, 20d);
+        set
+        {
+            var clamped = Math.Clamp(value, 10d, 20d);
+            if (Math.Abs(_settings.AccountBackgroundBlurRadius - clamped) < 0.01d)
+            {
+                return;
+            }
+
+            _settings.AccountBackgroundBlurRadius = clamped;
+            OnPropertyChanged();
+            _ = SaveAppearanceAsync();
+        }
+    }
+
+    public bool ApplyAccountBackgroundAcrossPages
+    {
+        get => _settings.ApplyAccountBackgroundAcrossPages;
+        set
+        {
+            if (_settings.ApplyAccountBackgroundAcrossPages == value)
+            {
+                return;
+            }
+
+            _settings.ApplyAccountBackgroundAcrossPages = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ActiveBackgroundImageUri));
+            OnPropertyChanged(nameof(HasActiveBackgroundImage));
+            _ = SaveAppearanceAsync();
+        }
+    }
 
     public string AirlineSourceStatus => IsVamsysConnected
-        ? "Showing the virtual airline authorized through vAMSYS"
+        ? $"Showing {_vamsysProfile!.AirlineName}, authorized through vAMSYS"
         : "No vAMSYS airline connected · the virtual-airline catalog is empty";
 
     public bool HasVisibleAirlines => VisibleAirlines.Count > 0;
@@ -230,24 +390,265 @@ public sealed class AirlinersViewModel : PageViewModel
         _ => true
     };
 
-    private static void OpenVamsysSetup()
+    private async Task ConnectVamsysAsync()
     {
-        var choice = MessageBox.Show(
-            "FreeFlight will use vAMSYS browser authorization and will never ask for your vAMSYS password. " +
-            "An approved vAMSYS Pilot API client registration is required before sign-in can be enabled.\n\n" +
-            "Open the official vAMSYS developer documentation?",
-            "vAMSYS connection setup",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Information);
-        if (choice != MessageBoxResult.Yes)
+        if (!_vamsysService.IsConfigured)
+        {
+            var setup = new VamsysSetupWindow(
+                _settings.VamsysClientId,
+                _settings.VamsysAirlineName,
+                _settings.VamsysAirlineIcao,
+                _settings.VamsysRedirectUri)
+            {
+                Owner = Application.Current.MainWindow
+            };
+            if (setup.ShowDialog() != true)
+            {
+                return;
+            }
+
+            _settings.VamsysClientId = setup.ClientId;
+            _settings.VamsysAirlineName = setup.AirlineName;
+            _settings.VamsysAirlineIcao = setup.AirlineIcao;
+            _settings.VamsysRedirectUri = VamsysOAuthService.DefaultRedirectUri;
+            await _settingsStore.SaveAsync(_settings);
+            OnPropertyChanged(nameof(VamsysActionLabel));
+        }
+
+        IsVamsysBusy = true;
+        VamsysConnectionStatus = "Complete the secure authorization in your browser";
+        await _vamsysService.BeginAuthorizationAsync();
+        _vamsysPollDeadline = DateTimeOffset.UtcNow.AddMinutes(10);
+        _vamsysPollTimer.Start();
+    }
+
+    private async Task DisconnectVamsysAsync()
+    {
+        _vamsysPollTimer.Stop();
+        await _vamsysService.DisconnectAsync();
+        _vamsysProfile = null;
+        _catalog.RemoveAll(profile => profile.Type == "vAMSYS");
+        var realWorldFallback = _catalog.FirstOrDefault(profile => profile.Type == "Real-world" && profile.Icao == "BAW")
+                                ?? _catalog.First(profile => profile.Type == "Real-world");
+        SelectAirline(realWorldFallback);
+        SelectedCatalogSource = "Real-world operators";
+        IsVamsysBusy = false;
+        VamsysConnectionStatus = "Disconnected locally · consent can also be revoked in vAMSYS";
+        ApplyFilter();
+
+        NotifyVamsysProfileChanged();
+    }
+
+    private async void HandleVamsysPollTick(object? sender, EventArgs e)
+    {
+        if (DateTimeOffset.UtcNow >= _vamsysPollDeadline)
+        {
+            _vamsysPollTimer.Stop();
+            IsVamsysBusy = false;
+            VamsysConnectionStatus = "Authorization timed out · choose Connect vAMSYS to try again";
+            return;
+        }
+
+        await RefreshVamsysProfileAsync();
+        if (IsVamsysConnected)
+        {
+            _vamsysPollTimer.Stop();
+            IsVamsysBusy = false;
+        }
+    }
+
+    private async Task RefreshVamsysProfileAsync()
+    {
+        try
+        {
+            var profile = await _vamsysService.TryGetPilotProfileAsync();
+            if (profile is null)
+            {
+                if (!IsVamsysBusy)
+                {
+                    VamsysConnectionStatus = _vamsysService.IsConfigured
+                        ? "Ready for secure browser authorization"
+                        : "Developer registration required";
+                }
+                return;
+            }
+
+            ApplyVamsysProfile(profile);
+        }
+        catch (Exception exception)
+        {
+            _vamsysPollTimer.Stop();
+            IsVamsysBusy = false;
+            VamsysConnectionStatus = exception.Message;
+        }
+    }
+
+    private void ApplyVamsysProfile(VamsysPilotProfile profile)
+    {
+        _vamsysProfile = profile;
+        _catalog.RemoveAll(entry => entry.Type == "vAMSYS");
+        var airline = new AirlineProfileViewModel(
+            $"vamsys.{profile.AirlineId}",
+            profile.AirlineName,
+            profile.AirlineIcao,
+            "vAMSYS",
+            "vAMSYS linked profile",
+            false);
+        _catalog.Add(airline);
+        VamsysConnectionStatus = $"Connected as {profile.PilotUsername} · {profile.AirlineName}";
+        IsVamsysBusy = false;
+        SelectedCatalogSource = "vAMSYS virtual airline";
+        ApplyFilter();
+        SelectAirline(airline);
+        NotifyVamsysProfileChanged();
+    }
+
+    private void NotifyVamsysProfileChanged()
+    {
+        OnPropertyChanged(nameof(IsVamsysConnected));
+        OnPropertyChanged(nameof(VamsysActionLabel));
+        OnPropertyChanged(nameof(VamsysDisplayName));
+        OnPropertyChanged(nameof(VamsysPilotLabel));
+        OnPropertyChanged(nameof(VamsysEmail));
+        OnPropertyChanged(nameof(VamsysRank));
+        OnPropertyChanged(nameof(VamsysAvatarInitials));
+        OnPropertyChanged(nameof(AirlineSourceStatus));
+        OnPropertyChanged(nameof(EmptyCatalogMessage));
+    }
+
+    private void OpenAccountProfile()
+    {
+        if (!IsVamsysConnected)
         {
             return;
         }
 
-        Process.Start(new ProcessStartInfo("https://vamsys.io/docs/pilot")
+        new VamsysAccountWindow
         {
-            UseShellExecute = true
-        });
+            Owner = Application.Current.MainWindow,
+            DataContext = this
+        }.ShowDialog();
+    }
+
+    private static void OpenVamsysAccount() => Process.Start(new ProcessStartInfo(VamsysOAuthService.AccountPortalUrl)
+    {
+        UseShellExecute = true
+    });
+
+    private async Task ChooseProfileImageAsync()
+    {
+        var selected = SelectImage("Choose a local FreeFlight profile picture");
+        if (selected is null)
+        {
+            return;
+        }
+
+        _settings.AccountProfileImagePath = CopyProfileAsset(selected, "profile-picture");
+        await _settingsStore.SaveAsync(_settings);
+        OnPropertyChanged(nameof(AccountProfileImageUri));
+        OnPropertyChanged(nameof(HasAccountProfileImage));
+    }
+
+    private async Task ChooseBackgroundImageAsync()
+    {
+        var selected = SelectImage("Choose a local FreeFlight background image");
+        if (selected is null)
+        {
+            return;
+        }
+
+        _settings.AccountBackgroundImagePath = CopyProfileAsset(selected, "account-background");
+        await _settingsStore.SaveAsync(_settings);
+        OnPropertyChanged(nameof(AccountBackgroundImageUri));
+        OnPropertyChanged(nameof(ActiveBackgroundImageUri));
+        OnPropertyChanged(nameof(HasActiveBackgroundImage));
+    }
+
+    private async Task RemoveProfileImageAsync()
+    {
+        _settings.AccountProfileImagePath = string.Empty;
+        await _settingsStore.SaveAsync(_settings);
+        OnPropertyChanged(nameof(AccountProfileImageUri));
+        OnPropertyChanged(nameof(HasAccountProfileImage));
+    }
+
+    private async Task RemoveBackgroundImageAsync()
+    {
+        _settings.AccountBackgroundImagePath = string.Empty;
+        await _settingsStore.SaveAsync(_settings);
+        OnPropertyChanged(nameof(AccountBackgroundImageUri));
+        OnPropertyChanged(nameof(ActiveBackgroundImageUri));
+        OnPropertyChanged(nameof(HasActiveBackgroundImage));
+    }
+
+    private async Task SaveAppearanceAsync()
+    {
+        try
+        {
+            await _settingsStore.SaveAsync(_settings);
+        }
+        catch (Exception exception)
+        {
+            SelectionStatus = $"Appearance setting could not be saved: {exception.Message}";
+        }
+    }
+
+    private static string? SelectImage(string title)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = title,
+            Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp|All files|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+        return dialog.ShowDialog(Application.Current.MainWindow) == true ? dialog.FileName : null;
+    }
+
+    private string CopyProfileAsset(string sourcePath, string baseName)
+    {
+        Directory.CreateDirectory(_profileAssetsDirectory);
+        var extension = Path.GetExtension(sourcePath).ToLowerInvariant();
+        if (extension is not (".png" or ".jpg" or ".jpeg" or ".bmp"))
+        {
+            throw new InvalidOperationException("Choose a PNG, JPG, or BMP image.");
+        }
+
+        var destination = Path.Combine(_profileAssetsDirectory, baseName + extension);
+        if (string.Equals(Path.GetFullPath(sourcePath), Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
+        {
+            return destination;
+        }
+
+        if (new FileInfo(sourcePath).Length > 20 * 1024 * 1024)
+        {
+            throw new InvalidOperationException("Choose an image smaller than 20 MB.");
+        }
+
+        File.Copy(sourcePath, destination, true);
+        return destination;
+    }
+
+    private static Uri? ToExistingFileUri(string path) =>
+        !string.IsNullOrWhiteSpace(path) && File.Exists(path)
+            ? new Uri(Path.GetFullPath(path), UriKind.Absolute)
+            : null;
+
+    private void ShowVamsysError(Exception exception)
+    {
+        IsVamsysBusy = false;
+        VamsysConnectionStatus = exception.Message;
+        MessageBox.Show(exception.Message, "vAMSYS", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    public void Dispose()
+    {
+        _vamsysPollTimer.Stop();
+        _vamsysPollTimer.Tick -= HandleVamsysPollTick;
+        if (_vamsysService is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
     }
 
     private void CreateCustomProfile()

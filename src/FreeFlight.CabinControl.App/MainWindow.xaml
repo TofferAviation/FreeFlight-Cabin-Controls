@@ -245,26 +245,67 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Background="#9A061326" BorderBrush="#263A52" BorderThickness="0,0,0,1">
+                <Image Grid.Row="1"
+                       Source="{Binding Airliners.ActiveBackgroundImageUri}"
+                       Stretch="UniformToFill"
+                       Opacity="{Binding Airliners.AccountBackgroundOpacity}"
+                       IsHitTestVisible="False"
+                       Panel.ZIndex="0"
+                       Visibility="{Binding Airliners.HasActiveBackgroundImage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Image.Effect>
+                        <BlurEffect Radius="{Binding Airliners.AccountBackgroundBlurRadius}" />
+                    </Image.Effect>
+                </Image>
+                <Border Grid.Row="1" Background="#A806101F" IsHitTestVisible="False" Panel.ZIndex="1"
+                        Visibility="{Binding Airliners.HasActiveBackgroundImage, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                <Border Grid.Row="0" Background="#9A061326" BorderBrush="#263A52" BorderThickness="0,0,0,1" Panel.ZIndex="3">
                     <Grid Margin="20,0,145,0">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="270" /><ColumnDefinition Width="1" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="140" /><ColumnDefinition Width="1" /><ColumnDefinition Width="195" /><ColumnDefinition Width="215" /></Grid.ColumnDefinitions>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="1.6*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="1.05*" /><ColumnDefinition Width="1.15*" /><ColumnDefinition Width="1.2*" /></Grid.ColumnDefinitions>
                         <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/BAW.png"
-                               Width="245"
+                               MaxWidth="245"
                                Height="48"
                                HorizontalAlignment="Left"
                                VerticalAlignment="Center"
                                Stretch="Uniform"
                                Tag="HeaderBritishAirwaysWordmark" />
                         <Rectangle Grid.Column="1" Fill="#263A52" Margin="0,14" />
-                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="20,0"><TextBlock Text="{Binding Operations.FlightNumber}" FontSize="21" FontWeight="SemiBold" /><TextBlock Text="{Binding Operations.RouteSummary}" Style="{StaticResource MutedTextStyle}" /></StackPanel>
+                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="16,0"><TextBlock Text="{Binding Operations.FlightNumber}" FontSize="21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Operations.RouteSummary}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" /></StackPanel>
                         <Rectangle Grid.Column="3" Fill="#263A52" Margin="0,14" />
                         <StackPanel Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="GATE" Tag="GateHeaderLabel" FontSize="9" FontWeight="SemiBold" Foreground="#7F93AA" HorizontalAlignment="Center" />
                             <TextBlock Text="{Binding Operations.GateHeader}" FontSize="13" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,3,0,0" />
                         </StackPanel>
                         <Rectangle Grid.Column="5" Fill="#263A52" Margin="0,14" />
-                        <TextBlock Grid.Column="6" Text="{Binding Operations.AircraftName}" FontSize="16" VerticalAlignment="Center" Margin="20,0" />
-                        <StackPanel Grid.Column="7" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding Operations.SimBriefConnectionLabel}" FontSize="15" HorizontalAlignment="Right" /><TextBlock Text="{Binding Operations.SimBriefImportLabel}" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Right" /></StackPanel>
+                        <TextBlock Grid.Column="6" Text="{Binding Operations.AircraftName}" FontSize="16" VerticalAlignment="Center" Margin="14,0" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="7" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding Operations.SimBriefConnectionLabel}" FontSize="15" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Operations.SimBriefImportLabel}" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" /></StackPanel>
+                        <Button Grid.Column="8"
+                                Command="{Binding Airliners.OpenAccountProfileCommand}"
+                                Background="#0F2138"
+                                BorderBrush="#315278"
+                                BorderThickness="1"
+                                Padding="7,5"
+                                Margin="12,13,0,13"
+                                HorizontalAlignment="Stretch"
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                                ToolTip="Open FreeFlight account appearance and vAMSYS profile"
+                                Visibility="{Binding Airliners.IsVamsysConnected, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition Width="*" /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
+                                <Grid Width="36" Height="36">
+                                    <Ellipse Fill="#173B67" Stroke="#55AEFF" StrokeThickness="1.5" />
+                                    <TextBlock Text="{Binding Airliners.VamsysAvatarInitials}" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <Ellipse Visibility="{Binding Airliners.HasAccountProfileImage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Ellipse.Fill><ImageBrush ImageSource="{Binding Airliners.AccountProfileImageUri}" Stretch="UniformToFill" /></Ellipse.Fill>
+                                    </Ellipse>
+                                </Grid>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Airliners.VamsysDisplayName}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Airliners.VamsysPilotLabel}" Foreground="#69B8FF" FontSize="9" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="&#xE70D;" FontFamily="Segoe Fluent Icons" Foreground="#8FA9C6" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                            </Grid>
+                        </Button>
                     </Grid>
                 </Border>
 
@@ -272,14 +313,15 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
                             Margin="0,4,5,0"
-                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Panel.ZIndex="4">
                     <Button Style="{StaticResource WindowButtonStyle}" Content="&#xE921;" Click="MinimizeButton_Click" ToolTip="Minimize" />
                     <Button Style="{StaticResource WindowButtonStyle}" Content="&#xE922;" Click="MaximizeButton_Click" ToolTip="Maximize or restore" />
                     <Button Style="{StaticResource CloseWindowButtonStyle}" Content="&#xE8BB;" Click="CloseButton_Click" ToolTip="Close" />
                 </StackPanel>
 
                 <!-- Keep page instances alive so long-running cabin media is not restarted by navigation. -->
-                <Grid Grid.Row="1" Margin="20,12,20,20">
+                <Grid Grid.Row="1" Margin="20,12,20,20" Panel.ZIndex="2">
                     <views:GateLoginView DataContext="{Binding GateLogin}"
                                          Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=GateLogin}" />
                     <views:DashboardView DataContext="{Binding Dashboard}"
