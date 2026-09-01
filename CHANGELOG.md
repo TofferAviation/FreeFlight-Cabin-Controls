@@ -15,6 +15,7 @@ All notable changes are recorded here. User settings and unfinished-flight state
 
 - The vAMSYS airline catalog now remains empty until a verified Pilot API profile is loaded, then contains only the airline authorized by that airline-scoped OAuth client.
 - The shared flight header now uses proportional columns so the connected-account control remains usable without covering flight, route, gate, aircraft or SimBrief information.
+- Release patch selection now counts an existing `.0` tag correctly instead of treating zero as an empty result, ensuring the updater receives a genuinely newer tag.
 - Application version advanced to 0.4.1.
 
 ### Security

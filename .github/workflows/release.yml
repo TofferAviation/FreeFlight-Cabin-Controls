@@ -38,7 +38,7 @@ jobs:
           $patches = git tag --list "v$series.*" | ForEach-Object {
             if ($_ -match '^v0\.4\.(\d+)$') { [int]$Matches[1] }
           }
-          $patch = if ($patches) { (($patches | Measure-Object -Maximum).Maximum + 1) } else { 0 }
+          $patch = if (@($patches).Count -gt 0) { (($patches | Measure-Object -Maximum).Maximum + 1) } else { 0 }
           $version = "$series.$patch"
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
