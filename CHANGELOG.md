@@ -2,7 +2,27 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.1] - Unreleased
+## [0.4.2] - Unreleased
+
+### Added
+
+- Seated passengers now react individually when the seat-belt sign illuminates: most respond within a short deterministic delay, immediate responders remain possible, and the live cabin reports how many are still securing themselves.
+- X-Plane cabin controls are now bidirectional. Manual L1/L2 and seat-belt requests use the local Web API's writable dataref endpoint while rejected/read-only mappings fall back safely to the local UI.
+- An aircraft-neutral cabin-adapter contract and FlightFactor 777 v2 identity profile prepare door, seat-belt and future cabin-panel semantics for the verified v0.5.0 mapping pass.
+
+### Changed
+
+- X-Plane cabin-dataref discovery ranks all matching aircraft signals instead of accepting the first arbitrary subset, learns which values actually change, and automatically rediscovers mappings after the active ACF changes.
+- In-flight passenger movement refreshes in 125–500 ms slices according to performance mode, keeping persistent routes while removing the former one-to-two-second visual jumps.
+- Application version advanced to 0.4.2.
+
+### Fixed
+
+- FlightFactor passenger entry and the L1/L2 controls now use the cropped schematic's real galley threshold instead of the lower British Airways-map coordinate, keeping passengers centered through the doorway.
+- Static standard annunciators no longer permanently mask a changing aircraft-specific seat-belt signal.
+- Live simulator door updates no longer echo back as outgoing user commands.
+
+## [0.4.1] - 2026-09-01
 
 ### Added
 

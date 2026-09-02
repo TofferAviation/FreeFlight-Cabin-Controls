@@ -49,3 +49,15 @@ public interface ISimulatorBridge : IDisposable
 
     void RequestReconnect();
 }
+
+public interface ISimulatorCabinControlBridge
+{
+    Task<bool> SetPassengerDoorOpenAsync(
+        int doorNumber,
+        bool isOpen,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> SetSeatbeltSignAsync(
+        bool isOn,
+        CancellationToken cancellationToken = default);
+}

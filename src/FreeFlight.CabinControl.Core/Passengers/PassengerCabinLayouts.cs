@@ -4,7 +4,9 @@ internal sealed record PassengerCabinLayoutDefinition(
     PassengerCabinLayout Layout,
     IReadOnlyList<CabinSeat> Seats,
     double L1DoorX,
-    double L2DoorX);
+    double L2DoorX,
+    double DoorEntryY,
+    double DoorThresholdY);
 
 internal static class PassengerCabinLayouts
 {
@@ -48,7 +50,13 @@ internal static class PassengerCabinLayouts
             [30d, 39d, 48d, 67d, 74d, 81d, 88d, 102d, 111d, 120d],
             57d,
             95d);
-        return new PassengerCabinLayoutDefinition(PassengerCabinLayout.FlightFactor777V2, seats, 183d, 426d);
+        return new PassengerCabinLayoutDefinition(
+            PassengerCabinLayout.FlightFactor777V2,
+            seats,
+            183d,
+            426d,
+            145d,
+            128d);
     }
 
     private static PassengerCabinLayoutDefinition CreateBritishAirways777200Er()
@@ -96,7 +104,13 @@ internal static class PassengerCabinLayouts
         AddMappedRow(seats, PassengerCabinClass.Economy, 40,
             [("D", 2572.4d, 240.6d), ("E", 2572.5d, 211.3d), ("F", 2571.9d, 182.2d), ("G", 2572d, 151.5d)],
             2860d, 380d, 70d, 129d);
-        return new PassengerCabinLayoutDefinition(PassengerCabinLayout.BritishAirways777200Er, seats, 52d, 295d);
+        return new PassengerCabinLayoutDefinition(
+            PassengerCabinLayout.BritishAirways777200Er,
+            seats,
+            52d,
+            295d,
+            208d,
+            174d);
     }
 
     private static PassengerCabinLayoutDefinition CreateBritishAirways777300()
@@ -141,7 +155,13 @@ internal static class PassengerCabinLayouts
             [("A", 2634d, 353d), ("B", 2631.7d, 325.7d),
              ("D", 2626.8d, 272.5d), ("E", 2627d, 247.1d), ("F", 2625.9d, 222.2d), ("G", 2626d, 196.5d),
              ("J", 2634.4d, 141.5d), ("K", 2636.1d, 116.5d)], 2855d, 390d, 84d, 135d);
-        return new PassengerCabinLayoutDefinition(PassengerCabinLayout.BritishAirways777300, seats, 50d, 228d);
+        return new PassengerCabinLayoutDefinition(
+            PassengerCabinLayout.BritishAirways777300,
+            seats,
+            50d,
+            228d,
+            208d,
+            174d);
     }
 
     private static void AddMappedRows(

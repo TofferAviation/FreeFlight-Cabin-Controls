@@ -10,7 +10,7 @@ using FreeFlight.CabinControl.Core.Integration;
 
 namespace FreeFlight.CabinControl.App.Services;
 
-public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
+public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge
 {
     private const double MetresToFeet = 3.280839895d;
     private const string AltitudeMsl = "sim/flightmodel/position/elevation";
@@ -52,13 +52,23 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         SimulatorLocalTime
     ];
 
+    private static readonly IReadOnlyList<IAircraftCabinAdapter> AircraftCabinAdapters =
+    [
+        new FlightFactor777V2CabinAdapter()
+    ];
+
     private readonly AppSettings _settings;
     private readonly FileLogService _log;
     private readonly HttpClient _httpClient;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly SemaphoreSlim _reconnectSignal = new(0, 1);
     private readonly object _socketLock = new();
+    private readonly object _valuesLock = new();
     private readonly Dictionary<string, XPlaneValue> _values = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, SignalHistory> _signalHistory = new(StringComparer.Ordinal);
+    private readonly SemaphoreSlim _controlWriteLock = new(1, 1);
+    private IReadOnlyDictionary<string, XPlaneDataref> _datarefsByName =
+        new Dictionary<string, XPlaneDataref>(StringComparer.Ordinal);
     private ClientWebSocket? _activeSocket;
     private Task? _runTask;
     private BridgeStatus _currentStatus = BridgeStatus.XPlaneOffline;
@@ -66,6 +76,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
     private string? _lastLoggedFailure;
     private string _apiVersion = "v1";
     private string _simulatorVersion = "12.1.1+";
+    private string _lastDatarefDiscoveryAircraftPath = string.Empty;
+    private int _aircraftRediscoveryPending;
     private bool _disposed;
 
     public XPlaneWebApiBridgeService(AppSettings settings, FileLogService log)
@@ -118,6 +130,43 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             {
             }
         }
+    }
+
+    public async Task<bool> SetPassengerDoorOpenAsync(
+        int doorNumber,
+        bool isOpen,
+        CancellationToken cancellationToken = default)
+    {
+        if (doorNumber is not (1 or 2))
+        {
+            return false;
+        }
+
+        foreach (var target in ResolveWritableDoorTargets(doorNumber))
+        {
+            if (await WriteDatarefAsync(target.Dataref, isOpen ? 1d : 0d, target.Index, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public async Task<bool> SetSeatbeltSignAsync(
+        bool isOn,
+        CancellationToken cancellationToken = default)
+    {
+        foreach (var target in ResolveWritableSeatbeltTargets())
+        {
+            if (await WriteDatarefAsync(target, isOn ? 1d : 0d, null, cancellationToken).ConfigureAwait(false))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void Dispose()
@@ -185,7 +234,12 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             finally
             {
                 ClearActiveSocket();
-                _values.Clear();
+                lock (_valuesLock)
+                {
+                    _values.Clear();
+                    _signalHistory.Clear();
+                    _datarefsByName = new Dictionary<string, XPlaneDataref>(StringComparer.Ordinal);
+                }
             }
 
             await WaitForRetryAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
@@ -200,6 +254,10 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         _simulatorVersion = capabilities.SimulatorVersion;
 
         var descriptors = await DiscoverDatarefsAsync(port, _apiVersion, cancellationToken).ConfigureAwait(false);
+        lock (_valuesLock)
+        {
+            _datarefsByName = descriptors;
+        }
         if (!descriptors.ContainsKey(GroundSpeed) ||
             (!descriptors.ContainsKey(OnGroundAny) && !descriptors.ContainsKey(GearOnGround)))
         {
@@ -221,6 +279,7 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             "Aircraft telemetry detected",
             $"Web API {_apiVersion} · {descriptors.Count} cabin datarefs · live at up to 10 Hz"));
         _log.Information($"Connected to X-Plane {_simulatorVersion} through Web API {_apiVersion} on port {port}.");
+        LogCabinSignalDiscovery(descriptors.Values);
 
         var descriptorsById = descriptors.Values.ToDictionary(item => item.Id);
         await ReceiveLoopAsync(socket, descriptorsById, cancellationToken).ConfigureAwait(false);
@@ -280,35 +339,38 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-        var discovered = new Dictionary<string, XPlaneDataref>(StringComparer.Ordinal);
-        var customDoorCount = 0;
-        var customSeatbeltCount = 0;
+        var available = new List<XPlaneDataref>();
         foreach (var item in document.RootElement.GetProperty("data").EnumerateArray())
         {
             var name = item.GetProperty("name").GetString();
             var valueType = item.GetProperty("value_type").GetString() ?? "float";
-            var isRequested = name is not null && RequestedDatarefs.Contains(name);
-            var isDoorCandidate = name is not null && customDoorCount < 48 && IsDoorCandidate(name, valueType);
-            var isSeatbeltCandidate = name is not null && customSeatbeltCount < 32 && IsSeatbeltCandidate(name, valueType);
-            if (name is null || (!isRequested && !isDoorCandidate && !isSeatbeltCandidate))
+            if (name is null)
             {
                 continue;
             }
 
-            if (!isRequested && isDoorCandidate)
-            {
-                customDoorCount++;
-            }
-            if (!isRequested && isSeatbeltCandidate)
-            {
-                customSeatbeltCount++;
-            }
-
-            discovered[name] = new XPlaneDataref(
+            available.Add(new XPlaneDataref(
                 item.GetProperty("id").GetInt64(),
                 name,
-                valueType);
+                valueType));
         }
+
+        var requested = available.Where(item => RequestedDatarefs.Contains(item.Name));
+        var doorCandidates = available
+            .Where(item => !RequestedDatarefs.Contains(item.Name) && IsDoorCandidate(item.Name, item.ValueType))
+            .OrderByDescending(item => ScoreDoorDiscoveryName(item.Name))
+            .ThenBy(item => item.Name, StringComparer.Ordinal)
+            .Take(96);
+        var seatbeltCandidates = available
+            .Where(item => !RequestedDatarefs.Contains(item.Name) && IsSeatbeltCandidate(item.Name, item.ValueType))
+            .OrderByDescending(item => ScoreSeatbeltName(item.Name))
+            .ThenBy(item => item.Name, StringComparer.Ordinal)
+            .Take(64);
+        var discovered = requested
+            .Concat(doorCandidates)
+            .Concat(seatbeltCandidates)
+            .DistinctBy(item => item.Name, StringComparer.Ordinal)
+            .ToDictionary(item => item.Name, StringComparer.Ordinal);
 
         return discovered;
     }
@@ -377,15 +439,32 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             return;
         }
 
-        foreach (var item in data.EnumerateObject())
+        lock (_valuesLock)
         {
-            if (!long.TryParse(item.Name, out var id) || !descriptorsById.TryGetValue(id, out var descriptor))
+            foreach (var item in data.EnumerateObject())
             {
-                continue;
-            }
+                if (!long.TryParse(item.Name, out var id) || !descriptorsById.TryGetValue(id, out var descriptor))
+                {
+                    continue;
+                }
 
-            _values[descriptor.Name] = XPlaneValue.Parse(item.Value, descriptor.ValueType);
+                var parsed = XPlaneValue.Parse(item.Value, descriptor.ValueType);
+                if (_values.TryGetValue(descriptor.Name, out var previous) && !previous.EquivalentTo(parsed))
+                {
+                    if (!_signalHistory.TryGetValue(descriptor.Name, out var history))
+                    {
+                        history = new SignalHistory();
+                        _signalHistory[descriptor.Name] = history;
+                    }
+
+                    history.ObserveChange(DateTimeOffset.UtcNow);
+                }
+
+                _values[descriptor.Name] = parsed;
+            }
         }
+
+        ScheduleAircraftDatarefRediscoveryIfNeeded();
 
         var timestamp = DateTimeOffset.UtcNow;
         Interlocked.Exchange(ref _lastFrameUtcTicks, timestamp.UtcTicks);
@@ -442,11 +521,48 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             signals);
     }
 
+    private void ScheduleAircraftDatarefRediscoveryIfNeeded()
+    {
+        var aircraftPath = GetText(AircraftRelativePath).Trim();
+        if (aircraftPath.Length == 0 ||
+            string.Equals(aircraftPath, _lastDatarefDiscoveryAircraftPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _lastDatarefDiscoveryAircraftPath = aircraftPath;
+        if (Interlocked.Exchange(ref _aircraftRediscoveryPending, 1) != 0)
+        {
+            return;
+        }
+
+        _log.Information($"Active ACF changed to {aircraftPath}; scheduling cabin-dataref rediscovery.");
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1.5d), _lifetime.Token).ConfigureAwait(false);
+                RequestReconnect();
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _aircraftRediscoveryPending, 0);
+            }
+        });
+    }
+
     private void UpdateConnectedAircraftStatus()
     {
         var icao = GetText(AircraftIcao).ToUpperInvariant();
         var description = GetText(AircraftDescription);
         var acfPath = ResolveActiveAircraftPath(GetText(AircraftRelativePath));
+        var adapter = AircraftCabinAdapters.FirstOrDefault(candidate => candidate.Matches(new AircraftIdentity(
+            icao,
+            description,
+            GetText(AircraftRelativePath))));
         var aircraft = !string.IsNullOrWhiteSpace(description)
             ? description
             : !string.IsNullOrWhiteSpace(icao) ? icao : "Aircraft telemetry detected";
@@ -465,9 +581,13 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             $"X-Plane {_simulatorVersion}",
             aircraft,
             string.IsNullOrWhiteSpace(acfPath)
-                ? $"Web API {_apiVersion} · live telemetry up to 10 Hz"
-                : $"Web API {_apiVersion} · {Path.GetFileName(acfPath)} · live telemetry up to 10 Hz"));
+                ? $"Web API {_apiVersion} · live telemetry up to 10 Hz{FormatAdapterStatus(adapter)}"
+                : $"Web API {_apiVersion} · {Path.GetFileName(acfPath)} · live telemetry up to 10 Hz{FormatAdapterStatus(adapter)}"));
     }
+
+    private static string FormatAdapterStatus(IAircraftCabinAdapter? adapter) => adapter is null
+        ? string.Empty
+        : $" · {adapter.DisplayName} adapter-ready";
 
     private (double L1, double L2) ResolveDoorRatios()
     {
@@ -480,8 +600,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
             .ToArray();
         var namedL1 = ResolveNamedDoor(candidates, 1);
         var namedL2 = ResolveNamedDoor(candidates, 2);
-        l1 = double.IsNaN(namedL1) ? l1 : namedL1;
-        l2 = double.IsNaN(namedL2) ? l2 : namedL2;
+        l1 = namedL1 is null ? l1 : NormalizeDoorRatio(namedL1.Value.Value.Scalar);
+        l2 = namedL2 is null ? l2 : NormalizeDoorRatio(namedL2.Value.Value.Scalar);
 
         var arrayCandidate = candidates.Select(pair => pair.Value.Array).FirstOrDefault(array => array.Length >= 2);
         if (arrayCandidate is not null)
@@ -495,42 +615,33 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
 
     private (bool IsAvailable, double Value) ResolveSeatbeltSignal()
     {
-        if (_values.TryGetValue(SeatbeltAnnunciator, out var annunciator))
-        {
-            return (true, annunciator.Scalar);
-        }
-
-        var custom = _values
-            .Where(pair => !RequestedDatarefs.Contains(pair.Key) && IsSeatbeltCandidate(pair.Key, "float"))
-            .Select(pair => new { pair.Value.Scalar, Score = ScoreSeatbeltName(pair.Key) })
-            .Where(item => item.Score > 0 && double.IsFinite(item.Scalar))
+        var selected = _values
+            .Where(pair => IsStandardSeatbeltDataref(pair.Key) || IsSeatbeltCandidate(pair.Key, "float"))
+            .Where(pair => double.IsFinite(pair.Value.Scalar))
+            .Select(pair => new
+            {
+                pair.Value.Scalar,
+                Score = ScoreSeatbeltSignal(pair.Key, pair.Value.Scalar)
+            })
             .OrderByDescending(item => item.Score)
             .FirstOrDefault();
-        if (custom is not null)
-        {
-            return (true, custom.Scalar);
-        }
-
-        if (_values.TryGetValue(SeatbeltSwitch, out var cockpitSwitch))
-        {
-            return (true, cockpitSwitch.Scalar);
-        }
-
-        return _values.TryGetValue(LegacySeatbeltSwitch, out var legacySwitch)
-            ? (true, legacySwitch.Scalar)
-            : (false, 0d);
+        return selected is null ? (false, 0d) : (true, selected.Scalar);
     }
 
-    private static double ResolveNamedDoor(
+    private KeyValuePair<string, XPlaneValue>? ResolveNamedDoor(
         IEnumerable<KeyValuePair<string, XPlaneValue>> candidates,
         int doorNumber)
     {
         var selected = candidates
-            .Select(pair => new { Pair = pair, Score = ScoreDoorName(pair.Key, doorNumber) })
+            .Select(pair => new
+            {
+                Pair = pair,
+                Score = ScoreDoorName(pair.Key, doorNumber) + ScoreLiveSignal(pair.Key, pair.Value.Scalar)
+            })
             .Where(item => item.Score > 0)
             .OrderByDescending(item => item.Score)
             .FirstOrDefault();
-        return selected is null ? double.NaN : NormalizeDoorRatio(selected.Pair.Value.Scalar);
+        return selected?.Pair;
     }
 
     private static int ScoreDoorName(string name, int doorNumber)
@@ -559,6 +670,10 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         return score;
     }
 
+    private static int ScoreDoorDiscoveryName(string name) =>
+        Math.Max(ScoreDoorName(name, 1), ScoreDoorName(name, 2)) +
+        (!name.StartsWith("sim/", StringComparison.Ordinal) ? 8 : 0);
+
     private static bool IsDoorCandidate(string name, string valueType)
     {
         var value = name.ToLowerInvariant();
@@ -566,9 +681,7 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
                       !valueType.Contains("string", StringComparison.OrdinalIgnoreCase);
         return numeric &&
                (value.Contains("door", StringComparison.Ordinal) || value.Contains("exit", StringComparison.Ordinal)) &&
-               (value.Contains("open", StringComparison.Ordinal) || value.Contains("ratio", StringComparison.Ordinal) ||
-                value.Contains("position", StringComparison.Ordinal) || value.Contains("pos", StringComparison.Ordinal) ||
-                value.Contains("status", StringComparison.Ordinal));
+               !value.Contains("command", StringComparison.Ordinal);
     }
 
     private static bool IsSeatbeltCandidate(string name, string valueType)
@@ -580,6 +693,9 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
                ((value.Contains("seat", StringComparison.Ordinal) && value.Contains("belt", StringComparison.Ordinal)) ||
                 (value.Contains("fasten", StringComparison.Ordinal) && value.Contains("seat", StringComparison.Ordinal)));
     }
+
+    private static bool IsStandardSeatbeltDataref(string name) => name is
+        SeatbeltAnnunciator or SeatbeltSwitch or LegacySeatbeltSwitch;
 
     private static int ScoreSeatbeltName(string name)
     {
@@ -604,6 +720,35 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         return score;
     }
 
+    private int ScoreSeatbeltSignal(string name, double value)
+    {
+        var score = name switch
+        {
+            SeatbeltAnnunciator => 45,
+            SeatbeltSwitch => 35,
+            LegacySeatbeltSwitch => 30,
+            _ => ScoreSeatbeltName(name)
+        };
+        return score + ScoreLiveSignal(name, value);
+    }
+
+    private int ScoreLiveSignal(string name, double value)
+    {
+        var score = Math.Abs(value) >= 0.5d ? 8 : 0;
+        if (!_signalHistory.TryGetValue(name, out var history))
+        {
+            return score;
+        }
+
+        score += Math.Min(history.ChangeCount, 4) * 18;
+        if (DateTimeOffset.UtcNow - history.LastChangedAt <= TimeSpan.FromMinutes(5))
+        {
+            score += 80;
+        }
+
+        return score;
+    }
+
     private static double NormalizeDoorRatio(double value)
     {
         if (!double.IsFinite(value) || value < 0d)
@@ -612,6 +757,113 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
         }
 
         return Math.Clamp(value > 1.5d ? value / 100d : value, 0d, 1d);
+    }
+
+    private IReadOnlyList<XPlaneWriteTarget> ResolveWritableDoorTargets(int doorNumber)
+    {
+        lock (_valuesLock)
+        {
+            var targets = new List<XPlaneWriteTarget>();
+            var customCandidates = _values
+                .Where(pair => !string.Equals(pair.Key, DoorOpenRatio, StringComparison.Ordinal) &&
+                               IsDoorCandidate(pair.Key, "float"))
+                .ToArray();
+            var selected = ResolveNamedDoor(customCandidates, doorNumber);
+            if (selected is { } named && _datarefsByName.TryGetValue(named.Key, out var customDataref))
+            {
+                targets.Add(new XPlaneWriteTarget(customDataref, null));
+            }
+
+            if (_datarefsByName.TryGetValue(DoorOpenRatio, out var standardDataref))
+            {
+                targets.Add(new XPlaneWriteTarget(standardDataref, doorNumber - 1));
+            }
+
+            return targets
+                .DistinctBy(target => (target.Dataref.Name, target.Index))
+                .ToArray();
+        }
+    }
+
+    private IReadOnlyList<XPlaneDataref> ResolveWritableSeatbeltTargets()
+    {
+        lock (_valuesLock)
+        {
+            return _values
+                .Where(pair => IsSeatbeltCandidate(pair.Key, "float"))
+                .OrderByDescending(pair =>
+                    ScoreSeatbeltSignal(pair.Key, pair.Value.Scalar) +
+                    (pair.Key.Contains("switch", StringComparison.OrdinalIgnoreCase) ||
+                     pair.Key.Contains("control", StringComparison.OrdinalIgnoreCase) ? 35 : 0))
+                .Select(pair => pair.Key)
+                .Concat([SeatbeltSwitch, LegacySeatbeltSwitch])
+                .Distinct(StringComparer.Ordinal)
+                .Select(name => _datarefsByName.GetValueOrDefault(name))
+                .Where(dataref => dataref is not null)
+                .Select(dataref => dataref!)
+                .Take(6)
+                .ToArray();
+        }
+    }
+
+    private async Task<bool> WriteDatarefAsync(
+        XPlaneDataref dataref,
+        double value,
+        int? index,
+        CancellationToken cancellationToken)
+    {
+        if (_currentStatus.State != BridgeConnectionState.Connected)
+        {
+            return false;
+        }
+
+        await _controlWriteLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var port = SanitizePort(_settings.XPlaneWebApiPort);
+            var suffix = index is null ? string.Empty : $"?index={index.Value}";
+            var uri = new Uri($"http://127.0.0.1:{port}/api/{_apiVersion}/datarefs/{dataref.Id}/value{suffix}");
+            using var request = new HttpRequestMessage(HttpMethod.Patch, uri)
+            {
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { data = value }),
+                    Encoding.UTF8,
+                    "application/json")
+            };
+            using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _log.Information(
+                    $"X-Plane rejected cabin control {dataref.Name}{(index is null ? string.Empty : $"[{index}]")} " +
+                    $"with HTTP {(int)response.StatusCode}; trying the next safe mapping.");
+                return false;
+            }
+
+            _log.Information(
+                $"X-Plane cabin control wrote {dataref.Name}{(index is null ? string.Empty : $"[{index}]")} = {value:0}.");
+            return true;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException or TaskCanceledException)
+        {
+            _log.Error($"X-Plane cabin control write failed for {dataref.Name}.", exception);
+            return false;
+        }
+        finally
+        {
+            _controlWriteLock.Release();
+        }
+    }
+
+    private void LogCabinSignalDiscovery(IEnumerable<XPlaneDataref> descriptors)
+    {
+        var cabinSignals = descriptors
+            .Where(item => IsDoorCandidate(item.Name, item.ValueType) || IsSeatbeltCandidate(item.Name, item.ValueType))
+            .Select(item => item.Name)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+        _log.Information(cabinSignals.Length == 0
+            ? "X-Plane exposed no numeric door or seat-belt candidates; manual fail-safes remain available."
+            : $"X-Plane subscribed to {cabinSignals.Length} cabin signal candidates: {string.Join(", ", cabinSignals)}");
     }
 
     private string ResolveActiveAircraftPath(string relativePath)
@@ -764,6 +1016,21 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
 
     private sealed record XPlaneDataref(long Id, string Name, string ValueType);
 
+    private sealed record XPlaneWriteTarget(XPlaneDataref Dataref, int? Index);
+
+    private sealed class SignalHistory
+    {
+        public int ChangeCount { get; private set; }
+
+        public DateTimeOffset LastChangedAt { get; private set; }
+
+        public void ObserveChange(DateTimeOffset changedAt)
+        {
+            ChangeCount++;
+            LastChangedAt = changedAt;
+        }
+    }
+
     private sealed class XPlaneBridgeException(BridgeConnectionState state, string message) : Exception(message)
     {
         public BridgeConnectionState State { get; } = state;
@@ -771,6 +1038,11 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge
 
     private readonly record struct XPlaneValue(double Scalar, double[] Array, string Text)
     {
+        public bool EquivalentTo(XPlaneValue other) =>
+            Math.Abs(Scalar - other.Scalar) < 0.0001d &&
+            string.Equals(Text, other.Text, StringComparison.Ordinal) &&
+            Array.AsSpan().SequenceEqual(other.Array);
+
         public static XPlaneValue Parse(JsonElement value, string valueType)
         {
             if (value.ValueKind == JsonValueKind.Number)

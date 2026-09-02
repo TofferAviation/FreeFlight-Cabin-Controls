@@ -282,6 +282,7 @@
                                         <TextBlock Text="{Binding BoardingGroupStatus}" Foreground="#F0C64E" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center" />
                                         <TextBlock Text="{Binding BoardingGroupDetail}" Foreground="#C6B56F" FontSize="8" HorizontalAlignment="Center" />
                                         <TextBlock Text="{Binding SeatbeltControlStatus}" Foreground="#8FC8FF" FontSize="7" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding SeatbeltResponseStatus}" Foreground="#FFB85C" FontSize="7" HorizontalAlignment="Center" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -459,14 +460,14 @@
                                 </ItemsControl>
 
                                 <ToggleButton Canvas.Left="{Binding L1DoorCanvasLeft}"
-                                              Canvas.Top="192"
+                                              Canvas.Top="{Binding DoorControlCanvasTop}"
                                               Panel.ZIndex="5"
                                               Content="L1"
                                               IsChecked="{Binding L1DoorOpen}"
                                               Style="{StaticResource DoorToggleStyle}"
                                               ToolTip="Open or close passenger door L1" />
                                 <ToggleButton Canvas.Left="{Binding L2DoorCanvasLeft}"
-                                              Canvas.Top="192"
+                                              Canvas.Top="{Binding DoorControlCanvasTop}"
                                               Panel.ZIndex="5"
                                               Content="L2"
                                               IsChecked="{Binding L2DoorOpen}"

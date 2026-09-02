@@ -41,6 +41,7 @@ internal static class Program
         }
 
         VerifyVamsysOAuthBoundary(outputDirectory);
+        VerifyBidirectionalCabinControlBoundary(outputDirectory);
 
         try
         {
@@ -1758,6 +1759,50 @@ internal static class Program
         }
     }
 
+    private static void VerifyBidirectionalCabinControlBoundary(string outputDirectory)
+    {
+        var bridge = new FakeCabinControlBridge();
+        using var viewModel = new MainWindowViewModel(
+            new AppSettings
+            {
+                AutomaticallyCheckForUpdates = false,
+                SyncXPlaneDoors = true,
+                SyncSimulatorSeatbeltSign = true
+            },
+            new JsonSettingsStore(Path.Combine(outputDirectory, "cabin-control-boundary-settings.json")),
+            Path.Combine(outputDirectory, "cabin-control-boundary-logs"),
+            simulatorBridge: bridge,
+            settingsDirectory: outputDirectory);
+
+        viewModel.Passengers.L1DoorOpen = true;
+        viewModel.Passengers.ToggleSeatbeltSignCommand.Execute(null);
+        if (bridge.DoorWriteCount != 1 || bridge.LastDoorNumber != 1 || !bridge.LastDoorOpen ||
+            bridge.SeatbeltWriteCount != 1 || bridge.LastSeatbeltState)
+        {
+            throw new InvalidOperationException("Manual cabin controls were not forwarded to the active simulator bridge.");
+        }
+
+        bridge.Publish(new CabinTelemetrySnapshot(
+            DateTimeOffset.UtcNow,
+            "Preflight",
+            0d,
+            true,
+            true,
+            new Dictionary<string, double>
+            {
+                ["seatbelt_signal_available"] = 1d,
+                ["seatbelt_signal_raw"] = 1d,
+                ["door_l1_ratio"] = 0d,
+                ["door_l2_ratio"] = 1d
+            }));
+        if (bridge.DoorWriteCount != 1 || bridge.SeatbeltWriteCount != 1 ||
+            viewModel.Passengers.L1DoorOpen || !viewModel.Passengers.L2DoorOpen ||
+            !viewModel.Passengers.SeatbeltSignOn)
+        {
+            throw new InvalidOperationException("Live cabin telemetry either failed to apply or echoed back as a simulator write.");
+        }
+    }
+
     private static T? FindVisualChild<T>(DependencyObject parent, Predicate<T> predicate)
         where T : DependencyObject
     {
@@ -1835,6 +1880,56 @@ internal static class Program
         {
             _connected = false;
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FakeCabinControlBridge : ISimulatorBridge, ISimulatorCabinControlBridge
+    {
+        public BridgeStatus CurrentStatus { get; private set; } = new(
+            BridgeConnectionState.Connected,
+            "X-Plane 12.4",
+            "FlightFactor 777 v2",
+            "Web API v3 · fake cabin controls");
+
+        public TimeSpan? LastFrameAge => TimeSpan.Zero;
+
+        public int DoorWriteCount { get; private set; }
+        public int LastDoorNumber { get; private set; }
+        public bool LastDoorOpen { get; private set; }
+        public int SeatbeltWriteCount { get; private set; }
+        public bool LastSeatbeltState { get; private set; }
+
+        public event Action<BridgeStatus>? StatusChanged;
+        public event Action<CabinTelemetrySnapshot>? TelemetryReceived;
+
+        public void Start() => StatusChanged?.Invoke(CurrentStatus);
+
+        public void RequestReconnect()
+        {
+        }
+
+        public Task<bool> SetPassengerDoorOpenAsync(
+            int doorNumber,
+            bool isOpen,
+            CancellationToken cancellationToken = default)
+        {
+            DoorWriteCount++;
+            LastDoorNumber = doorNumber;
+            LastDoorOpen = isOpen;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> SetSeatbeltSignAsync(bool isOn, CancellationToken cancellationToken = default)
+        {
+            SeatbeltWriteCount++;
+            LastSeatbeltState = isOn;
+            return Task.FromResult(true);
+        }
+
+        public void Publish(CabinTelemetrySnapshot snapshot) => TelemetryReceived?.Invoke(snapshot);
+
+        public void Dispose()
+        {
         }
     }
 

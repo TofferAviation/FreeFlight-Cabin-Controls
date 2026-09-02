@@ -3,7 +3,7 @@ using FreeFlight.CabinControl.Core.Integration;
 
 namespace FreeFlight.CabinControl.App.Services;
 
-public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge
+public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge
 {
     private readonly AppSettings _settings;
     private readonly ISimulatorBridge _xPlane;
@@ -48,6 +48,21 @@ public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge
         _xPlane.RequestReconnect();
         _msfs.RequestReconnect();
     }
+
+    public Task<bool> SetPassengerDoorOpenAsync(
+        int doorNumber,
+        bool isOpen,
+        CancellationToken cancellationToken = default) =>
+        ResolveActiveCabinController() is { } controller
+            ? controller.SetPassengerDoorOpenAsync(doorNumber, isOpen, cancellationToken)
+            : Task.FromResult(false);
+
+    public Task<bool> SetSeatbeltSignAsync(
+        bool isOn,
+        CancellationToken cancellationToken = default) =>
+        ResolveActiveCabinController() is { } controller
+            ? controller.SetSeatbeltSignAsync(isOn, cancellationToken)
+            : Task.FromResult(false);
 
     public void Dispose()
     {
@@ -101,6 +116,13 @@ public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge
         "X-Plane" => source == "X-Plane",
         "MSFS 2024" => source == "MSFS",
         _ => _activeSimulator is null || string.Equals(_activeSimulator, source, StringComparison.Ordinal)
+    };
+
+    private ISimulatorCabinControlBridge? ResolveActiveCabinController() => _activeSimulator switch
+    {
+        "X-Plane" => _xPlane as ISimulatorCabinControlBridge,
+        "MSFS" => _msfs as ISimulatorCabinControlBridge,
+        _ => null
     };
 
     private BridgeStatus BuildIdleStatus()

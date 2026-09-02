@@ -15,6 +15,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly AppSettings _settings;
     private readonly ISimulatorBridge? _simulatorBridge;
+    private readonly ISimulatorCabinControlBridge? _simulatorCabinControlBridge;
     private readonly FlightSessionStore? _flightSessionStore;
     private readonly IOperationsClock _operationsClock;
     private readonly DispatcherTimer _sessionSaveTimer;
@@ -40,6 +41,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     {
         _settings = settings;
         _simulatorBridge = simulatorBridge;
+        _simulatorCabinControlBridge = simulatorBridge as ISimulatorCabinControlBridge;
         _flightSessionStore = flightSessionStore;
         var resolvedOperationsClock = operationsClock ?? new LocalOperationsClock();
         _operationsClock = resolvedOperationsClock;
@@ -55,6 +57,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             vamsysService ?? new VamsysOAuthService(settings, resolvedSettingsDirectory),
             resolvedSettingsDirectory);
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
+        Passengers.DoorControlRequested += HandleDoorControlRequested;
+        Passengers.SeatbeltControlRequested += HandleSeatbeltControlRequested;
         var savedFlight = _flightSessionStore?.Load();
         if (savedFlight is not null && savedFlight.Boarding.State != BoardingRunState.DeboardingComplete)
         {
@@ -155,6 +159,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         GateLogin.SignedIn -= HandleGateSignedIn;
         GateLogin.SignedOut -= HandleGateSignedOut;
         Performance.PropertyChanged -= HandlePerformancePropertyChanged;
+        Passengers.DoorControlRequested -= HandleDoorControlRequested;
+        Passengers.SeatbeltControlRequested -= HandleSeatbeltControlRequested;
         if (_simulatorBridge is not null)
         {
             _simulatorBridge.StatusChanged -= HandleBridgeStatusChanged;
@@ -289,13 +295,33 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         if (snapshot.Signals.TryGetValue("door_l1_ratio", out var l1DoorRatio))
         {
-            Passengers.L1DoorOpen = l1DoorRatio >= 0.5d;
+            Passengers.ApplySimulatorDoorState(BoardingDoor.L1, l1DoorRatio >= 0.5d);
         }
 
         if (snapshot.Signals.TryGetValue("door_l2_ratio", out var l2DoorRatio))
         {
-            Passengers.L2DoorOpen = l2DoorRatio >= 0.5d;
+            Passengers.ApplySimulatorDoorState(BoardingDoor.L2, l2DoorRatio >= 0.5d);
         }
+    }
+
+    private async void HandleDoorControlRequested(BoardingDoor door, bool isOpen)
+    {
+        if (_simulatorCabinControlBridge is null)
+        {
+            return;
+        }
+
+        await _simulatorCabinControlBridge.SetPassengerDoorOpenAsync((int)door + 1, isOpen);
+    }
+
+    private async void HandleSeatbeltControlRequested(bool isOn)
+    {
+        if (_simulatorCabinControlBridge is null)
+        {
+            return;
+        }
+
+        await _simulatorCabinControlBridge.SetSeatbeltSignAsync(isOn);
     }
 
     private static void DispatchToUi(Action action)

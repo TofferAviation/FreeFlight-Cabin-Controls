@@ -53,6 +53,7 @@ public enum PassengerCabinActivity
     WalkingToSeat,
     SettlingIn,
     SelectingWelcomeDrink,
+    RespondingToSeatbeltSign,
     SeatbeltFastened,
     WatchingMovie,
     Gaming,
@@ -126,6 +127,8 @@ public sealed class BoardingPassenger
     public bool SeatbeltFastened { get; internal set; }
 
     internal double SecondsUntilActivityChange { get; set; }
+
+    internal double SecondsUntilSeatbeltResponse { get; set; }
 
     internal int ActivitySequence { get; set; }
 }

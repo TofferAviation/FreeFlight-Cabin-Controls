@@ -28,8 +28,11 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger boarding completes", PassengerBoardingCompletesAsync),
     ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
     ("Seat-belt sign controls cabin activities", SeatbeltSignControlsCabinActivitiesAsync),
+    ("Seat-belt responses are delayed and staggered", SeatbeltResponsesAreStaggeredAsync),
     ("Cabin movement follows stable activity routes", CabinMovementFollowsStableRoutesAsync),
     ("Door entry stays centred through the aisle crossing", DoorEntryStaysCentredAsync),
+    ("FlightFactor doorway uses the cropped cabin threshold", FlightFactorDoorEntryUsesCabinThresholdAsync),
+    ("FlightFactor cabin adapter matches only the intended aircraft", FlightFactorCabinAdapterMatchesAsync),
     ("Front-cabin boarding starts welcome drinks", FrontCabinBoardingStartsWelcomeDrinksAsync),
     ("Cabin crew rest follows staged long-haul shifts", CabinCrewRestRotatesAsync),
     ("Unfinished passenger session restores", UnfinishedPassengerSessionRestoresAsync),
@@ -536,6 +539,69 @@ static Task SeatbeltSignControlsCabinActivitiesAsync()
     return Task.CompletedTask;
 }
 
+static Task SeatbeltResponsesAreStaggeredAsync()
+{
+    var engine = new PassengerBoardingEngine(24);
+    foreach (var passenger in engine.Passengers)
+    {
+        Assert(engine.TryBoardPassenger(passenger.Id), "A passenger could not be seated for the seat-belt response check.");
+    }
+
+    engine.UpdateCabinActivities(TimeSpan.FromSeconds(1), false, "Cruise");
+    engine.UpdateCabinActivities(TimeSpan.FromMilliseconds(250), true, "Cruise");
+    var delayedAtStart = engine.DelayedSeatbeltPassengerCount;
+    Assert(delayedAtStart > 0 && delayedAtStart < engine.BoardedCount,
+        "Seat-belt responses were not staggered between immediate and delayed passengers.");
+    Assert(engine.Passengers.Any(passenger => passenger.CabinActivity == PassengerCabinActivity.RespondingToSeatbeltSign),
+        "No passenger exposed the delayed seat-belt response activity.");
+
+    for (var index = 0; index < 60 && engine.DelayedSeatbeltPassengerCount > 0; index++)
+    {
+        engine.UpdateCabinActivities(TimeSpan.FromMilliseconds(250), true, "Cruise");
+    }
+
+    AssertEqual(0, engine.DelayedSeatbeltPassengerCount,
+        "One or more passengers did not finish responding to the seat-belt sign.");
+    Assert(engine.Passengers.All(passenger => passenger.SeatbeltFastened),
+        "Not every seated passenger secured their seat belt after the response window.");
+    return Task.CompletedTask;
+}
+
+static Task FlightFactorDoorEntryUsesCabinThresholdAsync()
+{
+    var engine = new PassengerBoardingEngine(20, PassengerCabinLayout.FlightFactor777V2);
+    var entry = engine.GetDoorEntryCenter(BoardingDoor.L2);
+    AssertNear(426d, entry.X, "The FlightFactor L2 galley center line moved horizontally.");
+    AssertNear(145d, entry.Y, "The FlightFactor L2 entry remained in the blank label area below the fuselage.");
+    AssertNear(129d, engine.DoorControlTop, "The FlightFactor L2 control was not aligned with the cabin threshold.");
+
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    for (var index = 0; index < 20 && engine.WalkingCount == 0; index++)
+    {
+        engine.Tick(TimeSpan.FromSeconds(0.1d));
+    }
+
+    var passenger = engine.Passengers.First(candidate => candidate.MovementState == PassengerMovementState.Walking);
+    AssertNear(entry.X, passenger.Position.X, "A FlightFactor passenger left the galley center line before reaching the aisle crossing.");
+    Assert(passenger.Position.Y <= entry.Y && passenger.Position.Y >= 94d,
+        "A FlightFactor passenger entered outside the doorway-to-aisle corridor.");
+    return Task.CompletedTask;
+}
+
+static Task FlightFactorCabinAdapterMatchesAsync()
+{
+    IAircraftCabinAdapter adapter = new FlightFactor777V2CabinAdapter();
+    Assert(adapter.Matches(new AircraftIdentity("B77W", "FlightFactor 777 v2", "Aircraft/FlightFactor/B777.acf")),
+        "The adapter did not recognize the FlightFactor 777 v2 identity.");
+    Assert(!adapter.Matches(new AircraftIdentity("B77W", "Boeing 777", "Aircraft/Laminar/B777.acf")),
+        "The adapter claimed an unrelated 777 implementation.");
+    Assert(adapter.Bindings.Any(binding => binding.Semantic == AircraftCabinSemantic.PassengerDoorL1) &&
+           adapter.Bindings.Any(binding => binding.Semantic == AircraftCabinSemantic.SeatbeltSign),
+        "The v0.5 adapter seam is missing its door or seat-belt semantic slots.");
+    return Task.CompletedTask;
+}
+
 static Task CabinCrewRestRotatesAsync()
 {
     var cruiseStartedAt = new DateTimeOffset(2026, 8, 29, 12, 0, 0, TimeSpan.Zero);
@@ -634,13 +700,13 @@ static Task CabinMovementFollowsStableRoutesAsync()
 
     Assert(movingPassenger is not null, "No deterministic passenger began a lavatory trip.");
     var previous = movingPassenger!.Position;
-    for (var index = 0; index < 40 && movingPassenger.CabinActivity == PassengerCabinActivity.WalkingToLavatory; index++)
+    for (var index = 0; index < 160 && movingPassenger.CabinActivity == PassengerCabinActivity.WalkingToLavatory; index++)
     {
-        engine.UpdateCabinActivities(TimeSpan.FromSeconds(1), false, "Cruise");
+        engine.UpdateCabinActivities(TimeSpan.FromMilliseconds(250), false, "Cruise");
         var distance = Math.Sqrt(
             Math.Pow(movingPassenger.Position.X - previous.X, 2) +
             Math.Pow(movingPassenger.Position.Y - previous.Y, 2));
-        Assert(distance <= 28.01d, $"A moving passenger teleported {distance:F1} cabin pixels in one second.");
+        Assert(distance <= 7.01d, $"A moving passenger teleported {distance:F1} cabin pixels in one animation slice.");
         Assert(movingPassenger.Position.X is >= 0d and <= 1010d && movingPassenger.Position.Y is >= 0d and <= 192d,
             "A moving passenger left the cabin canvas.");
         previous = movingPassenger.Position;

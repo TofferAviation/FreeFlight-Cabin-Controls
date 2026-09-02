@@ -36,7 +36,7 @@ Version `0.4.x` is the current application line. GitHub release builds receive a
 - a vAMSYS Pilot API integration using browser-based Authorization Code + PKCE, Windows-user encrypted token storage, automatic token refresh, airline-scoped profile loading, a connected header account, and a local appearance editor; activation requires the public client ID from an attested VA-owned Pilot API registration;
 - optional local profile pictures and blurred custom background images with 10–20 percent strength, shared across parent pages according to user preference; identity, email, privacy and pilot-account changes remain on vAMSYS;
 - enumeration and persistent selection of active Windows playback endpoints;
-- automatic X-Plane 12.1.1+ connection through the simulator's built-in local Web API, with API-version negotiation, live dataref discovery, WebSocket telemetry, automatic retry, aircraft identity, flight phase, altitude, ground speed, vertical speed, on-ground state, engine state, illuminated and aircraft-specific seatbelt-sign discovery, a manual seatbelt fail-safe, and optional standard L1/L2 door synchronization;
+- automatic X-Plane 12.1.1+ connection through the simulator's built-in local Web API, with API-version negotiation, adaptive aircraft-dataref discovery after ACF changes, WebSocket telemetry, aircraft identity and flight state, bidirectional L1/L2 and seat-belt controls, live-value ranking, diagnostics, and manual fail-safes;
 - a loopable local passenger-ambience audio channel with independent enable and volume controls when a redistribution-cleared recording is installed through its content-pack slot;
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;

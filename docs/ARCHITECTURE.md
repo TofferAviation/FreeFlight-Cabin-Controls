@@ -18,7 +18,7 @@ A later native C++ plugin is only needed for capabilities the Web API does not p
 
 ### Aircraft adapter
 
-Each supported aircraft receives a declarative adapter containing verified datarefs, commands, capabilities, and cabin-layout mappings. Stable layout IDs distinguish the operational FlightFactor 777 v2, British Airways 777-200ER, and British Airways 777-300 passenger-coordinate profiles. FlightFactor-specific behavior must not leak into the generic core.
+Each supported aircraft receives a declarative `IAircraftCabinAdapter` containing verified datarefs, commands, capabilities, and cabin-layout mappings. Stable layout IDs distinguish the operational FlightFactor 777 v2, British Airways 777-200ER, and British Airways 777-300 passenger-coordinate profiles. The v0.4.2 FlightFactor identity adapter carries only standard verified fallbacks; private cabin-panel mappings remain gated on an instrumented v0.5.0 discovery session. FlightFactor-specific behavior must not leak into the passenger engine.
 
 ### Airline content pack
 

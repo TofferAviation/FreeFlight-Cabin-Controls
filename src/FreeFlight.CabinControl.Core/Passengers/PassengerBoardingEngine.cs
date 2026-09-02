@@ -21,6 +21,7 @@ public sealed class PassengerBoardingEngine
     private int _deboardedCount;
     private int _currentBoardingGroup;
     private double _spawnAccumulator;
+    private bool _lastSeatbeltSignOn;
 
     public PassengerBoardingEngine(
         int targetPassengerCount = 228,
@@ -92,6 +93,10 @@ public sealed class PassengerBoardingEngine
     public IReadOnlyList<BoardingPassenger> LastDeboardedPassengers => _lastDeboardedPassengers;
 
     public IReadOnlyCollection<BoardingDoor> OpenDoors => _openDoors;
+
+    public CabinPoint GetDoorEntryCenter(BoardingDoor door) => GetDoorEntryPoint(door);
+
+    public double DoorControlTop => _layoutDefinition.DoorEntryY - 16d;
 
     public bool IsDoorOpen(BoardingDoor door) => _openDoors.Contains(door);
 
@@ -420,6 +425,26 @@ public sealed class PassengerBoardingEngine
             return;
         }
 
+        if (seatbeltSignOn && !_lastSeatbeltSignOn)
+        {
+            foreach (var seatedPassenger in _passengers.Where(passenger =>
+                         passenger.MovementState == PassengerMovementState.Seated &&
+                         !passenger.SeatbeltFastened))
+            {
+                seatedPassenger.SecondsUntilSeatbeltResponse = GetSeatbeltResponseDelay(seatedPassenger);
+            }
+        }
+        else if (!seatbeltSignOn && _lastSeatbeltSignOn)
+        {
+            foreach (var seatedPassenger in _passengers.Where(passenger =>
+                         passenger.MovementState == PassengerMovementState.Seated))
+            {
+                seatedPassenger.SecondsUntilSeatbeltResponse = 0d;
+            }
+        }
+
+        _lastSeatbeltSignOn = seatbeltSignOn;
+
         foreach (var passenger in _passengers)
         {
             if (passenger.MovementState != PassengerMovementState.Seated)
@@ -447,6 +472,20 @@ public sealed class PassengerBoardingEngine
                     passenger.SeatbeltFastened = false;
                     if (!MoveAlongActivityRoute(passenger, seconds * 42d))
                     {
+                        continue;
+                    }
+                }
+
+                if (!passenger.SeatbeltFastened && passenger.SecondsUntilSeatbeltResponse > 0d)
+                {
+                    passenger.Position = new CabinPoint(passenger.Seat.X, passenger.Seat.Y);
+                    passenger.ActivityWaypoints.Clear();
+                    passenger.SecondsUntilSeatbeltResponse = Math.Max(
+                        0d,
+                        passenger.SecondsUntilSeatbeltResponse - seconds);
+                    if (passenger.SecondsUntilSeatbeltResponse > 0d)
+                    {
+                        passenger.CabinActivity = PassengerCabinActivity.RespondingToSeatbeltSign;
                         continue;
                     }
                 }
@@ -498,6 +537,25 @@ public sealed class PassengerBoardingEngine
                 SelectNextSeatedActivity(passenger, flightPhase);
             }
         }
+    }
+
+    private int GetDelayedSeatbeltPassengerCount() => _passengers.Count(passenger =>
+        passenger.MovementState == PassengerMovementState.Seated &&
+        !passenger.SeatbeltFastened &&
+        passenger.SecondsUntilSeatbeltResponse > 0d);
+
+    public int DelayedSeatbeltPassengerCount => GetDelayedSeatbeltPassengerCount();
+
+    private static double GetSeatbeltResponseDelay(BoardingPassenger passenger)
+    {
+        var seatSeed = passenger.Seat.Number.Aggregate(17, (current, character) => (current * 31) + character);
+        var selector = Math.Abs((passenger.Id * 47) + (seatSeed * 3));
+        if (selector % 9 == 0)
+        {
+            return 0d;
+        }
+
+        return 1.5d + ((selector % 105) / 10d);
     }
 
     public bool StartPreDepartureDrinkSelection()
@@ -634,6 +692,7 @@ public sealed class PassengerBoardingEngine
         _deboardedCount = 0;
         _currentBoardingGroup = 0;
         _spawnAccumulator = 0d;
+        _lastSeatbeltSignOn = false;
         Operation = PassengerOperation.Boarding;
 
         var random = new Random(777_000 + TargetPassengerCount);
@@ -682,7 +741,7 @@ public sealed class PassengerBoardingEngine
             .Average();
         passenger.Waypoints = new Queue<CabinPoint>(
         [
-            new CabinPoint(entry.X, 174d),
+            new CabinPoint(entry.X, _layoutDefinition.DoorThresholdY),
             new CabinPoint(entry.X, cabinCrossingY),
             new CabinPoint(entry.X, passenger.Seat.AisleY),
             new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
@@ -738,7 +797,7 @@ public sealed class PassengerBoardingEngine
         [
             new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
             new CabinPoint(exit.X, passenger.Seat.AisleY),
-            new CabinPoint(exit.X, 166d),
+            new CabinPoint(exit.X, _layoutDefinition.DoorThresholdY),
             exit
         ]);
         _boardedCount = Math.Max(0, _boardedCount - 1);
@@ -832,8 +891,8 @@ public sealed class PassengerBoardingEngine
 
     private CabinPoint GetDoorEntryPoint(BoardingDoor door) => door switch
     {
-        BoardingDoor.L1 => new CabinPoint(_layoutDefinition.L1DoorX, 208d),
-        _ => new CabinPoint(_layoutDefinition.L2DoorX, 208d)
+        BoardingDoor.L1 => new CabinPoint(_layoutDefinition.L1DoorX, _layoutDefinition.DoorEntryY),
+        _ => new CabinPoint(_layoutDefinition.L2DoorX, _layoutDefinition.DoorEntryY)
     };
 
     private int GetBoardingGroup(CabinSeat seat)

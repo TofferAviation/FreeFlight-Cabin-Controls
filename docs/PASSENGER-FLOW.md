@@ -39,7 +39,7 @@ The user can persist a manual profile selection. The X-Plane bridge now detects 
 
 ## X-Plane bridge boundary
 
-The boarding engine is implemented in `FreeFlight.CabinControl.Core` and has no WPF or X-Plane dependency. The desktop view calls `SetDoorOpen` from its manual L1/L2 switches. When X-Plane exposes `sim/flightmodel2/misc/door_open_ratio`, the live bridge maps indexes 0 and 1 to those same semantic L1/L2 inputs. Synchronization is optional and manual control remains the fallback when the array is absent.
+The boarding engine is implemented in `FreeFlight.CabinControl.Core` and has no WPF or X-Plane dependency. Each layout owns its real doorway center and threshold, so passengers stay on the galley center line until they reach the assigned aisle. Manual L1/L2 changes request a non-blocking simulator write; confirmed live telemetry is applied through a separate path so it cannot echo back into X-Plane. When X-Plane exposes `sim/flightmodel2/misc/door_open_ratio`, indexes 0 and 1 remain safe standard fallbacks while changing aircraft-specific signals receive priority.
 
 A FlightFactor adapter still needs verified mappings for custom door identifiers and exact aircraft/variant identifiers. Passenger count can be supplied by the existing manual manifest control or the current SimBrief latest-OFP integration. A future vAMSYS integration can feed the same configuration boundary.
 

@@ -105,7 +105,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _animationTimer.Tick += HandleAnimationTick;
         _cabinActivityTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromSeconds(1)
+            Interval = TimeSpan.FromMilliseconds(250)
         };
         _cabinActivityTimer.Tick += HandleCabinActivityTick;
         _cabinActivityTimer.Start();
@@ -143,10 +143,14 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public bool SeatbeltSignOn => _seatbeltSignOn;
     public string SeatbeltSignLabel => SeatbeltSignOn ? "SEAT BELTS ON" : "SEAT BELTS OFF";
     public bool SeatbeltSignalAvailable => _seatbeltSignalAvailable;
-    public bool CanManuallyToggleSeatbeltSign => !_settings.SyncSimulatorSeatbeltSign || !SeatbeltSignalAvailable;
-    public string SeatbeltControlStatus => CanManuallyToggleSeatbeltSign
-        ? "Manual fail-safe · click to toggle"
-        : "Live simulator annunciator";
+    public bool CanManuallyToggleSeatbeltSign => true;
+    public string SeatbeltControlStatus => _settings.SyncSimulatorSeatbeltSign && SeatbeltSignalAvailable
+        ? "Live simulator sync · click to request a change"
+        : "Manual fail-safe · click to toggle";
+    public int DelayedSeatbeltPassengerCount => _engine.DelayedSeatbeltPassengerCount;
+    public string SeatbeltResponseStatus => DelayedSeatbeltPassengerCount == 0
+        ? SeatbeltSignOn ? "All responding passengers secured" : "Sign off"
+        : $"{DelayedSeatbeltPassengerCount} passengers responding";
     public string LiveFlightPhase => _liveFlightPhase;
     public string AircraftMovementLabel => _isPushbackActive ? "PUSHBACK ACTIVE" : _isAircraftMoving ? "AIRCRAFT MOVING" : "STATIONARY";
     public string LiveCabinStatus => $"{LiveFlightPhase.ToUpperInvariant()} · {AircraftMovementLabel} · {SeatbeltSignLabel}";
@@ -177,18 +181,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             return $"{entertainment} entertainment · {resting} resting · {moving} moving · {activeCrew} crew active · {RestingCrewCount} crew resting";
         }
     }
-    public double L1DoorCanvasLeft => SelectedCabinLayoutProfile.Layout switch
-    {
-        PassengerCabinLayout.BritishAirways777200Er => 17d,
-        PassengerCabinLayout.BritishAirways777300 => 15d,
-        _ => 148d
-    };
-    public double L2DoorCanvasLeft => SelectedCabinLayoutProfile.Layout switch
-    {
-        PassengerCabinLayout.BritishAirways777200Er => 260d,
-        PassengerCabinLayout.BritishAirways777300 => 193d,
-        _ => 391d
-    };
+    public double L1DoorCanvasLeft => _engine.GetDoorEntryCenter(BoardingDoor.L1).X - 35d;
+    public double L2DoorCanvasLeft => _engine.GetDoorEntryCenter(BoardingDoor.L2).X - 35d;
+    public double DoorControlCanvasTop => _engine.DoorControlTop;
     public CabinLayoutProfileOption SelectedCabinLayoutProfile
     {
         get => _selectedCabinLayoutProfile;
@@ -269,6 +264,23 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         RefreshCrewMarkers();
     }
 
+    public event Action<BoardingDoor, bool>? DoorControlRequested;
+
+    public event Action<bool>? SeatbeltControlRequested;
+
+    public void ApplySimulatorDoorState(BoardingDoor door, bool isOpen)
+    {
+        if (_engine.IsDoorOpen(door) == isOpen)
+        {
+            return;
+        }
+
+        _engine.SetDoorOpen(door, isOpen);
+        OnPropertyChanged(door == BoardingDoor.L1 ? nameof(L1DoorOpen) : nameof(L2DoorOpen));
+        ResumeTimerIfNeeded();
+        RefreshFromEngine();
+    }
+
     public void ApplyPerformanceMode(string mode)
     {
         _animationTimer.Interval = mode switch
@@ -277,9 +289,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             "Low Impact" => TimeSpan.FromMilliseconds(100),
             _ => TimeSpan.FromMilliseconds(50)
         };
-        _cabinActivityTimer.Interval = mode == "Low Impact"
-            ? TimeSpan.FromSeconds(2)
-            : TimeSpan.FromSeconds(1);
+        _cabinActivityTimer.Interval = mode switch
+        {
+            "Quality" => TimeSpan.FromMilliseconds(125),
+            "Low Impact" => TimeSpan.FromMilliseconds(500),
+            _ => TimeSpan.FromMilliseconds(250)
+        };
     }
 
     public BoardingSpeedOption SelectedSpeedOption
@@ -309,6 +324,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
             _engine.SetDoorOpen(BoardingDoor.L1, value);
             AddActivity($"L1 passenger door {(value ? "opened" : "closed")}");
+            DoorControlRequested?.Invoke(BoardingDoor.L1, value);
             OnPropertyChanged();
             ResumeTimerIfNeeded();
             RefreshFromEngine();
@@ -327,6 +343,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
             _engine.SetDoorOpen(BoardingDoor.L2, value);
             AddActivity($"L2 passenger door {(value ? "opened" : "closed")}");
+            DoorControlRequested?.Invoke(BoardingDoor.L2, value);
             OnPropertyChanged();
             ResumeTimerIfNeeded();
             RefreshFromEngine();
@@ -870,6 +887,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(IsBritishAirways777300));
         OnPropertyChanged(nameof(L1DoorCanvasLeft));
         OnPropertyChanged(nameof(L2DoorCanvasLeft));
+        OnPropertyChanged(nameof(DoorControlCanvasTop));
         OnPropertyChanged(nameof(L1DoorOpen));
         OnPropertyChanged(nameof(L2DoorOpen));
         OnPropertyChanged(nameof(CabinCapacity));
@@ -1083,6 +1101,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(L1PassengerCount));
         OnPropertyChanged(nameof(L2PassengerCount));
         OnPropertyChanged(nameof(ManifestSummary));
+        OnPropertyChanged(nameof(DelayedSeatbeltPassengerCount));
+        OnPropertyChanged(nameof(SeatbeltResponseStatus));
     }
 
     private void ClearPassengerVisuals()
@@ -1289,18 +1309,15 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void ToggleSeatbeltFailSafe()
     {
-        if (!CanManuallyToggleSeatbeltSign)
-        {
-            AddActivity("Seat-belt sign is controlled by the live simulator annunciator");
-            return;
-        }
-
         _seatbeltSignOn = !_seatbeltSignOn;
         OnPropertyChanged(nameof(SeatbeltSignOn));
         OnPropertyChanged(nameof(SeatbeltSignLabel));
         OnPropertyChanged(nameof(LiveCabinStatus));
-        AddActivity($"Manual seat-belt fail-safe set to {(SeatbeltSignOn ? "ON" : "OFF")}");
-        _engine.UpdateCabinActivities(TimeSpan.FromSeconds(1), _seatbeltSignOn, _liveFlightPhase);
+        SeatbeltControlRequested?.Invoke(_seatbeltSignOn);
+        AddActivity(_settings.SyncSimulatorSeatbeltSign && SeatbeltSignalAvailable
+            ? $"Seat-belt sign change requested in simulator · {(SeatbeltSignOn ? "ON" : "OFF")}"
+            : $"Manual seat-belt fail-safe set to {(SeatbeltSignOn ? "ON" : "OFF")}");
+        _engine.UpdateCabinActivities(TimeSpan.FromMilliseconds(250), _seatbeltSignOn, _liveFlightPhase);
         RefreshFromEngine();
     }
 
@@ -1521,6 +1538,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         PassengerCabinActivity.SeatbeltFastened => ("#58E68A", "#D9FFE6"),
         PassengerCabinActivity.SettlingIn => ("#FF9D45", "#FFE0BE"),
         PassengerCabinActivity.SelectingWelcomeDrink => ("#F0C64E", "#FFF0AA"),
+        PassengerCabinActivity.RespondingToSeatbeltSign => ("#FF9D45", "#FFE0BE"),
         PassengerCabinActivity.Sleeping => ("#9B86FF", "#E3DCFF"),
         PassengerCabinActivity.WatchingMovie => ("#2E90FF", "#D4E9FF"),
         PassengerCabinActivity.Gaming => ("#B76CFF", "#ECD8FF"),
@@ -1655,6 +1673,7 @@ public sealed class PassengerManifestEntryViewModel : ObservableObject
         PassengerCabinActivity.WalkingToSeat => "Walking to seat",
         PassengerCabinActivity.SettlingIn => "Stowing bags / settling in",
         PassengerCabinActivity.SelectingWelcomeDrink => "Choosing Champagne or orange juice",
+        PassengerCabinActivity.RespondingToSeatbeltSign => "Responding to the seat-belt sign",
         PassengerCabinActivity.SeatbeltFastened => "Seated with seat belt fastened",
         PassengerCabinActivity.WatchingMovie => "Watching a movie",
         PassengerCabinActivity.Gaming => "Gaming",
