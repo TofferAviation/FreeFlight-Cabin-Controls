@@ -76,4 +76,19 @@ public sealed class FlightSessionStore
             _log.Error("The active flight session could not be saved.", exception);
         }
     }
+
+    public void Clear()
+    {
+        try
+        {
+            if (File.Exists(_filePath))
+            {
+                File.Delete(_filePath);
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _log.Error("The active flight session could not be cleared.", exception);
+        }
+    }
 }

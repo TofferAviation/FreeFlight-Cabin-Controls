@@ -7,7 +7,7 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.4.2</Version>
+    <Version>0.4.3</Version>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />

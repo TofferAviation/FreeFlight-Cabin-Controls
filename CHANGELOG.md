@@ -2,7 +2,26 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.2] - Unreleased
+## [0.4.3] - Unreleased
+
+### Added
+
+- Flights and SimBrief imports can now be unloaded directly from both the overview and Live Cabin pages.
+- A completed flight is automatically unloaded after the app has observed departure, landing, a stopped aircraft, and ten seconds of confirmed engine shutdown.
+
+### Changed
+
+- Passenger animation now refreshes only moving cabin markers at render speed while batching full manifest and metric updates, substantially reducing UI work on dense loads.
+- Cabin crew positions use layout-specific aisle coordinates and safe horizontal bounds so every marker remains inside the aircraft schematic.
+- Closing the app now completes and clears the active flight; an updater-initiated restart remains the sole exception so an in-progress flight can resume after installation.
+- Application version advanced to 0.4.3.
+
+### Fixed
+
+- Seat-belt sign changes no longer teleport cabin crew to jumpseats; crew secure only for aircraft movement, pushback, taxi, climb, descent, or approach duties.
+- Cabin crew greeting, service, rest, and arrival-preparation markers can no longer be placed beyond the visible airframe.
+
+## [0.4.2] - 2026-09-02
 
 ### Added
 

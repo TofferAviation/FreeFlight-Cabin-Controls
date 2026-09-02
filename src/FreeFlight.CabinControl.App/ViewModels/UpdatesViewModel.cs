@@ -14,6 +14,7 @@ public sealed class UpdatesViewModel : PageViewModel
     private readonly ISettingsStore _settingsStore;
     private readonly UpdateService _service;
     private readonly Action? _beforeInstall;
+    private readonly Action? _installAborted;
     private ApplicationUpdate? _availableUpdate;
     private string _changelog;
     private string _status = "Ready to check for updates.";
@@ -27,13 +28,15 @@ public sealed class UpdatesViewModel : PageViewModel
         AppSettings settings,
         ISettingsStore settingsStore,
         UpdateService service,
-        Action? beforeInstall = null)
+        Action? beforeInstall = null,
+        Action? installAborted = null)
         : base("Updates & Changelog", "Keep FreeFlight Cabin Control current without losing your local profile")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _service = service;
         _beforeInstall = beforeInstall;
+        _installAborted = installAborted;
         _changelog = service.ReadBundledChangelog();
         CheckCommand = new AsyncRelayCommand(CheckAsync, HandleError);
         InstallCommand = new AsyncRelayCommand(InstallAsync, HandleError);
@@ -163,6 +166,11 @@ public sealed class UpdatesViewModel : PageViewModel
             await _service.StageAndInstallAsync(_availableUpdate);
             Status = "Update staged. Cabin Control will restart to finish installation.";
             Application.Current.Shutdown();
+        }
+        catch
+        {
+            _installAborted?.Invoke();
+            throw;
         }
         finally { IsBusy = false; }
     }

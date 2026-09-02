@@ -47,6 +47,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private bool _seatbeltSignOn = true;
     private string _liveFlightPhase = "PREFLIGHT";
     private int _activityPulseTicks;
+    private DateTime _lastFullUiRefresh;
     private bool _isAircraftMoving;
     private bool _isPushbackActive;
     private DateTimeOffset? _crewRestCycleStartedAt;
@@ -96,6 +97,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         SelectPassengerCommand = new RelayCommand(SelectPassenger);
         ClosePassengerDetailsCommand = new RelayCommand(_ => ClearPassengerSelection());
         SyncSimBriefCommand = new AsyncRelayCommand(SyncSimBriefAsync, ShowSimBriefError);
+        UnloadFlightCommand = new RelayCommand(_ => UnloadFlight());
         ToggleSeatbeltSignCommand = new RelayCommand(_ => ToggleSeatbeltFailSafe());
 
         _animationTimer = new DispatcherTimer(DispatcherPriority.Render)
@@ -127,6 +129,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public ICommand SelectPassengerCommand { get; }
     public ICommand ClosePassengerDetailsCommand { get; }
     public ICommand SyncSimBriefCommand { get; }
+    public ICommand UnloadFlightCommand { get; }
     public ICommand ToggleSeatbeltSignCommand { get; }
     public ObservableCollection<PassengerMarkerViewModel> PassengerMarkers { get; } = [];
     public ObservableCollection<CabinCrewMarkerViewModel> CabinCrewMarkers { get; } = [];
@@ -267,6 +270,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public event Action<BoardingDoor, bool>? DoorControlRequested;
 
     public event Action<bool>? SeatbeltControlRequested;
+
+    public event Action? FlightUnloaded;
 
     public void ApplySimulatorDoorState(BoardingDoor door, bool isOpen)
     {
@@ -685,10 +690,46 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         return true;
     }
 
+    public void UnloadFlight(string reason = "Flight plan unloaded by user")
+    {
+        _animationTimer.Stop();
+        _lastAnimationTick = default;
+        _engine.ConfigurePassengerCount(0);
+        _bookedPassengerCount = 0;
+        _settings.PassengerPreviewBookedCount = 0;
+        HasSimBriefFlight = false;
+        SimBriefFlightSummary = "No SimBrief flight imported";
+        SimBriefStatus = "No flight is loaded. Import SimBrief or enter a manual passenger count.";
+        ImportedFlightNumber = string.Empty;
+        ImportedOrigin = string.Empty;
+        ImportedDestination = string.Empty;
+        ImportedAircraftIcao = string.Empty;
+        ImportedScheduledDepartureLocal = null;
+        _importedScheduledArrivalLocal = null;
+        LastSimBriefSyncTime = null;
+        ClearPassengerVisuals();
+        ResetCabinServiceState();
+        RebuildManifest();
+        ActivityLog.Clear();
+        AddActivity(reason);
+        OnPropertyChanged(nameof(BookedPassengerCount));
+        OnPropertyChanged(nameof(MappedPassengerCount));
+        OnPropertyChanged(nameof(UnmappedPassengerCount));
+        OnPropertyChanged(nameof(HasCapacityOverflow));
+        OnPropertyChanged(nameof(CapacitySummary));
+        OnPropertyChanged(nameof(ManifestSummary));
+        OnPropertyChanged(nameof(HasPassengerManifest));
+        OnPropertyChanged(nameof(PassengerLoadSourceLabel));
+        OnPropertyChanged(nameof(LiveCabinStatus));
+        RefreshFromEngine();
+        FlightUnloaded?.Invoke();
+    }
+
     public void AdvancePreview(TimeSpan elapsed)
     {
         _engine.Tick(elapsed, SelectedSpeedOption.Multiplier);
-        RefreshFromEngine();
+        RefreshPassengerAnimationFrame();
+        RefreshFullUiIfDue(TimeSpan.FromMilliseconds(250));
     }
 
     public bool BoardPassengerFromGate(int passengerId)
@@ -778,7 +819,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _engine.UpdateCabinActivities(_cabinActivityTimer.Interval, _seatbeltSignOn, _liveFlightPhase);
         UpdatePreDepartureWelcomeService();
         UpdateCabinCrewRest();
-        RefreshFromEngine();
+        RefreshPassengerAnimationFrame();
+        RefreshFullUiIfDue(TimeSpan.FromSeconds(1));
         _activityPulseTicks++;
         if (_activityPulseTicks % 15 == 0 && _engine.BoardedCount > 0)
         {
@@ -1029,6 +1071,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void RefreshFromEngine()
     {
+        _lastFullUiRefresh = DateTime.UtcNow;
         UpdatePreDepartureWelcomeService();
         RefreshCrewMarkers();
         var visiblePassengers = _engine.Passengers
@@ -1105,6 +1148,49 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(SeatbeltResponseStatus));
     }
 
+    private void RefreshFullUiIfDue(TimeSpan interval)
+    {
+        if (_lastFullUiRefresh == default || DateTime.UtcNow - _lastFullUiRefresh >= interval ||
+            _engine.State is BoardingRunState.Complete or BoardingRunState.DeboardingComplete)
+        {
+            RefreshFromEngine();
+        }
+    }
+
+    private void RefreshPassengerAnimationFrame()
+    {
+        var visibleIds = new HashSet<int>();
+        foreach (var passenger in _engine.Passengers)
+        {
+            if (passenger.MovementState is PassengerMovementState.Waiting or PassengerMovementState.Deboarded)
+            {
+                continue;
+            }
+
+            visibleIds.Add(passenger.Id);
+            if (!_markersByPassengerId.TryGetValue(passenger.Id, out var marker))
+            {
+                marker = new PassengerMarkerViewModel(passenger);
+                _markersByPassengerId.Add(passenger.Id, marker);
+                PassengerMarkers.Add(marker);
+            }
+
+            if (passenger.MovementState is not PassengerMovementState.Seated ||
+                marker.MovementState != passenger.MovementState ||
+                passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
+                    PassengerCabinActivity.ReturningToSeat or PassengerCabinActivity.Deboarding)
+            {
+                marker.Update(passenger, _engine.Operation);
+            }
+        }
+
+        foreach (var staleMarker in PassengerMarkers.Where(marker => !visibleIds.Contains(marker.PassengerId)).ToArray())
+        {
+            PassengerMarkers.Remove(staleMarker);
+            _markersByPassengerId.Remove(staleMarker.PassengerId);
+        }
+    }
+
     private void ClearPassengerVisuals()
     {
         PassengerMarkers.Clear();
@@ -1141,10 +1227,16 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
         var l1X = L1DoorCanvasLeft + 35d;
         var l2X = L2DoorCanvasLeft + 35d;
+        var (upperAisleY, lowerAisleY) = SelectedCabinLayoutProfile.Layout switch
+        {
+            PassengerCabinLayout.FlightFactor777V2 => (56d, 95d),
+            PassengerCabinLayout.BritishAirways777200Er => (70d, 129d),
+            _ => (84d, 135d)
+        };
+        static double CrewX(double value) => Math.Clamp(value, 38d, 930d);
         var entranceGreeting = _engine.Operation == PassengerOperation.Boarding &&
                                _engine.State is BoardingRunState.Boarding or BoardingRunState.WaitingForDoor or BoardingRunState.Ready;
-        var secured = SeatbeltSignOn ||
-                      _isAircraftMoving ||
+        var secured = _isAircraftMoving ||
                       _isPushbackActive ||
                       LiveFlightPhase.Contains("Taxi", StringComparison.OrdinalIgnoreCase) ||
                       LiveFlightPhase.Contains("Approach", StringComparison.OrdinalIgnoreCase) ||
@@ -1160,8 +1252,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                     : index - (CabinCrewMarkers.Count / 2);
                 var restX = 820d + (restSlot * 30d);
                 crew.Update(
-                    Math.Clamp(restX, 820d, 998d),
-                    109.5d,
+                    CrewX(restX),
+                    (upperAisleY + lowerAisleY) / 2d,
                     $"Crew rest group {_crewRestAssignment.RestGroup} · {CrewRestStatus}",
                     true,
                     true);
@@ -1171,8 +1263,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             if (_preDepartureDrinksActive && index is 2 or 3)
             {
                 crew.Update(
-                    index == 2 ? 315d : 430d,
-                    index == 2 ? 84d : 135d,
+                    CrewX(index == 2 ? 315d : 430d),
+                    index == 2 ? upperAisleY : lowerAisleY,
                     "Offering Champagne or orange juice before departure",
                     false,
                     false);
@@ -1182,8 +1274,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             if (_isArrivalPreparation && !secured)
             {
                 crew.Update(
-                    92d + (index * 82d),
-                    index % 2 == 0 ? 84d : 135d,
+                    CrewX(92d + (index * 82d)),
+                    index % 2 == 0 ? upperAisleY : lowerAisleY,
                     "Preparing the cabin for arrival",
                     false,
                     false);
@@ -1193,7 +1285,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             if (entranceGreeting && index < 2)
             {
                 var doorOpen = index == 0 ? L1DoorOpen : L2DoorOpen;
-                crew.Update(index == 0 ? l1X : l2X, 168d, doorOpen ? "Greeting passengers" : "Standing by at entrance", false, false);
+                crew.Update(CrewX(index == 0 ? l1X : l2X), lowerAisleY, doorOpen ? "Greeting passengers" : "Standing by at entrance", false, false);
                 continue;
             }
 
@@ -1205,12 +1297,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                     1 => l2X,
                     _ => 120d + (((index - 2) % 4) * 285d)
                 };
-                crew.Update(Math.Clamp(stationX, 25d, 1008d), index % 2 == 0 ? 48d : 143d, "Secured at crew station", true, false);
+                crew.Update(CrewX(stationX), index % 2 == 0 ? upperAisleY : lowerAisleY, "Secured at crew station", true, false);
                 continue;
             }
 
             var activeX = 105d + ((index * 117d) % 825d);
-            var activeY = index % 2 == 0 ? 70d : 129d;
+            var activeY = index % 2 == 0 ? upperAisleY : lowerAisleY;
             var activity = (index % 4) switch
             {
                 0 => "Cabin service",
@@ -1218,7 +1310,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 2 => "Passenger assistance",
                 _ => "Galley preparation"
             };
-            crew.Update(activeX, activeY, activity, false, false);
+            crew.Update(CrewX(activeX), activeY, activity, false, false);
         }
     }
 

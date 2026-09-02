@@ -598,7 +598,7 @@
                                       FontSize="11" />
                         </Grid>
                         <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="48" /><ColumnDefinition /><ColumnDefinition Width="88" /></Grid.ColumnDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="48" /><ColumnDefinition /><ColumnDefinition Width="88" /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
                             <TextBlock Text="Pilot ID" Foreground="#8DA0B8" FontSize="10" VerticalAlignment="Center" />
                             <TextBox Grid.Column="1" Text="{Binding SimBriefPilotId, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="Numeric Pilot ID from SimBrief Account Settings"
@@ -608,6 +608,14 @@
                                     Command="{Binding SyncSimBriefCommand}"
                                     IsEnabled="{Binding CanEditPassengerLoad}"
                                     Style="{StaticResource PrimaryButtonStyle}"
+                                    MinHeight="30"
+                                     Padding="8,4"
+                                     Margin="8,0,0,0" />
+                            <Button Grid.Column="3"
+                                    Content="Unload"
+                                    Command="{Binding UnloadFlightCommand}"
+                                    IsEnabled="{Binding HasPassengerManifest}"
+                                    Style="{StaticResource SecondaryButtonStyle}"
                                     MinHeight="30"
                                     Padding="8,4"
                                     Margin="8,0,0,0" />

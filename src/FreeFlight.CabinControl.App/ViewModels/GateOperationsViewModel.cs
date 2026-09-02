@@ -71,6 +71,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         RefreshPrintersCommand = new RelayCommand(_ => RefreshPrinters());
         MarkBoardingPassIssuedCommand = new RelayCommand(MarkBoardingPassIssued);
         ImportSimBriefCommand = new AsyncRelayCommand(ImportSimBriefAsync, HandleImportError);
+        UnloadFlightCommand = new RelayCommand(_ => UnloadFlight());
 
         _passengers.PassengerManifest.CollectionChanged += HandleManifestCollectionChanged;
         _passengers.PropertyChanged += HandlePassengerFlowPropertyChanged;
@@ -101,6 +102,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public ICommand RefreshPrintersCommand { get; }
     public ICommand MarkBoardingPassIssuedCommand { get; }
     public ICommand ImportSimBriefCommand { get; }
+    public ICommand UnloadFlightCommand { get; }
 
     public GatePassengerViewModel? SelectedPassenger
     {
@@ -674,6 +676,13 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private async Task ImportSimBriefAsync()
     {
         await _passengers.SyncSimBriefAsync();
+        ApplySettings();
+        OperationMessage = _passengers.SimBriefStatus;
+    }
+
+    private void UnloadFlight()
+    {
+        _passengers.UnloadFlight();
         ApplySettings();
         OperationMessage = _passengers.SimBriefStatus;
     }

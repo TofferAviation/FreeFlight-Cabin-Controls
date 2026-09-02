@@ -21,6 +21,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _sessionSaveTimer;
     private CabinTelemetrySnapshot? _latestTelemetry;
     private int _telemetryDispatchPending;
+    private bool _hasObservedEnginesRunning;
+    private bool _hasObservedDeparture;
+    private bool _preserveFlightForUpdate;
+    private DateTimeOffset? _engineShutdownCandidateSince;
     private PageViewModel _currentPage;
     private string _activePage = "Dashboard";
 
@@ -59,6 +63,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
         Passengers.DoorControlRequested += HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested += HandleSeatbeltControlRequested;
+        Passengers.FlightUnloaded += HandleFlightUnloaded;
         var savedFlight = _flightSessionStore?.Load();
         if (savedFlight is not null && savedFlight.Boarding.State != BoardingRunState.DeboardingComplete)
         {
@@ -87,7 +92,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             settings,
             settingsStore,
             updateService ?? new UpdateService(Path.GetDirectoryName(logDirectory) ?? logDirectory),
-            PersistFlightSession);
+            PrepareFlightForUpdate,
+            CancelFlightUpdateShutdown);
         FlightLogger = new FlightLoggerViewModel();
         _currentPage = Dashboard;
         NavigateCommand = new RelayCommand(Navigate);
@@ -155,12 +161,20 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     {
         _sessionSaveTimer.Stop();
         _sessionSaveTimer.Tick -= HandleSessionSaveTick;
-        PersistFlightSession();
+        if (_preserveFlightForUpdate)
+        {
+            PersistFlightSession();
+        }
+        else
+        {
+            _flightSessionStore?.Clear();
+        }
         GateLogin.SignedIn -= HandleGateSignedIn;
         GateLogin.SignedOut -= HandleGateSignedOut;
         Performance.PropertyChanged -= HandlePerformancePropertyChanged;
         Passengers.DoorControlRequested -= HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested -= HandleSeatbeltControlRequested;
+        Passengers.FlightUnloaded -= HandleFlightUnloaded;
         if (_simulatorBridge is not null)
         {
             _simulatorBridge.StatusChanged -= HandleBridgeStatusChanged;
@@ -285,6 +299,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
         Passengers.ApplyCabinTelemetry(snapshot);
         Operations.ApplyCabinTelemetry(snapshot);
+        if (TrackAutomaticFlightCompletion(snapshot))
+        {
+            return;
+        }
         CabinPanel.ApplyFlightTelemetry(
             snapshot,
             $"{Operations.DetectedAircraftIcao} {_simulatorBridge?.CurrentStatus.Aircraft}");
@@ -303,6 +321,61 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             Passengers.ApplySimulatorDoorState(BoardingDoor.L2, l2DoorRatio >= 0.5d);
         }
     }
+
+    private bool TrackAutomaticFlightCompletion(CabinTelemetrySnapshot snapshot)
+    {
+        if (!Passengers.HasPassengerManifest)
+        {
+            ResetFlightCompletionTracking();
+            return false;
+        }
+
+        var enginesRunning = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d;
+        var groundSpeed = snapshot.Signals.GetValueOrDefault("groundspeed_mps");
+        _hasObservedEnginesRunning |= enginesRunning;
+        _hasObservedDeparture |= !snapshot.OnGround || Operations.IsArrivalMode;
+
+        var completedShutdown = _hasObservedEnginesRunning &&
+                                _hasObservedDeparture &&
+                                snapshot.OnGround &&
+                                !enginesRunning &&
+                                groundSpeed < 0.35d;
+        if (!completedShutdown)
+        {
+            _engineShutdownCandidateSince = null;
+            return false;
+        }
+
+        _engineShutdownCandidateSince ??= snapshot.Timestamp;
+        if (snapshot.Timestamp - _engineShutdownCandidateSince < TimeSpan.FromSeconds(10))
+        {
+            return false;
+        }
+
+        Passengers.UnloadFlight("Flight completed · aircraft stopped and engines shut down");
+        return true;
+    }
+
+    private void HandleFlightUnloaded()
+    {
+        _flightSessionStore?.Clear();
+        ResetFlightCompletionTracking();
+    }
+
+    private void ResetFlightCompletionTracking()
+    {
+        _hasObservedEnginesRunning = false;
+        _hasObservedDeparture = false;
+        _engineShutdownCandidateSince = null;
+    }
+
+    private void PrepareFlightForUpdate()
+    {
+        _preserveFlightForUpdate = true;
+        PersistFlightSession();
+    }
+
+    private void CancelFlightUpdateShutdown() => _preserveFlightForUpdate = false;
 
     private async void HandleDoorControlRequested(BoardingDoor door, bool isOpen)
     {
