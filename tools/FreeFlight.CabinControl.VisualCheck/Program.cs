@@ -1076,7 +1076,9 @@ internal static class Program
                     if (!viewModel.Passengers.IsOperationalCabinLayout ||
                         viewModel.Passengers.IsReferenceCabinLayout ||
                         !viewModel.Passengers.IsAirlineCabinLayout ||
-                        (!profile.LivePreviewUri.Contains("Horizontal", StringComparison.Ordinal) && !profile.UsesFallbackLivePreview) ||
+                        profile.UsesFallbackLivePreview ||
+                        !profile.LivePreviewUri.StartsWith("pack://application:,,,/", StringComparison.Ordinal) ||
+                        !profile.LivePreviewUri.Contains("/Assets/CabinLayouts/", StringComparison.Ordinal) ||
                         viewModel.Passengers.CabinCapacity != layoutCheck.Capacity ||
                         viewModel.Passengers.MappedPassengerCount != layoutCheck.Capacity)
                     {

@@ -2,7 +2,22 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.5] - Unreleased
+## [0.4.6] - Unreleased
+
+### Added
+
+- Original FreeFlight British Airways 777-200ER and 777-300 cabin schematics are now compiled into the application for every clean installation.
+
+### Changed
+
+- Settings previews and the Live Cabin page now load both British Airways layouts through assembly pack resources instead of optional private files.
+- Application version advanced to 0.4.6.
+
+### Fixed
+
+- Public GitHub release builds no longer fall back to the generic FlightFactor schematic when a British Airways cabin profile is selected.
+
+## [0.4.5] - 2026-09-03
 
 ### Changed
 

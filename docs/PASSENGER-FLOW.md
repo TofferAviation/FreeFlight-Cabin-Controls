@@ -4,7 +4,7 @@ Passenger Flow is an original FreeFlight cabin-operations view. It does not copy
 
 ## Current cabin behavior
 
-- Provides operational coordinate profiles for the 311-position FlightFactor schematic, 280-position British Airways 777-200ER, and 266-position British Airways 777-300.
+- Provides operational coordinate profiles for the 311-position FlightFactor schematic, 272-position British Airways 777-200ER, and 256-position British Airways 777-300.
 - Accepts a user-selected mapped-passenger count up to the selected layout's capacity, while preserving a larger authoritative booked count imported from SimBrief.
 - Selects occupied positions from the entire cabin for partial loads, then assigns each fictional passenger a unique boarding-pass seat. Seats therefore do not fill as a rigid tail-to-nose sequence.
 - Starts with L2 open and L1 closed so single-door routing is immediately testable.
@@ -31,7 +31,7 @@ Only operational OFP data is consumed. SimBrief does not provide the real-world 
 
 ## Cabin layout profiles
 
-Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. Every profile drives its own operational seat coordinates, cabin classes, boarding groups, door positions, and aisle routing. The British Airways background maps remain private airline-pack content; the public code contains only the simulation coordinates and profile metadata.
+Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. Every profile drives its own operational seat coordinates, cabin classes, boarding groups, door positions, and aisle routing. Original FreeFlight-rendered BA 777-200ER and 777-300 schematics are compiled WPF resources, so clean installations do not depend on a private content pack or loose local files.
 
 Changing layouts safely starts a fresh manifest against the selected capacity while preserving the booked SimBrief count, current manual door choices, and stable profile selection. A count above the chosen capacity is reported as unmapped rather than silently discarded.
 

@@ -601,8 +601,8 @@ public sealed record CabinLayoutProfileOption(
         ? new Rect(0d, 62d, 1033d, 192d)
         : Layout switch
         {
-            PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 2860d, 380d),
-            PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 2855d, 390d),
+            PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 1033d, 192d),
+            PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 1033d, 192d),
             _ => new Rect(0d, 62d, 1033d, 192d)
         };
 
@@ -635,8 +635,8 @@ public static class CabinLayoutProfileCatalog
             "British Airways 777-200ER",
             "Operational airline layout",
             "British Airways 777-200ER boarding simulation with mapped seats, two-door routing, and live passenger movement.",
-            ResolveOptionalCabinAsset("BA_777_200ER_SeatMap.png"),
-            ResolveOptionalCabinAsset("BA_777_200ER_SeatMap_Horizontal.png"),
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777200Er.png",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777200Er.png",
             "Manual selection · future aircraft match: Boeing 777-200ER",
             420d,
             true,
@@ -647,8 +647,8 @@ public static class CabinLayoutProfileCatalog
             "British Airways 777-300",
             "Operational airline layout",
             "British Airways 777-300 boarding simulation with mapped seats, two-door routing, and live passenger movement.",
-            ResolveOptionalCabinAsset("BA_777_300_SeatMap.png"),
-            ResolveOptionalCabinAsset("BA_777_300_SeatMap_Horizontal.png"),
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777300.png",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777300.png",
             "Manual selection · future aircraft match: Boeing 777-300",
             420d,
             true,
@@ -657,17 +657,4 @@ public static class CabinLayoutProfileCatalog
 
     public static CabinLayoutProfileOption Resolve(string? id) =>
         All.FirstOrDefault(profile => string.Equals(profile.Id, id, StringComparison.OrdinalIgnoreCase)) ?? All[0];
-
-    private static string ResolveOptionalCabinAsset(string fileName)
-    {
-        var path = Path.Combine(
-            AppContext.BaseDirectory,
-            "content-packs",
-            "british-airways",
-            "layouts",
-            fileName);
-        return File.Exists(path)
-            ? new Uri(path).AbsoluteUri
-            : "pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png";
-    }
 }
