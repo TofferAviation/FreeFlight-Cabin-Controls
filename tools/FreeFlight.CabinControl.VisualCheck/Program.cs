@@ -293,6 +293,17 @@ internal static class Program
             viewModel.Passengers.ToggleSeatbeltSignCommand.Execute(null);
 
             Render(window, Path.Combine(outputDirectory, "passengers-crew-rest.png"));
+            var selectedCrew = viewModel.Passengers.CabinCrewMarkers[0];
+            viewModel.Passengers.SelectCrewCommand.Execute(selectedCrew);
+            if (!viewModel.Passengers.IsCrewDetailsOpen ||
+                viewModel.Passengers.SelectedCrew != selectedCrew ||
+                selectedCrew.Age is < 22 or > 56 ||
+                string.IsNullOrWhiteSpace(selectedCrew.FullName))
+            {
+                throw new InvalidOperationException("Cabin-crew profile selection did not expose a valid fictional name and age.");
+            }
+            Render(window, Path.Combine(outputDirectory, "passengers-crew-profile.png"));
+            viewModel.Passengers.CloseCrewDetailsCommand.Execute(null);
             window.Width = 1120;
             window.Height = 700;
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);

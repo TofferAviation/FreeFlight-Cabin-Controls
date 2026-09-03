@@ -394,7 +394,11 @@
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Width="12" Height="12" ToolTip="{Binding ToolTip}">
+                                            <Button Width="12" Height="12" Padding="0" Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                                    ToolTip="{Binding ToolTip}"
+                                                    Command="{Binding DataContext.SelectCrewCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}">
+                                            <Grid Width="12" Height="12">
                                                 <Ellipse Width="5" Height="5" Fill="#0B3D78" Stroke="#A9D2FF" StrokeThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Top" />
                                                 <Border Width="8" Height="7" CornerRadius="4,4,3,3" Background="#0B3D78" BorderBrush="#A9D2FF" BorderThickness="0.8" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
                                                 <Ellipse Width="12" Height="12" Stroke="#FFFFFF" StrokeThickness="1" Fill="Transparent">
@@ -404,6 +408,7 @@
                                                     <Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Binding="{Binding IsResting}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></Ellipse.Style>
                                                 </Ellipse>
                                             </Grid>
+                                            </Button>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -774,6 +779,38 @@
                     </StackPanel>
                 </Grid>
             </Grid>
+        </Border>
+    </Grid>
+    <Grid Panel.ZIndex="35" IsHitTestVisible="True">
+        <Grid.Style>
+            <Style TargetType="Grid">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsCrewDetailsOpen}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Style>
+        <Border Background="#65000712" />
+        <Border Width="390" Style="{StaticResource OverlayBorderStyle}" Visibility="Visible" HorizontalAlignment="Right" Margin="0,0,34,0">
+            <StackPanel>
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="Cabin Crew Profile" Foreground="#8DA0B8" FontSize="12" />
+                        <TextBlock Text="{Binding SelectedCrew.FullName}" FontSize="25" FontWeight="SemiBold" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <Button Content="Close" Command="{Binding CloseCrewDetailsCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" MinHeight="32" Padding="13,4" />
+                </Grid>
+                <Border Background="#101F33" BorderBrush="#28415F" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,18,0,16">
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="CREW ID" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedCrew.CrewId}" FontSize="22" Foreground="#55AEFF" /></StackPanel>
+                        <StackPanel Grid.Column="1"><TextBlock Text="AGE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedCrew.Age}" FontSize="22" Foreground="#EEF5FF" /></StackPanel>
+                    </Grid>
+                </Border>
+                <TextBlock Text="ROLE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedCrew.Role}" Margin="0,3,0,14" FontSize="15" />
+                <TextBlock Text="CURRENT DUTY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedCrew.Activity}" Margin="0,3,0,14" Foreground="#8FC8FF" TextWrapping="Wrap" />
+                <TextBlock Text="Crew identities are fictional and generated consistently from the passenger seed." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,8,0,0" />
+            </StackPanel>
         </Border>
     </Grid>
     </Grid>

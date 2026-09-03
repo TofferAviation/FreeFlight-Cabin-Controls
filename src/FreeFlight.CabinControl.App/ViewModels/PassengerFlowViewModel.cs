@@ -30,6 +30,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private bool _isManifestOpen;
     private bool _isPassengerDetailsOpen;
     private PassengerManifestEntryViewModel? _selectedPassenger;
+    private bool _isCrewDetailsOpen;
+    private CabinCrewMarkerViewModel? _selectedCrew;
     private string _simBriefPilotId;
     private bool _simBriefAutoSync;
     private string _simBriefStatus = "Enter your numeric SimBrief Pilot ID to import the latest OFP.";
@@ -96,6 +98,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         CloseManifestCommand = new RelayCommand(_ => IsManifestOpen = false);
         SelectPassengerCommand = new RelayCommand(SelectPassenger);
         ClosePassengerDetailsCommand = new RelayCommand(_ => ClearPassengerSelection());
+        SelectCrewCommand = new RelayCommand(SelectCrew);
+        CloseCrewDetailsCommand = new RelayCommand(_ => ClearCrewSelection());
         SyncSimBriefCommand = new AsyncRelayCommand(SyncSimBriefAsync, ShowSimBriefError);
         UnloadFlightCommand = new RelayCommand(_ => UnloadFlight());
         ToggleSeatbeltSignCommand = new RelayCommand(_ => ToggleSeatbeltFailSafe());
@@ -128,6 +132,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public ICommand CloseManifestCommand { get; }
     public ICommand SelectPassengerCommand { get; }
     public ICommand ClosePassengerDetailsCommand { get; }
+    public ICommand SelectCrewCommand { get; }
+    public ICommand CloseCrewDetailsCommand { get; }
     public ICommand SyncSimBriefCommand { get; }
     public ICommand UnloadFlightCommand { get; }
     public ICommand ToggleSeatbeltSignCommand { get; }
@@ -425,6 +431,18 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(SelectedSeatCanvasTop));
             OnPropertyChanged(nameof(SelectedSeatLabel));
         }
+    }
+
+    public CabinCrewMarkerViewModel? SelectedCrew
+    {
+        get => _selectedCrew;
+        private set => SetProperty(ref _selectedCrew, value);
+    }
+
+    public bool IsCrewDetailsOpen
+    {
+        get => _isCrewDetailsOpen;
+        private set => SetProperty(ref _isCrewDetailsOpen, value);
     }
 
     public bool IsSeatHighlightVisible => SelectedPassenger is not null;
@@ -1015,6 +1033,23 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         SelectedPassenger = null;
     }
 
+    private void SelectCrew(object? parameter)
+    {
+        if (parameter is not CabinCrewMarkerViewModel crew)
+        {
+            return;
+        }
+
+        SelectedCrew = crew;
+        IsCrewDetailsOpen = true;
+    }
+
+    private void ClearCrewSelection()
+    {
+        IsCrewDetailsOpen = false;
+        SelectedCrew = null;
+    }
+
     private void HandleAnimationTick(object? sender, EventArgs e)
     {
         var now = DateTime.UtcNow;
@@ -1218,7 +1253,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         var crewCount = ExpectedCabinCrewCount;
         while (CabinCrewMarkers.Count < crewCount)
         {
-            CabinCrewMarkers.Add(new CabinCrewMarkerViewModel(CabinCrewMarkers.Count + 1));
+            CabinCrewMarkers.Add(new CabinCrewMarkerViewModel(
+                CabinCrewMarkers.Count + 1,
+                _settings.PassengerGenerationSeed));
         }
         while (CabinCrewMarkers.Count > crewCount)
         {
@@ -1478,25 +1515,39 @@ public sealed record BoardingSpeedOption(string Label, double Multiplier)
 
 public sealed class CabinCrewMarkerViewModel : ObservableObject
 {
+    private static readonly string[] CrewNames =
+    [
+        "Amelia Hart", "Daniel Okafor", "Sofia Lindberg", "Oliver Bennett",
+        "Maya Thompson", "Hassan Rahman", "Elena Rossi", "Noah Williams",
+        "Priya Shah", "Lucas Andersen", "Grace Mensah", "Thomas Clarke",
+        "Isabelle Martin", "Ethan Walker", "Aisha Khan", "Marcus Reed"
+    ];
     private double _x;
     private double _y;
     private string _activity = "Standing by";
     private bool _isSecured;
     private bool _isResting;
 
-    public CabinCrewMarkerViewModel(int crewNumber)
+    public CabinCrewMarkerViewModel(int crewNumber, int generationSeed = 777)
     {
         CrewNumber = crewNumber;
         Role = crewNumber == 1 ? "Cabin Manager" : $"Cabin Crew {crewNumber}";
+        var stableSeed = Math.Abs((generationSeed * 31) + (crewNumber * 97));
+        FullName = CrewNames[stableSeed % CrewNames.Length];
+        Age = 22 + (stableSeed % 35);
     }
 
     public int CrewNumber { get; }
     public string Role { get; }
+    public string FullName { get; }
+    public int Age { get; }
+    public string CrewId => $"CC-{CrewNumber:00}";
     public double CanvasLeft => _x - 6d;
     public double CanvasTop => _y - 6d;
     public bool IsSecured { get => _isSecured; private set => SetProperty(ref _isSecured, value); }
     public bool IsResting { get => _isResting; private set => SetProperty(ref _isResting, value); }
-    public string ToolTip => $"{Role} · {_activity}";
+    public string Activity => _activity;
+    public string ToolTip => $"{FullName} · {Role} · {_activity}";
 
     public void Update(double x, double y, string activity, bool isSecured, bool isResting)
     {
@@ -1515,6 +1566,7 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
         if (!string.Equals(_activity, activity, StringComparison.Ordinal))
         {
             _activity = activity;
+            OnPropertyChanged(nameof(Activity));
             OnPropertyChanged(nameof(ToolTip));
         }
         IsSecured = isSecured;

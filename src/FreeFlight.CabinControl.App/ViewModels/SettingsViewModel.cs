@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Runtime.CompilerServices;
 using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Integration;
 using FreeFlight.CabinControl.Core.Passengers;
@@ -17,22 +18,27 @@ public sealed class SettingsViewModel : PageViewModel
     private readonly AppSettings _settings;
     private readonly ISettingsStore _settingsStore;
     private readonly ISimulatorBridge? _simulatorBridge;
+    private readonly XPlanePluginInstaller _xPlanePluginInstaller;
     private string _selectedSection = "General";
     private string _saveStatus = "No unsaved changes";
     private string _boardingPassPrinterStatus = "Select an installed Windows queue from Gate Desk";
     private string _bagTagPrinterStatus = "Preview printer ready";
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
+    private string _xPlanePluginStatus;
 
     public SettingsViewModel(
         AppSettings settings,
         ISettingsStore settingsStore,
         SharedStatusViewModel status,
-        ISimulatorBridge? simulatorBridge = null)
+        ISimulatorBridge? simulatorBridge = null,
+        XPlanePluginInstaller? xPlanePluginInstaller = null)
         : base("Settings", "Application, aircraft, airline, and user preferences")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _simulatorBridge = simulatorBridge;
+        _xPlanePluginInstaller = xPlanePluginInstaller ?? new XPlanePluginInstaller();
+        _xPlanePluginStatus = _xPlanePluginInstaller.GetStatus(settings.XPlaneExecutablePath);
         _selectedCabinLayoutProfile = CabinLayoutProfiles.FirstOrDefault(profile =>
             string.Equals(profile.Id, settings.PassengerCabinLayoutId, StringComparison.OrdinalIgnoreCase)) ??
             CabinLayoutProfiles[0];
@@ -47,6 +53,7 @@ public sealed class SettingsViewModel : PageViewModel
         ReconnectXPlaneCommand = new RelayCommand(_ => _simulatorBridge?.RequestReconnect());
         SelectXPlaneFolderCommand = new RelayCommand(_ => SelectXPlaneFolder());
         SelectXPlaneExecutableCommand = new RelayCommand(_ => SelectXPlaneExecutable());
+        InstallXPlanePluginCommand = new RelayCommand(_ => InstallXPlanePlugin());
     }
 
     public SharedStatusViewModel Status { get; }
@@ -68,6 +75,16 @@ public sealed class SettingsViewModel : PageViewModel
     public ICommand SelectXPlaneFolderCommand { get; }
 
     public ICommand SelectXPlaneExecutableCommand { get; }
+
+    public ICommand InstallXPlanePluginCommand { get; }
+
+    public string XPlanePluginStatus
+    {
+        get => _xPlanePluginStatus;
+        private set => SetProperty(ref _xPlanePluginStatus, value);
+    }
+
+    public bool CanInstallXPlanePlugin => _xPlanePluginInstaller.CanInstall(XPlaneExecutablePath);
 
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
 
@@ -165,6 +182,7 @@ public sealed class SettingsViewModel : PageViewModel
 
         XPlaneExecutablePath = dialog.FileName;
         OnPropertyChanged(nameof(XPlaneExecutableLabel));
+        RefreshXPlanePluginStatus();
         _simulatorBridge?.RequestReconnect();
     }
 
@@ -183,7 +201,27 @@ public sealed class SettingsViewModel : PageViewModel
         var executable = Path.Combine(dialog.FolderName, "X-Plane.exe");
         XPlaneExecutablePath = File.Exists(executable) ? executable : dialog.FolderName;
         OnPropertyChanged(nameof(XPlaneExecutableLabel));
+        RefreshXPlanePluginStatus();
         _simulatorBridge?.RequestReconnect();
+    }
+
+    private void InstallXPlanePlugin()
+    {
+        try
+        {
+            XPlanePluginStatus = _xPlanePluginInstaller.Install(XPlaneExecutablePath);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            XPlanePluginStatus = $"Plugin installation failed: {exception.Message}";
+        }
+        OnPropertyChanged(nameof(CanInstallXPlanePlugin));
+    }
+
+    private void RefreshXPlanePluginStatus()
+    {
+        XPlanePluginStatus = _xPlanePluginInstaller.GetStatus(XPlaneExecutablePath);
+        OnPropertyChanged(nameof(CanInstallXPlanePlugin));
     }
 
     public string BoardingPassPrinterStatus
@@ -494,6 +532,8 @@ public sealed class SettingsViewModel : PageViewModel
         SyncXPlaneDoors = defaults.SyncXPlaneDoors;
         SyncSimulatorSeatbeltSign = defaults.SyncSimulatorSeatbeltSign;
         XPlaneExecutablePath = defaults.XPlaneExecutablePath;
+        OnPropertyChanged(nameof(XPlaneExecutableLabel));
+        RefreshXPlanePluginStatus();
         Msfs2024AutoConnect = defaults.Msfs2024AutoConnect;
         AutomaticallyCheckForUpdates = defaults.AutomaticallyCheckForUpdates;
         SelectedCabinLayoutProfile = CabinLayoutProfiles.Single(profile =>

@@ -30,6 +30,13 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private const string SimulatorRunningTime = "sim/time/total_running_time_sec";
     private const string SimulatorLocalTime = "sim/time/local_time_sec";
     private const string FrameRatePeriod = "sim/operation/misc/frame_rate_period";
+    private const string FreeFlightPluginOnline = "freeflight/cabin/plugin_online";
+    private const string FreeFlightSeatbeltAvailable = "freeflight/cabin/seatbelt_available";
+    private const string FreeFlightSeatbeltSign = "freeflight/cabin/seatbelt_sign";
+    private const string FreeFlightDoorL1Available = "freeflight/cabin/door_l1_available";
+    private const string FreeFlightDoorL1Ratio = "freeflight/cabin/door_l1_ratio";
+    private const string FreeFlightDoorL2Available = "freeflight/cabin/door_l2_available";
+    private const string FreeFlightDoorL2Ratio = "freeflight/cabin/door_l2_ratio";
 
     private static readonly HashSet<string> RequestedDatarefs =
     [
@@ -49,7 +56,14 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         AircraftRelativePath,
         FrameRatePeriod,
         SimulatorRunningTime,
-        SimulatorLocalTime
+        SimulatorLocalTime,
+        FreeFlightPluginOnline,
+        FreeFlightSeatbeltAvailable,
+        FreeFlightSeatbeltSign,
+        FreeFlightDoorL1Available,
+        FreeFlightDoorL1Ratio,
+        FreeFlightDoorL2Available,
+        FreeFlightDoorL2Ratio
     ];
 
     private static readonly IReadOnlyList<IAircraftCabinAdapter> AircraftCabinAdapters =
@@ -498,6 +512,7 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             ["simulator_fps"] = GetScalar(FrameRatePeriod) > 0.0001d ? 1d / GetScalar(FrameRatePeriod) : 0d,
             ["simulator_running_time_sec"] = GetScalar(SimulatorRunningTime),
             ["sim_local_time_sec"] = GetScalar(SimulatorLocalTime),
+            ["freeflight_plugin_online"] = GetScalar(FreeFlightPluginOnline) >= 0.5d ? 1d : 0d,
             ["seatbelt_signal_available"] = seatbeltSignal.IsAvailable ? 1d : 0d,
             ["seatbelt_signal_raw"] = seatbeltSignal.IsAvailable ? seatbeltSignal.Value : double.NaN,
             ["pushback_active"] = onGround && groundSpeed >= 0.35d && altitudeAglFeet < 15d ? 1d : 0d
@@ -581,27 +596,47 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             $"X-Plane {_simulatorVersion}",
             aircraft,
             string.IsNullOrWhiteSpace(acfPath)
-                ? $"Web API {_apiVersion} · live telemetry up to 10 Hz{FormatAdapterStatus(adapter)}"
-                : $"Web API {_apiVersion} · {Path.GetFileName(acfPath)} · live telemetry up to 10 Hz{FormatAdapterStatus(adapter)}"));
+                ? $"Web API {_apiVersion} · live telemetry up to 10 Hz{FormatPluginStatus()}{FormatAdapterStatus(adapter)}"
+                : $"Web API {_apiVersion} · {Path.GetFileName(acfPath)} · live telemetry up to 10 Hz{FormatPluginStatus()}{FormatAdapterStatus(adapter)}"));
     }
 
     private static string FormatAdapterStatus(IAircraftCabinAdapter? adapter) => adapter is null
         ? string.Empty
         : $" · {adapter.DisplayName} adapter-ready";
 
+    private string FormatPluginStatus() => GetScalar(FreeFlightPluginOnline) >= 0.5d
+        ? " · FreeFlight plugin active"
+        : " · plugin fallback";
+
     private (double L1, double L2) ResolveDoorRatios()
     {
+        var pluginL1 = double.NaN;
+        var pluginL2 = double.NaN;
+        if (GetScalar(FreeFlightPluginOnline) >= 0.5d)
+        {
+            pluginL1 = GetScalar(FreeFlightDoorL1Available) >= 0.5d
+                ? NormalizeDoorRatio(GetScalar(FreeFlightDoorL1Ratio))
+                : double.NaN;
+            pluginL2 = GetScalar(FreeFlightDoorL2Available) >= 0.5d
+                ? NormalizeDoorRatio(GetScalar(FreeFlightDoorL2Ratio))
+                : double.NaN;
+        }
+
         var standard = GetArray(DoorOpenRatio);
-        var l1 = standard.Length > 0 ? NormalizeDoorRatio(standard[0]) : double.NaN;
-        var l2 = standard.Length > 1 ? NormalizeDoorRatio(standard[1]) : double.NaN;
+        var l1 = !double.IsNaN(pluginL1)
+            ? pluginL1
+            : standard.Length > 0 ? NormalizeDoorRatio(standard[0]) : double.NaN;
+        var l2 = !double.IsNaN(pluginL2)
+            ? pluginL2
+            : standard.Length > 1 ? NormalizeDoorRatio(standard[1]) : double.NaN;
         var candidates = _values
             .Where(pair => !string.Equals(pair.Key, DoorOpenRatio, StringComparison.Ordinal) &&
                            IsDoorCandidate(pair.Key, "float"))
             .ToArray();
         var namedL1 = ResolveNamedDoor(candidates, 1);
         var namedL2 = ResolveNamedDoor(candidates, 2);
-        l1 = namedL1 is null ? l1 : NormalizeDoorRatio(namedL1.Value.Value.Scalar);
-        l2 = namedL2 is null ? l2 : NormalizeDoorRatio(namedL2.Value.Value.Scalar);
+        l1 = namedL1 is null || !double.IsNaN(pluginL1) ? l1 : NormalizeDoorRatio(namedL1.Value.Value.Scalar);
+        l2 = namedL2 is null || !double.IsNaN(pluginL2) ? l2 : NormalizeDoorRatio(namedL2.Value.Value.Scalar);
 
         var arrayCandidate = candidates.Select(pair => pair.Value.Array).FirstOrDefault(array => array.Length >= 2);
         if (arrayCandidate is not null)
@@ -615,6 +650,11 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
 
     private (bool IsAvailable, double Value) ResolveSeatbeltSignal()
     {
+        if (GetScalar(FreeFlightPluginOnline) >= 0.5d && GetScalar(FreeFlightSeatbeltAvailable) >= 0.5d)
+        {
+            return (true, GetScalar(FreeFlightSeatbeltSign));
+        }
+
         var selected = _values
             .Where(pair => IsStandardSeatbeltDataref(pair.Key) || IsSeatbeltCandidate(pair.Key, "float"))
             .Where(pair => double.IsFinite(pair.Value.Scalar))
@@ -764,6 +804,12 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         lock (_valuesLock)
         {
             var targets = new List<XPlaneWriteTarget>();
+            var pluginDoorName = doorNumber == 1 ? FreeFlightDoorL1Ratio : FreeFlightDoorL2Ratio;
+            if (_datarefsByName.TryGetValue(pluginDoorName, out var pluginDoorDataref))
+            {
+                targets.Add(new XPlaneWriteTarget(pluginDoorDataref, null));
+            }
+
             var customCandidates = _values
                 .Where(pair => !string.Equals(pair.Key, DoorOpenRatio, StringComparison.Ordinal) &&
                                IsDoorCandidate(pair.Key, "float"))
@@ -789,13 +835,14 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     {
         lock (_valuesLock)
         {
-            return _values
+            return new[] { FreeFlightSeatbeltSign }
+                .Concat(_values
                 .Where(pair => IsSeatbeltCandidate(pair.Key, "float"))
                 .OrderByDescending(pair =>
                     ScoreSeatbeltSignal(pair.Key, pair.Value.Scalar) +
                     (pair.Key.Contains("switch", StringComparison.OrdinalIgnoreCase) ||
                      pair.Key.Contains("control", StringComparison.OrdinalIgnoreCase) ? 35 : 0))
-                .Select(pair => pair.Key)
+                .Select(pair => pair.Key))
                 .Concat([SeatbeltSwitch, LegacySeatbeltSwitch])
                 .Distinct(StringComparer.Ordinal)
                 .Select(name => _datarefsByName.GetValueOrDefault(name))

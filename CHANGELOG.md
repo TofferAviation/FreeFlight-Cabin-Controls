@@ -2,7 +2,26 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.3] - Unreleased
+## [0.4.4] - Unreleased
+
+### Added
+
+- Cabin-crew markers can be selected to open a crew profile with a stable fictional name, role, crew ID, current duty, and varied age between 22 and 56.
+- A single lightweight FreeFlight Cabin Bridge plugin now publishes stable X-Plane datarefs for plugin availability, the passenger seat-belt sign, and L1/L2 door positions.
+- Settings can install or update the bundled X-Plane plugin directly after the user selects their X-Plane folder or executable.
+- GitHub releases now include a guided per-user Windows Setup executable with Start-menu integration, optional desktop shortcut, clean uninstall support, and preserved local settings.
+
+### Changed
+
+- The X-Plane bridge prioritizes the FreeFlight plugin interface for incoming and outgoing cabin controls, retaining automatic Web API discovery and manual controls as fallbacks.
+- Native plugin sampling runs at 10 Hz with cached SDK handles and no file or network I/O in X-Plane's flight loop.
+- Application version advanced to 0.4.4.
+
+### Fixed
+
+- Aircraft-specific door and seat-belt signals are normalized before reaching the app, preventing unrelated static datarefs from masking the active simulator output.
+
+## [0.4.3] - 2026-09-02
 
 ### Added
 

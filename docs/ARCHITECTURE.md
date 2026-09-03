@@ -12,9 +12,9 @@ Boarding-pass identities and personal details are deterministic fictional previe
 
 ### X-Plane bridge
 
-The Windows application connects directly to X-Plane 12.1.1 or newer through X-Plane's built-in loopback Web API. REST discovers the simulator version and session-scoped dataref IDs; WebSockets streams the selected values at up to 10 Hz. The bridge reconnects automatically, treats a missing simulator as a normal offline state, and never blocks the WPF thread.
+The Windows application connects to X-Plane through its built-in loopback Web API. REST discovers the simulator version and session-scoped dataref IDs; WebSockets stream values at up to 10 Hz. The bundled FreeFlight Cabin Bridge plugin uses the native SDK to normalize aircraft-specific L1/L2 door and seat-belt outputs into stable `freeflight/cabin/*` datarefs. The app prioritizes these stable signals, then falls back to adaptive Web API discovery and manual cabin controls.
 
-A later native C++ plugin is only needed for capabilities the Web API does not provide, such as simulator audio-bus playback or simulator-side screen rendering. If added, it must remain lightweight and must not block X-Plane's main thread.
+The native C++ plugin caches resolved dataref handles, samples at 10 Hz, and performs no file or network I/O in X-Plane's flight loop. Future simulator audio-bus playback or simulator-side screen rendering must remain outside this small cabin-state bridge unless separately profiled and verified.
 
 ### Aircraft adapter
 

@@ -36,7 +36,7 @@ Version `0.4.x` is the current application line. GitHub release builds receive a
 - a vAMSYS Pilot API integration using browser-based Authorization Code + PKCE, Windows-user encrypted token storage, automatic token refresh, airline-scoped profile loading, a connected header account, and a local appearance editor; activation requires the public client ID from an attested VA-owned Pilot API registration;
 - optional local profile pictures and blurred custom background images with 10–20 percent strength, shared across parent pages according to user preference; identity, email, privacy and pilot-account changes remain on vAMSYS;
 - enumeration and persistent selection of active Windows playback endpoints;
-- automatic X-Plane 12.1.1+ connection through the simulator's built-in local Web API, with API-version negotiation, adaptive aircraft-dataref discovery after ACF changes, WebSocket telemetry, aircraft identity and flight state, bidirectional L1/L2 and seat-belt controls, live-value ranking, diagnostics, and manual fail-safes;
+- automatic X-Plane connection through the simulator's built-in local Web API plus the bundled lightweight FreeFlight Cabin Bridge plugin, with stable bidirectional L1/L2 and seat-belt datarefs, adaptive fallback discovery, WebSocket telemetry, aircraft identity, flight state, diagnostics, and manual fail-safes;
 - a loopable local passenger-ambience audio channel with independent enable and volume controls when a redistribution-cleared recording is installed through its content-pack slot;
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;
@@ -53,7 +53,9 @@ FlightFactor-specific custom-dataref mappings, embedded/in-aircraft audio-video 
 3. Start FreeFlight Cabin Control. It probes `127.0.0.1:8086` and reconnects automatically.
 4. If X-Plane was launched with a custom `--web_server_port`, enter that port under **Settings → X-Plane 12 Live Connection** and choose **Retry Connection**.
 
-No separate X-Plane plugin is required for this telemetry layer. The Web API is loopback-only, so the app does not expose the simulator to another computer. Diagnostics shows the active aircraft, flight phase, and age of the latest telemetry frame. See the [official X-Plane Web API reference](https://developer.x-plane.com/article/x-plane-web-api/).
+The release includes the FreeFlight Cabin Bridge under `xplane-plugin`. Select the X-Plane folder in Settings and choose **Install / Update X-Plane Plugin**, then restart X-Plane once. The plugin converts aircraft outputs into stable FreeFlight datarefs while the loopback-only Web API transports them to the desktop app. Diagnostics shows the active aircraft, flight phase, plugin state, and age of the latest telemetry frame. See the [official X-Plane Data Access API](https://developer.x-plane.com/sdk/XPLMDataAccess/) and [Web API reference](https://developer.x-plane.com/article/x-plane-web-api/).
+
+For first-time installation, use `FreeFlight-Cabin-Control-vX.Y.Z-Setup.exe` from GitHub Releases. The portable ZIP remains available for the in-app updater.
 
 ## Build
 
