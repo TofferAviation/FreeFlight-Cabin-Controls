@@ -12,7 +12,16 @@ endif()
 
 add_library(FreeFlightCabinBridge MODULE src/FreeFlightCabinBridge.cpp)
 target_compile_features(FreeFlightCabinBridge PRIVATE cxx_std_20)
-target_compile_definitions(FreeFlightCabinBridge PRIVATE IBM=1 XPLM200=1 XPLM210=1 XPLM300=1 XPLM301=1 XPLM303=1 XPLM400=1)
+target_compile_definitions(FreeFlightCabinBridge PRIVATE
+    IBM=1
+    NOMINMAX=1
+    WIN32_LEAN_AND_MEAN=1
+    XPLM200=1
+    XPLM210=1
+    XPLM300=1
+    XPLM301=1
+    XPLM303=1
+    XPLM400=1)
 target_include_directories(FreeFlightCabinBridge PRIVATE
     "${XPLANE_SDK_ROOT}/CHeaders/XPLM"
     "${XPLANE_SDK_ROOT}/CHeaders/Widgets")
