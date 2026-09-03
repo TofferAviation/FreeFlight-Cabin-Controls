@@ -884,6 +884,13 @@ public sealed class PassengerBoardingEngine
             return _openDoors.Single();
         }
 
+        if (Layout is PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo)
+        {
+            return passenger.Seat.CabinClass == PassengerCabinClass.Business
+                ? BoardingDoor.L1
+                : BoardingDoor.L2;
+        }
+
         return passenger.Seat.CabinClass == PassengerCabinClass.First
             ? BoardingDoor.L1
             : BoardingDoor.L2;
@@ -967,6 +974,14 @@ public sealed class PassengerBoardingEngine
             >= 930d => firstEconomyGroup + 1,
             >= 890d => firstEconomyGroup + 2,
             _ => firstEconomyGroup + 3
+        },
+        PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo => seatX switch
+        {
+            >= 850d => firstEconomyGroup,
+            >= 760d => firstEconomyGroup + 1,
+            >= 670d => firstEconomyGroup + 2,
+            >= 580d => firstEconomyGroup + 3,
+            _ => firstEconomyGroup + 4
         },
         _ => seatX switch
         {

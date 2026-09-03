@@ -603,6 +603,8 @@ public sealed record CabinLayoutProfileOption(
         {
             PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 2860d, 380d),
             PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 2855d, 390d),
+            PassengerCabinLayout.BritishAirwaysA320200 => new Rect(0d, 0d, 2770d, 570d),
+            PassengerCabinLayout.BritishAirwaysA320Neo => new Rect(0d, 0d, 2765d, 640d),
             _ => new Rect(0d, 62d, 1033d, 192d)
         };
 
@@ -652,7 +654,31 @@ public static class CabinLayoutProfileCatalog
             "Manual selection · future aircraft match: Boeing 777-300",
             420d,
             true,
-            "OPERATIONAL · 256 MAPPED SEAT POSITIONS · NOSE LEFT")
+            "OPERATIONAL · 256 MAPPED SEAT POSITIONS · NOSE LEFT"),
+        new(
+            "british-airways.a320-200",
+            PassengerCabinLayout.BritishAirwaysA320200,
+            "British Airways Airbus A320-200",
+            "Operational airline layout",
+            "British Airways A320-200 boarding simulation with mapped Club Europe and Euro Traveller seats, two-door routing, and live passenger movement.",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320200.png",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320200.png",
+            "Automatic SimBrief match: A320 · ToLiss door adapter",
+            420d,
+            true,
+            "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT"),
+        new(
+            "british-airways.a320neo",
+            PassengerCabinLayout.BritishAirwaysA320Neo,
+            "British Airways Airbus A320neo",
+            "Operational airline layout",
+            "British Airways A320neo boarding simulation with mapped Club Europe and Euro Traveller seats, two-door routing, and live passenger movement.",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320neo.png",
+            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320neo.png",
+            "Automatic SimBrief match: A20N · ToLiss door adapter",
+            420d,
+            true,
+            "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT")
     ];
 
     public static CabinLayoutProfileOption Resolve(string? id) =>

@@ -27,6 +27,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private const string FlightFactorDoorL2Ratio = "1-sim/anim/doorL2";
     private const string FlightFactorSeatbeltLight = "1-sim/anim/seatbeltLight";
     private const string FlightFactorSeatbeltSelector = "1-sim/ckpt/passSignsSeatbeltsSwitch/anim";
+    private const string ToLissPassengerDoorModes = "AirbusFBW/PaxDoorModeArray";
+    private const string ToLissSeatbeltSelectorAnimation = "ckpt/oh/seatbelts/anim";
     private const string EnginesRunning = "sim/flightmodel/engine/ENGN_running";
     private const string AircraftIcao = "sim/aircraft/view/acf_ICAO";
     private const string AircraftDescription = "sim/aircraft/view/acf_descrip";
@@ -58,6 +60,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         FlightFactorDoorL2Ratio,
         FlightFactorSeatbeltLight,
         FlightFactorSeatbeltSelector,
+        ToLissPassengerDoorModes,
+        ToLissSeatbeltSelectorAnimation,
         EnginesRunning,
         AircraftIcao,
         AircraftDescription,
@@ -76,7 +80,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
 
     private static readonly IReadOnlyList<IAircraftCabinAdapter> AircraftCabinAdapters =
     [
-        new FlightFactor777V2CabinAdapter()
+        new FlightFactor777V2CabinAdapter(),
+        new ToLissA320CabinAdapter()
     ];
 
     private readonly AppSettings _settings;
@@ -166,7 +171,10 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
 
         foreach (var target in ResolveWritableDoorTargets(doorNumber))
         {
-            if (await WriteDatarefAsync(target.Dataref, isOpen ? 1d : 0d, target.Index, cancellationToken)
+            var value = target.Dataref.Name == ToLissPassengerDoorModes
+                ? isOpen ? 2d : 0d
+                : isOpen ? 1d : 0d;
+            if (await WriteDatarefAsync(target.Dataref, value, target.Index, cancellationToken)
                     .ConfigureAwait(false))
             {
                 return true;
@@ -634,13 +642,18 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         }
 
         var standard = GetArray(DoorOpenRatio);
+        var toLissModes = IsToLissAircraft() ? GetArray(ToLissPassengerDoorModes) : [];
         var l1 = !double.IsNaN(pluginL1)
             ? pluginL1
+            : toLissModes.Length > 0
+                ? NormalizeToLissDoorMode(toLissModes[0])
             : _values.TryGetValue(FlightFactorDoorL1Ratio, out var flightFactorL1)
                 ? NormalizeDoorRatio(flightFactorL1.Scalar)
                 : standard.Length > 0 ? NormalizeDoorRatio(standard[0]) : double.NaN;
         var l2 = !double.IsNaN(pluginL2)
             ? pluginL2
+            : toLissModes.Length > 2
+                ? NormalizeToLissDoorMode(toLissModes[2])
             : _values.TryGetValue(FlightFactorDoorL2Ratio, out var flightFactorL2)
                 ? NormalizeDoorRatio(flightFactorL2.Scalar)
                 : standard.Length > 1 ? NormalizeDoorRatio(standard[1]) : double.NaN;
@@ -650,8 +663,12 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             .ToArray();
         var namedL1 = ResolveNamedDoor(candidates, 1);
         var namedL2 = ResolveNamedDoor(candidates, 2);
-        l1 = namedL1 is null || !double.IsNaN(pluginL1) ? l1 : NormalizeDoorRatio(namedL1.Value.Value.Scalar);
-        l2 = namedL2 is null || !double.IsNaN(pluginL2) ? l2 : NormalizeDoorRatio(namedL2.Value.Value.Scalar);
+        l1 = namedL1 is null || !double.IsNaN(pluginL1) || toLissModes.Length > 0
+            ? l1
+            : NormalizeDoorRatio(namedL1.Value.Value.Scalar);
+        l2 = namedL2 is null || !double.IsNaN(pluginL2) || toLissModes.Length > 2
+            ? l2
+            : NormalizeDoorRatio(namedL2.Value.Value.Scalar);
 
         var arrayCandidate = candidates.Select(pair => pair.Value.Array).FirstOrDefault(array => array.Length >= 2);
         if (arrayCandidate is not null)
@@ -820,6 +837,17 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         return Math.Clamp(value > 1.5d ? value / 100d : value, 0d, 1d);
     }
 
+    private static double NormalizeToLissDoorMode(double value) =>
+        double.IsFinite(value) ? value >= 1.5d ? 1d : 0d : double.NaN;
+
+    private bool IsToLissAircraft()
+    {
+        var identity = $"{GetText(AircraftIcao)} {GetText(AircraftDescription)} {GetText(AircraftRelativePath)}";
+        return (identity.Contains("A320", StringComparison.OrdinalIgnoreCase) ||
+                identity.Contains("A20N", StringComparison.OrdinalIgnoreCase)) &&
+               identity.Contains("ToLiss", StringComparison.OrdinalIgnoreCase);
+    }
+
     private IReadOnlyList<XPlaneWriteTarget> ResolveWritableDoorTargets(int doorNumber)
     {
         lock (_valuesLock)
@@ -829,6 +857,12 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             if (_datarefsByName.TryGetValue(pluginDoorName, out var pluginDoorDataref))
             {
                 targets.Add(new XPlaneWriteTarget(pluginDoorDataref, null));
+            }
+
+            if (IsToLissAircraft() &&
+                _datarefsByName.TryGetValue(ToLissPassengerDoorModes, out var toLissDoorDataref))
+            {
+                targets.Add(new XPlaneWriteTarget(toLissDoorDataref, doorNumber == 1 ? 0 : 2));
             }
 
             var customCandidates = _values
@@ -859,7 +893,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             return new[] { FreeFlightSeatbeltSign, FlightFactorSeatbeltSelector }
                 .Concat(_values
                 .Where(pair => IsSeatbeltCandidate(pair.Key, "float") &&
-                               pair.Key != FlightFactorSeatbeltLight)
+                               pair.Key != FlightFactorSeatbeltLight &&
+                               pair.Key != ToLissSeatbeltSelectorAnimation)
                 .OrderByDescending(pair =>
                     ScoreSeatbeltSignal(pair.Key, pair.Value.Scalar) +
                     (pair.Key.Contains("switch", StringComparison.OrdinalIgnoreCase) ||

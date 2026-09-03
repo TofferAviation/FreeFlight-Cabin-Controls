@@ -14,6 +14,8 @@ internal static class PassengerCabinLayouts
     {
         PassengerCabinLayout.BritishAirways777200Er => CreateBritishAirways777200Er(),
         PassengerCabinLayout.BritishAirways777300 => CreateBritishAirways777300(),
+        PassengerCabinLayout.BritishAirwaysA320200 => CreateBritishAirwaysA320200(),
+        PassengerCabinLayout.BritishAirwaysA320Neo => CreateBritishAirwaysA320Neo(),
         _ => CreateFlightFactor777V2()
     };
 
@@ -161,6 +163,58 @@ internal static class PassengerCabinLayouts
             50d,
             228d,
             208d,
+            174d);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateBritishAirwaysA320200()
+    {
+        var seats = new List<CabinSeat>(156);
+        var sourceRowXPositions = new[]
+        {
+            496d, 563d, 630d, 698d, 766d, 833d, 900d, 967d, 1035d, 1103d,
+            1182d, 1262d, 1328d, 1394d, 1461d, 1529d, 1596d, 1663d, 1730d,
+            1798d, 1865d, 1931d, 1997d, 2065d, 2134d, 2200d, 2268d, 2336d,
+            2403d, 2469d
+        };
+        AddMappedRows(seats, PassengerCabinClass.Business, Enumerable.Range(1, 12).ToArray(),
+            sourceRowXPositions[..12], ["A", "C", "D", "F"], [424d, 323d, 201d, 98d],
+            [0d, 0d, 0d, 0d], 2770d, 570d, 88d, 88d);
+        AddMappedRows(seats, PassengerCabinClass.Economy, Enumerable.Range(13, 18).ToArray(),
+            sourceRowXPositions[12..], ["A", "B", "C", "D", "E", "F"],
+            [424d, 373d, 323d, 201d, 151d, 98d], [0d, 0d, 0d, 0d, 0d, 0d],
+            2770d, 570d, 88d, 88d);
+        return new PassengerCabinLayoutDefinition(
+            PassengerCabinLayout.BritishAirwaysA320200,
+            seats,
+            72d,
+            965d,
+            210d,
+            174d);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateBritishAirwaysA320Neo()
+    {
+        var seats = new List<CabinSeat>(156);
+        var sourceRowXPositions = new[]
+        {
+            487d, 554d, 620d, 687d, 755d, 822d, 888d, 955d, 1034d, 1101d,
+            1185d, 1266d, 1337d, 1405d, 1475d, 1545d, 1613d, 1680d, 1748d,
+            1818d, 1885d, 1952d, 2020d, 2077d, 2142d, 2210d, 2277d, 2345d,
+            2410d, 2478d
+        };
+        AddMappedRows(seats, PassengerCabinClass.Business, Enumerable.Range(1, 12).ToArray(),
+            sourceRowXPositions[..12], ["A", "C", "D", "F"], [465d, 365d, 242d, 142d],
+            [0d, 0d, 0d, 0d], 2765d, 640d, 90d, 90d);
+        AddMappedRows(seats, PassengerCabinClass.Economy, Enumerable.Range(13, 18).ToArray(),
+            sourceRowXPositions[12..], ["A", "B", "C", "D", "E", "F"],
+            [465d, 415d, 365d, 242d, 192d, 142d], [0d, 0d, 0d, 0d, 0d, 0d],
+            2765d, 640d, 90d, 90d);
+        return new PassengerCabinLayoutDefinition(
+            PassengerCabinLayout.BritishAirwaysA320Neo,
+            seats,
+            70d,
+            965d,
+            210d,
             174d);
     }
 

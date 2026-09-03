@@ -33,12 +33,14 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Door entry stays centred through the aisle crossing", DoorEntryStaysCentredAsync),
     ("FlightFactor doorway uses the cropped cabin threshold", FlightFactorDoorEntryUsesCabinThresholdAsync),
     ("FlightFactor cabin adapter matches only the intended aircraft", FlightFactorCabinAdapterMatchesAsync),
+    ("ToLiss A320 adapter exposes the correct passenger doors", ToLissA320CabinAdapterMatchesAsync),
     ("Front-cabin boarding starts welcome drinks", FrontCabinBoardingStartsWelcomeDrinksAsync),
     ("Cabin crew rest follows staged long-haul shifts", CabinCrewRestRotatesAsync),
     ("Unfinished passenger session restores", UnfinishedPassengerSessionRestoresAsync),
     ("Boarding groups run in numeric order", BoardingGroupsRunInNumericOrderAsync),
     ("Passenger deboarding completes", PassengerDeboardingCompletesAsync),
     ("British Airways cabin layouts map official seats", BritishAirwaysCabinLayoutsMapSeatsAsync),
+    ("Airbus A320 cabin layouts map usable seats", AirbusA320CabinLayoutsMapSeatsAsync),
     ("British Airways layouts board and deboard", BritishAirwaysLayoutsOperateAsync),
     ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync),
     ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync),
@@ -611,6 +613,28 @@ static Task FlightFactorCabinAdapterMatchesAsync()
     return Task.CompletedTask;
 }
 
+static Task ToLissA320CabinAdapterMatchesAsync()
+{
+    IAircraftCabinAdapter adapter = new ToLissA320CabinAdapter();
+    Assert(adapter.Matches(new AircraftIdentity(
+            "A20N",
+            "Airbus A320neo by ToLiss",
+            "Aircraft/Toliss/ToLissA320_V1p0p4/a320.acf")),
+        "The adapter did not recognize a ToLiss A320neo identity.");
+    Assert(!adapter.Matches(new AircraftIdentity(
+            "A20N",
+            "Airbus A320neo",
+            "Aircraft/OtherVendor/A320.acf")),
+        "The adapter claimed a non-ToLiss A320 implementation.");
+    var l1 = adapter.Bindings.Single(binding => binding.Semantic == AircraftCabinSemantic.PassengerDoorL1);
+    var l2 = adapter.Bindings.Single(binding => binding.Semantic == AircraftCabinSemantic.PassengerDoorL2);
+    AssertEqual("AirbusFBW/PaxDoorModeArray", l1.ReadDatarefs.First(),
+        "The ToLiss L1 binding did not prioritize the passenger-door mode array.");
+    AssertEqual(0, l1.ArrayIndex, "The ToLiss L1 binding did not use front-left door index 0.");
+    AssertEqual(2, l2.ArrayIndex, "The ToLiss L2 binding did not use rear-left door index 2.");
+    return Task.CompletedTask;
+}
+
 static Task CabinCrewRestRotatesAsync()
 {
     var cruiseStartedAt = new DateTimeOffset(2026, 8, 29, 12, 0, 0, TimeSpan.Zero);
@@ -801,12 +825,43 @@ static Task BritishAirwaysCabinLayoutsMapSeatsAsync()
     return Task.CompletedTask;
 }
 
+static Task AirbusA320CabinLayoutsMapSeatsAsync()
+{
+    foreach (var layout in new[]
+             {
+                 PassengerCabinLayout.BritishAirwaysA320200,
+                 PassengerCabinLayout.BritishAirwaysA320Neo
+             })
+    {
+        var engine = new PassengerBoardingEngine(int.MaxValue, layout);
+        AssertEqual(156, engine.Capacity, $"{layout} mapped capacity is incorrect.");
+        AssertEqual(48, engine.Passengers.Count(passenger =>
+            passenger.Seat.CabinClass == PassengerCabinClass.Business),
+            $"{layout} did not map the 12 four-seat Club Europe rows.");
+        AssertEqual(108, engine.Passengers.Count(passenger =>
+            passenger.Seat.CabinClass == PassengerCabinClass.Economy),
+            $"{layout} did not map the 18 six-seat Euro Traveller rows.");
+        Assert(!engine.Passengers.Any(passenger =>
+                passenger.Seat.CabinClass == PassengerCabinClass.Business &&
+                (passenger.Seat.Number.EndsWith('B') || passenger.Seat.Number.EndsWith('E'))),
+            $"{layout} assigned passengers to blocked Club Europe middle seats.");
+        Assert(engine.Passengers.All(passenger => passenger.Seat.AisleY is >= 87d and <= 91d),
+            $"{layout} did not route passengers through its single centre aisle.");
+        Assert(engine.BoardingGroups.SequenceEqual(Enumerable.Range(2, 7)),
+            $"{layout} did not create the expected narrow-body boarding groups 2–8.");
+    }
+
+    return Task.CompletedTask;
+}
+
 static Task BritishAirwaysLayoutsOperateAsync()
 {
     foreach (var layout in new[]
              {
                  PassengerCabinLayout.BritishAirways777200Er,
-                 PassengerCabinLayout.BritishAirways777300
+                 PassengerCabinLayout.BritishAirways777300,
+                 PassengerCabinLayout.BritishAirwaysA320200,
+                 PassengerCabinLayout.BritishAirwaysA320Neo
              })
     {
         var engine = new PassengerBoardingEngine(int.MaxValue, layout);

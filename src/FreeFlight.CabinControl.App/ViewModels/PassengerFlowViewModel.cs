@@ -67,7 +67,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ISettingsStore? settingsStore = null,
         ISimBriefClient? simBriefClient = null,
         IOperationsClock? operationsClock = null)
-        : base("Passenger Flow", "Simulator-free 777 boarding, deboarding and passenger manifest")
+        : base("Passenger Flow", "Live wide-body and narrow-body boarding, deboarding and passenger manifest")
     {
         _settings = settings;
         _settingsStore = settingsStore;
@@ -149,6 +149,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public bool IsAirlineCabinLayout => !IsFlightFactorCabinLayout;
     public bool IsBritishAirways777200Er => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777200Er;
     public bool IsBritishAirways777300 => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300;
+    public bool IsNarrowBodyCabinLayout => SelectedCabinLayoutProfile.Layout is
+        PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo;
     public bool SeatbeltSignOn => _seatbeltSignOn;
     public string SeatbeltSignLabel => SeatbeltSignOn ? "SEAT BELTS ON" : "SEAT BELTS OFF";
     public bool SeatbeltSignalAvailable => _seatbeltSignalAvailable;
@@ -163,7 +165,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public string LiveFlightPhase => _liveFlightPhase;
     public string AircraftMovementLabel => _isPushbackActive ? "PUSHBACK ACTIVE" : _isAircraftMoving ? "AIRCRAFT MOVING" : "STATIONARY";
     public string LiveCabinStatus => $"{LiveFlightPhase.ToUpperInvariant()} · {AircraftMovementLabel} · {SeatbeltSignLabel}";
-    private int ExpectedCabinCrewCount => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300 ? 12 : 10;
+    private int ExpectedCabinCrewCount => SelectedCabinLayoutProfile.Layout switch
+    {
+        PassengerCabinLayout.BritishAirways777300 => 12,
+        PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo => 4,
+        _ => 10
+    };
     public int RestingCrewCount => _crewRestAssignment.IsActive ? _crewRestAssignment.RestingCrewCount : 0;
     public string CrewRestStatus
     {
@@ -614,6 +621,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     public string DoorRoutingSummary => _engine.OpenDoorCount switch
     {
+        2 when IsNarrowBodyCabinLayout && _engine.Operation == PassengerOperation.Deboarding => "Cabin routing active • Club Europe exits through L1 • Euro Traveller uses L2",
+        2 when IsNarrowBodyCabinLayout => "Cabin routing active • Club Europe uses L1 • Euro Traveller uses L2",
         2 when _engine.Operation == PassengerOperation.Deboarding => "Ticket routing active • First exits through L1 • all other cabins use L2",
         2 => "Ticket routing active • First uses L1 • all other cabins use L2",
         1 when L1DoorOpen => $"All passengers are {OperationVerb} through L1",
@@ -945,6 +954,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(IsAirlineCabinLayout));
         OnPropertyChanged(nameof(IsBritishAirways777200Er));
         OnPropertyChanged(nameof(IsBritishAirways777300));
+        OnPropertyChanged(nameof(IsNarrowBodyCabinLayout));
         OnPropertyChanged(nameof(L1DoorCanvasLeft));
         OnPropertyChanged(nameof(L2DoorCanvasLeft));
         OnPropertyChanged(nameof(DoorControlCanvasTop));
@@ -1240,6 +1250,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         {
             "B772" or "B77E" => "british-airways.777-200er",
             "B773" or "B77W" => "british-airways.777-300",
+            "A320" => "british-airways.a320-200",
+            "A20N" => "british-airways.a320neo",
             _ => string.Empty
         };
         if (profileId.Length > 0)
@@ -1268,6 +1280,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         {
             PassengerCabinLayout.FlightFactor777V2 => (56d, 95d),
             PassengerCabinLayout.BritishAirways777200Er => (70d, 129d),
+            PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo => (89d, 89d),
             _ => (84d, 135d)
         };
         static double CrewX(double value) => Math.Clamp(value, 38d, 930d);
@@ -1353,6 +1366,16 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void UpdateCabinCrewRest()
     {
+        if (IsNarrowBodyCabinLayout)
+        {
+            _crewRestCycleStartedAt = null;
+            _crewRestAssignment = default;
+            _lastAnnouncedCrewRestGroup = 0;
+            _crewRestStatusOverride = "ALL CREW ON DUTY · short-haul operation";
+            NotifyCrewRestChanged();
+            return;
+        }
+
         var isCruise = LiveFlightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase);
         var timeUntilLanding = GetTimeUntilLanding();
         _isArrivalPreparation = timeUntilLanding is { } arrivalRemaining && arrivalRemaining <= TimeSpan.FromHours(1d) ||

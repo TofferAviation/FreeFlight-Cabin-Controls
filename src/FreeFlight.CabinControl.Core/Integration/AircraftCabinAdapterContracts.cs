@@ -82,3 +82,44 @@ public sealed class FlightFactor777V2CabinAdapter : IAircraftCabinAdapter
                 identity.Contains("1-sim", StringComparison.OrdinalIgnoreCase));
     }
 }
+
+public sealed class ToLissA320CabinAdapter : IAircraftCabinAdapter
+{
+    public string Id => "toliss.a320";
+
+    public string DisplayName => "ToLiss A320 family";
+
+    public IReadOnlyList<AircraftCabinBinding> Bindings { get; } =
+    [
+        new(
+            AircraftCabinSemantic.PassengerDoorL1,
+            ["AirbusFBW/PaxDoorModeArray", "sim/flightmodel2/misc/door_open_ratio"],
+            ["AirbusFBW/PaxDoorModeArray", "sim/flightmodel2/misc/door_open_ratio"],
+            [],
+            0),
+        new(
+            AircraftCabinSemantic.PassengerDoorL2,
+            ["AirbusFBW/PaxDoorModeArray", "sim/flightmodel2/misc/door_open_ratio"],
+            ["AirbusFBW/PaxDoorModeArray", "sim/flightmodel2/misc/door_open_ratio"],
+            [],
+            2),
+        new(
+            AircraftCabinSemantic.SeatbeltSign,
+            [
+                "sim/cockpit2/annunciators/fasten_seatbelt",
+                "sim/cockpit2/switches/fasten_seat_belts",
+                "ckpt/oh/seatbelts/anim"
+            ],
+            ["sim/cockpit2/switches/fasten_seat_belts"],
+            [])
+    ];
+
+    public bool Matches(AircraftIdentity aircraft)
+    {
+        var identity = $"{aircraft.Icao} {aircraft.Description} {aircraft.AcfRelativePath}";
+        return (identity.Contains("A320", StringComparison.OrdinalIgnoreCase) ||
+                identity.Contains("A20N", StringComparison.OrdinalIgnoreCase)) &&
+               (identity.Contains("ToLiss", StringComparison.OrdinalIgnoreCase) ||
+                identity.Contains("AirbusFBW", StringComparison.OrdinalIgnoreCase));
+    }
+}

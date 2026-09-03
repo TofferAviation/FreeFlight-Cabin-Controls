@@ -35,7 +35,9 @@ public enum PassengerCabinLayout
 {
     FlightFactor777V2,
     BritishAirways777200Er,
-    BritishAirways777300
+    BritishAirways777300,
+    BritishAirwaysA320200,
+    BritishAirwaysA320Neo
 }
 
 public enum PassengerMovementState

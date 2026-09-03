@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.24)
-project(FreeFlightCabinBridge VERSION 0.4.4 LANGUAGES CXX)
+project(FreeFlightCabinBridge VERSION 0.4.8 LANGUAGES CXX)
 
 if(NOT WIN32)
-    message(FATAL_ERROR "The v0.4.4 package currently builds the Windows X-Plane plugin only.")
+    message(FATAL_ERROR "The v0.4.8 package currently builds the Windows X-Plane plugin only.")
 endif()
 
 set(XPLANE_SDK_ROOT "" CACHE PATH "Path to the extracted X-Plane SDK/SDK directory")

@@ -567,10 +567,10 @@ internal static class Program
             }
             else if (page == "Settings")
             {
-                if (viewModel.Settings.CabinLayoutProfiles.Count != 3 ||
-                    viewModel.Settings.CabinLayoutProfiles.Select(profile => profile.Id).Distinct().Count() != 3)
+                if (viewModel.Settings.CabinLayoutProfiles.Count != 5 ||
+                    viewModel.Settings.CabinLayoutProfiles.Select(profile => profile.Id).Distinct().Count() != 5)
                 {
-                    throw new InvalidOperationException("The three stable 777 cabin layout profiles were not available.");
+                    throw new InvalidOperationException("The five stable Boeing and Airbus cabin layout profiles were not available.");
                 }
             }
             else if (page == "FlightLogger")
@@ -1068,7 +1068,9 @@ internal static class Program
                 foreach (var layoutCheck in new[]
                          {
                              (Id: "british-airways.777-200er", Capacity: 272),
-                             (Id: "british-airways.777-300", Capacity: 256)
+                             (Id: "british-airways.777-300", Capacity: 256),
+                             (Id: "british-airways.a320-200", Capacity: 156),
+                             (Id: "british-airways.a320neo", Capacity: 156)
                          })
                 {
                     var profile = viewModel.Passengers.CabinLayoutProfiles.Single(profile => profile.Id == layoutCheck.Id);

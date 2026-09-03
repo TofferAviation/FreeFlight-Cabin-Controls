@@ -207,6 +207,8 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         {
             PassengerCabinLayout.BritishAirways777200Er => "B772",
             PassengerCabinLayout.BritishAirways777300 => "B77W",
+            PassengerCabinLayout.BritishAirwaysA320200 => "A320",
+            PassengerCabinLayout.BritishAirwaysA320Neo => "A20N",
             _ => "B77W"
         }
         : _passengers.ImportedAircraftIcao;

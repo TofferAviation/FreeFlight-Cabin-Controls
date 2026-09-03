@@ -2,7 +2,24 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.7] - Unreleased
+## [0.4.8] - 2026-09-03
+
+### Added
+
+- Built-in British Airways Airbus A320-200 and A320neo cabin maps with 156 usable mapped seats, Club Europe blocked-middle-seat rules, live passenger movement, and front/rear door routing.
+- A dedicated ToLiss A320-family adapter reads and controls passenger doors through `AirbusFBW/PaxDoorModeArray`, using index 0 for 1L and index 2 for 2L.
+
+### Changed
+
+- SimBrief aircraft codes `A320` and `A20N` now select their matching cabin profiles automatically.
+- Narrow-body Airbus layouts use four cabin-crew members, one centre aisle, and short-haul crew-duty behavior while retaining the live-cabin passenger engine.
+- Application version advanced to 0.4.8.
+
+### Fixed
+
+- ToLiss door mode values are translated from `0=Closed`, `1=Auto`, and `2=Open` into dependable open/closed app signals instead of being mistaken for percentages.
+
+## [0.4.7] - 2026-09-03
 
 ### Added
 

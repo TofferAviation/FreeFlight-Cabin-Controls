@@ -26,7 +26,8 @@ enum class CandidateEncoding
 {
     Ratio,
     Binary,
-    FlightFactorSelector
+    FlightFactorSelector,
+    ToLissDoorMode
 };
 
 struct Candidate
@@ -49,23 +50,26 @@ SignalSlot gDoorL2;
 int gPluginOnline = 1;
 int gTick = 0;
 
-std::array<Candidate, 5> gSeatbeltCandidates{{
+std::array<Candidate, 6> gSeatbeltCandidates{{
     {"1-sim/anim/seatbeltLight", -1, 2000, CandidateEncoding::Binary, false},
     {"1-sim/ckpt/passSignsSeatbeltsSwitch/anim", -1, 110, CandidateEncoding::FlightFactorSelector},
     {"sim/cockpit2/annunciators/fasten_seatbelt", -1, 100, CandidateEncoding::Binary},
     {"sim/cockpit2/switches/fasten_seat_belts", -1, 90, CandidateEncoding::Binary},
-    {"sim/cockpit/switches/fasten_seat_belts", -1, 85, CandidateEncoding::Binary}
+    {"sim/cockpit/switches/fasten_seat_belts", -1, 85, CandidateEncoding::Binary},
+    {"ckpt/oh/seatbelts/anim", -1, 70, CandidateEncoding::Binary, false}
 }};
 
-std::array<Candidate, 4> gDoorL1Candidates{{
+std::array<Candidate, 5> gDoorL1Candidates{{
     {"1-sim/anim/doorL1", -1, 2000},
+    {"AirbusFBW/PaxDoorModeArray", 0, 1800, CandidateEncoding::ToLissDoorMode},
     {"1-sim/anim/FWDAccessDoor", -1, 95},
     {"1-sim/anim/doorFwd", -1, 90},
     {"sim/flightmodel2/misc/door_open_ratio", 0, 75}
 }};
 
-std::array<Candidate, 3> gDoorL2Candidates{{
+std::array<Candidate, 4> gDoorL2Candidates{{
     {"1-sim/anim/doorL2", -1, 2000},
+    {"AirbusFBW/PaxDoorModeArray", 2, 1800, CandidateEncoding::ToLissDoorMode},
     {"1-sim/anim/doorAft", -1, 85},
     {"sim/flightmodel2/misc/door_open_ratio", 1, 75}
 }};
@@ -107,7 +111,8 @@ bool ReadCandidate(Candidate& candidate, float& value)
 bool WriteCandidate(Candidate& candidate, float value)
 {
     if (!candidate.allowWrite || candidate.dataref == nullptr || XPLMCanWriteDataRef(candidate.dataref) == 0) return false;
-    const float encodedValue = candidate.encoding == CandidateEncoding::FlightFactorSelector
+    const float encodedValue = candidate.encoding == CandidateEncoding::FlightFactorSelector ||
+                               candidate.encoding == CandidateEncoding::ToLissDoorMode
         ? (value >= 0.5F ? 2.0F : 0.0F)
         : value;
     const auto types = XPLMGetDataRefTypes(candidate.dataref);
@@ -164,12 +169,17 @@ void SampleSignal(std::array<Candidate, Size>& candidates, SignalSlot& output, b
         if (!ReadCandidate(candidate, value)) continue;
         if (binary)
         {
-            const float threshold = candidate.encoding == CandidateEncoding::FlightFactorSelector ? 1.5F : 0.5F;
+            const float threshold = candidate.encoding == CandidateEncoding::FlightFactorSelector ||
+                                    candidate.encoding == CandidateEncoding::ToLissDoorMode
+                ? 1.5F
+                : 0.5F;
             value = value >= threshold ? 1.0F : 0.0F;
         }
         else
         {
-            value = ClampRatio(value);
+            value = candidate.encoding == CandidateEncoding::ToLissDoorMode
+                ? (value >= 1.5F ? 1.0F : 0.0F)
+                : ClampRatio(value);
         }
         if (candidate.sampled && std::abs(value - candidate.lastValue) >= 0.25F)
         {

@@ -31,7 +31,9 @@ Only operational OFP data is consumed. SimBrief does not provide the real-world 
 
 ## Cabin layout profiles
 
-Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. Every profile drives its own operational seat coordinates, cabin classes, boarding groups, door positions, and aisle routing. The authorised British Airways 777-200ER and 777-300 horizontal seat maps are compiled WPF resources, so clean installations do not depend on a private content pack or loose local files.
+Aircraft Settings and the Passenger Flow Live Cabin card expose five stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, `british-airways.777-300`, `british-airways.a320-200`, and `british-airways.a320neo`. Every profile drives its own operational seat coordinates, cabin classes, boarding groups, door positions, and aisle routing. The supplied British Airways Boeing and Airbus horizontal seat maps are compiled WPF resources, so clean installations do not depend on a private content pack or loose local files.
+
+Both Airbus profiles map 156 usable passenger positions: four Club Europe seats per row in rows 1–12 and six Euro Traveller seats per row in rows 13–30. The blocked Club Europe middle seats are visible in the source artwork but never receive passengers. A320 and A20N SimBrief imports select their matching profiles automatically.
 
 Changing layouts safely starts a fresh manifest against the selected capacity while preserving the booked SimBrief count, current manual door choices, and stable profile selection. A count above the chosen capacity is reported as unmapped rather than silently discarded.
 

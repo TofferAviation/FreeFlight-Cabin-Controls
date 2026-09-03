@@ -203,7 +203,7 @@
                                     <TextBlock Text="Live Cabin" Style="{StaticResource SectionTitleStyle}" />
                                     <ComboBox ItemsSource="{Binding CabinLayoutProfiles}"
                                               SelectedItem="{Binding SelectedCabinLayoutProfile}"
-                                              Width="205"
+                                              Width="260"
                                               Height="31"
                                               Margin="12,-3,0,0"
                                               ToolTip="Choose the cabin shown in the live preview" />
@@ -332,23 +332,7 @@
                                         Width="1033"
                                         Height="192"
                                         Panel.ZIndex="0"
-                                        Visibility="{Binding IsBritishAirways777200Er, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <Border.Background>
-                                        <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
-                                                    Viewbox="{Binding SelectedCabinLayoutProfile.LivePreviewViewbox}"
-                                                    ViewboxUnits="Absolute"
-                                                    Stretch="{Binding SelectedCabinLayoutProfile.LivePreviewStretch}"
-                                                    AlignmentX="Center"
-                                                    AlignmentY="Center" />
-                                    </Border.Background>
-                                </Border>
-
-                                <Border Canvas.Left="0"
-                                        Canvas.Top="0"
-                                        Width="1033"
-                                        Height="192"
-                                        Panel.ZIndex="0"
-                                        Visibility="{Binding IsBritishAirways777300, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        Visibility="{Binding IsAirlineCabinLayout, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
                                                     Viewbox="{Binding SelectedCabinLayoutProfile.LivePreviewViewbox}"
