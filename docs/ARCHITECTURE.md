@@ -18,7 +18,7 @@ The native C++ plugin caches resolved dataref handles, samples at 10 Hz, and per
 
 ### Aircraft adapter
 
-Each supported aircraft receives a declarative `IAircraftCabinAdapter` containing verified datarefs, commands, capabilities, and cabin-layout mappings. Stable layout IDs distinguish the operational FlightFactor 777 v2, British Airways 777-200ER, and British Airways 777-300 passenger-coordinate profiles. The v0.4.2 FlightFactor identity adapter carries only standard verified fallbacks; private cabin-panel mappings remain gated on an instrumented v0.5.0 discovery session. FlightFactor-specific behavior must not leak into the passenger engine.
+Each supported aircraft receives a declarative `IAircraftCabinAdapter` containing verified datarefs, commands, capabilities, and cabin-layout mappings. Stable layout IDs distinguish the operational FlightFactor 777 v2, British Airways 777-200ER, and British Airways 777-300 passenger-coordinate profiles. The FlightFactor adapter prioritizes the verified custom L1/L2 animation outputs and actual illuminated passenger-sign output, while preserving standard fallbacks. Private cabin-panel mappings remain gated on an instrumented v0.5.0 discovery session. FlightFactor-specific behavior must not leak into the passenger engine.
 
 ### Airline content pack
 

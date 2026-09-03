@@ -2,7 +2,20 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.4] - Unreleased
+## [0.4.5] - Unreleased
+
+### Changed
+
+- The FlightFactor 777 v2 bridge now prioritizes its exact `1-sim/anim/doorL1` and `1-sim/anim/doorL2` animation outputs instead of relying on similarly named cabin and service-door candidates.
+- Seat-belt synchronization now reads the actual `1-sim/anim/seatbeltLight` output. The three-position selector is retained as a command target with its verified `OFF=0`, `AUTO=1`, and `ON=2` encoding.
+- The FlightFactor 777 adapter contract records the verified custom mappings and preserves standard X-Plane datarefs as fallbacks.
+
+### Fixed
+
+- FlightFactor selector position `AUTO` is no longer misreported as an illuminated seat-belt sign.
+- Turning the seat-belt sign on from the app now sends FlightFactor selector value `2` rather than value `1` (`AUTO`).
+
+## [0.4.4] - 2026-09-03
 
 ### Added
 

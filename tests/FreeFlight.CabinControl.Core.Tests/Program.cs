@@ -599,6 +599,15 @@ static Task FlightFactorCabinAdapterMatchesAsync()
     Assert(adapter.Bindings.Any(binding => binding.Semantic == AircraftCabinSemantic.PassengerDoorL1) &&
            adapter.Bindings.Any(binding => binding.Semantic == AircraftCabinSemantic.SeatbeltSign),
         "The v0.5 adapter seam is missing its door or seat-belt semantic slots.");
+    Assert(adapter.Bindings.Single(binding => binding.Semantic == AircraftCabinSemantic.PassengerDoorL1)
+            .ReadDatarefs.Contains("1-sim/anim/doorL1"),
+        "The FlightFactor adapter is missing the verified L1 animation output.");
+    Assert(adapter.Bindings.Single(binding => binding.Semantic == AircraftCabinSemantic.PassengerDoorL2)
+            .ReadDatarefs.Contains("1-sim/anim/doorL2"),
+        "The FlightFactor adapter is missing the verified L2 animation output.");
+    Assert(adapter.Bindings.Single(binding => binding.Semantic == AircraftCabinSemantic.SeatbeltSign)
+            .ReadDatarefs.First() == "1-sim/anim/seatbeltLight",
+        "The FlightFactor adapter does not prioritize the actual illuminated seat-belt sign.");
     return Task.CompletedTask;
 }
 

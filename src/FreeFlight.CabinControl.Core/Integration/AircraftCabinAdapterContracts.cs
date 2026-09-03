@@ -46,24 +46,27 @@ public sealed class FlightFactor777V2CabinAdapter : IAircraftCabinAdapter
     [
         new(
             AircraftCabinSemantic.PassengerDoorL1,
-            ["sim/flightmodel2/misc/door_open_ratio"],
+            ["1-sim/anim/doorL1", "sim/flightmodel2/misc/door_open_ratio"],
             ["sim/flightmodel2/misc/door_open_ratio"],
             [],
             0),
         new(
             AircraftCabinSemantic.PassengerDoorL2,
-            ["sim/flightmodel2/misc/door_open_ratio"],
+            ["1-sim/anim/doorL2", "sim/flightmodel2/misc/door_open_ratio"],
             ["sim/flightmodel2/misc/door_open_ratio"],
             [],
             1),
         new(
             AircraftCabinSemantic.SeatbeltSign,
             [
+                "1-sim/anim/seatbeltLight",
+                "1-sim/ckpt/passSignsSeatbeltsSwitch/anim",
                 "sim/cockpit2/annunciators/fasten_seatbelt",
                 "sim/cockpit2/switches/fasten_seat_belts",
                 "sim/cockpit/switches/fasten_seat_belts"
             ],
             [
+                "1-sim/ckpt/passSignsSeatbeltsSwitch/anim",
                 "sim/cockpit2/switches/fasten_seat_belts",
                 "sim/cockpit/switches/fasten_seat_belts"
             ],

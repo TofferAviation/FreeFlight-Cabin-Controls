@@ -22,11 +22,20 @@ struct SignalSlot
     bool pendingWrite = false;
 };
 
+enum class CandidateEncoding
+{
+    Ratio,
+    Binary,
+    FlightFactorSelector
+};
+
 struct Candidate
 {
     const char* name;
     int arrayIndex;
     int priority;
+    CandidateEncoding encoding = CandidateEncoding::Ratio;
+    bool allowWrite = true;
     XPLMDataRef dataref = nullptr;
     float lastValue = 0.0F;
     int changeCount = 0;
@@ -41,22 +50,22 @@ int gPluginOnline = 1;
 int gTick = 0;
 
 std::array<Candidate, 5> gSeatbeltCandidates{{
-    {"1-sim/ckpt/passSignsSeatbeltsSwitch/anim", -1, 110},
-    {"1-sim/anim/seatbeltLight", -1, 105},
-    {"sim/cockpit2/switches/fasten_seat_belts", -1, 90},
-    {"sim/cockpit/switches/fasten_seat_belts", -1, 85},
-    {"sim/cockpit2/annunciators/fasten_seatbelt", -1, 70}
+    {"1-sim/anim/seatbeltLight", -1, 2000, CandidateEncoding::Binary, false},
+    {"1-sim/ckpt/passSignsSeatbeltsSwitch/anim", -1, 110, CandidateEncoding::FlightFactorSelector},
+    {"sim/cockpit2/annunciators/fasten_seatbelt", -1, 100, CandidateEncoding::Binary},
+    {"sim/cockpit2/switches/fasten_seat_belts", -1, 90, CandidateEncoding::Binary},
+    {"sim/cockpit/switches/fasten_seat_belts", -1, 85, CandidateEncoding::Binary}
 }};
 
 std::array<Candidate, 4> gDoorL1Candidates{{
-    {"1-sim/anim/doorL1", -1, 120},
+    {"1-sim/anim/doorL1", -1, 2000},
     {"1-sim/anim/FWDAccessDoor", -1, 95},
     {"1-sim/anim/doorFwd", -1, 90},
     {"sim/flightmodel2/misc/door_open_ratio", 0, 75}
 }};
 
 std::array<Candidate, 3> gDoorL2Candidates{{
-    {"1-sim/anim/doorL2", -1, 120},
+    {"1-sim/anim/doorL2", -1, 2000},
     {"1-sim/anim/doorAft", -1, 85},
     {"sim/flightmodel2/misc/door_open_ratio", 1, 75}
 }};
@@ -97,22 +106,26 @@ bool ReadCandidate(Candidate& candidate, float& value)
 
 bool WriteCandidate(Candidate& candidate, float value)
 {
-    if (candidate.dataref == nullptr || XPLMCanWriteDataRef(candidate.dataref) == 0) return false;
+    if (!candidate.allowWrite || candidate.dataref == nullptr || XPLMCanWriteDataRef(candidate.dataref) == 0) return false;
+    const float encodedValue = candidate.encoding == CandidateEncoding::FlightFactorSelector
+        ? (value >= 0.5F ? 2.0F : 0.0F)
+        : value;
     const auto types = XPLMGetDataRefTypes(candidate.dataref);
     if (candidate.arrayIndex >= 0 && (types & xplmType_FloatArray) != 0)
     {
-        XPLMSetDatavf(candidate.dataref, &value, candidate.arrayIndex, 1);
+        float item = encodedValue;
+        XPLMSetDatavf(candidate.dataref, &item, candidate.arrayIndex, 1);
         return true;
     }
     if (candidate.arrayIndex >= 0 && (types & xplmType_IntArray) != 0)
     {
-        int item = value >= 0.5F ? 1 : 0;
+        int item = static_cast<int>(encodedValue);
         XPLMSetDatavi(candidate.dataref, &item, candidate.arrayIndex, 1);
         return true;
     }
-    if ((types & xplmType_Float) != 0) XPLMSetDataf(candidate.dataref, value);
-    else if ((types & xplmType_Double) != 0) XPLMSetDatad(candidate.dataref, value);
-    else if ((types & xplmType_Int) != 0) XPLMSetDatai(candidate.dataref, value >= 0.5F ? 1 : 0);
+    if ((types & xplmType_Float) != 0) XPLMSetDataf(candidate.dataref, encodedValue);
+    else if ((types & xplmType_Double) != 0) XPLMSetDatad(candidate.dataref, encodedValue);
+    else if ((types & xplmType_Int) != 0) XPLMSetDatai(candidate.dataref, static_cast<int>(encodedValue));
     else return false;
     return true;
 }
@@ -149,7 +162,15 @@ void SampleSignal(std::array<Candidate, Size>& candidates, SignalSlot& output, b
     {
         float value = 0.0F;
         if (!ReadCandidate(candidate, value)) continue;
-        value = binary ? (value >= 0.5F ? 1.0F : 0.0F) : ClampRatio(value);
+        if (binary)
+        {
+            const float threshold = candidate.encoding == CandidateEncoding::FlightFactorSelector ? 1.5F : 0.5F;
+            value = value >= threshold ? 1.0F : 0.0F;
+        }
+        else
+        {
+            value = ClampRatio(value);
+        }
         if (candidate.sampled && std::abs(value - candidate.lastValue) >= 0.25F)
         {
             candidate.changeCount = std::min(candidate.changeCount + 1, 20);
