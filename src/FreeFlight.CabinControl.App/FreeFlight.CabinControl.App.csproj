@@ -7,7 +7,7 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.4.6</Version>
+    <Version>0.4.7</Version>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
@@ -46,8 +46,8 @@
     <EmbeddedResource Include="Assets\Operators\bundled-logo-codes.json"
                       LogicalName="FreeFlight.CabinControl.Operators.BundledLogoCodes.json" />
   </ItemGroup>
-  <ItemGroup Condition="Exists('..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4')">
-    <Content Include="..\..\content-packs\private\british-airways\media\BA_Safety_Video.mp4">
+  <ItemGroup>
+    <Content Include="Assets\Safety\BritishAirwaysSafetyVideo2024.mp4">
       <Link>content-packs\british-airways\media\BA_Safety_Video.mp4</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

@@ -1,18 +1,18 @@
 # British Airways first-release media
 
-The application has a stable private input slot for the British Airways safety video:
+The authorised British Airways 2024 safety video is maintained in the application source at:
 
-`content-packs/private/british-airways/media/BA_Safety_Video.mp4`
+`src/FreeFlight.CabinControl.App/Assets/Safety/BritishAirwaysSafetyVideo2024.mp4`
 
-When that file exists, `dotnet build` and `dotnet publish` copy it into the application as:
+Every build, portable update, and installer copies it into the application as:
 
 `content-packs/british-airways/media/BA_Safety_Video.mp4`
 
-The Cabin Area Control Panel detects the published file automatically and uses native offline playback inside the Safety Video card, replacing the `LOCAL MP4` placeholder while active. If it is absent, Start reports that the local MP4 is not installed; the application never opens or embeds YouTube.
+The Cabin Area Control Panel detects the published file automatically and uses native offline playback inside the Safety Video card. No separate user download, browser, or YouTube connection is required.
 
 The Audio page controls this same persistent playback session. Its Now Playing and Safety Demonstration play buttons start or stop the local MP4; the Safety Demonstration slider changes the MP4 audio level immediately; and its switch mutes or restores audio without stopping the video. While active, the Audio page shows a full-width amber `Announcement in progress` banner.
 
-Use an H.264 video with AAC audio in an MP4 container for broad Windows playback support. The private source directory and video extensions are ignored by Git. Only release a media file when its redistribution permission has been documented.
+The source is an H.264/AAC MP4 for broad Windows playback support. Redistribution permission is documented by the repository-owner attestation in `BRITISH-AIRWAYS-MEDIA-RIGHTS.md`; the owner retains the underlying written grant outside this repository.
 
 ## Boarding music programs
 

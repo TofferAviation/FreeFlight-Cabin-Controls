@@ -29,6 +29,7 @@ content-packs/private/
 *.ogg
 *.flac
 *.mp4
+!src/FreeFlight.CabinControl.App/Assets/Safety/BritishAirwaysSafetyVideo2024.mp4
 *.mov
 *.mkv
 *.webm

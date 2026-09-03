@@ -17,7 +17,7 @@ Version `0.4.x` is the current application line. GitHub release builds receive a
 - a gate-focused Settings screen for SimBrief, automatic timing, boarding rules, deterministic passenger generation, printer defaults, sound alerts, and flight defaults;
 - a functional flight-readiness Overview with a live local operations clock, a SimBrief-driven scheduled departure, a configurable 60-minute turnaround timeline, passenger and baggage totals, cabin distribution, and a navigation-only link into the protected gate workspace;
 - deterministic departure and arrival gate profiles that read the SimBrief aircraft ICAO (or the selected cabin layout offline), show `DEP → ARR` in the shared header, allocate compatible gates at Heathrow T5, JFK T8 and Oslo, and retain separate user-editable fallbacks for airports not yet profiled;
-- three operational cabin-layout choices shared by Settings and Cabin: the 311-position FlightFactor 777 v2 cabin, 272-position British Airways 777-200ER, and 256-position British Airways 777-300, all rendered horizontally with the nose left and tail right; the two original FreeFlight BA schematics are compiled into every installation;
+- three operational cabin-layout choices shared by Settings and Cabin: the 311-position FlightFactor 777 v2 cabin, 272-position British Airways 777-200ER, and 256-position British Airways 777-300, all rendered horizontally with the nose left and tail right; the two authorised British Airways horizontal seat maps are compiled into every installation;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
 - an original simulator-free Passenger Flow page with profile-specific seat coordinates, mixed partial-load allocation, boarding-group calls with randomized within-group flow, varied passenger walking and entry timing, congestion slowdowns, complete boarding/deboarding, boarding-ticket-based L1/L2 routing, two-aisle movement, optional 30–45 minute real operations, accelerated previews, and a selected passenger's destination-seat highlight;
 - a full passenger manifest with deterministic fictional names and profiles, live operational status, seat and booking details revealed only when a passenger dot or manifest row is selected;
@@ -42,7 +42,7 @@ Version `0.4.x` is the current application line. GitHub release builds receive a
 - a safe, versioned airline-content-pack model;
 - real process CPU and memory sampling for the desktop application;
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
-- no bundled photographic CACP page renders or airline safety video; the boarding alternatives and limited identifying wordmarks are distributed only under their separately documented licences.
+- no bundled photographic CACP page renders; the British Airways safety video, cabin maps, boarding alternatives, and limited identifying wordmarks are distributed under their documented licences or repository-owner rights attestation.
 
 The FlightFactor 777 v2 L1/L2 and passenger-sign mappings are verified and implemented; the evidence and value ranges are recorded in [`docs/FLIGHTFACTOR_777_DATAREFS.md`](docs/FLIGHTFACTOR_777_DATAREFS.md). Embedded/in-aircraft audio-video playback, physical bag-tag printing, and in-aircraft screens are not implemented in this baseline. vAMSYS authentication is implemented but cannot be activated until a VA Owner supplies and attests an airline-scoped Pilot API client registration. Boarding-pass printing uses the selected installed Windows queue, while bag tags remain an explicitly labelled local preview. Standard X-Plane datarefs and manual controls remain safe fallbacks for other aircraft.
 
@@ -74,7 +74,7 @@ dotnet run --project src/FreeFlight.CabinControl.App
 
 Source filenames remain stable. Releases are identified by Git tags and `CHANGELOG.md`, not renamed project files.
 
-Airline recordings, safety videos, music, logos, seat maps, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores. The public BA 777 schematics are original FreeFlight assets generated from the application's coded seat geometry; supplied third-party seat-map previews remain private. Bundled boarding recordings retain the separate licences and attribution listed in `content-packs/british-airways/audio/boarding/ATTRIBUTION.md`.
+Airline recordings, safety videos, music, logos, seat maps, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores. The repository owner has attested direct British Airways permission for the bundled 2024 safety video and BA 777 horizontal seat maps; see `docs/BRITISH-AIRWAYS-MEDIA-RIGHTS.md`. Bundled boarding recordings retain the separate licences and attribution listed in `content-packs/british-airways/audio/boarding/ATTRIBUTION.md`.
 
 No open-source licence has been selected yet. The repository owner retains all rights until a licence is added.
 

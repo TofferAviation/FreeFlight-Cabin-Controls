@@ -601,8 +601,8 @@ public sealed record CabinLayoutProfileOption(
         ? new Rect(0d, 62d, 1033d, 192d)
         : Layout switch
         {
-            PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 1033d, 192d),
-            PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 1033d, 192d),
+            PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 2860d, 380d),
+            PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 2855d, 390d),
             _ => new Rect(0d, 62d, 1033d, 192d)
         };
 

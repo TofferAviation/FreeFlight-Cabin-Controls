@@ -2,7 +2,23 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
-## [0.4.6] - Unreleased
+## [0.4.7] - Unreleased
+
+### Added
+
+- The British Airways 2024 safety video is now included with every installer and portable update for offline in-app playback.
+- The repository records the owner's confirmation that British Airways granted redistribution permission for the bundled safety video and cabin-layout artwork.
+
+### Changed
+
+- The built-in 777-200ER and 777-300ER Live Cabin backgrounds now use the supplied British Airways horizontal seat maps.
+- Application version advanced to 0.4.7.
+
+### Fixed
+
+- Clean installations no longer report that `BA_Safety_Video.mp4` is missing.
+
+## [0.4.6] - 2026-09-03
 
 ### Added
 

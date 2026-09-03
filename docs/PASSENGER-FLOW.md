@@ -31,7 +31,7 @@ Only operational OFP data is consumed. SimBrief does not provide the real-world 
 
 ## Cabin layout profiles
 
-Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. Every profile drives its own operational seat coordinates, cabin classes, boarding groups, door positions, and aisle routing. Original FreeFlight-rendered BA 777-200ER and 777-300 schematics are compiled WPF resources, so clean installations do not depend on a private content pack or loose local files.
+Aircraft Settings and the Passenger Flow Live Cabin card expose three stable profile IDs: `flightfactor.777v2`, `british-airways.777-200er`, and `british-airways.777-300`. Every profile drives its own operational seat coordinates, cabin classes, boarding groups, door positions, and aisle routing. The authorised British Airways 777-200ER and 777-300 horizontal seat maps are compiled WPF resources, so clean installations do not depend on a private content pack or loose local files.
 
 Changing layouts safely starts a fresh manifest against the selected capacity while preserving the booked SimBrief count, current manual door choices, and stable profile selection. A count above the chosen capacity is reported as unmapped rather than silently discarded.
 
