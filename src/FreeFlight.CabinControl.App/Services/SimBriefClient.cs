@@ -77,11 +77,9 @@ public sealed class SimBriefClient : ISimBriefClient
             ReadString(root, "origin", "icao_code"),
             ReadString(root, "destination", "icao_code"),
             aircraftIcao,
-            ReadUnixTimestamp(root, "times", "est_out") ??
-            ReadUnixTimestamp(root, "times", "sched_out"),
+            ReadUnixTimestamp(root, "times", "est_out") ?? ReadUnixTimestamp(root, "times", "sched_out"),
             ReadUnixTimestamp(root, "params", "time_generated"),
-            ReadUnixTimestamp(root, "times", "est_in") ??
-            ReadUnixTimestamp(root, "times", "sched_in"),
+            ReadUnixTimestamp(root, "times", "est_in") ?? ReadUnixTimestamp(root, "times", "sched_in"),
             requestedPassengerCount,
             overrideApplied);
     }
@@ -90,7 +88,15 @@ public sealed class SimBriefClient : ISimBriefClient
     {
         "B772" or "B77E" => 272,
         "B773" or "B77W" => 256,
+        "A319" => 144,
         "A320" or "A20N" => 156,
+        "A321" or "A21N" => 220,
+        "A35K" => 331,
+        "A388" => 469,
+        "B788" => 214,
+        "B789" => 216,
+        "B78X" => 256,
+        "E190" => 106,
         _ => null
     };
 
