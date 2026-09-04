@@ -23,16 +23,10 @@ public sealed class GateLoginViewModel : PageViewModel, IDisposable
         : base("Gate Login", "Staff access for gate operations")
     {
         _operationsClock = operationsClock;
-        Stations =
-        [
-            new GateStationOption("LHR", "London Heathrow (LHR)"),
-            new GateStationOption("JFK", "New York JFK (JFK)"),
-            new GateStationOption("OSL", "Oslo Gardermoen (OSL)"),
-            new GateStationOption("LGW", "London Gatwick (LGW)")
-        ];
+        Stations = BritishAirwaysStationCatalog.All;
         _selectedStation = Stations.FirstOrDefault(station =>
             string.Equals(station.Code, NormalizeAirport(settings.GateOriginIata), StringComparison.OrdinalIgnoreCase)) ??
-            Stations[0];
+            Stations.First(station => string.Equals(station.Code, "LHR", StringComparison.OrdinalIgnoreCase));
         _signInCommand = new RelayCommand(_ => SignIn());
         SignInCommand = _signInCommand;
         SignOutCommand = new RelayCommand(_ => SignOut());
