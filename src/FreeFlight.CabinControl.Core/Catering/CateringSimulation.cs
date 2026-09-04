@@ -181,9 +181,9 @@ public sealed class CateringInventorySimulator
             .ToArray();
         if (candidates.Length == 0)
         {
-            foreach (var item in _items.Values.Where(item => item.LoadedQuantity >= item.TargetQuantity))
+            foreach (var completedItem in _items.Values.Where(item => item.LoadedQuantity >= item.TargetQuantity))
             {
-                item.State = CateringLoadState.Loaded;
+                completedItem.State = CateringLoadState.Loaded;
             }
 
             return false;
