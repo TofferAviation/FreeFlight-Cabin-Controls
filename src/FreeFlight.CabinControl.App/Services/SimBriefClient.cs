@@ -19,6 +19,11 @@ public sealed record SimBriefFlightSummary(
     public int SimBriefRequestedPassengerCount => RequestedPassengerCount ?? PassengerCount;
 }
 
+public static class SimBriefImportState
+{
+    public static SimBriefFlightSummary? Latest { get; internal set; }
+}
+
 public interface ISimBriefClient
 {
     Task<SimBriefFlightSummary> FetchLatestOfpAsync(
@@ -71,7 +76,7 @@ public sealed class SimBriefClient : ISimBriefClient
         var overrideApplied = mappedCapacity is > 0 && requestedPassengerCount > mappedCapacity.Value;
         var effectivePassengerCount = overrideApplied ? mappedCapacity!.Value : requestedPassengerCount;
 
-        return new SimBriefFlightSummary(
+        var summary = new SimBriefFlightSummary(
             effectivePassengerCount,
             flightLabel,
             ReadString(root, "origin", "icao_code"),
@@ -82,6 +87,8 @@ public sealed class SimBriefClient : ISimBriefClient
             ReadUnixTimestamp(root, "times", "est_in") ?? ReadUnixTimestamp(root, "times", "sched_in"),
             requestedPassengerCount,
             overrideApplied);
+        SimBriefImportState.Latest = summary;
+        return summary;
     }
 
     private static int? ResolveMappedCabinCapacity(string aircraftIcao) => aircraftIcao.Trim().ToUpperInvariant() switch
@@ -145,10 +152,7 @@ public sealed class SimBriefClient : ISimBriefClient
         };
     }
 
-    private static DateTimeOffset? ReadUnixTimestamp(
-        JsonElement root,
-        string sectionName,
-        string propertyName)
+    private static DateTimeOffset? ReadUnixTimestamp(JsonElement root, string sectionName, string propertyName)
     {
         var text = ReadString(root, sectionName, propertyName);
         return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unixSeconds)
