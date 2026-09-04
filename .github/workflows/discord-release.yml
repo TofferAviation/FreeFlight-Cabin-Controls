@@ -12,11 +12,12 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # EDIT THESE FOR EACH PRODUCT/REPOSITORY
       PRODUCT_NAME: "VA Cabin Controls"
       PLATFORM: "X-Plane 12"
 
-      # DO NOT put the actual webhook URL here.
+      # Paste the Discord role ID here
+      PRODUCT_UPDATES_ROLE_ID: "1545508476988690492"
+
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
 
     steps:
@@ -26,7 +27,6 @@ jobs:
           import json
           import os
 
-          # GitHub automatically provides the complete release event here.
           with open(os.environ["GITHUB_EVENT_PATH"], "r", encoding="utf-8") as f:
               event = json.load(f)
 
@@ -34,24 +34,33 @@ jobs:
 
           product = os.environ.get("PRODUCT_NAME", "FreeFlight Product")
           platform = os.environ.get("PLATFORM", "PC")
+          role_id = os.environ.get("PRODUCT_UPDATES_ROLE_ID", "")
 
           version = release.get("tag_name", "Unknown")
           release_name = release.get("name") or version
           release_url = release.get("html_url", "")
           changelog = (release.get("body") or "No changelog was provided.").strip()
 
-          # Discord embed descriptions are limited.
-          if len(changelog) > 3500:
-              changelog = changelog[:3480].rstrip()
-              changelog += "\n\n**…View the full changelog on GitHub.**"
+          if len(changelog) > 3400:
+              changelog = changelog[:3380].rstrip()
+              changelog += "\n\n**…View the complete changelog on GitHub.**"
 
-          # Automatically detect Stable/Beta from the GitHub release.
-          if release.get("prerelease", False):
-              release_channel = "🧪 Beta"
+          # Release type
+          version_lower = version.lower()
+
+          if "alpha" in version_lower:
+              release_channel = "🔴 Alpha"
+              embed_color = 15158332
+
+          elif release.get("prerelease", False):
+              release_channel = "🟣 Beta"
+              embed_color = 10181046
+
           else:
               release_channel = "🟢 Stable"
+              embed_color = 3447003
 
-          # Calculate total download size from GitHub release assets.
+          # Calculate release asset size
           assets = release.get("assets") or []
           total_bytes = sum(asset.get("size", 0) for asset in assets)
 
@@ -67,25 +76,36 @@ jobs:
                       if unit == "B":
                           return f"{int(size)} {unit}"
                       return f"{size:.1f} {unit}"
+
                   size /= 1024
 
           update_size = human_size(total_bytes)
 
-          # Download link.
+          # Download information
           if len(assets) == 1:
               asset = assets[0]
-              download_text = f"[⬇️ Download {asset['name']}]({asset['browser_download_url']})"
+
+              download_text = (
+                  f"[⬇️ Download {asset['name']}]"
+                  f"({asset['browser_download_url']})"
+              )
+
           elif len(assets) > 1:
-              download_text = f"[⬇️ View {len(assets)} Downloads]({release_url})"
+              download_text = (
+                  f"[⬇️ View {len(assets)} Downloads]"
+                  f"({release_url})"
+              )
+
           else:
-              download_text = f"[🔗 View Release on GitHub]({release_url})"
+              download_text = (
+                  f"[🔗 View Release on GitHub]"
+                  f"({release_url})"
+              )
 
           embed = {
               "title": f"✈️ {product} — {release_name}",
               "url": release_url,
-
-              # FreeFlight-style blue
-              "color": 3447003,
+              "color": embed_color,
 
               "description": changelog,
 
@@ -127,12 +147,21 @@ jobs:
               }
           }
 
-          # Discord supports an ISO timestamp on embeds.
           if release.get("published_at"):
               embed["timestamp"] = release["published_at"]
 
           payload = {
               "username": "FreeFlight Updates",
+              "content": (
+                  f"<@&{role_id}> **A new {product} update is available!**"
+                  if role_id
+                  else f"**A new {product} update is available!**"
+              ),
+
+              "allowed_mentions": {
+                  "roles": [role_id] if role_id else []
+              },
+
               "embeds": [embed]
           }
 
