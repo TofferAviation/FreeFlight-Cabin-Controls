@@ -1,3 +1,5 @@
+using FreeFlight.CabinControl.Core.Passengers;
+
 namespace FreeFlight.CabinControl.Core.Cabin;
 
 public enum CabinCrewServiceTaskType
