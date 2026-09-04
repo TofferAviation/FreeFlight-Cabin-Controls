@@ -160,7 +160,7 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
         if (phase.Contains("Preflight", StringComparison.OrdinalIgnoreCase) ||
             phase.Contains("Boarding", StringComparison.OrdinalIgnoreCase))
         {
-            return crewNumber % 3 switch
+            return (crewNumber % 3) switch
             {
                 0 => new CabinCrewServiceTask(CabinCrewServiceTaskType.PreflightChecks, "Preflight checks", "Checking cabin and emergency equipment"),
                 1 => new CabinCrewServiceTask(CabinCrewServiceTaskType.PreparingGalley, "Galley preparation", "Loading drinks, service items and meal carts"),
@@ -170,7 +170,7 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
 
         if (phase.Contains("Cruise", StringComparison.OrdinalIgnoreCase))
         {
-            return crewNumber % 5 switch
+            return (crewNumber % 5) switch
             {
                 0 => CabinCrewTaskFactory.HeatingMeal("Chicken main meal", "forward galley", 0.55d),
                 1 => CabinCrewTaskFactory.DeliveringMeal("Chicken main meal", PickServiceSeat(), 0.35d),
