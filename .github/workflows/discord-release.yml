@@ -1,43 +1,147 @@
-name: Post Release to Discord
+name: FreeFlight Discord Release
 
 on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
-  discord-changelog:
+  post-release:
     runs-on: ubuntu-latest
 
+    env:
+      # EDIT THESE FOR EACH PRODUCT/REPOSITORY
+      PRODUCT_NAME: "VA Cabin Controls"
+      PLATFORM: "X-Plane 12"
+
+      # DO NOT put the actual webhook URL here.
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+
     steps:
-      - name: Post changelog to Discord
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
-          RELEASE_NAME: ${{ github.event.release.name }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_BODY: ${{ github.event.release.body }}
-          RELEASE_URL: ${{ github.event.release.html_url }}
-
+      - name: Build FreeFlight Discord changelog
+        shell: python
         run: |
-          DESCRIPTION=$(printf '%s' "$RELEASE_BODY" | head -c 3900)
+          import json
+          import os
 
-          jq -n \
-            --arg title "📦 $RELEASE_NAME" \
-            --arg description "$DESCRIPTION" \
-            --arg url "$RELEASE_URL" \
-            --arg tag "$RELEASE_TAG" \
-            '{
-              username: "FreeFlight Updates",
-              embeds: [{
-                title: $title,
-                description: $description,
-                url: $url,
-                footer: {
-                  text: ("FreeFlight Systems • " + $tag)
-                }
-              }]
-            }' > payload.json
+          # GitHub automatically provides the complete release event here.
+          with open(os.environ["GITHUB_EVENT_PATH"], "r", encoding="utf-8") as f:
+              event = json.load(f)
 
-          curl -fsS \
+          release = event["release"]
+
+          product = os.environ.get("PRODUCT_NAME", "FreeFlight Product")
+          platform = os.environ.get("PLATFORM", "PC")
+
+          version = release.get("tag_name", "Unknown")
+          release_name = release.get("name") or version
+          release_url = release.get("html_url", "")
+          changelog = (release.get("body") or "No changelog was provided.").strip()
+
+          # Discord embed descriptions are limited.
+          if len(changelog) > 3500:
+              changelog = changelog[:3480].rstrip()
+              changelog += "\n\n**…View the full changelog on GitHub.**"
+
+          # Automatically detect Stable/Beta from the GitHub release.
+          if release.get("prerelease", False):
+              release_channel = "🧪 Beta"
+          else:
+              release_channel = "🟢 Stable"
+
+          # Calculate total download size from GitHub release assets.
+          assets = release.get("assets") or []
+          total_bytes = sum(asset.get("size", 0) for asset in assets)
+
+          def human_size(size):
+              if size <= 0:
+                  return "N/A"
+
+              units = ["B", "KB", "MB", "GB"]
+              size = float(size)
+
+              for unit in units:
+                  if size < 1024 or unit == units[-1]:
+                      if unit == "B":
+                          return f"{int(size)} {unit}"
+                      return f"{size:.1f} {unit}"
+                  size /= 1024
+
+          update_size = human_size(total_bytes)
+
+          # Download link.
+          if len(assets) == 1:
+              asset = assets[0]
+              download_text = f"[⬇️ Download {asset['name']}]({asset['browser_download_url']})"
+          elif len(assets) > 1:
+              download_text = f"[⬇️ View {len(assets)} Downloads]({release_url})"
+          else:
+              download_text = f"[🔗 View Release on GitHub]({release_url})"
+
+          embed = {
+              "title": f"✈️ {product} — {release_name}",
+              "url": release_url,
+
+              # FreeFlight-style blue
+              "color": 3447003,
+
+              "description": changelog,
+
+              "fields": [
+                  {
+                      "name": "📦 Product",
+                      "value": product,
+                      "inline": True
+                  },
+                  {
+                      "name": "🏷️ Version",
+                      "value": version,
+                      "inline": True
+                  },
+                  {
+                      "name": "📡 Release Channel",
+                      "value": release_channel,
+                      "inline": True
+                  },
+                  {
+                      "name": "🖥️ Platform",
+                      "value": platform,
+                      "inline": True
+                  },
+                  {
+                      "name": "💾 Update Size",
+                      "value": update_size,
+                      "inline": True
+                  },
+                  {
+                      "name": "📥 Download",
+                      "value": download_text,
+                      "inline": False
+                  }
+              ],
+
+              "footer": {
+                  "text": "FreeFlight Systems • Official Release"
+              }
+          }
+
+          # Discord supports an ISO timestamp on embeds.
+          if release.get("published_at"):
+              embed["timestamp"] = release["published_at"]
+
+          payload = {
+              "username": "FreeFlight Updates",
+              "embeds": [embed]
+          }
+
+          with open("discord-payload.json", "w", encoding="utf-8") as f:
+              json.dump(payload, f, ensure_ascii=False)
+
+      - name: Post changelog to Discord
+        run: |
+          curl --fail-with-body \
             -H "Content-Type: application/json" \
-            -d @payload.json \
+            --data-binary @discord-payload.json \
             "$DISCORD_WEBHOOK"
