@@ -14,8 +14,17 @@ internal static class PassengerCabinLayouts
     {
         PassengerCabinLayout.BritishAirways777200Er => CreateBritishAirways777200Er(),
         PassengerCabinLayout.BritishAirways777300 => CreateBritishAirways777300(),
+        PassengerCabinLayout.BritishAirwaysA319100 => CreateProceduralSingleAisle(layout, 144, 24),
         PassengerCabinLayout.BritishAirwaysA320200 => CreateBritishAirwaysA320200(),
         PassengerCabinLayout.BritishAirwaysA320Neo => CreateBritishAirwaysA320Neo(),
+        PassengerCabinLayout.BritishAirwaysA321200 => CreateProceduralSingleAisle(layout, 220, 37),
+        PassengerCabinLayout.BritishAirwaysA321Neo => CreateProceduralSingleAisle(layout, 220, 37),
+        PassengerCabinLayout.BritishAirwaysA3501000 => CreateProceduralWideBody(layout, 331, 9),
+        PassengerCabinLayout.BritishAirwaysA380800 => CreateProceduralWideBody(layout, 469, 10),
+        PassengerCabinLayout.BritishAirways7878 => CreateProceduralWideBody(layout, 214, 9),
+        PassengerCabinLayout.BritishAirways7879 => CreateProceduralWideBody(layout, 216, 9),
+        PassengerCabinLayout.BritishAirways78710 => CreateProceduralWideBody(layout, 256, 9),
+        PassengerCabinLayout.BritishAirwaysEmbraer190 => CreateProceduralRegional(layout, 106),
         _ => CreateFlightFactor777V2()
     };
 
@@ -216,6 +225,99 @@ internal static class PassengerCabinLayouts
             965d,
             210d,
             174d);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateProceduralSingleAisle(
+        PassengerCabinLayout layout,
+        int capacity,
+        int plannedRows)
+    {
+        var letters = new[] { "A", "B", "C", "D", "E", "F" };
+        var y = new[] { 58d, 72d, 86d, 108d, 122d, 136d };
+        return CreateProcedural(layout, capacity, plannedRows, letters, y, 96d, 96d, 72d, 955d, 210d, 174d);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateProceduralRegional(PassengerCabinLayout layout, int capacity)
+    {
+        var letters = new[] { "A", "C", "D", "F" };
+        var y = new[] { 63d, 82d, 112d, 131d };
+        return CreateProcedural(layout, capacity, 27, letters, y, 97d, 97d, 78d, 950d, 210d, 174d);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateProceduralWideBody(
+        PassengerCabinLayout layout,
+        int capacity,
+        int seatsPerRow)
+    {
+        var letters = seatsPerRow >= 10
+            ? new[] { "A", "B", "C", "D", "E", "F", "G", "H", "J", "K" }
+            : new[] { "A", "B", "C", "D", "E", "F", "G", "J", "K" };
+        var y = seatsPerRow >= 10
+            ? new[] { 50d, 63d, 76d, 93d, 105d, 117d, 129d, 146d, 159d, 172d }
+            : new[] { 52d, 66d, 80d, 99d, 113d, 127d, 141d, 158d, 172d };
+        var rows = (int)Math.Ceiling(capacity / (double)letters.Length);
+        return CreateProcedural(layout, capacity, rows, letters, y, 88d, 150d, 58d, 255d, 208d, 174d);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateProcedural(
+        PassengerCabinLayout layout,
+        int capacity,
+        int plannedRows,
+        IReadOnlyList<string> letters,
+        IReadOnlyList<double> yPositions,
+        double upperAisleY,
+        double lowerAisleY,
+        double l1DoorX,
+        double l2DoorX,
+        double doorEntryY,
+        double doorThresholdY)
+    {
+        var seats = new List<CabinSeat>(capacity);
+        var rows = Math.Max(1, plannedRows);
+        var startX = 115d;
+        var endX = 925d;
+        var spacing = rows == 1 ? 0d : (endX - startX) / Math.Max(1, rows - 1);
+        for (var row = 1; row <= rows && seats.Count < capacity; row++)
+        {
+            var x = startX + ((row - 1) * spacing);
+            var cabinClass = ResolveProceduralCabinClass(layout, row, rows);
+            for (var index = 0; index < letters.Count && seats.Count < capacity; index++)
+            {
+                var seatY = yPositions[index];
+                var aisleY = letters.Count <= 6
+                    ? upperAisleY
+                    : index < letters.Count / 2 ? upperAisleY : lowerAisleY;
+                seats.Add(new CabinSeat($"{row}{letters[index]}", cabinClass, x, seatY, aisleY));
+            }
+        }
+
+        return new PassengerCabinLayoutDefinition(layout, seats, l1DoorX, l2DoorX, doorEntryY, doorThresholdY);
+    }
+
+    private static PassengerCabinClass ResolveProceduralCabinClass(PassengerCabinLayout layout, int row, int totalRows)
+    {
+        var fraction = row / (double)Math.Max(1, totalRows);
+        if (layout is PassengerCabinLayout.BritishAirwaysA319100 or
+            PassengerCabinLayout.BritishAirwaysA321200 or
+            PassengerCabinLayout.BritishAirwaysA321Neo or
+            PassengerCabinLayout.BritishAirwaysEmbraer190)
+        {
+            return fraction <= 0.22d ? PassengerCabinClass.Business : PassengerCabinClass.Economy;
+        }
+
+        if (fraction <= 0.06d && layout is PassengerCabinLayout.BritishAirwaysA380800 or PassengerCabinLayout.BritishAirways7879 or PassengerCabinLayout.BritishAirways78710)
+        {
+            return PassengerCabinClass.First;
+        }
+        if (fraction <= 0.30d)
+        {
+            return PassengerCabinClass.Business;
+        }
+        if (fraction <= 0.45d)
+        {
+            return PassengerCabinClass.PremiumEconomy;
+        }
+        return PassengerCabinClass.Economy;
     }
 
     private static void AddMappedRows(
