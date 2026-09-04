@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Windows.Threading;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Cabin;
 using FreeFlight.CabinControl.Core.Integration;
 using FreeFlight.CabinControl.Core.Passengers;
@@ -13,13 +14,17 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
     private readonly DispatcherTimer _crewAnimationTimer;
     private readonly Random _random = new(5051);
     private readonly Dictionary<int, CrewMotionTarget> _crewTargets = [];
+    private readonly Dictionary<int, string> _lavatoryAssignments = [];
+    private LavatoryQueueManager _lavatoryManager;
     private PassengerCabinLayout? _lastLayout;
     private DateTimeOffset _nextCrewTaskRefresh = DateTimeOffset.MinValue;
+    private DateTimeOffset _nextLavatoryRefresh = DateTimeOffset.MinValue;
 
     public LiveCabinViewModel(PassengerFlowViewModel passengers)
         : base("Live Cabin", "Live passenger, crew, doors and cabin activity")
     {
         Passengers = passengers;
+        _lavatoryManager = CreateLavatoryManager();
         Passengers.PropertyChanged += HandlePassengerPropertyChanged;
         Passengers.CabinCrewMarkers.CollectionChanged += HandleCrewCollectionChanged;
         _crewAnimationTimer = new DispatcherTimer(DispatcherPriority.Render)
@@ -29,6 +34,7 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
         _crewAnimationTimer.Tick += HandleCrewAnimationTick;
         _crewAnimationTimer.Start();
         RebuildDoorRoster();
+        RefreshLavatorySnapshots();
         EnsureCrewTargets(force: true);
     }
 
@@ -36,9 +42,35 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
 
     public ObservableCollection<CabinDoorStatusViewModel> Doors { get; } = [];
 
+    public ObservableCollection<LavatoryQueueStatusViewModel> Lavatories { get; } = [];
+
+    public bool SeatMapOverrideActive =>
+        Passengers.HasSimBriefFlight && SimBriefImportState.Latest?.SeatMapOverrideApplied == true;
+
+    public string SeatMapOverrideLabel
+    {
+        get
+        {
+            var latest = SimBriefImportState.Latest;
+            return SeatMapOverrideActive && latest is not null
+                ? $"SEAT MAP OVERRIDE ACTIVE · SimBrief {latest.SimBriefRequestedPassengerCount} → mapped capacity {latest.PassengerCount}"
+                : "Seat map capacity matched";
+        }
+    }
+
     public string DoorSummary => Doors.Count == 0
         ? "No door map available"
         : $"{Doors.Count(door => door.IsOpen)} open · {Doors.Count(door => door.IsEmergencyExit)} emergency exits · {Doors.Count} mapped exits";
+
+    public string LavatorySummary
+    {
+        get
+        {
+            var occupied = Lavatories.Count(item => item.IsOccupied);
+            var waiting = Lavatories.Sum(item => item.QueueLength);
+            return $"{occupied}/{Lavatories.Count} occupied · {waiting} waiting";
+        }
+    }
 
     public void ApplyTelemetry(CabinTelemetrySnapshot snapshot)
     {
@@ -52,6 +84,7 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
 
         OnPropertyChanged(nameof(DoorSummary));
         EnsureCrewTargets(force: false);
+        UpdateLavatorySimulation(force: false);
     }
 
     public void Dispose()
@@ -68,8 +101,18 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
         if (e.PropertyName == nameof(PassengerFlowViewModel.SelectedCabinLayoutProfile))
         {
             RebuildDoorRoster();
+            ResetLavatories();
             _crewTargets.Clear();
             EnsureCrewTargets(force: true);
+        }
+
+        if (e.PropertyName is nameof(PassengerFlowViewModel.HasSimBriefFlight) or
+            nameof(PassengerFlowViewModel.SimBriefStatus) or
+            nameof(PassengerFlowViewModel.ImportedAircraftIcao) or
+            nameof(PassengerFlowViewModel.BookedPassengerCount))
+        {
+            OnPropertyChanged(nameof(SeatMapOverrideActive));
+            OnPropertyChanged(nameof(SeatMapOverrideLabel));
         }
     }
 
@@ -82,6 +125,7 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
         if (_lastLayout != layout)
         {
             RebuildDoorRoster();
+            ResetLavatories();
         }
     }
 
@@ -100,6 +144,7 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
     private void HandleCrewAnimationTick(object? sender, EventArgs e)
     {
         EnsureCrewTargets(force: false);
+        UpdateLavatorySimulation(force: false);
         foreach (var crew in Passengers.CabinCrewMarkers)
         {
             if (!_crewTargets.TryGetValue(crew.CrewNumber, out var target) || crew.IsSecured || crew.IsResting)
@@ -144,13 +189,13 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
 
     private CrewMotionTarget CreateCrewTarget(int crewNumber, CabinCrewServiceTask task)
     {
-        var narrowBody = Passengers.IsNarrowBodyCabinLayout;
+        var narrowBody = IsNarrowBodyLayout(Passengers.SelectedCabinLayoutProfile.Layout);
         var minX = narrowBody ? 90d : 85d;
         var maxX = narrowBody ? 915d : 945d;
         var x = minX + (_random.NextDouble() * (maxX - minX));
         var y = narrowBody
-            ? 89d + ((_random.NextDouble() - 0.5d) * 8d)
-            : crewNumber % 2 == 0 ? 72d : 127d;
+            ? 96d + ((_random.NextDouble() - 0.5d) * 8d)
+            : crewNumber % 2 == 0 ? 76d : 145d;
         return new CrewMotionTarget(x, y, task);
     }
 
@@ -205,6 +250,92 @@ public sealed class LiveCabinViewModel : PageViewModel, IDisposable
         return Passengers.PassengerManifest[_random.Next(Passengers.PassengerManifest.Count)].SeatNumber;
     }
 
+    private void UpdateLavatorySimulation(bool force)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (!force && now < _nextLavatoryRefresh)
+        {
+            return;
+        }
+        _nextLavatoryRefresh = now.AddMilliseconds(500);
+
+        var validIds = new HashSet<int>();
+        foreach (var passenger in Passengers.PassengerManifest)
+        {
+            var activity = passenger.CurrentActivity;
+            var involved = activity.Contains("lavatory", StringComparison.OrdinalIgnoreCase) ||
+                           activity.Contains("Returning to seat", StringComparison.OrdinalIgnoreCase);
+            if (!involved)
+            {
+                if (_lavatoryAssignments.Remove(passenger.PassengerId, out _))
+                {
+                    _lavatoryManager.CancelRequest(passenger.PassengerId);
+                    _lavatoryManager.Release(passenger.PassengerId);
+                }
+                continue;
+            }
+
+            validIds.Add(passenger.PassengerId);
+            if (!_lavatoryAssignments.ContainsKey(passenger.PassengerId) &&
+                activity.Contains("lavatory", StringComparison.OrdinalIgnoreCase))
+            {
+                var target = _lavatoryManager.Snapshot()
+                    .OrderBy(item => item.QueueLength + item.Occupants.Count)
+                    .ThenBy(item => Math.Abs(item.Lavatory.LongitudinalStation - NormalizeSeatStation(passenger.SeatX)))
+                    .First();
+                _lavatoryManager.Request(passenger.PassengerId, target.Lavatory.Id);
+                _lavatoryAssignments[passenger.PassengerId] = target.Lavatory.Id;
+            }
+
+            if (activity.Contains("Returning to seat", StringComparison.OrdinalIgnoreCase) &&
+                _lavatoryAssignments.Remove(passenger.PassengerId, out _))
+            {
+                _lavatoryManager.CancelRequest(passenger.PassengerId);
+                _lavatoryManager.Release(passenger.PassengerId);
+            }
+        }
+
+        foreach (var stale in _lavatoryAssignments.Keys.Where(id => !validIds.Contains(id)).ToArray())
+        {
+            _lavatoryManager.CancelRequest(stale);
+            _lavatoryManager.Release(stale);
+            _lavatoryAssignments.Remove(stale);
+        }
+
+        RefreshLavatorySnapshots();
+    }
+
+    private void ResetLavatories()
+    {
+        _lavatoryAssignments.Clear();
+        _lavatoryManager = CreateLavatoryManager();
+        RefreshLavatorySnapshots();
+    }
+
+    private LavatoryQueueManager CreateLavatoryManager() => new(
+        CabinLavatoryCatalog.ForAircraftFamily(IsNarrowBodyLayout(Passengers.SelectedCabinLayoutProfile.Layout)));
+
+    private void RefreshLavatorySnapshots()
+    {
+        var snapshots = _lavatoryManager.Snapshot();
+        Lavatories.Clear();
+        foreach (var snapshot in snapshots)
+        {
+            Lavatories.Add(new LavatoryQueueStatusViewModel(snapshot));
+        }
+        OnPropertyChanged(nameof(LavatorySummary));
+    }
+
+    private static bool IsNarrowBodyLayout(PassengerCabinLayout layout) => layout is
+        PassengerCabinLayout.BritishAirwaysA319100 or
+        PassengerCabinLayout.BritishAirwaysA320200 or
+        PassengerCabinLayout.BritishAirwaysA320Neo or
+        PassengerCabinLayout.BritishAirwaysA321200 or
+        PassengerCabinLayout.BritishAirwaysA321Neo or
+        PassengerCabinLayout.BritishAirwaysEmbraer190;
+
+    private static double NormalizeSeatStation(double x) => Math.Clamp(x / 1033d, 0d, 1d);
+
     private sealed record CrewMotionTarget(double X, double Y, CabinCrewServiceTask Task);
 }
 
@@ -257,4 +388,24 @@ public sealed class CabinDoorStatusViewModel : ObservableObject
             StatusColor = "#69B8FF";
         }
     }
+}
+
+public sealed class LavatoryQueueStatusViewModel
+{
+    public LavatoryQueueStatusViewModel(LavatoryQueueSnapshot snapshot)
+    {
+        Id = snapshot.Lavatory.Id;
+        Zone = snapshot.Lavatory.Zone;
+        IsOccupied = snapshot.IsOccupied;
+        QueueLength = snapshot.QueueLength;
+        Status = IsOccupied ? "OCCUPIED" : "AVAILABLE";
+        Detail = QueueLength == 0 ? "No queue" : $"{QueueLength} passenger{(QueueLength == 1 ? string.Empty : "s")} waiting";
+    }
+
+    public string Id { get; }
+    public string Zone { get; }
+    public bool IsOccupied { get; }
+    public int QueueLength { get; }
+    public string Status { get; }
+    public string Detail { get; }
 }
