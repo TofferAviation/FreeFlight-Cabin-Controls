@@ -348,8 +348,8 @@
                                          Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Dashboard}" />
                     <views:AirlinersView DataContext="{Binding Airliners}"
                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Airliners}" />
-                    <views:PassengerFlowView DataContext="{Binding Passengers}"
-                                             Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passengers}" />
+                    <views:LiveCabinView DataContext="{Binding LiveCabin}"
+                                        Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passengers}" />
                     <views:CateringMealServiceView DataContext="{Binding Catering}"
                                                    Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Catering}" />
                     <views:MenuBoardView DataContext="{Binding MenuBoard}"
