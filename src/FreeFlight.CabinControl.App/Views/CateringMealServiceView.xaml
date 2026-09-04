@@ -71,7 +71,7 @@
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                                                 <TextBlock Text="{Binding Category}" Foreground="#71869F" FontSize="10" Margin="0,2,0,0" />
-                                                <ProgressBar Value="{Binding Progress}" Maximum="100" Height="4" Margin="0,6,22,0" />
+                                                <ProgressBar Value="{Binding Progress, Mode=OneWay}" Maximum="100" Height="4" Margin="0,6,22,0" />
                                             </StackPanel>
                                             <TextBlock Grid.Column="1" Text="{Binding Price}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#C7D5E5" />
                                             <TextBlock Grid.Column="2" Text="{Binding State}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#69B8FF" FontSize="11" />
