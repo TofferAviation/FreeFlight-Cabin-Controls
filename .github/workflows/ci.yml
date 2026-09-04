@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "feature/**"
+      - "hotfix/**"
   pull_request:
     branches:
       - main
@@ -34,6 +35,16 @@ jobs:
       - name: Build
         shell: pwsh
         run: dotnet build FreeFlight.CabinControl.slnx -c Release --no-restore
+
+      - name: Validate display-only progress bindings
+        shell: pwsh
+        run: |
+          $pattern = '<ProgressBar[^>]*Value="\{Binding(?![^\"]*Mode=OneWay)[^\"]*\}"'
+          $violations = Get-ChildItem src/FreeFlight.CabinControl.App -Recurse -Filter *.xaml | Select-String -Pattern $pattern
+          if ($violations) {
+            $violations | ForEach-Object { Write-Host "Unsafe ProgressBar binding: $($_.Path):$($_.LineNumber) $($_.Line.Trim())" }
+            throw "ProgressBar bindings must explicitly use Mode=OneWay unless the source property is writable."
+          }
 
       - name: Run core regression checks
         shell: pwsh
