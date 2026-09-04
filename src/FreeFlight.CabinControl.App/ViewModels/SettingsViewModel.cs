@@ -57,25 +57,15 @@ public sealed class SettingsViewModel : PageViewModel
     }
 
     public SharedStatusViewModel Status { get; }
-
     public ICommand SaveCommand { get; }
-
     public ICommand RestoreDefaultsCommand { get; }
-
     public ICommand SelectSectionCommand { get; }
-
     public ICommand TestBoardingPassPrinterCommand { get; }
-
     public ICommand TestBagTagPrinterCommand { get; }
-
     public ICommand RandomizePassengerSeedCommand { get; }
-
     public ICommand ReconnectXPlaneCommand { get; }
-
     public ICommand SelectXPlaneFolderCommand { get; }
-
     public ICommand SelectXPlaneExecutableCommand { get; }
-
     public ICommand InstallXPlanePluginCommand { get; }
 
     public string XPlanePluginStatus
@@ -85,27 +75,16 @@ public sealed class SettingsViewModel : PageViewModel
     }
 
     public bool CanInstallXPlanePlugin => _xPlanePluginInstaller.CanInstall(XPlaneExecutablePath);
-
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
-
     public IReadOnlyList<string> Themes { get; } = ["FreeFlight Dark"];
-
     public IReadOnlyList<int> BoardingStartOffsets { get; } = [60, 45, 30, 20];
-
     public IReadOnlyList<int> TurnaroundDurations { get; } = [45, 60, 75, 90];
-
     public IReadOnlyList<int> FinalBoardingOffsets { get; } = [10, 5, 3];
-
     public IReadOnlyList<int> GateCloseOffsets { get; } = [5, 3, 2, 1];
-
     public IReadOnlyList<string> NameRegionMixes { get; } = ["Global Mix (Default)", "Europe", "North America", "Asia Pacific"];
-
     public IReadOnlyList<string> BoardingGroupOrders { get; } = ["Groups by Cabin (1 → 8)", "Back to Front", "Outside In"];
-
     public IReadOnlyList<string> BoardingCallChimes { get; } = ["British Airways", "FreeFlight Standard", "Silent"];
-
     public IReadOnlyList<CabinLayoutProfileOption> CabinLayoutProfiles => CabinLayoutProfileCatalog.All;
-
     public string Version => $"v{typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "0.0.0"}";
 
     public string XPlaneExecutablePath
@@ -326,7 +305,6 @@ public sealed class SettingsViewModel : PageViewModel
     }
 
     public string ActiveAirlinePackId => _settings.ActiveAirlinePackId;
-
     public string ActiveAirlinePackName => "FreeFlight Generic";
 
     public string SimBriefPilotId
@@ -536,8 +514,7 @@ public sealed class SettingsViewModel : PageViewModel
         RefreshXPlanePluginStatus();
         Msfs2024AutoConnect = defaults.Msfs2024AutoConnect;
         AutomaticallyCheckForUpdates = defaults.AutomaticallyCheckForUpdates;
-        SelectedCabinLayoutProfile = CabinLayoutProfiles.Single(profile =>
-            profile.Id == defaults.PassengerCabinLayoutId);
+        SelectedCabinLayoutProfile = CabinLayoutProfiles.Single(profile => profile.Id == defaults.PassengerCabinLayoutId);
         SimBriefPilotId = defaults.SimBriefPilotId;
         GateFlightNumber = defaults.GateFlightNumber;
         GateOriginIata = defaults.GateOriginIata;
@@ -608,79 +585,92 @@ public sealed record CabinLayoutProfileOption(
             _ => new Rect(0d, 62d, 1033d, 192d)
         };
 
-    public Stretch LivePreviewStretch => UsesFallbackLivePreview
-        ? Stretch.Fill
-        : Stretch.Uniform;
-
+    public Stretch LivePreviewStretch => UsesFallbackLivePreview ? Stretch.Fill : Stretch.Uniform;
     public override string ToString() => Name;
 }
 
 public static class CabinLayoutProfileCatalog
 {
+    private const string GenericPreview = "pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png";
+
     public static IReadOnlyList<CabinLayoutProfileOption> All { get; } =
     [
-        new(
-            "flightfactor.777v2",
-            PassengerCabinLayout.FlightFactor777V2,
-            "FlightFactor 777 v2 cabin",
-            "Operational preview",
+        new("flightfactor.777v2", PassengerCabinLayout.FlightFactor777V2, "FlightFactor 777 v2 cabin", "Operational preview",
             "The coded FreeFlight schematic used for live boarding, deboarding, seat markers, and door routing.",
-            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png",
-            "pack://application:,,,/FreeFlight.CabinControl;component/Assets/Ff777CabinLayout.png",
-            "Manual selection · future adapter ID: FlightFactor 777 v2",
-            470d,
-            true,
+            GenericPreview, GenericPreview, "Manual selection · FlightFactor 777 v2", 470d, true,
             "OPERATIONAL · 311 MAPPED SEAT POSITIONS"),
-        new(
-            "british-airways.777-200er",
-            PassengerCabinLayout.BritishAirways777200Er,
-            "British Airways 777-200ER",
-            "Operational airline layout",
-            "British Airways 777-200ER boarding simulation with mapped seats, two-door routing, and live passenger movement.",
+        new("british-airways.777-200er", PassengerCabinLayout.BritishAirways777200Er, "British Airways 777-200ER", "Operational airline layout",
+            "British Airways 777-200ER live cabin with mapped seats, doors and passenger movement.",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777200Er.png",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777200Er.png",
-            "Manual selection · future aircraft match: Boeing 777-200ER",
-            420d,
-            true,
-            "OPERATIONAL · 272 MAPPED SEAT POSITIONS · NOSE LEFT"),
-        new(
-            "british-airways.777-300",
-            PassengerCabinLayout.BritishAirways777300,
-            "British Airways 777-300",
-            "Operational airline layout",
-            "British Airways 777-300 boarding simulation with mapped seats, two-door routing, and live passenger movement.",
+            "Automatic SimBrief match: B772/B77E", 420d, true, "OPERATIONAL · 272 MAPPED SEAT POSITIONS · NOSE LEFT"),
+        new("british-airways.777-300", PassengerCabinLayout.BritishAirways777300, "British Airways 777-300", "Operational airline layout",
+            "British Airways 777-300 live cabin with mapped seats, doors and passenger movement.",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777300.png",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirways777300.png",
-            "Manual selection · future aircraft match: Boeing 777-300",
-            420d,
-            true,
-            "OPERATIONAL · 256 MAPPED SEAT POSITIONS · NOSE LEFT"),
-        new(
-            "british-airways.a320-200",
-            PassengerCabinLayout.BritishAirwaysA320200,
-            "British Airways Airbus A320-200",
-            "Operational airline layout",
-            "British Airways A320-200 boarding simulation with mapped Club Europe and Euro Traveller seats, two-door routing, and live passenger movement.",
+            "Automatic SimBrief match: B773/B77W", 420d, true, "OPERATIONAL · 256 MAPPED SEAT POSITIONS · NOSE LEFT"),
+        Procedural("british-airways.a319-100", PassengerCabinLayout.BritishAirwaysA319100, "British Airways Airbus A319-100", "A319", 144),
+        new("british-airways.a320-200", PassengerCabinLayout.BritishAirwaysA320200, "British Airways Airbus A320-200", "Operational airline layout",
+            "British Airways A320-200 live cabin with mapped Club Europe and Euro Traveller seats.",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320200.png",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320200.png",
-            "Automatic SimBrief match: A320 · ToLiss door adapter",
-            420d,
-            true,
-            "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT"),
-        new(
-            "british-airways.a320neo",
-            PassengerCabinLayout.BritishAirwaysA320Neo,
-            "British Airways Airbus A320neo",
-            "Operational airline layout",
-            "British Airways A320neo boarding simulation with mapped Club Europe and Euro Traveller seats, two-door routing, and live passenger movement.",
+            "Automatic SimBrief match: A320", 420d, true, "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT"),
+        new("british-airways.a320neo", PassengerCabinLayout.BritishAirwaysA320Neo, "British Airways Airbus A320neo", "Operational airline layout",
+            "British Airways A320neo live cabin with mapped Club Europe and Euro Traveller seats.",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320neo.png",
             "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/AirbusA320neo.png",
-            "Automatic SimBrief match: A20N · ToLiss door adapter",
-            420d,
-            true,
-            "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT")
+            "Automatic SimBrief match: A20N", 420d, true, "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT"),
+        Procedural("british-airways.a321-200", PassengerCabinLayout.BritishAirwaysA321200, "British Airways Airbus A321-200", "A321", 220),
+        Procedural("british-airways.a321neo", PassengerCabinLayout.BritishAirwaysA321Neo, "British Airways Airbus A321neo", "A21N", 220),
+        Procedural("british-airways.a350-1000", PassengerCabinLayout.BritishAirwaysA3501000, "British Airways Airbus A350-1000", "A35K", 331),
+        Procedural("british-airways.a380-800", PassengerCabinLayout.BritishAirwaysA380800, "British Airways Airbus A380-800", "A388", 469),
+        Procedural("british-airways.787-8", PassengerCabinLayout.BritishAirways7878, "British Airways Boeing 787-8", "B788", 214),
+        Procedural("british-airways.787-9", PassengerCabinLayout.BritishAirways7879, "British Airways Boeing 787-9", "B789", 216),
+        Procedural("british-airways.787-10", PassengerCabinLayout.BritishAirways78710, "British Airways Boeing 787-10", "B78X", 256),
+        Procedural("british-airways.e190", PassengerCabinLayout.BritishAirwaysEmbraer190, "British Airways CityFlyer Embraer 190", "E190", 106)
     ];
 
     public static CabinLayoutProfileOption Resolve(string? id) =>
         All.FirstOrDefault(profile => string.Equals(profile.Id, id, StringComparison.OrdinalIgnoreCase)) ?? All[0];
+
+    public static CabinLayoutProfileOption? ResolveByAircraftIcao(string? icao)
+    {
+        var normalized = (icao ?? string.Empty).Trim().ToUpperInvariant();
+        var id = normalized switch
+        {
+            "B772" or "B77E" => "british-airways.777-200er",
+            "B773" or "B77W" => "british-airways.777-300",
+            "A319" => "british-airways.a319-100",
+            "A320" => "british-airways.a320-200",
+            "A20N" => "british-airways.a320neo",
+            "A321" => "british-airways.a321-200",
+            "A21N" => "british-airways.a321neo",
+            "A35K" => "british-airways.a350-1000",
+            "A388" => "british-airways.a380-800",
+            "B788" => "british-airways.787-8",
+            "B789" => "british-airways.787-9",
+            "B78X" => "british-airways.787-10",
+            "E190" => "british-airways.e190",
+            _ => string.Empty
+        };
+        return id.Length == 0 ? null : Resolve(id);
+    }
+
+    private static CabinLayoutProfileOption Procedural(
+        string id,
+        PassengerCabinLayout layout,
+        string name,
+        string icao,
+        int capacity) => new(
+            id,
+            layout,
+            name,
+            "Operational generated layout",
+            "Generated FreeFlight operational seat map used until dedicated cabin artwork is supplied. Passenger, crew, door and service logic is fully active.",
+            GenericPreview,
+            GenericPreview,
+            $"Automatic SimBrief match: {icao}",
+            420d,
+            true,
+            $"OPERATIONAL · {capacity} MAPPED SEAT POSITIONS · GENERATED CABIN MAP");
 }

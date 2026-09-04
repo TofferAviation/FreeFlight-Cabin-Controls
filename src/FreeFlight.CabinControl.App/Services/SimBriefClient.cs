@@ -12,7 +12,17 @@ public sealed record SimBriefFlightSummary(
     string AircraftIcao,
     DateTimeOffset? ScheduledDepartureUtc,
     DateTimeOffset? GeneratedAtUtc,
-    DateTimeOffset? EstimatedArrivalUtc = null);
+    DateTimeOffset? EstimatedArrivalUtc = null,
+    int? RequestedPassengerCount = null,
+    bool SeatMapOverrideApplied = false)
+{
+    public int SimBriefRequestedPassengerCount => RequestedPassengerCount ?? PassengerCount;
+}
+
+public static class SimBriefImportState
+{
+    public static SimBriefFlightSummary? Latest { get; internal set; }
+}
 
 public interface ISimBriefClient
 {
@@ -52,7 +62,7 @@ public sealed class SimBriefClient : ISimBriefClient
         await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var document = await JsonDocument.ParseAsync(responseStream, cancellationToken: cancellationToken);
         var root = document.RootElement;
-        var passengerCount = ReadRequiredInt(root, "weights", "pax_count");
+        var requestedPassengerCount = ReadRequiredInt(root, "weights", "pax_count");
         var airline = ReadString(root, "general", "icao_airline");
         var flightNumber = ReadString(root, "general", "flight_number");
         var flightLabel = string.Concat(airline, flightNumber);
@@ -61,18 +71,41 @@ public sealed class SimBriefClient : ISimBriefClient
             flightLabel = "Latest OFP";
         }
 
-        return new SimBriefFlightSummary(
-            passengerCount,
+        var aircraftIcao = ReadAircraftIcao(root);
+        var mappedCapacity = ResolveMappedCabinCapacity(aircraftIcao);
+        var overrideApplied = mappedCapacity is > 0 && requestedPassengerCount > mappedCapacity.Value;
+        var effectivePassengerCount = overrideApplied ? mappedCapacity!.Value : requestedPassengerCount;
+
+        var summary = new SimBriefFlightSummary(
+            effectivePassengerCount,
             flightLabel,
             ReadString(root, "origin", "icao_code"),
             ReadString(root, "destination", "icao_code"),
-            ReadAircraftIcao(root),
-            ReadUnixTimestamp(root, "times", "est_out") ??
-            ReadUnixTimestamp(root, "times", "sched_out"),
+            aircraftIcao,
+            ReadUnixTimestamp(root, "times", "est_out") ?? ReadUnixTimestamp(root, "times", "sched_out"),
             ReadUnixTimestamp(root, "params", "time_generated"),
-            ReadUnixTimestamp(root, "times", "est_in") ??
-            ReadUnixTimestamp(root, "times", "sched_in"));
+            ReadUnixTimestamp(root, "times", "est_in") ?? ReadUnixTimestamp(root, "times", "sched_in"),
+            requestedPassengerCount,
+            overrideApplied);
+        SimBriefImportState.Latest = summary;
+        return summary;
     }
+
+    private static int? ResolveMappedCabinCapacity(string aircraftIcao) => aircraftIcao.Trim().ToUpperInvariant() switch
+    {
+        "B772" or "B77E" => 272,
+        "B773" or "B77W" => 256,
+        "A319" => 144,
+        "A320" or "A20N" => 156,
+        "A321" or "A21N" => 220,
+        "A35K" => 331,
+        "A388" => 469,
+        "B788" => 214,
+        "B789" => 216,
+        "B78X" => 256,
+        "E190" => 106,
+        _ => null
+    };
 
     private static string ReadAircraftIcao(JsonElement root)
     {
@@ -119,10 +152,7 @@ public sealed class SimBriefClient : ISimBriefClient
         };
     }
 
-    private static DateTimeOffset? ReadUnixTimestamp(
-        JsonElement root,
-        string sectionName,
-        string propertyName)
+    private static DateTimeOffset? ReadUnixTimestamp(JsonElement root, string sectionName, string propertyName)
     {
         var text = ReadString(root, sectionName, propertyName);
         return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unixSeconds)

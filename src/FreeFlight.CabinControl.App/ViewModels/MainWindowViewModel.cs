@@ -64,6 +64,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers.DoorControlRequested += HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested += HandleSeatbeltControlRequested;
         Passengers.FlightUnloaded += HandleFlightUnloaded;
+        Passengers.PropertyChanged += HandlePassengerPropertyChanged;
+        LiveCabin = new LiveCabinViewModel(Passengers);
+        Catering = new CateringMealServiceViewModel(Passengers);
+        MenuBoard = new MenuBoardViewModel(Catering);
         var savedFlight = _flightSessionStore?.Load();
         if (savedFlight is not null && savedFlight.Boarding.State != BoardingRunState.DeboardingComplete)
         {
@@ -115,29 +119,20 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     public SharedStatusViewModel Status { get; }
-
     public GateLoginViewModel GateLogin { get; }
-
     public GateOperationsViewModel Operations { get; }
-
     public IportDcsViewModel IportDcs { get; }
-
     public GateOperationsViewModel Dashboard { get; }
-
     public AirlinersViewModel Airliners { get; }
-
     public PassengerFlowViewModel Passengers { get; }
-
+    public LiveCabinViewModel LiveCabin { get; }
+    public CateringMealServiceViewModel Catering { get; }
+    public MenuBoardViewModel MenuBoard { get; }
     public CabinControlPanelViewModel CabinPanel { get; }
-
     public AudioViewModel Audio { get; }
-
     public PerformanceViewModel Performance { get; }
-
     public SettingsViewModel Settings { get; }
-
     public UpdatesViewModel Updates { get; }
-
     public FlightLoggerViewModel FlightLogger { get; }
 
     public bool IsFlightInProgress =>
@@ -175,6 +170,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers.DoorControlRequested -= HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested -= HandleSeatbeltControlRequested;
         Passengers.FlightUnloaded -= HandleFlightUnloaded;
+        Passengers.PropertyChanged -= HandlePassengerPropertyChanged;
         if (_simulatorBridge is not null)
         {
             _simulatorBridge.StatusChanged -= HandleBridgeStatusChanged;
@@ -186,6 +182,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Audio.Dispose();
         IportDcs.Dispose();
         Operations.Dispose();
+        LiveCabin.Dispose();
+        Catering.Dispose();
         Passengers.Dispose();
         Performance.Dispose();
         GC.SuppressFinalize(this);
@@ -237,7 +235,9 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "BoardingPasses" => Operations,
             "IportDcs" => IportDcs,
             "Airliners" => Airliners,
-            "Passengers" => Passengers,
+            "Passengers" => LiveCabin,
+            "Catering" => Catering,
+            "MenuBoard" => MenuBoard,
             "CabinPanel" => CabinPanel,
             "Audio" => Audio,
             "Performance" => Performance,
@@ -246,6 +246,23 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _ => Dashboard
         };
         ActivePage = destination;
+    }
+
+    private void HandlePassengerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(PassengerFlowViewModel.ImportedAircraftIcao))
+        {
+            return;
+        }
+
+        var profile = CabinLayoutProfileCatalog.ResolveByAircraftIcao(Passengers.ImportedAircraftIcao);
+        if (profile is null || string.Equals(profile.Id, Passengers.SelectedCabinLayoutProfile.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        Passengers.SelectedCabinLayoutProfile = profile;
+        _settings.PassengerCabinLayoutId = profile.Id;
     }
 
     private void HandleGateSignedIn(object? sender, EventArgs e)
@@ -298,6 +315,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             simulatorClock.ApplyTelemetry(snapshot, _simulatorBridge?.CurrentStatus.Simulator ?? string.Empty);
         }
         Passengers.ApplyCabinTelemetry(snapshot);
+        LiveCabin.ApplyTelemetry(snapshot);
         Operations.ApplyCabinTelemetry(snapshot);
         if (TrackAutomaticFlightCompletion(snapshot))
         {
