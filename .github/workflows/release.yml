@@ -34,9 +34,10 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          # v0.5.0 is being rebuilt in place as a startup hotfix so the planned v0.5.1 feature release remains available.
-          $version = "0.5.0"
+          $version = "0.5.0.1"
+          $assemblyVersion = $version
           "version=$version" >> $env:GITHUB_OUTPUT
+          "assembly=$assemblyVersion" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
           "asset=FreeFlight-Cabin-Control-v$version-win-x64.zip" >> $env:GITHUB_OUTPUT
           "installer=FreeFlight-Cabin-Control-v$version-Setup.exe" >> $env:GITHUB_OUTPUT
@@ -47,8 +48,8 @@ jobs:
           dotnet restore FreeFlight.CabinControl.slnx
           dotnet build FreeFlight.CabinControl.slnx -c Release --no-restore `
             -p:Version=${{ steps.version.outputs.version }} `
-            -p:AssemblyVersion=${{ steps.version.outputs.version }}.0 `
-            -p:FileVersion=${{ steps.version.outputs.version }}.0
+            -p:AssemblyVersion=${{ steps.version.outputs.assembly }} `
+            -p:FileVersion=${{ steps.version.outputs.assembly }}
 
       - name: Validate display-only progress bindings
         shell: pwsh
@@ -61,7 +62,6 @@ jobs:
           }
 
       - name: Run core regression checks
-        continue-on-error: true
         shell: pwsh
         run: dotnet run --project tests/FreeFlight.CabinControl.Core.Tests/FreeFlight.CabinControl.Core.Tests.csproj -c Release --no-build
 
@@ -89,8 +89,8 @@ jobs:
             --source https://api.nuget.org/v3/index.json `
             -o artifacts/publish `
             -p:Version=${{ steps.version.outputs.version }} `
-            -p:AssemblyVersion=${{ steps.version.outputs.version }}.0 `
-            -p:FileVersion=${{ steps.version.outputs.version }}.0 `
+            -p:AssemblyVersion=${{ steps.version.outputs.assembly }} `
+            -p:FileVersion=${{ steps.version.outputs.assembly }} `
             -p:InformationalVersion=${{ steps.version.outputs.version }}+$shortSha
 
       - name: Startup smoke test
@@ -113,12 +113,12 @@ jobs:
           if ($LASTEXITCODE -eq 0 -and $previous) {
             $range = "$previous..HEAD"
             $changes = git log $range --pretty=format:"- %s (`%h`)"
-            $comparison = "Hotfix changes since the original $previous build"
+            $comparison = "Changes since $previous"
           } else {
             $changes = git log -30 --pretty=format:"- %s (`%h`)"
             $comparison = "Published release history"
           }
-          if (-not $changes) { $changes = "- v0.5.0 startup hotfix rebuild." }
+          if (-not $changes) { $changes = "- v0.5.0.1 stability hotfix." }
           $sourceChangelog = Get-Content CHANGELOG.md -Raw
           $notes = @"
           # FreeFlight Cabin Control $tag
@@ -164,21 +164,8 @@ jobs:
           $checksum = "$asset.sha256"
           $installer = "artifacts/${{ steps.version.outputs.installer }}"
           $installerChecksum = "$installer.sha256"
-          if (gh release view $tag 2>$null) {
-            git tag -f $tag "${{ github.sha }}"
-            git push origin "refs/tags/$tag" --force
-            if ($LASTEXITCODE -ne 0) {
-              Write-Warning "Release assets will still be replaced, but the existing tag could not be moved."
-            }
-            gh release upload $tag $asset $checksum $installer $installerChecksum --clobber
-            gh release edit $tag `
-              --title "FreeFlight Cabin Control $tag" `
-              --notes-file artifacts/release-notes.md `
-              --latest
-          } else {
-            gh release create $tag $asset $checksum $installer $installerChecksum `
-              --target "${{ github.sha }}" `
-              --title "FreeFlight Cabin Control $tag" `
-              --notes-file artifacts/release-notes.md `
-              --latest
-          }
+          gh release create $tag $asset $checksum $installer $installerChecksum `
+            --target "${{ github.sha }}" `
+            --title "FreeFlight Cabin Control $tag" `
+            --notes-file artifacts/release-notes.md `
+            --latest

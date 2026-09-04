@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.4.9"
+  #define AppVersion "0.5.0.1"
 #endif
 
 [Setup]
@@ -25,7 +25,7 @@ SetupIconFile=..\src\FreeFlight.CabinControl.App\Assets\FreeFlight.ico
 UninstallDisplayIcon={app}\FreeFlight.CabinControl.exe
 CloseApplications=yes
 RestartApplications=no
-VersionInfoVersion={#AppVersion}.0
+VersionInfoVersion={#AppVersion}
 VersionInfoProductName=FreeFlight Cabin Control
 VersionInfoProductVersion={#AppVersion}
 
