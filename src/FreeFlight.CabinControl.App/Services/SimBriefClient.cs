@@ -12,7 +12,12 @@ public sealed record SimBriefFlightSummary(
     string AircraftIcao,
     DateTimeOffset? ScheduledDepartureUtc,
     DateTimeOffset? GeneratedAtUtc,
-    DateTimeOffset? EstimatedArrivalUtc = null);
+    DateTimeOffset? EstimatedArrivalUtc = null,
+    int? RequestedPassengerCount = null,
+    bool SeatMapOverrideApplied = false)
+{
+    public int SimBriefRequestedPassengerCount => RequestedPassengerCount ?? PassengerCount;
+}
 
 public interface ISimBriefClient
 {
@@ -52,7 +57,7 @@ public sealed class SimBriefClient : ISimBriefClient
         await using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         using var document = await JsonDocument.ParseAsync(responseStream, cancellationToken: cancellationToken);
         var root = document.RootElement;
-        var passengerCount = ReadRequiredInt(root, "weights", "pax_count");
+        var requestedPassengerCount = ReadRequiredInt(root, "weights", "pax_count");
         var airline = ReadString(root, "general", "icao_airline");
         var flightNumber = ReadString(root, "general", "flight_number");
         var flightLabel = string.Concat(airline, flightNumber);
@@ -61,18 +66,33 @@ public sealed class SimBriefClient : ISimBriefClient
             flightLabel = "Latest OFP";
         }
 
+        var aircraftIcao = ReadAircraftIcao(root);
+        var mappedCapacity = ResolveMappedCabinCapacity(aircraftIcao);
+        var overrideApplied = mappedCapacity is > 0 && requestedPassengerCount > mappedCapacity.Value;
+        var effectivePassengerCount = overrideApplied ? mappedCapacity!.Value : requestedPassengerCount;
+
         return new SimBriefFlightSummary(
-            passengerCount,
+            effectivePassengerCount,
             flightLabel,
             ReadString(root, "origin", "icao_code"),
             ReadString(root, "destination", "icao_code"),
-            ReadAircraftIcao(root),
+            aircraftIcao,
             ReadUnixTimestamp(root, "times", "est_out") ??
             ReadUnixTimestamp(root, "times", "sched_out"),
             ReadUnixTimestamp(root, "params", "time_generated"),
             ReadUnixTimestamp(root, "times", "est_in") ??
-            ReadUnixTimestamp(root, "times", "sched_in"));
+            ReadUnixTimestamp(root, "times", "sched_in"),
+            requestedPassengerCount,
+            overrideApplied);
     }
+
+    private static int? ResolveMappedCabinCapacity(string aircraftIcao) => aircraftIcao.Trim().ToUpperInvariant() switch
+    {
+        "B772" or "B77E" => 272,
+        "B773" or "B77W" => 256,
+        "A320" or "A20N" => 156,
+        _ => null
+    };
 
     private static string ReadAircraftIcao(JsonElement root)
     {
