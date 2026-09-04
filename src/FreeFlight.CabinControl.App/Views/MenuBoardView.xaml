@@ -56,7 +56,7 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel>
-                        <TextBlock Text="BRITISH AIRWAYS" Foreground="#17365D" FontSize="12" FontWeight="Bold" LetterSpacing="1.5" HorizontalAlignment="Center" />
+                        <TextBlock Text="BRITISH AIRWAYS" Foreground="#17365D" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" />
                         <TextBlock Text="{Binding CurrentPage.Eyebrow}" Foreground="#7A6F61" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,13,0,0" />
                         <TextBlock Text="{Binding CurrentPage.Title}" Foreground="#172A43" FontFamily="Georgia" FontSize="31" FontWeight="Normal" HorizontalAlignment="Center" Margin="0,4,0,0" />
                     </StackPanel>
