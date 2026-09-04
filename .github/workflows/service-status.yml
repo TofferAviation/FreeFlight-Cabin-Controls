@@ -1,0 +1,331 @@
+name: FreeFlight Service Status
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  service-status:
+    runs-on: ubuntu-latest
+
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_STATUS_WEBHOOK }}
+      STATUS_MESSAGE_ID: ${{ vars.DISCORD_STATUS_MESSAGE_ID }}
+
+      # OPTIONAL - we can add these later
+      WEBSITE_URL: ${{ vars.FREEFLIGHT_WEBSITE_URL }}
+      UPDATE_URL: ${{ vars.FREEFLIGHT_UPDATE_URL }}
+
+    steps:
+      - name: Check FreeFlight services
+        shell: python
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+
+        run: |
+          import json
+          import os
+          import urllib.request
+          import urllib.error
+          from datetime import datetime, timezone
+
+
+          def check_url(url, headers=None):
+              if not url:
+                  return None
+
+              request_headers = {
+                  "User-Agent": "FreeFlight-Status-Monitor/1.0"
+              }
+
+              if headers:
+                  request_headers.update(headers)
+
+              request = urllib.request.Request(
+                  url,
+                  headers=request_headers,
+                  method="GET"
+              )
+
+              try:
+                  with urllib.request.urlopen(
+                      request,
+                      timeout=15
+                  ) as response:
+                      return 200 <= response.status < 400
+
+              except Exception:
+                  return False
+
+
+          def icon(status):
+              if status is True:
+                  return "🟢"
+
+              if status is False:
+                  return "🔴"
+
+              return "⚪"
+
+
+          repository = os.environ["REPOSITORY"]
+          token = os.environ.get("GH_TOKEN", "")
+
+          website_url = os.environ.get("WEBSITE_URL", "").strip()
+          update_url = os.environ.get("UPDATE_URL", "").strip()
+
+
+          # -------------------------------------------------
+          # GITHUB / RELEASE INFRASTRUCTURE
+          # -------------------------------------------------
+
+          github_headers = {}
+
+          if token:
+              github_headers["Authorization"] = f"Bearer {token}"
+              github_headers["Accept"] = "application/vnd.github+json"
+
+
+          repo_api = f"https://api.github.com/repos/{repository}"
+
+          github_ok = check_url(
+              repo_api,
+              github_headers
+          )
+
+
+          # -------------------------------------------------
+          # UPDATE SERVICE
+          # -------------------------------------------------
+
+          if update_url:
+              update_ok = check_url(update_url)
+
+          else:
+              # Until FreeFlight has its own update endpoint,
+              # GitHub availability acts as the update service check.
+              update_ok = github_ok
+
+
+          # -------------------------------------------------
+          # WEBSITE
+          # -------------------------------------------------
+
+          if website_url:
+              website_ok = check_url(website_url)
+
+          else:
+              website_ok = None
+
+
+          # -------------------------------------------------
+          # OVERALL STATUS
+          # -------------------------------------------------
+
+          monitored = [
+              github_ok,
+              update_ok
+          ]
+
+          if website_ok is not None:
+              monitored.append(website_ok)
+
+
+          if all(service is True for service in monitored):
+              overall = "🟢 All Systems Operational"
+              colour = 5763719
+
+          elif any(service is False for service in monitored):
+              overall = "🔴 Service Disruption"
+              colour = 15548997
+
+          else:
+              overall = "🟡 Degraded Performance"
+              colour = 16705372
+
+
+          # -------------------------------------------------
+          # SERVICE TEXT
+          # -------------------------------------------------
+
+          update_text = (
+              f"{icon(update_ok)} **Update Services**\n"
+              + (
+                  "Operational"
+                  if update_ok
+                  else "Service unavailable"
+              )
+          )
+
+
+          github_text = (
+              f"{icon(github_ok)} **Release Distribution**\n"
+              + (
+                  "Operational"
+                  if github_ok
+                  else "Service unavailable"
+              )
+          )
+
+
+          if website_ok is None:
+              website_text = (
+                  "⚪ **FreeFlight Website**\n"
+                  "Coming Soon"
+              )
+
+          else:
+              website_text = (
+                  f"{icon(website_ok)} **FreeFlight Website**\n"
+                  + (
+                      "Operational"
+                      if website_ok
+                      else "Service unavailable"
+                  )
+              )
+
+
+          # Desktop software isn't an always-on cloud service,
+          # so don't falsely claim we're monitoring the application itself.
+          cabin_text = (
+              "🟢 **VA Cabin Controls**\n"
+              "Current release available"
+          )
+
+          dispatch_text = (
+              "⚪ **VA-Dispatch**\n"
+              "Not publicly available"
+          )
+
+
+          timestamp = int(
+              datetime.now(timezone.utc).timestamp()
+          )
+
+
+          description = f"""
+          {overall}
+
+          Current operational status for FreeFlight Systems services.
+
+          ━━━━━━━━━━━━━━━━━━━━━━
+
+          {cabin_text}
+
+          {update_text}
+
+          {github_text}
+
+          {website_text}
+
+          {dispatch_text}
+
+          ━━━━━━━━━━━━━━━━━━━━━━
+
+          **Status Indicators**
+
+          🟢 Operational
+          🟡 Degraded Performance
+          🟠 Partial Outage
+          🔴 Major Outage
+          🔵 Scheduled Maintenance
+          ⚪ Not Available / Not Monitored
+
+          **Last checked:** <t:{timestamp}:R>
+          """.strip()
+
+
+          payload = {
+              "username": "FreeFlight Status",
+
+              "embeds": [
+                  {
+                      "title": "📡 FreeFlight Systems — Service Status",
+
+                      "description": description,
+
+                      "color": colour,
+
+                      "footer": {
+                          "text": (
+                              "FreeFlight Systems • "
+                              "Automated Service Monitoring"
+                          )
+                      },
+
+                      "timestamp": (
+                          datetime.now(timezone.utc)
+                          .isoformat()
+                      )
+                  }
+              ]
+          }
+
+
+          with open(
+              "status-payload.json",
+              "w",
+              encoding="utf-8"
+          ) as file:
+              json.dump(
+                  payload,
+                  file,
+                  ensure_ascii=False
+              )
+
+
+      - name: Update Discord status message
+        shell: bash
+
+        run: |
+          if [ -z "$STATUS_MESSAGE_ID" ]; then
+
+            if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+              echo "Status board has not been initialized yet."
+              echo "Run this workflow manually once first."
+              exit 0
+            fi
+
+            echo "Creating initial FreeFlight status message..."
+
+            RESPONSE=$(curl --fail-with-body \
+              -H "Content-Type: application/json" \
+              --data-binary @status-payload.json \
+              "${DISCORD_WEBHOOK}?wait=true"
+            )
+
+            MESSAGE_ID=$(echo "$RESPONSE" | jq -r '.id')
+
+            echo ""
+            echo "=========================================="
+            echo "DISCORD STATUS MESSAGE CREATED"
+            echo "=========================================="
+            echo ""
+            echo "MESSAGE ID:"
+            echo "$MESSAGE_ID"
+            echo ""
+            echo "Create this GitHub repository variable:"
+            echo ""
+            echo "DISCORD_STATUS_MESSAGE_ID"
+            echo ""
+            echo "and use the ID above as its value."
+            echo ""
+            echo "=========================================="
+
+          else
+
+            echo "Updating existing FreeFlight status message..."
+
+            curl --fail-with-body \
+              -X PATCH \
+              -H "Content-Type: application/json" \
+              --data-binary @status-payload.json \
+              "${DISCORD_WEBHOOK}/messages/${STATUS_MESSAGE_ID}"
+
+          fi
