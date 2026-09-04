@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.4.9] - 2026-09-04
+
+### Fixed
+
+- Removed the opaque white backdrop from both built-in British Airways 777 cabin maps so the aircraft artwork blends into the Live Cabin theme like the Airbus A320 layouts.
+- Preserved the original 777 image dimensions and seat geometry so existing passenger, crew, aisle, and door coordinates remain aligned.
+
 ## [0.4.8] - 2026-09-03
 
 ### Added
