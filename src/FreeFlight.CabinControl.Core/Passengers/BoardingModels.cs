@@ -36,8 +36,17 @@ public enum PassengerCabinLayout
     FlightFactor777V2,
     BritishAirways777200Er,
     BritishAirways777300,
+    BritishAirwaysA319100,
     BritishAirwaysA320200,
-    BritishAirwaysA320Neo
+    BritishAirwaysA320Neo,
+    BritishAirwaysA321200,
+    BritishAirwaysA321Neo,
+    BritishAirwaysA3501000,
+    BritishAirwaysA380800,
+    BritishAirways7878,
+    BritishAirways7879,
+    BritishAirways78710,
+    BritishAirwaysEmbraer190
 }
 
 public enum PassengerMovementState
@@ -65,6 +74,7 @@ public enum PassengerCabinActivity
     Working,
     Talking,
     WalkingToLavatory,
+    WaitingForLavatory,
     UsingLavatory,
     ReturningToSeat,
     Deboarding,
