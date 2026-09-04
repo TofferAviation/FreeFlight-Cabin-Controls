@@ -34,13 +34,13 @@ public sealed class UpdateService
     {
         _updatesDirectory = Path.Combine(applicationDataDirectory, "updates");
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"FreeFlight-Cabin-Control/{CurrentVersion.ToString(3)}");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"FreeFlight-Cabin-Control/{FormatVersion(CurrentVersion)}");
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         _httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
     }
 
     public Version CurrentVersion => NormalizeVersion(
-        Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0));
+        Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0));
 
     public async Task<UpdateCheckResult> CheckAsync(CancellationToken cancellationToken = default)
     {
@@ -64,7 +64,7 @@ public sealed class UpdateService
         {
             return new UpdateCheckResult(
                 null,
-                $"GitHub release '{tag}' does not use a supported numeric version such as v0.3.1.");
+                $"GitHub release '{tag}' does not use a supported numeric version such as v0.3.1 or v0.5.0.1.");
         }
 
         var assets = root.TryGetProperty("assets", out var assetList)
@@ -120,7 +120,7 @@ public sealed class UpdateService
             }
         }
 
-        var stagingDirectory = Path.Combine(_updatesDirectory, $"stage-{update.Version}");
+        var stagingDirectory = Path.Combine(_updatesDirectory, $"stage-{FormatVersion(update.Version)}");
         if (Directory.Exists(stagingDirectory)) Directory.Delete(stagingDirectory, true);
         ZipFile.ExtractToDirectory(packagePath, stagingDirectory);
         var stagedExecutable = Directory.EnumerateFiles(stagingDirectory, "FreeFlight.CabinControl.exe", SearchOption.AllDirectories).FirstOrDefault();
@@ -166,20 +166,28 @@ public sealed class UpdateService
     public static Version? ParseReleaseVersion(string? tag)
     {
         var match = Regex.Match(tag ?? string.Empty, @"(?<!\d)(?<major>\d+)\.(?<minor>\d+)\.(?<build>\d+)(?:\.(?<revision>\d+))?");
-        if (!match.Success)
+        if (!match.Success ||
+            !int.TryParse(match.Groups["major"].Value, out var major) ||
+            !int.TryParse(match.Groups["minor"].Value, out var minor) ||
+            !int.TryParse(match.Groups["build"].Value, out var build))
         {
             return null;
         }
 
-        return int.TryParse(match.Groups["major"].Value, out var major) &&
-               int.TryParse(match.Groups["minor"].Value, out var minor) &&
-               int.TryParse(match.Groups["build"].Value, out var build)
-            ? new Version(major, minor, build)
-            : null;
+        return match.Groups["revision"].Success && int.TryParse(match.Groups["revision"].Value, out var revision)
+            ? new Version(major, minor, build, revision)
+            : new Version(major, minor, build, 0);
     }
 
+    public static string FormatVersion(Version version) =>
+        version.Revision > 0 ? version.ToString(4) : version.ToString(3);
+
     private static Version NormalizeVersion(Version version) =>
-        new(version.Major, version.Minor, Math.Max(0, version.Build));
+        new(
+            version.Major,
+            version.Minor,
+            Math.Max(0, version.Build),
+            Math.Max(0, version.Revision));
 
     private static string? NormalizeSha256(string? digest)
     {
