@@ -64,6 +64,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers.DoorControlRequested += HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested += HandleSeatbeltControlRequested;
         Passengers.FlightUnloaded += HandleFlightUnloaded;
+        Catering = new CateringMealServiceViewModel(Passengers);
+        MenuBoard = new MenuBoardViewModel(Catering);
         var savedFlight = _flightSessionStore?.Load();
         if (savedFlight is not null && savedFlight.Boarding.State != BoardingRunState.DeboardingComplete)
         {
@@ -128,6 +130,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public PassengerFlowViewModel Passengers { get; }
 
+    public CateringMealServiceViewModel Catering { get; }
+
+    public MenuBoardViewModel MenuBoard { get; }
+
     public CabinControlPanelViewModel CabinPanel { get; }
 
     public AudioViewModel Audio { get; }
@@ -186,6 +192,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Audio.Dispose();
         IportDcs.Dispose();
         Operations.Dispose();
+        Catering.Dispose();
         Passengers.Dispose();
         Performance.Dispose();
         GC.SuppressFinalize(this);
@@ -238,6 +245,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "IportDcs" => IportDcs,
             "Airliners" => Airliners,
             "Passengers" => Passengers,
+            "Catering" => Catering,
+            "MenuBoard" => MenuBoard,
             "CabinPanel" => CabinPanel,
             "Audio" => Audio,
             "Performance" => Performance,
