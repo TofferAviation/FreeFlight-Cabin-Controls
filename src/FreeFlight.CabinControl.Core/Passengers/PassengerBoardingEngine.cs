@@ -1,3 +1,5 @@
+using FreeFlight.CabinControl.Core.Cabin;
+
 namespace FreeFlight.CabinControl.Core.Passengers;
 
 public sealed class PassengerBoardingEngine
@@ -15,6 +17,8 @@ public sealed class PassengerBoardingEngine
     private readonly HashSet<BoardingDoor> _openDoors = [];
     private readonly HashSet<int> _boardingHoldPassengerIds = [];
     private readonly HashSet<int> _noShowPassengerIds = [];
+    private readonly Dictionary<int, string> _passengerLavatoryAssignments = [];
+    private LavatoryQueueManager _lavatoryManager;
     private int _nextPassengerIndex;
     private int _nextDeboardingPassengerIndex;
     private int _boardedCount;
@@ -29,6 +33,7 @@ public sealed class PassengerBoardingEngine
     {
         _layoutDefinition = PassengerCabinLayouts.Create(layout);
         _cabinSeats = _layoutDefinition.Seats;
+        _lavatoryManager = CreateLavatoryManager(layout);
         ConfigurePassengerCount(targetPassengerCount);
     }
 
@@ -93,6 +98,8 @@ public sealed class PassengerBoardingEngine
     public IReadOnlyList<BoardingPassenger> LastDeboardedPassengers => _lastDeboardedPassengers;
 
     public IReadOnlyCollection<BoardingDoor> OpenDoors => _openDoors;
+
+    public IReadOnlyList<LavatoryQueueSnapshot> LavatoryQueues => _lavatoryManager.Snapshot();
 
     public CabinPoint GetDoorEntryCenter(BoardingDoor door) => GetDoorEntryPoint(door);
 
@@ -163,6 +170,7 @@ public sealed class PassengerBoardingEngine
         }
 
         Operation = PassengerOperation.Deboarding;
+        ClearLavatoryState();
         _activePassengers.Clear();
         _occupyingPassengers.Clear();
         _deboardingQueue.Clear();
@@ -260,8 +268,12 @@ public sealed class PassengerBoardingEngine
             passenger.Position = restoredMovement == PassengerMovementState.Waiting
                 ? default
                 : saved.Position;
+            var restoredActivity = saved.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
+                PassengerCabinActivity.WaitingForLavatory or PassengerCabinActivity.UsingLavatory
+                ? PassengerCabinActivity.ReturningToSeat
+                : saved.CabinActivity;
             passenger.CabinActivity = restoredMovement == PassengerMovementState.Seated
-                ? saved.CabinActivity
+                ? restoredActivity
                 : restoredMovement switch
                 {
                     PassengerMovementState.Deboarded => PassengerCabinActivity.OffAircraft,
@@ -465,9 +477,12 @@ public sealed class PassengerBoardingEngine
             if (seatbeltSignOn)
             {
                 if (passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
-                    PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat)
+                    PassengerCabinActivity.WaitingForLavatory or PassengerCabinActivity.UsingLavatory or
+                    PassengerCabinActivity.ReturningToSeat)
                 {
+                    ReleaseLavatory(passenger.Id);
                     passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
+                    passenger.ActivityWaypoints.Clear();
                     EnsureReturnToSeatRoute(passenger);
                     passenger.SeatbeltFastened = false;
                     if (!MoveAlongActivityRoute(passenger, seconds * 42d))
@@ -506,15 +521,26 @@ public sealed class PassengerBoardingEngine
                     EnsureLavatoryRoute(passenger);
                     if (MoveAlongActivityRoute(passenger, seconds * 28d))
                     {
-                        passenger.CabinActivity = PassengerCabinActivity.UsingLavatory;
-                        passenger.SecondsUntilActivityChange = 45d + ((passenger.Id * 13) % 75);
+                        BeginLavatoryRequest(passenger);
                     }
                     continue;
                 }
+                case PassengerCabinActivity.WaitingForLavatory:
+                    if (_lavatoryManager.GetPassengerLavatory(passenger.Id) is not null)
+                    {
+                        passenger.CabinActivity = PassengerCabinActivity.UsingLavatory;
+                        passenger.SecondsUntilActivityChange = GetLavatoryUseDuration(passenger);
+                    }
+                    else
+                    {
+                        PositionPassengerInLavatoryQueue(passenger);
+                    }
+                    continue;
                 case PassengerCabinActivity.UsingLavatory:
                     passenger.SecondsUntilActivityChange -= seconds;
                     if (passenger.SecondsUntilActivityChange <= 0d)
                     {
+                        ReleaseLavatory(passenger.Id);
                         passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
                         passenger.ActivityWaypoints.Clear();
                     }
@@ -592,13 +618,114 @@ public sealed class PassengerBoardingEngine
             return;
         }
 
-        var lavatoryX = Math.Min(1010d, _cabinSeats.Max(seat => seat.X) + 18d);
+        if (!_passengerLavatoryAssignments.TryGetValue(passenger.Id, out var lavatoryId))
+        {
+            var target = SelectLavatory(passenger);
+            lavatoryId = target.Id;
+            _passengerLavatoryAssignments[passenger.Id] = lavatoryId;
+        }
+
+        var lavatory = _lavatoryManager.Snapshot()
+            .Select(item => item.Lavatory)
+            .First(item => string.Equals(item.Id, lavatoryId, StringComparison.OrdinalIgnoreCase));
+        var lavatoryX = GetLavatoryX(lavatory.LongitudinalStation);
         passenger.ActivityWaypoints = new Queue<CabinPoint>(
         [
             new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
             new CabinPoint(lavatoryX, passenger.Seat.AisleY)
         ]);
     }
+
+    private void BeginLavatoryRequest(BoardingPassenger passenger)
+    {
+        if (!_passengerLavatoryAssignments.TryGetValue(passenger.Id, out var lavatoryId))
+        {
+            passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
+            return;
+        }
+
+        var result = _lavatoryManager.Request(passenger.Id, lavatoryId);
+        if (result is LavatoryRequestResult.Entered or LavatoryRequestResult.AlreadyOccupying)
+        {
+            passenger.CabinActivity = PassengerCabinActivity.UsingLavatory;
+            passenger.SecondsUntilActivityChange = GetLavatoryUseDuration(passenger);
+            return;
+        }
+
+        if (result is LavatoryRequestResult.Queued or LavatoryRequestResult.AlreadyQueued)
+        {
+            passenger.CabinActivity = PassengerCabinActivity.WaitingForLavatory;
+            PositionPassengerInLavatoryQueue(passenger);
+            return;
+        }
+
+        passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
+        passenger.ActivityWaypoints.Clear();
+    }
+
+    private CabinLavatoryDefinition SelectLavatory(BoardingPassenger passenger)
+    {
+        var seatStation = Math.Clamp(passenger.Seat.X / Math.Max(1d, _cabinSeats.Max(seat => seat.X)), 0d, 1d);
+        return _lavatoryManager.Snapshot()
+            .OrderBy(item => Math.Abs(item.Lavatory.LongitudinalStation - seatStation) + ((item.QueueLength + item.Occupants.Count) * 0.08d))
+            .ThenBy(item => item.QueueLength)
+            .Select(item => item.Lavatory)
+            .First();
+    }
+
+    private void PositionPassengerInLavatoryQueue(BoardingPassenger passenger)
+    {
+        if (!_passengerLavatoryAssignments.TryGetValue(passenger.Id, out var lavatoryId))
+        {
+            return;
+        }
+
+        var snapshot = _lavatoryManager.Snapshot()
+            .FirstOrDefault(item => string.Equals(item.Lavatory.Id, lavatoryId, StringComparison.OrdinalIgnoreCase));
+        if (snapshot is null)
+        {
+            return;
+        }
+
+        var queuePosition = Math.Max(1, _lavatoryManager.GetQueuePosition(passenger.Id));
+        var lavatoryX = GetLavatoryX(snapshot.Lavatory.LongitudinalStation);
+        var queueDirection = snapshot.Lavatory.LongitudinalStation > 0.5d ? -1d : 1d;
+        passenger.Position = new CabinPoint(
+            Math.Clamp(lavatoryX + (queueDirection * queuePosition * 12d), 20d, 1013d),
+            passenger.Seat.AisleY);
+        passenger.ActivityWaypoints.Clear();
+    }
+
+    private void ReleaseLavatory(int passengerId)
+    {
+        _lavatoryManager.CancelRequest(passengerId);
+        var promotedPassengerId = _lavatoryManager.Release(passengerId);
+        _passengerLavatoryAssignments.Remove(passengerId);
+        if (promotedPassengerId is not { } promotedId)
+        {
+            return;
+        }
+
+        var promoted = _passengers.FirstOrDefault(item => item.Id == promotedId);
+        if (promoted is null)
+        {
+            return;
+        }
+
+        promoted.CabinActivity = PassengerCabinActivity.UsingLavatory;
+        promoted.SecondsUntilActivityChange = GetLavatoryUseDuration(promoted);
+        promoted.ActivityWaypoints.Clear();
+    }
+
+    private double GetLavatoryX(double longitudinalStation)
+    {
+        var minX = Math.Max(25d, _cabinSeats.Min(seat => seat.X) - 28d);
+        var maxX = Math.Min(1008d, _cabinSeats.Max(seat => seat.X) + 28d);
+        return minX + ((maxX - minX) * Math.Clamp(longitudinalStation, 0d, 1d));
+    }
+
+    private static double GetLavatoryUseDuration(BoardingPassenger passenger) =>
+        45d + ((passenger.Id * 13) % 75);
 
     private void EnsureReturnToSeatRoute(BoardingPassenger passenger)
     {
@@ -686,6 +813,7 @@ public sealed class PassengerBoardingEngine
         _deboardingQueue.Clear();
         _boardingHoldPassengerIds.Clear();
         _noShowPassengerIds.Clear();
+        ClearLavatoryState();
         _nextPassengerIndex = 0;
         _nextDeboardingPassengerIndex = 0;
         _boardedCount = 0;
@@ -724,6 +852,23 @@ public sealed class PassengerBoardingEngine
 
         State = BoardingRunState.Ready;
     }
+
+    private void ClearLavatoryState()
+    {
+        _passengerLavatoryAssignments.Clear();
+        _lavatoryManager = CreateLavatoryManager(Layout);
+    }
+
+    private static LavatoryQueueManager CreateLavatoryManager(PassengerCabinLayout layout) => new(
+        CabinLavatoryCatalog.ForAircraftFamily(IsNarrowBodyLayout(layout)));
+
+    private static bool IsNarrowBodyLayout(PassengerCabinLayout layout) => layout is
+        PassengerCabinLayout.BritishAirwaysA319100 or
+        PassengerCabinLayout.BritishAirwaysA320200 or
+        PassengerCabinLayout.BritishAirwaysA320Neo or
+        PassengerCabinLayout.BritishAirwaysA321200 or
+        PassengerCabinLayout.BritishAirwaysA321Neo or
+        PassengerCabinLayout.BritishAirwaysEmbraer190;
 
     private void SpawnPassenger(BoardingPassenger passenger)
     {
@@ -884,7 +1029,7 @@ public sealed class PassengerBoardingEngine
             return _openDoors.Single();
         }
 
-        if (Layout is PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo)
+        if (IsNarrowBodyLayout(Layout))
         {
             return passenger.Seat.CabinClass == PassengerCabinClass.Business
                 ? BoardingDoor.L1
@@ -934,7 +1079,8 @@ public sealed class PassengerBoardingEngine
             PassengerCabinClass.First => 1,
             PassengerCabinClass.Business when seat.X < 450d => 2,
             PassengerCabinClass.Business => 3,
-            PassengerCabinClass.Economy => AddZoneVariation(GetEconomyZone(seat.X, 4), seat, 4, 8),
+            PassengerCabinClass.PremiumEconomy => 4,
+            PassengerCabinClass.Economy => AddZoneVariation(GetEconomyZone(seat.X, 5), seat, 5, 8),
             _ => 8
         };
     }
@@ -975,7 +1121,12 @@ public sealed class PassengerBoardingEngine
             >= 890d => firstEconomyGroup + 2,
             _ => firstEconomyGroup + 3
         },
-        PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo => seatX switch
+        PassengerCabinLayout.BritishAirwaysA319100 or
+        PassengerCabinLayout.BritishAirwaysA320200 or
+        PassengerCabinLayout.BritishAirwaysA320Neo or
+        PassengerCabinLayout.BritishAirwaysA321200 or
+        PassengerCabinLayout.BritishAirwaysA321Neo or
+        PassengerCabinLayout.BritishAirwaysEmbraer190 => seatX switch
         {
             >= 850d => firstEconomyGroup,
             >= 760d => firstEconomyGroup + 1,
@@ -1069,5 +1220,4 @@ public sealed class PassengerBoardingEngine
     [
         "None", "Blue", "Bronze", "Silver", "Gold"
     ];
-
 }
