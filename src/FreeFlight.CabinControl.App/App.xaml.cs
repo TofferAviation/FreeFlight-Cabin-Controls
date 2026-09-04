@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Services;
@@ -11,6 +12,10 @@ namespace FreeFlight.CabinControl.App;
 public partial class App
 {
     private FileLogService? _logService;
+    private string? _lastUiErrorSignature;
+    private DateTimeOffset _lastUiErrorShownAt = DateTimeOffset.MinValue;
+    private int _suppressedDuplicateUiErrors;
+    private bool _errorDialogOpen;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -23,7 +28,8 @@ public partial class App
             "FreeFlight",
             "CabinControl");
         _logService = new FileLogService(Path.Combine(settingsDirectory, "logs"));
-        _logService.Information("FreeFlight Cabin Control starting.");
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
+        _logService.Information($"FreeFlight Cabin Control starting · assembly {version}.");
         var (settings, settingsStore, activeSettingsDirectory) = await LoadSettingsAsync(settingsDirectory);
 
         var vamsysService = new VamsysOAuthService(settings, activeSettingsDirectory);
@@ -84,13 +90,60 @@ public partial class App
 
     private void HandleDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        _logService?.Error("Unhandled user-interface exception.", e.Exception);
-        MessageBox.Show(
-            $"FreeFlight Cabin Control encountered an unexpected error.\n\n{e.Exception.Message}",
-            "FreeFlight Cabin Control",
-            MessageBoxButton.OK,
-            MessageBoxImage.Error);
         e.Handled = true;
+
+        var now = DateTimeOffset.UtcNow;
+        var signature = $"{e.Exception.GetType().FullName}|{e.Exception.Message}";
+        var isDuplicate = string.Equals(signature, _lastUiErrorSignature, StringComparison.Ordinal) &&
+                          now - _lastUiErrorShownAt < TimeSpan.FromSeconds(5);
+
+        if (isDuplicate)
+        {
+            _suppressedDuplicateUiErrors++;
+            return;
+        }
+
+        if (_suppressedDuplicateUiErrors > 0)
+        {
+            _logService?.Information($"Suppressed {_suppressedDuplicateUiErrors} duplicate user-interface exceptions during the previous error window.");
+            _suppressedDuplicateUiErrors = 0;
+        }
+
+        _lastUiErrorSignature = signature;
+        _lastUiErrorShownAt = now;
+        _logService?.Error("Unhandled user-interface exception.", e.Exception);
+
+        if (_errorDialogOpen)
+        {
+            return;
+        }
+
+        _errorDialogOpen = true;
+        try
+        {
+            var message = $"FreeFlight Cabin Control encountered an unexpected error.\n\n{e.Exception.Message}";
+            if (MainWindow is Window owner && owner.IsVisible)
+            {
+                MessageBox.Show(
+                    owner,
+                    message,
+                    "FreeFlight Cabin Control",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            else
+            {
+                MessageBox.Show(
+                    message,
+                    "FreeFlight Cabin Control",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+        finally
+        {
+            _errorDialogOpen = false;
+        }
     }
 
     private async Task<(AppSettings Settings, ISettingsStore Store, string Directory)> LoadSettingsAsync(string preferredDirectory)
