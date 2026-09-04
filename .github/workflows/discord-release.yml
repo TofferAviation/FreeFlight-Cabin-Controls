@@ -1,0 +1,43 @@
+name: Post Release to Discord
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  discord-changelog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Post changelog to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+
+        run: |
+          DESCRIPTION=$(printf '%s' "$RELEASE_BODY" | head -c 3900)
+
+          jq -n \
+            --arg title "📦 $RELEASE_NAME" \
+            --arg description "$DESCRIPTION" \
+            --arg url "$RELEASE_URL" \
+            --arg tag "$RELEASE_TAG" \
+            '{
+              username: "FreeFlight Updates",
+              embeds: [{
+                title: $title,
+                description: $description,
+                url: $url,
+                footer: {
+                  text: ("FreeFlight Systems • " + $tag)
+                }
+              }]
+            }' > payload.json
+
+          curl -fsS \
+            -H "Content-Type: application/json" \
+            -d @payload.json \
+            "$DISCORD_WEBHOOK"
