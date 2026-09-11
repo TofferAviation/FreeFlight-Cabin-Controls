@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.4] - 2026-09-11
+
+### Added
+
+- Fleet Management is now part of the published application: a native Fleet workspace, protected website API connection settings, selectable aircraft records, live availability status, and optional automatic synchronisation.
+- The desktop client communicates only with the protected Fleet website API; it never stores Supabase or database credentials.
+
+### Changed
+
+- Fleet connection preferences and selected aircraft are included in the application settings round-trip checks.
+
 ## [0.5.3] - 2026-09-11
 
 ### Fixed
