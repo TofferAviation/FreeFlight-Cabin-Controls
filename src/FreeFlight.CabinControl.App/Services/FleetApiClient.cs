@@ -13,6 +13,25 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
 
     public async Task<IReadOnlyList<FleetAircraftSummaryDto>> GetAircraftAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
+        var payload = await GetAsync<FleetAircraftEnvelope>(settings, "/api/fleet/v1/aircraft", cancellationToken);
+        return payload?.Aircraft ?? [];
+    }
+
+    public async Task<FleetAircraftRecordDto> GetAircraftRecordAsync(
+        AppSettings settings,
+        string aircraftId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aircraftId);
+        var payload = await GetAsync<FleetAircraftRecordEnvelope>(
+            settings,
+            $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}",
+            cancellationToken);
+        return payload?.Aircraft ?? throw new FleetApiException("The Fleet API returned an empty aircraft record.");
+    }
+
+    private async Task<T?> GetAsync<T>(AppSettings settings, string route, CancellationToken cancellationToken)
+    {
         var baseUrl = settings.FleetApiBaseUrl.Trim().TrimEnd('/');
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme is not ("https" or "http"))
         {
@@ -23,7 +42,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             throw new FleetApiException("Enter the Fleet device access key in Settings before synchronizing.");
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, "/api/fleet/v1/aircraft"));
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, route));
         request.Headers.Add("X-FreeFlight-Fleet-Key", settings.FleetApiAccessKey.Trim());
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -32,8 +51,8 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         {
             throw new FleetApiException($"Fleet API returned {(int)response.StatusCode}: {ExtractError(content)}");
         }
-        var payload = JsonSerializer.Deserialize<FleetAircraftEnvelope>(content, JsonOptions);
-        return payload?.Aircraft ?? [];
+
+        return JsonSerializer.Deserialize<T>(content, JsonOptions);
     }
 
     private static string ExtractError(string json)
@@ -52,6 +71,7 @@ public sealed class FleetApiException(string message) : Exception(message);
 
 public sealed record FleetAircraftEnvelope(IReadOnlyList<FleetAircraftSummaryDto>? Aircraft);
 public sealed record FleetErrorEnvelope(string? Error);
+public sealed record FleetAircraftRecordEnvelope(FleetAircraftRecordDto? Aircraft);
 public sealed record FleetAircraftSummaryDto(
     string Id,
     string Registration,
@@ -68,3 +88,28 @@ public sealed record FleetAircraftSummaryDto(
     string? LastFlightAt,
     string? NextAssignedFlightReference,
     long StatusVersion);
+public sealed record FleetAvailabilityDto(string DispatchStatus, bool Available, IReadOnlyList<string>? Reasons);
+public sealed record FleetDefectDto(string Reference, string? ReportingStation, string Category, string? SeatNumber, string Description, string Severity, string DispatchImpact, string Status);
+public sealed record FleetMaintenanceDueDto(string TaskCode, string TaskName, string? DueDate, long? DueHoursMinutes, long? DueCycles, string DueStatus, string? DueReason);
+public sealed record FleetStatusHistoryDto(string OperationalStatus, string TechnicalStatus, string DispatchStatus, string Reason, string? Remarks, string? Station, string EffectiveAt, string Source);
+public sealed record FleetLogEntryDto(string Reference, string OccurredAt, string? Station, string Category, string Description, string Status);
+public sealed record FleetAircraftRecordDto(
+    string Id,
+    string Registration,
+    string AircraftModel,
+    string? Variant,
+    string? CurrentStation,
+    string OperationalStatus,
+    string TechnicalStatus,
+    string DispatchStatus,
+    long AirframeHoursMinutes,
+    long AirframeCycles,
+    string? FleetNumber,
+    string? Msn,
+    string? HomeBase,
+    string? CurrentLivery,
+    FleetAvailabilityDto? Availability,
+    IReadOnlyList<FleetDefectDto>? Defects,
+    IReadOnlyList<FleetMaintenanceDueDto>? MaintenanceDue,
+    IReadOnlyList<FleetStatusHistoryDto>? StatusHistory,
+    IReadOnlyList<FleetLogEntryDto>? Logbook);

@@ -3,6 +3,7 @@
                     xmlns:infra="clr-namespace:FreeFlight.CabinControl.App.Infrastructure">
     <infra:InverseBooleanConverter x:Key="InverseBooleanConverter" />
     <infra:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    <infra:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
     <infra:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter" />
     <infra:StringEqualsConverter x:Key="StringEqualsConverter" />
     <infra:PercentageToPositionConverter x:Key="PercentageToPositionConverter" />

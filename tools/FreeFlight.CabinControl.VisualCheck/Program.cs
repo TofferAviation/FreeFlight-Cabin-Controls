@@ -506,7 +506,7 @@ internal static class Program
 
         foreach (var page in new[]
                  {
-                      "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "Catering", "OnboardMenu", "CabinPanel",
+                      "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Fleet", "Passengers", "Catering", "OnboardMenu", "CabinPanel",
                       "Audio", "Performance", "Settings", "FlightLogger"
                  })
         {
@@ -665,6 +665,16 @@ internal static class Program
 
                 window.Width = 1540;
                 window.Height = 900;
+            }
+            else if (page == "Fleet")
+            {
+                if (viewModel.CurrentPage != viewModel.Fleet ||
+                    viewModel.Fleet.FleetCount != 0 ||
+                    viewModel.Fleet.HasSelectedAircraft ||
+                    viewModel.Fleet.HasVisibleAircraft)
+                {
+                    throw new InvalidOperationException("The unconfigured Fleet workspace did not present a safe empty state.");
+                }
             }
             else if (page == "Catering")
             {

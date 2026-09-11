@@ -144,6 +144,16 @@
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Airliners, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Airliners" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Fleet Management"
+                                     Tag="&#xE709;"
+                                     GroupName="Navigation"
+                                     Margin="22,1,8,1"
+                                     Padding="14,0"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Fleet, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="Fleet"
+                                     ToolTip="Authoritative fleet status, technical condition and dispatch availability" />
                         <TextBlock Text="CABIN" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Live Cabin"
@@ -175,14 +185,6 @@
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="CabinPanel"
                                      ToolTip="Cabin Area Control Panel" />
-                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
-                                     Content="Fleet"
-                                     Tag="&#xE709;"
-                                     GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Fleet, Mode=OneWay}"
-                                     Command="{Binding NavigateCommand}"
-                                     CommandParameter="Fleet"
-                                     ToolTip="Authoritative fleet status, technical condition and dispatch availability" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Audio"
                                      Tag="&#xE767;"
