@@ -97,6 +97,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             PrepareFlightForUpdate,
             CancelFlightUpdateShutdown);
         FlightLogger = new FlightLoggerViewModel();
+        Fleet = new FleetViewModel(settings, new FleetApiClient());
         _currentPage = Dashboard;
         NavigateCommand = new RelayCommand(Navigate);
         _sessionSaveTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -143,6 +144,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public UpdatesViewModel Updates { get; }
 
     public FlightLoggerViewModel FlightLogger { get; }
+
+    public FleetViewModel Fleet { get; }
 
     public bool IsFlightInProgress =>
         Passengers.PassengerManifest.Count > 0 && !Passengers.IsFlightCompleted;
@@ -193,6 +196,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers.Dispose();
         Catering.Dispose();
         Performance.Dispose();
+        Fleet.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -250,6 +254,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "Performance" => Performance,
             "Settings" => Settings,
             "FlightLogger" => FlightLogger,
+            "Fleet" => Fleet,
             _ => Dashboard
         };
         ActivePage = destination;

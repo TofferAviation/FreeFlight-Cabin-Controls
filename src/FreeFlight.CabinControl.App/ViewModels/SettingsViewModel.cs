@@ -160,6 +160,36 @@ public sealed class SettingsViewModel : PageViewModel
         set => SetSetting(value, current => _settings.SyncSimulatorSeatbeltSign = current);
     }
 
+    public string FleetApiBaseUrl
+    {
+        get => _settings.FleetApiBaseUrl;
+        set => SetSetting(value.Trim().TrimEnd('/'), current => _settings.FleetApiBaseUrl = current);
+    }
+
+    public string FleetApiAccessKey
+    {
+        get => _settings.FleetApiAccessKey;
+        set => SetSetting(value.Trim(), current => _settings.FleetApiAccessKey = current);
+    }
+
+    public bool FleetAutoSync
+    {
+        get => _settings.FleetAutoSync;
+        set => SetSetting(value, current => _settings.FleetAutoSync = current);
+    }
+
+    public int FleetSyncIntervalSeconds
+    {
+        get => _settings.FleetSyncIntervalSeconds;
+        set => SetSetting(Math.Clamp(value, 10, 300), current => _settings.FleetSyncIntervalSeconds = current);
+    }
+
+    public string SelectedFleetRegistration
+    {
+        get => _settings.SelectedFleetRegistration;
+        set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.SelectedFleetRegistration = current);
+    }
+
     public bool AutomaticallyCheckForUpdates
     {
         get => _settings.AutomaticallyCheckForUpdates;

@@ -100,6 +100,18 @@ public sealed class AppSettings
 
     public bool Msfs2024AutoConnect { get; set; } = true;
 
+    // The desktop client talks only to the protected website Fleet API. It never
+    // receives a Supabase URL or database credential.
+    public string FleetApiBaseUrl { get; set; } = string.Empty;
+
+    public string FleetApiAccessKey { get; set; } = string.Empty;
+
+    public bool FleetAutoSync { get; set; } = true;
+
+    public int FleetSyncIntervalSeconds { get; set; } = 20;
+
+    public string SelectedFleetRegistration { get; set; } = string.Empty;
+
     public string PreferredSimulator { get; set; } = "Auto";
 
     public bool AutomaticallyCheckForUpdates { get; set; } = true;

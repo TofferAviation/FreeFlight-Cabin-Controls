@@ -146,6 +146,11 @@ static async Task SettingsRoundTripAsync()
             XPlaneWebApiPort = 8088,
             SyncXPlaneDoors = false,
             Msfs2024AutoConnect = false,
+            FleetApiBaseUrl = "https://fleet.example.test",
+            FleetApiAccessKey = "test-device-key",
+            FleetAutoSync = false,
+            FleetSyncIntervalSeconds = 45,
+            SelectedFleetRegistration = "G-TEST",
             AutomaticallyCheckForUpdates = false,
             SimBriefPilotId = "123456",
             SimBriefAutoSync = true,
@@ -210,6 +215,11 @@ static async Task SettingsRoundTripAsync()
         AssertEqual(8088, actual.XPlaneWebApiPort, "X-Plane Web API port was not persisted.");
         AssertEqual(false, actual.SyncXPlaneDoors, "X-Plane door synchronization was not persisted.");
         AssertEqual(false, actual.Msfs2024AutoConnect, "MSFS 2024 auto-connect was not persisted.");
+        AssertEqual("https://fleet.example.test", actual.FleetApiBaseUrl, "Fleet API address was not persisted.");
+        AssertEqual("test-device-key", actual.FleetApiAccessKey, "Fleet API access key was not persisted.");
+        AssertEqual(false, actual.FleetAutoSync, "Fleet auto-sync preference was not persisted.");
+        AssertEqual(45, actual.FleetSyncIntervalSeconds, "Fleet sync interval was not persisted.");
+        AssertEqual("G-TEST", actual.SelectedFleetRegistration, "Selected fleet aircraft was not persisted.");
         AssertEqual(false, actual.AutomaticallyCheckForUpdates, "Automatic update preference was not persisted.");
         AssertEqual("123456", actual.SimBriefPilotId, "SimBrief Pilot ID was not persisted.");
         AssertEqual(true, actual.SimBriefAutoSync, "SimBrief auto-sync preference was not persisted.");

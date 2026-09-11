@@ -176,6 +176,14 @@
                                      CommandParameter="CabinPanel"
                                      ToolTip="Cabin Area Control Panel" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Fleet"
+                                     Tag="&#xE709;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Fleet, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="Fleet"
+                                     ToolTip="Authoritative fleet status, technical condition and dispatch availability" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Audio"
                                      Tag="&#xE767;"
                                      GroupName="Navigation"
@@ -352,6 +360,8 @@
                                            Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=OnboardMenu}" />
                     <views:CabinControlPanelView DataContext="{Binding CabinPanel}"
                                                  Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=CabinPanel}" />
+                    <views:FleetView DataContext="{Binding Fleet}"
+                                     Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Fleet}" />
                     <views:AudioView DataContext="{Binding Audio}"
                                      Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Audio}" />
                     <views:PerformanceView DataContext="{Binding Performance}"
