@@ -49,7 +49,11 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private bool _seatbeltSignOn = true;
     private string _liveFlightPhase = "PREFLIGHT";
     private int _activityPulseTicks;
+    private DateTime _lastCabinActivityTick;
+    private double _crewServicePhaseSeconds;
     private DateTime _lastFullUiRefresh;
+    private DateTime _lastCabinSupportRefresh;
+    private DateTime _lastCabinActivityLog;
     private bool _isAircraftMoving;
     private bool _isPushbackActive;
     private DateTimeOffset? _crewRestCycleStartedAt;
@@ -79,6 +83,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _simBriefAutoSync = settings.SimBriefAutoSync;
         Status = status;
         _engine = new PassengerBoardingEngine(0, _selectedCabinLayoutProfile.Layout);
+        RefreshCabinDoors();
         _bookedPassengerCount = 0;
         SpeedOptions =
         [
@@ -111,7 +116,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _animationTimer.Tick += HandleAnimationTick;
         _cabinActivityTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromMilliseconds(250)
+            Interval = TimeSpan.FromMilliseconds(50)
         };
         _cabinActivityTimer.Tick += HandleCabinActivityTick;
         _cabinActivityTimer.Start();
@@ -139,6 +144,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public ICommand ToggleSeatbeltSignCommand { get; }
     public ObservableCollection<PassengerMarkerViewModel> PassengerMarkers { get; } = [];
     public ObservableCollection<CabinCrewMarkerViewModel> CabinCrewMarkers { get; } = [];
+    public ObservableCollection<CabinDoorViewModel> CabinDoors { get; } = [];
     public BulkObservableCollection<PassengerManifestEntryViewModel> PassengerManifest { get; } = [];
     public ObservableCollection<string> ActivityLog { get; } = [];
     public IReadOnlyList<BoardingSpeedOption> SpeedOptions { get; }
@@ -150,7 +156,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public bool IsBritishAirways777200Er => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777200Er;
     public bool IsBritishAirways777300 => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300;
     public bool IsNarrowBodyCabinLayout => SelectedCabinLayoutProfile.Layout is
-        PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo;
+        PassengerCabinLayout.BritishAirwaysA319 or
+        PassengerCabinLayout.BritishAirwaysA320200 or
+        PassengerCabinLayout.BritishAirwaysA320Neo or
+        PassengerCabinLayout.BritishAirwaysA321 or
+        PassengerCabinLayout.BritishAirwaysA321Neo220M or
+        PassengerCabinLayout.BritishAirwaysEmbraer190;
     public bool SeatbeltSignOn => _seatbeltSignOn;
     public string SeatbeltSignLabel => SeatbeltSignOn ? "SEAT BELTS ON" : "SEAT BELTS OFF";
     public bool SeatbeltSignalAvailable => _seatbeltSignalAvailable;
@@ -168,7 +179,16 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private int ExpectedCabinCrewCount => SelectedCabinLayoutProfile.Layout switch
     {
         PassengerCabinLayout.BritishAirways777300 => 12,
-        PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo => 4,
+        PassengerCabinLayout.BritishAirwaysA350 => 13,
+        PassengerCabinLayout.BritishAirways78710 => 10,
+        PassengerCabinLayout.BritishAirways7878ClubSuite or
+        PassengerCabinLayout.BritishAirways7879 or
+        PassengerCabinLayout.BritishAirways7879Alternate => 9,
+        PassengerCabinLayout.BritishAirwaysA321 or PassengerCabinLayout.BritishAirwaysA321Neo220M => 5,
+        PassengerCabinLayout.BritishAirwaysA319 or
+        PassengerCabinLayout.BritishAirwaysA320200 or
+        PassengerCabinLayout.BritishAirwaysA320Neo or
+        PassengerCabinLayout.BritishAirwaysEmbraer190 => 4,
         _ => 10
     };
     public int RestingCrewCount => _crewRestAssignment.IsActive ? _crewRestAssignment.RestingCrewCount : 0;
@@ -192,14 +212,31 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             var passengers = _engine.Passengers.Where(passenger => passenger.MovementState == PassengerMovementState.Seated).ToArray();
             var entertainment = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WatchingMovie or PassengerCabinActivity.Gaming or PassengerCabinActivity.UsingPhone);
             var resting = passengers.Count(passenger => passenger.CabinActivity == PassengerCabinActivity.Sleeping);
-            var moving = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat);
+            var moving = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat);
             var activeCrew = CabinCrewMarkers.Count(marker => !marker.IsSecured && !marker.IsResting);
             return $"{entertainment} entertainment · {resting} resting · {moving} moving · {activeCrew} crew active · {RestingCrewCount} crew resting";
         }
     }
+    public decimal TotalOnboardSpendGbp => _engine.Passengers.Sum(passenger => passenger.OnboardSpendGbp);
+    public int ActiveMealServiceCount => _engine.Passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.ReceivingMeal or PassengerCabinActivity.EatingMeal);
+    public int ActiveDrinkServiceCount => _engine.Passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.ReceivingDrink or PassengerCabinActivity.Drinking);
+    public int LavatoryQueueCount => _engine.Passengers.Count(passenger => passenger.CabinActivity == PassengerCabinActivity.QueuedForLavatory);
+    public IReadOnlyList<CabinPurchase> DrainRecentCateringPurchases() => _engine.DrainRecentPurchases();
+    public bool TryRecordHighLifeCafePurchase(int passengerId, string itemId, string itemName, decimal priceGbp)
+    {
+        var recorded = _engine.TryRecordHighLifeCafePurchase(passengerId, itemId, itemName, priceGbp);
+        if (recorded)
+        {
+            OnPropertyChanged(nameof(TotalOnboardSpendGbp));
+        }
+
+        return recorded;
+    }
     public double L1DoorCanvasLeft => _engine.GetDoorEntryCenter(BoardingDoor.L1).X - 35d;
     public double L2DoorCanvasLeft => _engine.GetDoorEntryCenter(BoardingDoor.L2).X - 35d;
     public double DoorControlCanvasTop => _engine.DoorControlTop;
+    public string DetectedDoorSummary =>
+        $"{CabinDoors.Count(door => !door.IsEmergencyExit)} aircraft doors · {CabinDoors.Count(door => door.IsEmergencyExit)} emergency exits";
     public CabinLayoutProfileOption SelectedCabinLayoutProfile
     {
         get => _selectedCabinLayoutProfile;
@@ -207,18 +244,20 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     }
 
     public int CabinCapacity => _engine.Capacity;
+    public int CabinCapacityFor(PassengerCabinClass cabinClass) => _engine.GetCabinCapacity(cabinClass);
     public int MappedPassengerCount => _engine.TargetPassengerCount;
     public int UnmappedPassengerCount => Math.Max(0, BookedPassengerCount - MappedPassengerCount);
     public bool HasCapacityOverflow => UnmappedPassengerCount > 0;
+    public bool IsSeatMapOverrideActive => HasSimBriefFlight && HasCapacityOverflow;
     public bool HasPassengerManifest => PassengerManifest.Count > 0;
     public int PassengerInputMaximum => Math.Max(CabinCapacity, BookedPassengerCount);
-    public string CapacitySummary => HasCapacityOverflow
-        ? $"{MappedPassengerCount} mapped · {UnmappedPassengerCount} unmapped"
+    public string CapacitySummary => IsSeatMapOverrideActive
+        ? $"SEAT-MAP OVERRIDE · FULL {MappedPassengerCount}/{CabinCapacity}"
         : $"of {CabinCapacity} seats";
     public string ManifestSummary => !HasPassengerManifest
         ? "No passenger list loaded — import SimBrief or enter a manual passenger count"
         : HasCapacityOverflow
-        ? $"{MappedPassengerCount} mapped passengers · {BookedPassengerCount} booked by SimBrief · {UnmappedPassengerCount} awaiting a compatible cabin layout"
+        ? $"Seat-map override active · SimBrief requested {BookedPassengerCount} · cabin limited to all {MappedPassengerCount} mapped seats"
         : $"{PassengerManifest.Count} passengers · ordered by boarding group";
 
     public int BookedPassengerCount
@@ -288,13 +327,22 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     public void ApplySimulatorDoorState(BoardingDoor door, bool isOpen)
     {
-        if (_engine.IsDoorOpen(door) == isOpen)
+        var doorViewModel = CabinDoors.FirstOrDefault(item => item.Door == door);
+        if (doorViewModel is null)
         {
             return;
         }
 
+        doorViewModel.ApplySimulatorState(isOpen);
         _engine.SetDoorOpen(door, isOpen);
-        OnPropertyChanged(door == BoardingDoor.L1 ? nameof(L1DoorOpen) : nameof(L2DoorOpen));
+        if (door == BoardingDoor.L1)
+        {
+            OnPropertyChanged(nameof(L1DoorOpen));
+        }
+        else if (door == BoardingDoor.L2)
+        {
+            OnPropertyChanged(nameof(L2DoorOpen));
+        }
         ResumeTimerIfNeeded();
         RefreshFromEngine();
     }
@@ -309,10 +357,16 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         };
         _cabinActivityTimer.Interval = mode switch
         {
-            "Quality" => TimeSpan.FromMilliseconds(125),
-            "Low Impact" => TimeSpan.FromMilliseconds(500),
-            _ => TimeSpan.FromMilliseconds(250)
+            "Quality" => TimeSpan.FromMilliseconds(33),
+            "Low Impact" => TimeSpan.FromMilliseconds(100),
+            _ => TimeSpan.FromMilliseconds(50)
         };
+    }
+
+    public void ApplyCateringServiceProgress(double progressPercent, bool drinksService, bool serviceActive)
+    {
+        _engine.ApplyCateringServiceProgress(progressPercent, drinksService, serviceActive && !SeatbeltSignOn);
+        RefreshFullUiIfDue(TimeSpan.FromSeconds(1));
     }
 
     public BoardingSpeedOption SelectedSpeedOption
@@ -340,12 +394,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 return;
             }
 
-            _engine.SetDoorOpen(BoardingDoor.L1, value);
-            AddActivity($"L1 passenger door {(value ? "opened" : "closed")}");
-            DoorControlRequested?.Invoke(BoardingDoor.L1, value);
-            OnPropertyChanged();
-            ResumeTimerIfNeeded();
-            RefreshFromEngine();
+            SetDoorStateFromUi(BoardingDoor.L1, value);
         }
     }
 
@@ -359,12 +408,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 return;
             }
 
-            _engine.SetDoorOpen(BoardingDoor.L2, value);
-            AddActivity($"L2 passenger door {(value ? "opened" : "closed")}");
-            DoorControlRequested?.Invoke(BoardingDoor.L2, value);
-            OnPropertyChanged();
-            ResumeTimerIfNeeded();
-            RefreshFromEngine();
+            SetDoorStateFromUi(BoardingDoor.L2, value);
         }
     }
 
@@ -454,7 +498,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     public bool IsSeatHighlightVisible => SelectedPassenger is not null;
     public double SelectedSeatCanvasLeft => (SelectedPassenger?.SeatX ?? 0d) - 12d;
-    public double SelectedSeatCanvasTop => (SelectedPassenger?.SeatY ?? 0d) - 12d;
+    public double SelectedSeatCanvasTop => (SelectedPassenger?.SeatY ?? 0d) + 30d;
     public string SelectedSeatLabel => SelectedPassenger is null ? string.Empty : $"SEAT {SelectedPassenger.SeatNumber}";
 
     public int BoardedPassengerCount => _engine.BoardedCount;
@@ -470,11 +514,11 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         : "Walking / settling";
     public int RemainingPassengerCount => _engine.Operation == PassengerOperation.Deboarding
         ? _engine.OnBoardCount
-        : _engine.RemainingCount + UnmappedPassengerCount;
+        : _engine.RemainingCount;
     public int WaitingPassengerCount => _engine.WaitingCount;
     public string WaitingPassengerSummary => _engine.Operation == PassengerOperation.Deboarding
         ? $"{_engine.DeboardedCount} off aircraft"
-        : $"{_engine.WaitingCount + UnmappedPassengerCount} outside";
+        : $"{_engine.WaitingCount} outside";
     public double OperationProgress => (_engine.Operation == PassengerOperation.Deboarding
         ? _engine.DeboardingProgress
         : _engine.Progress) * 100d;
@@ -494,6 +538,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             {
                 OnPropertyChanged(nameof(CanAdjustPassengerLoad));
                 OnPropertyChanged(nameof(PassengerLoadSourceLabel));
+                OnPropertyChanged(nameof(IsSeatMapOverrideActive));
+                OnPropertyChanged(nameof(CapacitySummary));
+                OnPropertyChanged(nameof(ManifestSummary));
             }
         }
     }
@@ -526,6 +573,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         get => _importedScheduledDepartureLocal;
         private set => SetProperty(ref _importedScheduledDepartureLocal, value);
+    }
+
+    public DateTimeOffset? ImportedScheduledArrivalLocal
+    {
+        get => _importedScheduledArrivalLocal;
+        private set => SetProperty(ref _importedScheduledArrivalLocal, value);
     }
 
     public DateTimeOffset? LastSimBriefSyncTime
@@ -611,23 +664,24 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ? "NO PASSENGER LIST"
         : HasSimBriefFlight ? "SIMBRIEF PRIORITY" : "MANUAL LOAD";
 
-    public string ActiveDoorSummary => _engine.OpenDoorCount switch
+    public string ActiveDoorSummary
     {
-        2 => "L1 + L2 OPEN",
-        1 when L1DoorOpen => "L1 OPEN",
-        1 => "L2 OPEN",
-        _ => "ALL DOORS CLOSED"
-    };
+        get
+        {
+            var open = CabinDoors.Where(door => door.IsOpen && door.IsBoardingDoor).Select(door => door.Label).ToArray();
+            return open.Length == 0 ? "ALL PASSENGER DOORS CLOSED" : $"{string.Join(" + ", open)} OPEN";
+        }
+    }
 
     public string DoorRoutingSummary => _engine.OpenDoorCount switch
     {
-        2 when IsNarrowBodyCabinLayout && _engine.Operation == PassengerOperation.Deboarding => "Cabin routing active • Club Europe exits through L1 • Euro Traveller uses L2",
-        2 when IsNarrowBodyCabinLayout => "Cabin routing active • Club Europe uses L1 • Euro Traveller uses L2",
-        2 when _engine.Operation == PassengerOperation.Deboarding => "Ticket routing active • First exits through L1 • all other cabins use L2",
-        2 => "Ticket routing active • First uses L1 • all other cabins use L2",
+        >= 2 when IsNarrowBodyCabinLayout && _engine.Operation == PassengerOperation.Deboarding => "Cabin routing active • passengers use the nearest open left door",
+        >= 2 when IsNarrowBodyCabinLayout => "Cabin routing active • Club Europe prioritises L1 • others use the nearest open door",
+        >= 2 when _engine.Operation == PassengerOperation.Deboarding => "Multi-door deboarding active • passengers use the nearest open left door",
+        >= 2 => "Multi-door boarding active • passengers use the nearest open left door",
         1 when L1DoorOpen => $"All passengers are {OperationVerb} through L1",
         1 => $"All passengers are {OperationVerb} through L2",
-        _ => $"{OperationName} is held until L1 or L2 is opened"
+        _ => $"{OperationName} is held until a left passenger door is opened"
     };
 
     public string OperationEta
@@ -701,7 +755,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ImportedAircraftIcao = snapshot.ImportedAircraftIcao;
         ImportedScheduledDepartureLocal = snapshot.ImportedScheduledDepartureLocal;
         LastSimBriefSyncTime = snapshot.LastSimBriefSyncTime;
-        _importedScheduledArrivalLocal = snapshot.ImportedScheduledArrivalLocal;
+        ImportedScheduledArrivalLocal = snapshot.ImportedScheduledArrivalLocal;
         _crewRestCycleStartedAt = snapshot.CrewRestCycleStartedAt;
         _liveFlightPhase = string.IsNullOrWhiteSpace(snapshot.LiveFlightPhase)
             ? "Preflight"
@@ -732,7 +786,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ImportedDestination = string.Empty;
         ImportedAircraftIcao = string.Empty;
         ImportedScheduledDepartureLocal = null;
-        _importedScheduledArrivalLocal = null;
+        ImportedScheduledArrivalLocal = null;
         LastSimBriefSyncTime = null;
         ClearPassengerVisuals();
         ResetCabinServiceState();
@@ -743,6 +797,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(MappedPassengerCount));
         OnPropertyChanged(nameof(UnmappedPassengerCount));
         OnPropertyChanged(nameof(HasCapacityOverflow));
+        OnPropertyChanged(nameof(IsSeatMapOverrideActive));
         OnPropertyChanged(nameof(CapacitySummary));
         OnPropertyChanged(nameof(ManifestSummary));
         OnPropertyChanged(nameof(HasPassengerManifest));
@@ -756,7 +811,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         _engine.Tick(elapsed, SelectedSpeedOption.Multiplier);
         RefreshPassengerAnimationFrame();
-        RefreshFullUiIfDue(TimeSpan.FromMilliseconds(250));
+        // Counters and manifest rows do not need the same cadence as the moving
+        // marker canvas. Keeping them at 2 Hz leaves the UI thread free for the
+        // 20 FPS animation target.
+        RefreshFullUiIfDue(TimeSpan.FromMilliseconds(500));
     }
 
     public bool BoardPassengerFromGate(int passengerId)
@@ -805,7 +863,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             ImportedAircraftIcao = summary.AircraftIcao;
             ApplyImportedAircraftCabinProfile(summary.AircraftIcao);
             ImportedScheduledDepartureLocal = summary.ScheduledDepartureUtc?.ToLocalTime();
-            _importedScheduledArrivalLocal = summary.EstimatedArrivalUtc?.ToLocalTime();
+            ImportedScheduledArrivalLocal = summary.EstimatedArrivalUtc?.ToLocalTime();
             if (ImportedScheduledDepartureLocal is { } scheduledDeparture)
             {
                 _settings.ScheduledDepartureLocal = scheduledDeparture.ToString("HH:mm", CultureInfo.InvariantCulture);
@@ -816,7 +874,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             _settings.SimBriefPilotId = SimBriefPilotId.Trim();
             SimBriefFlightSummary = BuildFlightSummary(summary);
             SimBriefStatus = passengerCount > CabinCapacity
-                ? $"Synced {passengerCount} planned passengers. {MappedPassengerCount} have mapped seats; {UnmappedPassengerCount} require a compatible cabin layout."
+                ? $"Synced {passengerCount} planned passengers. Seat-map override filled all {CabinCapacity} mapped seats."
                 : $"Synced {passengerCount} passengers from the latest OFP.";
             AddActivity($"SimBrief sync — {SimBriefFlightSummary} — {passengerCount} passengers");
             await SaveSettingsQuietlyAsync();
@@ -843,14 +901,35 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             return;
         }
 
-        _engine.UpdateCabinActivities(_cabinActivityTimer.Interval, _seatbeltSignOn, _liveFlightPhase);
-        UpdatePreDepartureWelcomeService();
-        UpdateCabinCrewRest();
-        RefreshPassengerAnimationFrame();
-        RefreshFullUiIfDue(TimeSpan.FromSeconds(1));
-        _activityPulseTicks++;
-        if (_activityPulseTicks % 15 == 0 && _engine.BoardedCount > 0)
+        var now = DateTime.UtcNow;
+        var elapsed = _lastCabinActivityTick == default ? _cabinActivityTimer.Interval : now - _lastCabinActivityTick;
+        elapsed = elapsed > TimeSpan.FromMilliseconds(120) ? TimeSpan.FromMilliseconds(120) : elapsed;
+        _lastCabinActivityTick = now;
+        _crewServicePhaseSeconds = (_crewServicePhaseSeconds + elapsed.TotalSeconds) % 60d;
+
+        _engine.UpdateCabinActivities(elapsed, _seatbeltSignOn, _liveFlightPhase);
+        // Boarding/deboarding already refreshes marker positions through the
+        // render-priority timer; doing it again here doubles canvas invalidations.
+        if (!_animationTimer.IsEnabled)
         {
+            RefreshPassengerAnimationFrame();
+        }
+        _activityPulseTicks++;
+        // This must run at the active cadence. Previously crew positions were
+        // only refreshed by the 250 ms dashboard path, producing visible jumps.
+        RefreshCrewMarkers();
+        if (_lastCabinSupportRefresh == default || now - _lastCabinSupportRefresh >= TimeSpan.FromMilliseconds(250))
+        {
+            _lastCabinSupportRefresh = now;
+            UpdatePreDepartureWelcomeService();
+            UpdateCabinCrewRest();
+            RefreshFullUiIfDue(TimeSpan.FromSeconds(1));
+        }
+
+        if (_engine.BoardedCount > 0 &&
+            (_lastCabinActivityLog == default || now - _lastCabinActivityLog >= TimeSpan.FromSeconds(4)))
+        {
+            _lastCabinActivityLog = now;
             AddActivity($"Cabin pulse · {CabinActivitySummary}");
         }
     }
@@ -937,12 +1016,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             return;
         }
 
-        var l1WasOpen = _engine.IsDoorOpen(BoardingDoor.L1);
-        var l2WasOpen = _engine.IsDoorOpen(BoardingDoor.L2);
+        var openDoors = CabinDoors.Where(door => door.IsOpen).Select(door => door.Door).ToHashSet();
         _animationTimer.Stop();
         _engine = new PassengerBoardingEngine(BookedPassengerCount, profile.Layout);
-        _engine.SetDoorOpen(BoardingDoor.L1, l1WasOpen);
-        _engine.SetDoorOpen(BoardingDoor.L2, l2WasOpen);
+        RefreshCabinDoors(openDoors);
         ClearPassengerVisuals();
         ResetCabinServiceState();
         RebuildManifest();
@@ -958,12 +1035,14 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(L1DoorCanvasLeft));
         OnPropertyChanged(nameof(L2DoorCanvasLeft));
         OnPropertyChanged(nameof(DoorControlCanvasTop));
+        OnPropertyChanged(nameof(DetectedDoorSummary));
         OnPropertyChanged(nameof(L1DoorOpen));
         OnPropertyChanged(nameof(L2DoorOpen));
         OnPropertyChanged(nameof(CabinCapacity));
         OnPropertyChanged(nameof(MappedPassengerCount));
         OnPropertyChanged(nameof(UnmappedPassengerCount));
         OnPropertyChanged(nameof(HasCapacityOverflow));
+        OnPropertyChanged(nameof(IsSeatMapOverrideActive));
         OnPropertyChanged(nameof(PassengerInputMaximum));
         OnPropertyChanged(nameof(CapacitySummary));
         OnPropertyChanged(nameof(ManifestSummary));
@@ -983,6 +1062,48 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         {
             BookedPassengerCount = Math.Max(0, (int)Math.Round(CabinCapacity * (percentage / 100d)));
         }
+    }
+
+    private void RefreshCabinDoors(ISet<BoardingDoor>? previouslyOpen = null)
+    {
+        var openDoors = previouslyOpen ?? CabinDoors.Where(door => door.IsOpen).Select(door => door.Door).ToHashSet();
+        CabinDoors.Clear();
+        foreach (var definition in _engine.Doors)
+        {
+            var door = new CabinDoorViewModel(definition, SetDoorStateFromUi);
+            if (openDoors.Contains(definition.Door))
+            {
+                door.ApplySimulatorState(true);
+                _engine.SetDoorOpen(definition.Door, true);
+            }
+            CabinDoors.Add(door);
+        }
+
+        OnPropertyChanged(nameof(DetectedDoorSummary));
+    }
+
+    private void SetDoorStateFromUi(BoardingDoor door, bool isOpen)
+    {
+        var doorViewModel = CabinDoors.FirstOrDefault(item => item.Door == door);
+        if (doorViewModel?.IsEmergencyExit == true)
+        {
+            return;
+        }
+
+        doorViewModel?.ApplySimulatorState(isOpen);
+        _engine.SetDoorOpen(door, isOpen);
+        AddActivity($"{door} {(doorViewModel?.TypeLabel ?? "door").ToLowerInvariant()} {(isOpen ? "opened" : "closed")}");
+        DoorControlRequested?.Invoke(door, isOpen);
+        if (door == BoardingDoor.L1)
+        {
+            OnPropertyChanged(nameof(L1DoorOpen));
+        }
+        else if (door == BoardingDoor.L2)
+        {
+            OnPropertyChanged(nameof(L2DoorOpen));
+        }
+        ResumeTimerIfNeeded();
+        RefreshFromEngine();
     }
 
     private void ApplyBookedPassengerCount(int value, bool simBriefPriority)
@@ -1006,6 +1127,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(MappedPassengerCount));
         OnPropertyChanged(nameof(UnmappedPassengerCount));
         OnPropertyChanged(nameof(HasCapacityOverflow));
+        OnPropertyChanged(nameof(IsSeatMapOverrideActive));
         OnPropertyChanged(nameof(PassengerInputMaximum));
         OnPropertyChanged(nameof(CapacitySummary));
         OnPropertyChanged(nameof(ManifestSummary));
@@ -1064,6 +1186,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         var now = DateTime.UtcNow;
         var elapsed = _lastAnimationTick == default ? _animationTimer.Interval : now - _lastAnimationTick;
+        elapsed = elapsed > TimeSpan.FromMilliseconds(120) ? TimeSpan.FromMilliseconds(120) : elapsed;
         _lastAnimationTick = now;
         AdvancePreview(elapsed);
         if (_engine.State == BoardingRunState.Complete)
@@ -1191,6 +1314,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(ManifestSummary));
         OnPropertyChanged(nameof(DelayedSeatbeltPassengerCount));
         OnPropertyChanged(nameof(SeatbeltResponseStatus));
+        OnPropertyChanged(nameof(TotalOnboardSpendGbp));
+        OnPropertyChanged(nameof(ActiveMealServiceCount));
+        OnPropertyChanged(nameof(ActiveDrinkServiceCount));
+        OnPropertyChanged(nameof(LavatoryQueueCount));
     }
 
     private void RefreshFullUiIfDue(TimeSpan interval)
@@ -1223,7 +1350,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             if (passenger.MovementState is not PassengerMovementState.Seated ||
                 marker.MovementState != passenger.MovementState ||
                 passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
-                    PassengerCabinActivity.ReturningToSeat or PassengerCabinActivity.Deboarding)
+                    PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.ReturningToSeat or
+                    PassengerCabinActivity.Deboarding)
             {
                 marker.Update(passenger, _engine.Operation);
             }
@@ -1250,8 +1378,16 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         {
             "B772" or "B77E" => "british-airways.777-200er",
             "B773" or "B77W" => "british-airways.777-300",
+            "B788" => "british-airways.787-8-club-suite",
+            "B789" => "british-airways.787-9",
+            "B78X" => "british-airways.787-10",
+            "A319" => "british-airways.a319",
             "A320" => "british-airways.a320-200",
             "A20N" => "british-airways.a320neo",
+            "A321" => "british-airways.a321",
+            "A21N" => "british-airways.a321neo-220m",
+            "A359" or "A35K" => "british-airways.a350",
+            "E190" => "british-airways.embraer-190",
             _ => string.Empty
         };
         if (profileId.Length > 0)
@@ -1280,7 +1416,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         {
             PassengerCabinLayout.FlightFactor777V2 => (56d, 95d),
             PassengerCabinLayout.BritishAirways777200Er => (70d, 129d),
-            PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo => (89d, 89d),
+            PassengerCabinLayout.BritishAirwaysA319 or
+            PassengerCabinLayout.BritishAirwaysA320200 or
+            PassengerCabinLayout.BritishAirwaysA320Neo or
+            PassengerCabinLayout.BritishAirwaysA321 or
+            PassengerCabinLayout.BritishAirwaysA321Neo220M or
+            PassengerCabinLayout.BritishAirwaysEmbraer190 => (94d, 94d),
             _ => (84d, 135d)
         };
         static double CrewX(double value) => Math.Clamp(value, 38d, 930d);
@@ -1351,16 +1492,28 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 continue;
             }
 
-            var activeX = 105d + ((index * 117d) % 825d);
+            // Move in real time instead of making a large positional jump on every
+            // timer event. A delayed UI tick now covers more distance smoothly on
+            // the following cadence instead of making crew race across the aisle.
+            var activeX = 105d + (((index * 117d) + (_crewServicePhaseSeconds * 45d)) % 825d);
             var activeY = index % 2 == 0 ? upperAisleY : lowerAisleY;
+            var cruiseService = LiveFlightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase);
             var activity = (index % 4) switch
             {
+                0 when cruiseService => "Delivering meal service",
+                1 when cruiseService => "Serving drinks",
+                2 when cruiseService => "Clearing meal trays",
+                3 when cruiseService => "Heating meals in the galley",
                 0 => "Cabin service",
                 1 => "Cabin walk-through",
                 2 => "Passenger assistance",
                 _ => "Galley preparation"
             };
-            crew.Update(CrewX(activeX), activeY, activity, false, false);
+            var serviceRotation = index + (int)(_crewServicePhaseSeconds / 2d);
+            var serviceItem = index % 2 == 0
+                ? CabinServiceCatalog.SelectMeal(serviceRotation).Name
+                : CabinServiceCatalog.SelectDrink(serviceRotation).Name;
+            crew.Update(CrewX(activeX), activeY, activity, false, false, cruiseService ? serviceItem : "Service equipment check");
         }
     }
 
@@ -1477,6 +1630,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         _preDepartureDrinksStarted = false;
         _preDepartureDrinksActive = false;
+        _lastCabinActivityTick = default;
+        _crewServicePhaseSeconds = 0d;
     }
 
     private void NotifyCrewRestChanged()
@@ -1536,6 +1691,58 @@ public sealed record BoardingSpeedOption(string Label, double Multiplier)
     public override string ToString() => Label;
 }
 
+public sealed class CabinDoorViewModel : ObservableObject
+{
+    private readonly Action<BoardingDoor, bool> _changeRequested;
+    private bool _isOpen;
+
+    public CabinDoorViewModel(CabinDoorDefinition definition, Action<BoardingDoor, bool> changeRequested)
+    {
+        Door = definition.Door;
+        Label = definition.Label;
+        TypeLabel = definition.TypeLabel;
+        IsEmergencyExit = definition.IsEmergencyExit;
+        IsBoardingDoor = definition.IsBoardingDoor;
+        CanvasLeft = Math.Clamp(definition.X - 29d, 0d, 975d);
+        IsRightSide = definition.Door is BoardingDoor.R1 or BoardingDoor.R2 or BoardingDoor.R3 or
+            BoardingDoor.R4 or BoardingDoor.R5 or BoardingDoor.OverwingRight;
+        _changeRequested = changeRequested;
+    }
+
+    public BoardingDoor Door { get; }
+    public string Label { get; }
+    public string TypeLabel { get; }
+    public bool IsEmergencyExit { get; }
+    public bool IsBoardingDoor { get; }
+    public bool IsRightSide { get; }
+    public double CanvasLeft { get; }
+    public double CanvasTop => IsRightSide ? 2d : 240d;
+    public bool CanControl => !IsEmergencyExit;
+    public string StatusLabel => IsEmergencyExit ? "EMERGENCY" : IsOpen ? "OPEN" : "CLOSED";
+
+    public bool IsOpen
+    {
+        get => _isOpen;
+        set
+        {
+            if (IsEmergencyExit || value == _isOpen)
+            {
+                return;
+            }
+
+            _changeRequested(Door, value);
+        }
+    }
+
+    public void ApplySimulatorState(bool isOpen)
+    {
+        if (SetProperty(ref _isOpen, isOpen, nameof(IsOpen)))
+        {
+            OnPropertyChanged(nameof(StatusLabel));
+        }
+    }
+}
+
 public sealed class CabinCrewMarkerViewModel : ObservableObject
 {
     private static readonly string[] CrewNames =
@@ -1548,6 +1755,7 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
     private double _x;
     private double _y;
     private string _activity = "Standing by";
+    private string _serviceItem = "No active service item";
     private bool _isSecured;
     private bool _isResting;
 
@@ -1570,9 +1778,10 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
     public bool IsSecured { get => _isSecured; private set => SetProperty(ref _isSecured, value); }
     public bool IsResting { get => _isResting; private set => SetProperty(ref _isResting, value); }
     public string Activity => _activity;
-    public string ToolTip => $"{FullName} · {Role} · {_activity}";
+    public string ServiceItem => _serviceItem;
+    public string ToolTip => $"{FullName} · {Role} · {_activity} · {_serviceItem}";
 
-    public void Update(double x, double y, string activity, bool isSecured, bool isResting)
+    public void Update(double x, double y, string activity, bool isSecured, bool isResting, string serviceItem = "No active service item")
     {
         x = Math.Clamp(x, 24d, 1009d);
         y = Math.Clamp(y, 36d, 156d);
@@ -1592,6 +1801,12 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
             OnPropertyChanged(nameof(Activity));
             OnPropertyChanged(nameof(ToolTip));
         }
+        if (!string.Equals(_serviceItem, serviceItem, StringComparison.Ordinal))
+        {
+            _serviceItem = serviceItem;
+            OnPropertyChanged(nameof(ServiceItem));
+            OnPropertyChanged(nameof(ToolTip));
+        }
         IsSecured = isSecured;
         IsResting = isResting;
     }
@@ -1603,6 +1818,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     private double _y;
     private PassengerMovementState _movementState;
     private PassengerOperation _operation;
+    private PassengerCabinActivity _cabinActivity = PassengerCabinActivity.AwaitingBoarding;
     private string _activityLabel = "Awaiting boarding";
     private string _markerColor = "#33B8E8";
     private string _markerBorderColor = "#D9F6FF";
@@ -1674,9 +1890,11 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         }
     }
 
-    public bool IsWalking => MovementState == PassengerMovementState.Walking;
+    public bool IsWalking => MovementState == PassengerMovementState.Walking ||
+        _cabinActivity is PassengerCabinActivity.WalkingToLavatory or
+            PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.ReturningToSeat;
     public bool IsOccupyingSeat => MovementState == PassengerMovementState.OccupyingSeat;
-    public bool IsSecured => MovementState == PassengerMovementState.Seated;
+    public bool IsSecured => MovementState == PassengerMovementState.Seated && !IsWalking;
     public string MarkerColor { get => _markerColor; private set => SetProperty(ref _markerColor, value); }
     public string MarkerBorderColor { get => _markerBorderColor; private set => SetProperty(ref _markerBorderColor, value); }
     public double MarkerSize => IsWalking ? 12d : 10d;
@@ -1688,16 +1906,32 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         X = passenger.Position.X;
         Y = passenger.Position.Y;
         MovementState = passenger.MovementState;
-        _activityLabel = PassengerManifestEntryViewModel.FormatActivity(passenger.CabinActivity);
+        if (_cabinActivity != passenger.CabinActivity)
+        {
+            _cabinActivity = passenger.CabinActivity;
+            OnPropertyChanged(nameof(IsWalking));
+            OnPropertyChanged(nameof(IsSecured));
+            OnPropertyChanged(nameof(MarkerSize));
+            OnPropertyChanged(nameof(CanvasLeft));
+            OnPropertyChanged(nameof(CanvasTop));
+        }
+        var activityLabel = PassengerManifestEntryViewModel.FormatActivity(passenger.CabinActivity);
+        var activityLabelChanged = !string.Equals(_activityLabel, activityLabel, StringComparison.Ordinal);
+        _activityLabel = activityLabel;
         (MarkerColor, MarkerBorderColor) = GetActivityColors(passenger);
         var doorLabel = passenger.Door?.ToString() ?? string.Empty;
+        var doorLabelChanged = false;
         if (!string.Equals(DoorLabel, doorLabel, StringComparison.Ordinal))
         {
             DoorLabel = doorLabel;
             OnPropertyChanged(nameof(DoorLabel));
+            doorLabelChanged = true;
         }
 
-        OnPropertyChanged(nameof(ToolTip));
+        if (activityLabelChanged || doorLabelChanged)
+        {
+            OnPropertyChanged(nameof(ToolTip));
+        }
     }
 
     private static (string Fill, string Border) GetActivityColors(BoardingPassenger passenger) => passenger.CabinActivity switch
@@ -1713,7 +1947,9 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         PassengerCabinActivity.Reading => ("#E8AE4A", "#FFF0C2"),
         PassengerCabinActivity.Working => ("#46C8C2", "#D5FFFC"),
         PassengerCabinActivity.Talking => ("#E06CCB", "#FFDDF8"),
-        PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat => ("#20D7D1", "#D6FFFD"),
+        PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat => ("#20D7D1", "#D6FFFD"),
+        PassengerCabinActivity.ReceivingMeal or PassengerCabinActivity.EatingMeal => ("#FFB04A", "#FFF0D0"),
+        PassengerCabinActivity.ReceivingDrink or PassengerCabinActivity.Drinking => ("#4AB8FF", "#DCF3FF"),
         PassengerCabinActivity.WalkingToSeat or PassengerCabinActivity.Deboarding => ("#33B8E8", "#D9F6FF"),
         _ => passenger.Seat.CabinClass switch
         {
@@ -1739,6 +1975,8 @@ public sealed class PassengerManifestEntryViewModel : ObservableObject
     private string _currentActivity = "Awaiting boarding";
     private string _seatbeltStatus = "Not fastened";
     private string _seatbeltColor = "#8DA0B8";
+    private decimal _onboardSpendGbp;
+    private string _lastPurchase = "No purchases";
 
     public PassengerManifestEntryViewModel(BoardingPassenger passenger)
     {
@@ -1779,6 +2017,8 @@ public sealed class PassengerManifestEntryViewModel : ObservableObject
     public double SeatY { get; }
     public string CabinClassName { get; }
     public int BoardingGroup { get; }
+    public string OnboardSpend => $"£{_onboardSpendGbp:F2}";
+    public string LastPurchase => _lastPurchase;
 
     public string DoorLabel
     {
@@ -1822,6 +2062,16 @@ public sealed class PassengerManifestEntryViewModel : ObservableObject
         CurrentActivity = FormatActivity(passenger.CabinActivity);
         SeatbeltStatus = passenger.SeatbeltFastened ? "Fastened" : "Not fastened";
         SeatbeltColor = passenger.SeatbeltFastened ? "#58E68A" : "#FFB55F";
+        if (_onboardSpendGbp != passenger.OnboardSpendGbp)
+        {
+            _onboardSpendGbp = passenger.OnboardSpendGbp;
+            OnPropertyChanged(nameof(OnboardSpend));
+        }
+        if (!string.Equals(_lastPurchase, passenger.LastPurchase, StringComparison.Ordinal))
+        {
+            _lastPurchase = passenger.LastPurchase;
+            OnPropertyChanged(nameof(LastPurchase));
+        }
         (StatusLabel, StatusColor) = passenger.MovementState switch
         {
             PassengerMovementState.Waiting => ("Awaiting boarding", "#8DA0B8"),
@@ -1850,8 +2100,14 @@ public sealed class PassengerManifestEntryViewModel : ObservableObject
         PassengerCabinActivity.Working => "Working",
         PassengerCabinActivity.Talking => "Talking",
         PassengerCabinActivity.WalkingToLavatory => "Walking to the lavatory",
+        PassengerCabinActivity.QueuedForLavatory => "Waiting in the lavatory queue",
         PassengerCabinActivity.UsingLavatory => "Using the lavatory",
         PassengerCabinActivity.ReturningToSeat => "Returning to seat",
+        PassengerCabinActivity.WaitingForCabinService => "Waiting for cabin service",
+        PassengerCabinActivity.ReceivingMeal => "Receiving a meal",
+        PassengerCabinActivity.EatingMeal => "Eating a meal",
+        PassengerCabinActivity.ReceivingDrink => "Receiving a drink",
+        PassengerCabinActivity.Drinking => "Having a drink",
         PassengerCabinActivity.Deboarding => "Walking to exit",
         PassengerCabinActivity.OffAircraft => "Off aircraft",
         _ => activity.ToString()

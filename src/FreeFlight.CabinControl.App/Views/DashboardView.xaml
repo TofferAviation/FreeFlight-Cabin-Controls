@@ -6,7 +6,7 @@
         <Style x:Key="MetricValue" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" /><Setter Property="FontSize" Value="27" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
         <Style x:Key="ReadinessCard" TargetType="Border"><Setter Property="Background" Value="#0B1B2D" /><Setter Property="BorderBrush" Value="#24415F" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Padding" Value="8,6" /><Setter Property="Margin" Value="0,2" /></Style>
     </UserControl.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="0,0,0,8">
             <Grid.RowDefinitions><RowDefinition Height="184" /><RowDefinition Height="12" /><RowDefinition Height="104" /><RowDefinition Height="12" /><RowDefinition Height="294" /><RowDefinition Height="66" /></Grid.RowDefinitions>
 

@@ -52,6 +52,11 @@ public interface ISimulatorBridge : IDisposable
 
 public interface ISimulatorCabinControlBridge
 {
+    Task<bool> SetAircraftDoorOpenAsync(
+        string doorCode,
+        bool isOpen,
+        CancellationToken cancellationToken = default);
+
     Task<bool> SetPassengerDoorOpenAsync(
         int doorNumber,
         bool isOpen,
@@ -60,4 +65,14 @@ public interface ISimulatorCabinControlBridge
     Task<bool> SetSeatbeltSignAsync(
         bool isOn,
         CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Optional ground-operations capability. A successful native operation means
+/// the simulator accepted the request; it does not imply that a particular
+/// bridge reached a particular aircraft door.
+/// </summary>
+public interface ISimulatorJetwayControlBridge
+{
+    Task<bool> OperateJetwaysAsync(CancellationToken cancellationToken = default);
 }

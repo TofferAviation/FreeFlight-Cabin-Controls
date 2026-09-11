@@ -250,6 +250,83 @@ internal static class Program
         }
 
         if (string.Equals(
+                Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_ONBOARD_MENU_ONLY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            window.Width = 1536;
+            window.Height = 1024;
+            viewModel.NavigateCommand.Execute("OnboardMenu");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            if (viewModel.ActivePage != "OnboardMenu" ||
+                !viewModel.Catering.IsOnboardShortHaulMenuSelected ||
+                viewModel.Catering.OnboardMenuCards.Count != 8 ||
+                viewModel.Catering.OnboardMenuCards[0].Name != "Chicken and bacon sandwich" ||
+                viewModel.Catering.OnboardMenuCards[0].PriceLabel != "£5.50" ||
+                viewModel.Catering.OnboardMenuCards[7].PriceLabel != "Included")
+            {
+                throw new InvalidOperationException("The passenger-facing High Life Café menu did not load its supplied eight-card design.");
+            }
+
+            Render(window, Path.Combine(outputDirectory, "onboard-menu-high-life-cafe-1536x1024.png"));
+            viewModel.Catering.SelectOnboardMenuRouteCommand.Execute("LongHaul");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+            if (!viewModel.Catering.IsOnboardLongHaulMenuSelected ||
+                viewModel.Catering.OnboardMenuCards.Count != 8 ||
+                viewModel.Catering.OnboardMenuCards.Any(card => card.PriceLabel != "Included"))
+            {
+                throw new InvalidOperationException("The long-haul onboard-menu selector did not switch to the complimentary flight menu.");
+            }
+
+            Render(window, Path.Combine(outputDirectory, "onboard-menu-long-haul-1536x1024.png"));
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered focused Onboard Menu checks to {outputDirectory}");
+            return 0;
+        }
+
+        if (string.Equals(
+                Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_SHORT_HAUL_CATERING_ONLY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            viewModel.Passengers.SelectedCabinLayoutProfile = viewModel.Passengers.CabinLayoutProfiles.Single(profile =>
+                profile.Id == "british-airways.a320neo");
+            viewModel.Passengers.BookedPassengerCount = viewModel.Passengers.CabinCapacity;
+            viewModel.NavigateCommand.Execute("Catering");
+            viewModel.Catering.SelectTabCommand.Execute("Menu");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+
+            if (!viewModel.Catering.IsShortHaul ||
+                viewModel.Catering.MenuExperienceTitle != "High Life Café" ||
+                viewModel.Catering.SelectedCabin != "Euro Traveller" ||
+                viewModel.Catering.SelectedCourse != "High Life Café" ||
+                viewModel.Catering.VisibleMenuItems.Count == 0 ||
+                viewModel.Catering.VisibleMenuItems.Any(item => item.Complimentary || item.PriceGbp <= 0m))
+            {
+                throw new InvalidOperationException("The A320 short-haul page did not select the paid High Life Café profile and inventory.");
+            }
+
+            Render(window, Path.Combine(outputDirectory, "catering-high-life-cafe.png"));
+            foreach (var tab in new[] { "Progress", "Inventory", "Preferences", "Special" })
+            {
+                viewModel.Catering.SelectTabCommand.Execute(tab);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, $"catering-high-life-{tab.ToLowerInvariant()}.png"));
+            }
+
+            window.Width = 1120;
+            window.Height = 700;
+            viewModel.Catering.SelectTabCommand.Execute("Menu");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            Render(window, Path.Combine(outputDirectory, "catering-high-life-cafe-minimum-window.png"));
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered focused High Life Café checks to {outputDirectory}");
+            return 0;
+        }
+
+        if (string.Equals(
                 Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_LIVE_CABIN_ONLY"),
                 "1",
                 StringComparison.Ordinal))
@@ -304,6 +381,38 @@ internal static class Program
             }
             Render(window, Path.Combine(outputDirectory, "passengers-crew-profile.png"));
             viewModel.Passengers.CloseCrewDetailsCommand.Execute(null);
+
+            var expandedLayoutIds = new[]
+            {
+                "british-airways.a319",
+                "british-airways.a321",
+                "british-airways.a321neo-220m",
+                "british-airways.a350",
+                "british-airways.777-200-lgw",
+                "british-airways.777-200-first",
+                "british-airways.787-8-club-suite",
+                "british-airways.787-9",
+                "british-airways.787-9-alternate",
+                "british-airways.787-10",
+                "british-airways.embraer-190"
+            };
+            foreach (var layoutId in expandedLayoutIds)
+            {
+                var profile = viewModel.Passengers.CabinLayoutProfiles.Single(candidate => candidate.Id == layoutId);
+                viewModel.Passengers.SelectedCabinLayoutProfile = profile;
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (profile.LivePreviewMaximumWidth > 1080d ||
+                    viewModel.Passengers.CabinDoors.Count < 6 ||
+                    viewModel.Passengers.CabinDoors.Any(door => door.CanvasLeft is < 0d or > 975d) ||
+                    !viewModel.Passengers.CabinDoors.Any(door => door.IsRightSide && door.CanvasTop < 10d) ||
+                    !viewModel.Passengers.CabinDoors.Any(door => !door.IsRightSide && door.CanvasTop > 230d))
+                {
+                    throw new InvalidOperationException($"{profile.Name} did not fit the live-cabin bounds or expose doors around both sides of the fuselage.");
+                }
+
+                Render(window, Path.Combine(outputDirectory, $"passengers-expanded-{layoutId.Replace("british-airways.", string.Empty, StringComparison.Ordinal)}.png"));
+            }
+
             window.Width = 1120;
             window.Height = 700;
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
@@ -397,7 +506,7 @@ internal static class Program
 
         foreach (var page in new[]
                  {
-                      "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "CabinPanel",
+                      "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Passengers", "Catering", "OnboardMenu", "CabinPanel",
                       "Audio", "Performance", "Settings", "FlightLogger"
                  })
         {
@@ -557,6 +666,89 @@ internal static class Program
                 window.Width = 1540;
                 window.Height = 900;
             }
+            else if (page == "Catering")
+            {
+                if (viewModel.Catering.Inventory.Count == 0 ||
+                    viewModel.Catering.PassengerPreferences.Count != viewModel.Passengers.PassengerManifest.Count ||
+                    viewModel.Catering.SpecialMeals.Count == 0 ||
+                    !viewModel.Catering.ProfileLabel.Contains("North America", StringComparison.Ordinal) ||
+                    viewModel.Catering.ServicePhases.Count != 11 ||
+                    viewModel.Catering.ServicePhases.First().Name != "Boarding Complete" ||
+                    viewModel.Catering.ServicePhases.Last().Name != "Arrival")
+                {
+                    throw new InvalidOperationException("The automatic BA catering profile, inventory, passenger orders, or operational service timeline were not populated.");
+                }
+
+                viewModel.Catering.DelayServiceTimingCommand.Execute(null);
+                if (viewModel.Catering.ServiceTimingOffsetMinutes != 15 ||
+                    !viewModel.Catering.ServiceTimingOffsetLabel.Contains("later", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The service timing adjustment did not update the operational schedule.");
+                }
+                viewModel.Catering.ResetServiceTimingCommand.Execute(null);
+                if (viewModel.Catering.ServiceTimingOffsetMinutes != 0)
+                {
+                    throw new InvalidOperationException("The service timing adjustment did not reset to the flight schedule.");
+                }
+
+                viewModel.Catering.ToggleServiceHoldCommand.Execute(null);
+                if (viewModel.Catering.HoldButtonLabel != "Resume service")
+                {
+                    throw new InvalidOperationException("The service hold control did not pause cabin service.");
+                }
+                viewModel.Catering.ToggleServiceHoldCommand.Execute(null);
+
+                foreach (var tab in new[] { "Menu", "Progress", "Inventory", "Preferences", "Special" })
+                {
+                    viewModel.Catering.SelectTabCommand.Execute(tab);
+                    window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                    Render(window, Path.Combine(outputDirectory, $"catering-{tab.ToLowerInvariant()}.png"));
+                }
+
+                window.Width = 1120;
+                window.Height = 700;
+                viewModel.Catering.SelectTabCommand.Execute("Progress");
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                Render(window, Path.Combine(outputDirectory, "catering-progress-minimum-window.png"));
+
+                window.Width = 1920;
+                window.Height = 1080;
+                viewModel.Catering.SelectTabCommand.Execute("Menu");
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                Render(window, Path.Combine(outputDirectory, "catering-menu-large-window.png"));
+                viewModel.Catering.SelectTabCommand.Execute("Progress");
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+                Render(window, Path.Combine(outputDirectory, "catering-progress-large-window.png"));
+                viewModel.Catering.ToggleTimingEditorCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "catering-progress-timing-editor-large-window.png"));
+                viewModel.Catering.ToggleTimingEditorCommand.Execute(null);
+                viewModel.Passengers.ApplyCabinTelemetry(new CabinTelemetrySnapshot(
+                    fixedClockTime,
+                    "Cruise",
+                    36_000d,
+                    false,
+                    false,
+                    new Dictionary<string, double> { ["groundspeed_mps"] = 240d }));
+                viewModel.Catering.SkipServiceCommand.Execute(null);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                if (viewModel.Catering.ServicePhases.Single(phase => phase.Name == "Meal Service").Status != "Active" ||
+                    viewModel.Catering.CurrentActivityTitle != "Main Meal Service")
+                {
+                    throw new InvalidOperationException("Live simulator cruise state did not activate the meal-service timeline and activity panel.");
+                }
+                Render(window, Path.Combine(outputDirectory, "catering-progress-inflight-large-window.png"));
+                viewModel.Passengers.ApplyCabinTelemetry(new CabinTelemetrySnapshot(
+                    fixedClockTime,
+                    "Preflight",
+                    0d,
+                    true,
+                    false,
+                    new Dictionary<string, double> { ["groundspeed_mps"] = 0d }));
+                window.Width = 1540;
+                window.Height = 900;
+                viewModel.Catering.SelectTabCommand.Execute("Menu");
+            }
             else if (page == "CabinPanel")
             {
                 viewModel.CabinPanel.QueueCommand.Execute("Safety demonstration video");
@@ -567,10 +759,10 @@ internal static class Program
             }
             else if (page == "Settings")
             {
-                if (viewModel.Settings.CabinLayoutProfiles.Count != 5 ||
-                    viewModel.Settings.CabinLayoutProfiles.Select(profile => profile.Id).Distinct().Count() != 5)
+                if (viewModel.Settings.CabinLayoutProfiles.Count != 16 ||
+                    viewModel.Settings.CabinLayoutProfiles.Select(profile => profile.Id).Distinct().Count() != 16)
                 {
-                    throw new InvalidOperationException("The five stable Boeing and Airbus cabin layout profiles were not available.");
+                    throw new InvalidOperationException("The sixteen stable Boeing and Airbus cabin layout profiles were not available.");
                 }
             }
             else if (page == "FlightLogger")
@@ -1028,7 +1220,7 @@ internal static class Program
                 if (viewModel.Passengers.BoardingState != FreeFlight.CabinControl.Core.Passengers.BoardingRunState.Complete ||
                     viewModel.Passengers.BoardedPassengerCount != 256 ||
                     viewModel.Passengers.PassengerMarkers.Count != 256 ||
-                    viewModel.Passengers.RemainingPassengerCount != 46 ||
+                    viewModel.Passengers.RemainingPassengerCount != 0 ||
                     viewModel.Operations.PassengerRecords.Any(passenger => passenger.IsBoarded && !passenger.IsCheckedIn))
                 {
                     throw new InvalidOperationException(
@@ -1930,6 +2122,17 @@ internal static class Program
         {
             DoorWriteCount++;
             LastDoorNumber = doorNumber;
+            LastDoorOpen = isOpen;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> SetAircraftDoorOpenAsync(
+            string doorCode,
+            bool isOpen,
+            CancellationToken cancellationToken = default)
+        {
+            DoorWriteCount++;
+            LastDoorNumber = doorCode.Length == 2 && char.IsDigit(doorCode[1]) ? doorCode[1] - '0' : 0;
             LastDoorOpen = isOpen;
             return Task.FromResult(true);
         }

@@ -10,7 +10,7 @@ using FreeFlight.CabinControl.Core.Integration;
 
 namespace FreeFlight.CabinControl.App.Services;
 
-public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge
+public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge, ISimulatorJetwayControlBridge
 {
     private const double MetresToFeet = 3.280839895d;
     private const string AltitudeMsl = "sim/flightmodel/position/elevation";
@@ -43,6 +43,7 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private const string FreeFlightDoorL1Ratio = "freeflight/cabin/door_l1_ratio";
     private const string FreeFlightDoorL2Available = "freeflight/cabin/door_l2_available";
     private const string FreeFlightDoorL2Ratio = "freeflight/cabin/door_l2_ratio";
+    private const string NativeJetwayCommand = "sim/ground_ops/jetway";
 
     private static readonly HashSet<string> RequestedDatarefs =
     [
@@ -58,6 +59,14 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         DoorOpenRatio,
         FlightFactorDoorL1Ratio,
         FlightFactorDoorL2Ratio,
+        "1-sim/anim/doorL3",
+        "1-sim/anim/doorL4",
+        "1-sim/anim/doorL5",
+        "1-sim/anim/doorR1",
+        "1-sim/anim/doorR2",
+        "1-sim/anim/doorR3",
+        "1-sim/anim/doorR4",
+        "1-sim/anim/doorR5",
         FlightFactorSeatbeltLight,
         FlightFactorSeatbeltSelector,
         ToLissPassengerDoorModes,
@@ -75,7 +84,23 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         FreeFlightDoorL1Available,
         FreeFlightDoorL1Ratio,
         FreeFlightDoorL2Available,
-        FreeFlightDoorL2Ratio
+        FreeFlightDoorL2Ratio,
+        "freeflight/cabin/door_l3_available",
+        "freeflight/cabin/door_l3_ratio",
+        "freeflight/cabin/door_l4_available",
+        "freeflight/cabin/door_l4_ratio",
+        "freeflight/cabin/door_l5_available",
+        "freeflight/cabin/door_l5_ratio",
+        "freeflight/cabin/door_r1_available",
+        "freeflight/cabin/door_r1_ratio",
+        "freeflight/cabin/door_r2_available",
+        "freeflight/cabin/door_r2_ratio",
+        "freeflight/cabin/door_r3_available",
+        "freeflight/cabin/door_r3_ratio",
+        "freeflight/cabin/door_r4_available",
+        "freeflight/cabin/door_r4_ratio",
+        "freeflight/cabin/door_r5_available",
+        "freeflight/cabin/door_r5_ratio"
     ];
 
     private static readonly IReadOnlyList<IAircraftCabinAdapter> AircraftCabinAdapters =
@@ -96,6 +121,7 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private readonly SemaphoreSlim _controlWriteLock = new(1, 1);
     private IReadOnlyDictionary<string, XPlaneDataref> _datarefsByName =
         new Dictionary<string, XPlaneDataref>(StringComparer.Ordinal);
+    private XPlaneCommand? _nativeJetwayCommand;
     private ClientWebSocket? _activeSocket;
     private Task? _runTask;
     private BridgeStatus _currentStatus = BridgeStatus.XPlaneOffline;
@@ -184,6 +210,32 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         return false;
     }
 
+    public async Task<bool> SetAircraftDoorOpenAsync(
+        string doorCode,
+        bool isOpen,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = doorCode.Trim().ToUpperInvariant();
+        if (normalized is "L1" or "L2")
+        {
+            return await SetPassengerDoorOpenAsync(normalized[1] - '0', isOpen, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        foreach (var target in ResolveWritableAircraftDoorTargets(normalized))
+        {
+            var value = target.Dataref.Name == ToLissPassengerDoorModes
+                ? isOpen ? 2d : 0d
+                : isOpen ? 1d : 0d;
+            if (await WriteDatarefAsync(target.Dataref, value, target.Index, cancellationToken).ConfigureAwait(false))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public async Task<bool> SetSeatbeltSignAsync(
         bool isOn,
         CancellationToken cancellationToken = default)
@@ -200,6 +252,43 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         }
 
         return false;
+    }
+
+    public async Task<bool> OperateJetwaysAsync(CancellationToken cancellationToken = default)
+    {
+        if (_currentStatus.State != BridgeConnectionState.Connected || _nativeJetwayCommand is null)
+        {
+            return false;
+        }
+
+        await _controlWriteLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var port = SanitizePort(_settings.XPlaneWebApiPort);
+            var uri = new Uri($"http://127.0.0.1:{port}/api/{_apiVersion}/command/{_nativeJetwayCommand.Id}/activate");
+            using var request = new HttpRequestMessage(HttpMethod.Post, uri)
+            {
+                Content = new StringContent("{\"duration\":0}", Encoding.UTF8, "application/json")
+            };
+            using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _log.Information($"X-Plane rejected native jetway command with HTTP {(int)response.StatusCode}.");
+                return false;
+            }
+
+            _log.Information("X-Plane native jetway command sent from FreeFlight Cabin Control.");
+            return true;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or IOException or TaskCanceledException)
+        {
+            _log.Error("X-Plane native jetway command failed.", exception);
+            return false;
+        }
+        finally
+        {
+            _controlWriteLock.Release();
+        }
     }
 
     public void Dispose()
@@ -272,6 +361,7 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
                     _values.Clear();
                     _signalHistory.Clear();
                     _datarefsByName = new Dictionary<string, XPlaneDataref>(StringComparer.Ordinal);
+                    _nativeJetwayCommand = null;
                 }
             }
 
@@ -291,6 +381,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         {
             _datarefsByName = descriptors;
         }
+        _nativeJetwayCommand = await DiscoverNativeJetwayCommandAsync(port, _apiVersion, cancellationToken)
+            .ConfigureAwait(false);
         if (!descriptors.ContainsKey(GroundSpeed) ||
             (!descriptors.ContainsKey(OnGroundAny) && !descriptors.ContainsKey(GearOnGround)))
         {
@@ -406,6 +498,37 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             .ToDictionary(item => item.Name, StringComparer.Ordinal);
 
         return discovered;
+    }
+
+    private async Task<XPlaneCommand?> DiscoverNativeJetwayCommandAsync(
+        int port,
+        string apiVersion,
+        CancellationToken cancellationToken)
+    {
+        if (ParseApiVersion(apiVersion) < 2)
+        {
+            return null;
+        }
+
+        var encodedName = Uri.EscapeDataString(NativeJetwayCommand);
+        var uri = new Uri($"http://127.0.0.1:{port}/api/{apiVersion}/commands?filter[name]={encodedName}&fields=id,name");
+        using var response = await _httpClient.GetAsync(uri, cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+        foreach (var item in document.RootElement.GetProperty("data").EnumerateArray())
+        {
+            if (string.Equals(item.GetProperty("name").GetString(), NativeJetwayCommand, StringComparison.Ordinal))
+            {
+                return new XPlaneCommand(item.GetProperty("id").GetInt64(), NativeJetwayCommand);
+            }
+        }
+
+        return null;
     }
 
     private static async Task SubscribeAsync(
@@ -545,6 +668,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         {
             signals["door_l2_ratio"] = l2DoorRatio;
         }
+
+        AppendAdditionalDoorSignals(signals);
 
         return new CabinTelemetrySnapshot(
             timestamp,
@@ -843,8 +968,11 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private bool IsToLissAircraft()
     {
         var identity = $"{GetText(AircraftIcao)} {GetText(AircraftDescription)} {GetText(AircraftRelativePath)}";
-        return (identity.Contains("A320", StringComparison.OrdinalIgnoreCase) ||
-                identity.Contains("A20N", StringComparison.OrdinalIgnoreCase)) &&
+        return (identity.Contains("A319", StringComparison.OrdinalIgnoreCase) ||
+                identity.Contains("A320", StringComparison.OrdinalIgnoreCase) ||
+                identity.Contains("A20N", StringComparison.OrdinalIgnoreCase) ||
+                identity.Contains("A321", StringComparison.OrdinalIgnoreCase) ||
+                identity.Contains("A21N", StringComparison.OrdinalIgnoreCase)) &&
                identity.Contains("ToLiss", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -883,6 +1011,74 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             return targets
                 .DistinctBy(target => (target.Dataref.Name, target.Index))
                 .ToArray();
+        }
+    }
+
+    private IReadOnlyList<XPlaneWriteTarget> ResolveWritableAircraftDoorTargets(string doorCode)
+    {
+        lock (_valuesLock)
+        {
+            if (doorCode.Length != 2 || doorCode[0] is not ('L' or 'R') ||
+                !int.TryParse(doorCode[1].ToString(), out var doorNumber) || doorNumber is < 1 or > 5)
+            {
+                return [];
+            }
+
+            var targets = new List<XPlaneWriteTarget>();
+            var pluginDoorName = $"freeflight/cabin/door_{doorCode.ToLowerInvariant()}_ratio";
+            if (_datarefsByName.TryGetValue(pluginDoorName, out var pluginDoor))
+            {
+                targets.Add(new XPlaneWriteTarget(pluginDoor, null));
+            }
+
+            var flightFactorName = $"1-sim/anim/door{doorCode}";
+            if (_datarefsByName.TryGetValue(flightFactorName, out var flightFactorDoor))
+            {
+                targets.Add(new XPlaneWriteTarget(flightFactorDoor, null));
+            }
+
+            if (IsToLissAircraft() && doorNumber <= 4 &&
+                _datarefsByName.TryGetValue(ToLissPassengerDoorModes, out var toLissDoor))
+            {
+                var index = ((doorNumber - 1) * 2) + (doorCode[0] == 'R' ? 1 : 0);
+                targets.Add(new XPlaneWriteTarget(toLissDoor, index));
+            }
+
+            if (_datarefsByName.TryGetValue(DoorOpenRatio, out var standardDoor))
+            {
+                var index = doorCode[0] == 'L' ? doorNumber - 1 : 5 + doorNumber - 1;
+                targets.Add(new XPlaneWriteTarget(standardDoor, index));
+            }
+
+            return targets.DistinctBy(target => (target.Dataref.Name, target.Index)).ToArray();
+        }
+    }
+
+    private void AppendAdditionalDoorSignals(IDictionary<string, double> signals)
+    {
+        var standard = GetArray(DoorOpenRatio);
+        var toLiss = IsToLissAircraft() ? GetArray(ToLissPassengerDoorModes) : [];
+        foreach (var code in new[] { "L3", "L4", "L5", "R1", "R2", "R3", "R4", "R5" })
+        {
+            var doorNumber = code[1] - '0';
+            var toLissIndex = ((doorNumber - 1) * 2) + (code[0] == 'R' ? 1 : 0);
+            var standardIndex = code[0] == 'L' ? doorNumber - 1 : 5 + doorNumber - 1;
+            var customName = $"1-sim/anim/door{code}";
+            var pluginAvailableName = $"freeflight/cabin/door_{code.ToLowerInvariant()}_available";
+            var pluginRatioName = $"freeflight/cabin/door_{code.ToLowerInvariant()}_ratio";
+            var ratio = GetScalar(FreeFlightPluginOnline) >= 0.5d && GetScalar(pluginAvailableName) >= 0.5d
+                ? NormalizeDoorRatio(GetScalar(pluginRatioName))
+                : toLiss.Length > toLissIndex
+                ? NormalizeToLissDoorMode(toLiss[toLissIndex])
+                : _values.TryGetValue(customName, out var custom)
+                    ? NormalizeDoorRatio(custom.Scalar)
+                    : standard.Length > standardIndex
+                        ? NormalizeDoorRatio(standard[standardIndex])
+                        : double.NaN;
+            if (!double.IsNaN(ratio))
+            {
+                signals[$"door_{code.ToLowerInvariant()}_ratio"] = ratio;
+            }
         }
     }
 
@@ -1119,6 +1315,8 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private sealed record XPlaneCapabilities(string ApiVersion, string SimulatorVersion);
 
     private sealed record XPlaneDataref(long Id, string Name, string ValueType);
+
+    private sealed record XPlaneCommand(long Id, string Name);
 
     private sealed record XPlaneWriteTarget(XPlaneDataref Dataref, int? Index);
 

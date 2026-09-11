@@ -61,6 +61,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             vamsysService ?? new VamsysOAuthService(settings, resolvedSettingsDirectory),
             resolvedSettingsDirectory);
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
+        Catering = new CateringViewModel(Passengers, resolvedSettingsDirectory);
         Passengers.DoorControlRequested += HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested += HandleSeatbeltControlRequested;
         Passengers.FlightUnloaded += HandleFlightUnloaded;
@@ -74,7 +75,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             Passengers,
             resolvedOperationsClock,
             () => GateLogin.IsAuthenticated,
-            boardingPassPrinterService);
+            boardingPassPrinterService,
+            simulatorBridge as ISimulatorJetwayControlBridge);
         IportDcs = new IportDcsViewModel(Operations, GateLogin);
         Dashboard = Operations;
         CabinPanel = new CabinControlPanelViewModel(
@@ -127,6 +129,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public AirlinersViewModel Airliners { get; }
 
     public PassengerFlowViewModel Passengers { get; }
+
+    public CateringViewModel Catering { get; }
 
     public CabinControlPanelViewModel CabinPanel { get; }
 
@@ -187,6 +191,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         IportDcs.Dispose();
         Operations.Dispose();
         Passengers.Dispose();
+        Catering.Dispose();
         Performance.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -238,6 +243,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "IportDcs" => IportDcs,
             "Airliners" => Airliners,
             "Passengers" => Passengers,
+            "Catering" => Catering,
+            "OnboardMenu" => Catering,
             "CabinPanel" => CabinPanel,
             "Audio" => Audio,
             "Performance" => Performance,
@@ -311,14 +318,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (snapshot.Signals.TryGetValue("door_l1_ratio", out var l1DoorRatio))
+        foreach (var door in Enum.GetValues<BoardingDoor>())
         {
-            Passengers.ApplySimulatorDoorState(BoardingDoor.L1, l1DoorRatio >= 0.5d);
-        }
-
-        if (snapshot.Signals.TryGetValue("door_l2_ratio", out var l2DoorRatio))
-        {
-            Passengers.ApplySimulatorDoorState(BoardingDoor.L2, l2DoorRatio >= 0.5d);
+            var signalName = $"door_{door.ToString().ToLowerInvariant()}_ratio";
+            if (snapshot.Signals.TryGetValue(signalName, out var ratio))
+            {
+                Passengers.ApplySimulatorDoorState(door, ratio >= 0.5d);
+            }
         }
     }
 
@@ -384,7 +390,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        await _simulatorCabinControlBridge.SetPassengerDoorOpenAsync((int)door + 1, isOpen);
+        await _simulatorCabinControlBridge.SetAircraftDoorOpenAsync(door.ToString(), isOpen);
     }
 
     private async void HandleSeatbeltControlRequested(bool isOn)

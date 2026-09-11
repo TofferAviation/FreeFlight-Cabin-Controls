@@ -55,7 +55,7 @@
                         <RowDefinition />
                     </Grid.RowDefinitions>
                     <TextBlock Text="What’s included" Style="{StaticResource SectionTitleStyle}" />
-                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Hidden">
                         <TextBlock Text="{Binding ReleaseNotes}"
                                    TextWrapping="Wrap"
                                    Foreground="#AFC2D8"

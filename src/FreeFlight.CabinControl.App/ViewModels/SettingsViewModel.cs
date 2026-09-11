@@ -601,16 +601,33 @@ public sealed record CabinLayoutProfileOption(
         ? new Rect(0d, 62d, 1033d, 192d)
         : Layout switch
         {
-            PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 2860d, 380d),
-            PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 2855d, 390d),
-            PassengerCabinLayout.BritishAirwaysA320200 => new Rect(0d, 0d, 2770d, 570d),
-            PassengerCabinLayout.BritishAirwaysA320Neo => new Rect(0d, 0d, 2765d, 640d),
-            _ => new Rect(0d, 62d, 1033d, 192d)
+            PassengerCabinLayout.BritishAirways777200Er => new Rect(0d, 0d, 1d, 380d / 515d),
+            PassengerCabinLayout.BritishAirways777300 => new Rect(0d, 0d, 1d, 390d / 495d),
+            _ => new Rect(0d, 0d, 1d, 1d)
         };
+
+    public BrushMappingMode LivePreviewViewboxUnits => UsesFallbackLivePreview
+        ? BrushMappingMode.Absolute
+        : BrushMappingMode.RelativeToBoundingBox;
 
     public Stretch LivePreviewStretch => UsesFallbackLivePreview
         ? Stretch.Fill
         : Stretch.Uniform;
+
+    public double LivePreviewMaximumWidth => Layout is
+        PassengerCabinLayout.BritishAirwaysA319 or
+        PassengerCabinLayout.BritishAirwaysA321 or
+        PassengerCabinLayout.BritishAirwaysA321Neo220M or
+        PassengerCabinLayout.BritishAirwaysA350 or
+        PassengerCabinLayout.BritishAirways777200Lgw or
+        PassengerCabinLayout.BritishAirways777200First or
+        PassengerCabinLayout.BritishAirways7878ClubSuite or
+        PassengerCabinLayout.BritishAirways7879 or
+        PassengerCabinLayout.BritishAirways7879Alternate or
+        PassengerCabinLayout.BritishAirways78710 or
+        PassengerCabinLayout.BritishAirwaysEmbraer190
+            ? 1080d
+            : 1240d;
 
     public override string ToString() => Name;
 }
@@ -678,8 +695,53 @@ public static class CabinLayoutProfileCatalog
             "Automatic SimBrief match: A20N · ToLiss door adapter",
             420d,
             true,
-            "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT")
+            "OPERATIONAL · 156 MAPPED SEAT POSITIONS · NOSE LEFT"),
+        Layout("british-airways.a319", PassengerCabinLayout.BritishAirwaysA319,
+            "British Airways Airbus A319", "BritishAirwaysA319.png", "A319", 124),
+        Layout("british-airways.a321", PassengerCabinLayout.BritishAirwaysA321,
+            "British Airways Airbus A321", "BritishAirwaysA321.png", "A321", 186),
+        Layout("british-airways.a321neo-220m", PassengerCabinLayout.BritishAirwaysA321Neo220M,
+            "British Airways Airbus A321neo 220M", "BritishAirwaysA321Neo220M.png", "A21N", 220),
+        Layout("british-airways.a350", PassengerCabinLayout.BritishAirwaysA350,
+            "British Airways Airbus A350", "BritishAirwaysA350.png", "A35K", 331),
+        Layout("british-airways.777-200-lgw", PassengerCabinLayout.BritishAirways777200Lgw,
+            "British Airways 777-200 LGW", "BritishAirways777200Lgw.png", "B772 · LGW configuration", 338),
+        Layout("british-airways.777-200-first", PassengerCabinLayout.BritishAirways777200First,
+            "British Airways 777-200 with First", "BritishAirways777200First.png", "B772 · four-class configuration", 235),
+        Layout("british-airways.787-8-club-suite", PassengerCabinLayout.BritishAirways7878ClubSuite,
+            "British Airways 787-8 Club Suite", "BritishAirways7878ClubSuite.png", "B788", 204),
+        Layout("british-airways.787-9", PassengerCabinLayout.BritishAirways7879,
+            "British Airways 787-9", "BritishAirways7879.png", "B789", 216),
+        Layout("british-airways.787-9-alternate", PassengerCabinLayout.BritishAirways7879Alternate,
+            "British Airways 787-9 alternate", "BritishAirways7879Alternate.png", "B789 · alternate configuration", 215),
+        Layout("british-airways.787-10", PassengerCabinLayout.BritishAirways78710,
+            "British Airways 787-10", "BritishAirways78710.png", "B78X", 256),
+        Layout("british-airways.embraer-190", PassengerCabinLayout.BritishAirwaysEmbraer190,
+            "British Airways Embraer 190", "BritishAirwaysEmbraer190.png", "E190", 98)
     ];
+
+    private static CabinLayoutProfileOption Layout(
+        string id,
+        PassengerCabinLayout layout,
+        string name,
+        string asset,
+        string match,
+        int capacity)
+    {
+        var uri = $"pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/{asset}";
+        return new CabinLayoutProfileOption(
+            id,
+            layout,
+            name,
+            "Operational airline layout",
+            $"{name} with mapped seating, dynamic doors, cabin service, and live passenger movement.",
+            uri,
+            uri,
+            $"Automatic SimBrief match: {match}",
+            420d,
+            true,
+            $"OPERATIONAL · {capacity} MAPPED SEAT POSITIONS · NOSE LEFT");
+    }
 
     public static CabinLayoutProfileOption Resolve(string? id) =>
         All.FirstOrDefault(profile => string.Equals(profile.Id, id, StringComparison.OrdinalIgnoreCase)) ?? All[0];

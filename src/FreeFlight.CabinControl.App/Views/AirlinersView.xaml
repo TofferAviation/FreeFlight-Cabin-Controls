@@ -131,7 +131,7 @@
             <Grid Grid.Row="6">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="280" /></Grid.ColumnDefinitions>
                 <ScrollViewer x:Name="CatalogScrollViewer"
-                              VerticalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Hidden"
                               HorizontalScrollBarVisibility="Disabled"
                               CanContentScroll="False"
                               Margin="0,0,16,0">
@@ -237,7 +237,7 @@
                 </ScrollViewer>
 
                 <ScrollViewer Grid.Column="1"
-                              VerticalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Hidden"
                               HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <Border Style="{StaticResource CardStyle}" MinHeight="220" Padding="18,14">

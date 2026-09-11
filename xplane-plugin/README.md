@@ -9,10 +9,11 @@ This lightweight X-Plane 12 plugin converts aircraft-specific door and passenger
 - `freeflight/cabin/door_l1_ratio`
 - `freeflight/cabin/door_l2_available`
 - `freeflight/cabin/door_l2_ratio`
+- matching `door_l3` through `door_l5` and `door_r1` through `door_r5` availability/ratio pairs
 
 The plugin samples at 10 Hz, caches all SDK dataref handles, performs no file or network I/O in the flight loop, and re-resolves aircraft datarefs when the loaded aircraft changes. Its writable FreeFlight datarefs forward manual app requests to writable aircraft or standard simulator controls when available.
 
-For the FlightFactor 777 v2, the bridge gives authoritative priority to `1-sim/anim/doorL1`, `1-sim/anim/doorL2`, and the actual `1-sim/anim/seatbeltLight` output. App commands use `1-sim/ckpt/passSignsSeatbeltsSwitch/anim` with FlightFactor's `0=OFF`, `1=AUTO`, and `2=ON` selector encoding. See `docs/FLIGHTFACTOR_777_DATAREFS.md` for the local verification record.
+For the FlightFactor 777 v2, the bridge gives authoritative priority to `1-sim/anim/doorL1` through `doorL5`, `doorR1` through `doorR5`, and the actual `1-sim/anim/seatbeltLight` output. App commands use `1-sim/ckpt/passSignsSeatbeltsSwitch/anim` with FlightFactor's `0=OFF`, `1=AUTO`, and `2=ON` selector encoding. See `docs/FLIGHTFACTOR_777_DATAREFS.md` for the local verification record.
 
 For the ToLiss A320 family, the bridge uses `AirbusFBW/PaxDoorModeArray[0]` for the front-left 1L door and index `[2]` for the rear-left 2L door. ToLiss door modes are decoded as `0=Closed`, `1=Auto`, and `2=Open`; writable app requests send `0` or `2`. The standard X-Plane seat-belt annunciator remains the authoritative illuminated-sign output, with the ToLiss cockpit animation available only as a lower-priority fallback. See `docs/TOLISS_A320_DATAREFS.md`.
 

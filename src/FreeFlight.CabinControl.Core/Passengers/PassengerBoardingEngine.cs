@@ -22,6 +22,7 @@ public sealed class PassengerBoardingEngine
     private int _currentBoardingGroup;
     private double _spawnAccumulator;
     private bool _lastSeatbeltSignOn;
+    private readonly List<CabinPurchase> _recentPurchases = [];
 
     public PassengerBoardingEngine(
         int targetPassengerCount = 228,
@@ -35,6 +36,9 @@ public sealed class PassengerBoardingEngine
     public PassengerCabinLayout Layout => _layoutDefinition.Layout;
 
     public int Capacity => _cabinSeats.Count;
+
+    public int GetCabinCapacity(PassengerCabinClass cabinClass) =>
+        _cabinSeats.Count(seat => seat.CabinClass == cabinClass);
 
     public int TargetPassengerCount { get; private set; }
 
@@ -94,6 +98,49 @@ public sealed class PassengerBoardingEngine
 
     public IReadOnlyCollection<BoardingDoor> OpenDoors => _openDoors;
 
+    public IReadOnlyList<CabinDoorDefinition> Doors => _layoutDefinition.Doors;
+
+    public IReadOnlyList<CabinPurchase> DrainRecentPurchases()
+    {
+        var purchases = _recentPurchases.ToArray();
+        _recentPurchases.Clear();
+        return purchases;
+    }
+
+    public bool TryRecordHighLifeCafePurchase(
+        int passengerId,
+        string itemId,
+        string itemName,
+        decimal priceGbp)
+    {
+        var isShortHaul = Layout is PassengerCabinLayout.BritishAirwaysA319 or
+            PassengerCabinLayout.BritishAirwaysA320200 or
+            PassengerCabinLayout.BritishAirwaysA320Neo or
+            PassengerCabinLayout.BritishAirwaysA321 or
+            PassengerCabinLayout.BritishAirwaysA321Neo220M or
+            PassengerCabinLayout.BritishAirwaysEmbraer190;
+        var passenger = _passengers.FirstOrDefault(candidate => candidate.Id == passengerId);
+        if (!isShortHaul ||
+            passenger is null ||
+            passenger.MovementState != PassengerMovementState.Seated ||
+            passenger.Seat.CabinClass != PassengerCabinClass.Economy ||
+            string.IsNullOrWhiteSpace(itemId) ||
+            !itemId.StartsWith("cafe-", StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(itemName) ||
+            priceGbp <= 0m)
+        {
+            return false;
+        }
+
+        CompletePurchase(passenger, new CabinMenuItem(
+            itemId.Trim(),
+            itemName.Trim(),
+            "High Life Café",
+            priceGbp,
+            "British Airways High Life Café buy-on-board purchase"));
+        return true;
+    }
+
     public CabinPoint GetDoorEntryCenter(BoardingDoor door) => GetDoorEntryPoint(door);
 
     public double DoorControlTop => _layoutDefinition.DoorEntryY - 16d;
@@ -108,6 +155,12 @@ public sealed class PassengerBoardingEngine
 
     public void SetDoorOpen(BoardingDoor door, bool isOpen)
     {
+        var definition = _layoutDefinition.Doors.FirstOrDefault(item => item.Door == door);
+        if (definition is null || !definition.IsBoardingDoor || definition.IsEmergencyExit)
+        {
+            return;
+        }
+
         if (isOpen)
         {
             _openDoors.Add(door);
@@ -200,6 +253,50 @@ public sealed class PassengerBoardingEngine
     public void Reset()
     {
         InitializeManifest();
+    }
+
+    public void ApplyCateringServiceProgress(double progressPercent, bool drinksService, bool serviceActive)
+    {
+        if (!serviceActive)
+        {
+            return;
+        }
+
+        var seated = _passengers
+            .Where(passenger => passenger.MovementState == PassengerMovementState.Seated &&
+                                passenger.ActivityWaypoints.Count == 0 &&
+                                passenger.CabinActivity is not (PassengerCabinActivity.WalkingToLavatory or
+                                    PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or
+                                    PassengerCabinActivity.ReturningToSeat))
+            .OrderBy(passenger => passenger.Seat.CabinClass)
+            .ThenBy(passenger => passenger.Seat.X)
+            .ThenBy(passenger => passenger.Seat.Y)
+            .ToArray();
+        if (seated.Length == 0)
+        {
+            return;
+        }
+
+        var completed = Math.Clamp((int)Math.Floor(seated.Length * Math.Clamp(progressPercent, 0d, 100d) / 100d), 0, seated.Length);
+        for (var index = 0; index < seated.Length; index++)
+        {
+            var passenger = seated[index];
+            if (index < completed)
+            {
+                passenger.CabinActivity = drinksService ? PassengerCabinActivity.Drinking : PassengerCabinActivity.EatingMeal;
+                passenger.SecondsUntilActivityChange = 45d + (passenger.Id % 75);
+            }
+            else if (index == completed)
+            {
+                passenger.CabinActivity = drinksService ? PassengerCabinActivity.ReceivingDrink : PassengerCabinActivity.ReceivingMeal;
+                passenger.SecondsUntilActivityChange = 8d + (passenger.Id % 12);
+            }
+            else if (index <= completed + 12)
+            {
+                passenger.CabinActivity = PassengerCabinActivity.WaitingForCabinService;
+                passenger.SecondsUntilActivityChange = 20d + (passenger.Id % 30);
+            }
+        }
     }
 
     public PassengerBoardingSession CaptureSession() => new(
@@ -465,12 +562,13 @@ public sealed class PassengerBoardingEngine
             if (seatbeltSignOn)
             {
                 if (passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
-                    PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat)
+                    PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or
+                    PassengerCabinActivity.ReturningToSeat)
                 {
                     passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
                     EnsureReturnToSeatRoute(passenger);
                     passenger.SeatbeltFastened = false;
-                    if (!MoveAlongActivityRoute(passenger, seconds * 42d))
+                    if (!MoveAlongActivityRoute(passenger, Math.Min(7d, seconds * 42d)))
                     {
                         continue;
                     }
@@ -501,13 +599,38 @@ public sealed class PassengerBoardingEngine
             passenger.SeatbeltFastened = false;
             switch (passenger.CabinActivity)
             {
+                case PassengerCabinActivity.QueuedForLavatory:
+                    if (IsLavatoryAvailable(passenger))
+                    {
+                        passenger.CabinActivity = PassengerCabinActivity.WalkingToLavatory;
+                        passenger.ActivityWaypoints.Clear();
+                    }
+                    else
+                    {
+                        passenger.Position = MoveTowardPoint(
+                            passenger.Position,
+                            GetLavatoryQueuePoint(passenger),
+                            Math.Min(6d, seconds * 28d));
+                    }
+                    continue;
                 case PassengerCabinActivity.WalkingToLavatory:
                 {
                     EnsureLavatoryRoute(passenger);
-                    if (MoveAlongActivityRoute(passenger, seconds * 28d))
+                    if (MoveAlongActivityRoute(passenger, Math.Min(6d, seconds * 28d)))
                     {
-                        passenger.CabinActivity = PassengerCabinActivity.UsingLavatory;
-                        passenger.SecondsUntilActivityChange = 45d + ((passenger.Id * 13) % 75);
+                        if (IsLavatoryAvailable(passenger))
+                        {
+                            passenger.CabinActivity = PassengerCabinActivity.UsingLavatory;
+                            passenger.SecondsUntilActivityChange = 45d + ((passenger.Id * 13) % 75);
+                        }
+                        else
+                        {
+                            passenger.CabinActivity = PassengerCabinActivity.QueuedForLavatory;
+                            passenger.Position = MoveTowardPoint(
+                                passenger.Position,
+                                GetLavatoryQueuePoint(passenger),
+                                Math.Min(6d, seconds * 28d));
+                        }
                     }
                     continue;
                 }
@@ -521,9 +644,25 @@ public sealed class PassengerBoardingEngine
                     continue;
                 case PassengerCabinActivity.ReturningToSeat:
                     EnsureReturnToSeatRoute(passenger);
-                    if (MoveAlongActivityRoute(passenger, seconds * 30d))
+                    if (MoveAlongActivityRoute(passenger, Math.Min(6d, seconds * 30d)))
                     {
                         SelectNextSeatedActivity(passenger, flightPhase);
+                    }
+                    continue;
+                case PassengerCabinActivity.ReceivingMeal:
+                    passenger.SecondsUntilActivityChange -= seconds;
+                    if (passenger.SecondsUntilActivityChange <= 0d)
+                    {
+                        passenger.CabinActivity = PassengerCabinActivity.EatingMeal;
+                        passenger.SecondsUntilActivityChange = 12d * 60d + (passenger.Id % 240);
+                    }
+                    continue;
+                case PassengerCabinActivity.ReceivingDrink:
+                    passenger.SecondsUntilActivityChange -= seconds;
+                    if (passenger.SecondsUntilActivityChange <= 0d)
+                    {
+                        passenger.CabinActivity = PassengerCabinActivity.Drinking;
+                        passenger.SecondsUntilActivityChange = 6d * 60d + (passenger.Id % 180);
                     }
                     continue;
             }
@@ -592,10 +731,15 @@ public sealed class PassengerBoardingEngine
             return;
         }
 
-        var lavatoryX = Math.Min(1010d, _cabinSeats.Max(seat => seat.X) + 18d);
+        passenger.LavatoryIndex = passenger.LavatoryIndex < 0 ? passenger.Id % 2 : passenger.LavatoryIndex;
+        var lavatoryX = passenger.LavatoryIndex == 0
+            ? Math.Max(25d, _cabinSeats.Min(seat => seat.X) - 25d)
+            : Math.Min(1010d, _cabinSeats.Max(seat => seat.X) + 25d);
+        var crossAisleX = passenger.LavatoryIndex == 0 ? 110d : 925d;
         passenger.ActivityWaypoints = new Queue<CabinPoint>(
         [
             new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY),
+            new CabinPoint(crossAisleX, passenger.Seat.AisleY),
             new CabinPoint(lavatoryX, passenger.Seat.AisleY)
         ]);
     }
@@ -641,16 +785,32 @@ public sealed class PassengerBoardingEngine
         return passenger.ActivityWaypoints.Count == 0;
     }
 
-    private static void SelectNextSeatedActivity(BoardingPassenger passenger, string flightPhase)
+    private static CabinPoint MoveTowardPoint(CabinPoint current, CabinPoint target, double maximumDistance)
+    {
+        var deltaX = target.X - current.X;
+        var deltaY = target.Y - current.Y;
+        var distance = Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+        if (distance <= maximumDistance || distance < 0.01d)
+        {
+            return target;
+        }
+
+        var ratio = maximumDistance / distance;
+        return new CabinPoint(current.X + (deltaX * ratio), current.Y + (deltaY * ratio));
+    }
+
+    private void SelectNextSeatedActivity(BoardingPassenger passenger, string flightPhase)
     {
         passenger.ActivitySequence++;
         var phaseSeed = string.IsNullOrWhiteSpace(flightPhase)
             ? 0
             : StringComparer.OrdinalIgnoreCase.GetHashCode(flightPhase);
         var selector = Math.Abs((passenger.Id * 31) + (passenger.ActivitySequence * 17) + phaseSeed);
-        passenger.CabinActivity = (selector % 17) switch
+        passenger.CabinActivity = (selector % 20) switch
         {
-            0 when !string.Equals(flightPhase, "TAXI", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.WalkingToLavatory,
+            0 or 1 when !string.Equals(flightPhase, "TAXI", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.WalkingToLavatory,
+            2 or 3 when flightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.ReceivingMeal,
+            4 when flightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.ReceivingDrink,
             1 or 2 => PassengerCabinActivity.Sleeping,
             3 or 4 or 5 => PassengerCabinActivity.WatchingMovie,
             6 or 7 => PassengerCabinActivity.UsingPhone,
@@ -659,10 +819,45 @@ public sealed class PassengerBoardingEngine
             11 => PassengerCabinActivity.Working,
             _ => PassengerCabinActivity.Talking
         };
-        passenger.SecondsUntilActivityChange = passenger.CabinActivity == PassengerCabinActivity.WalkingToLavatory
-            ? 0d
-            : 75d + (selector % 240);
+        passenger.SecondsUntilActivityChange = passenger.CabinActivity switch
+        {
+            PassengerCabinActivity.WalkingToLavatory => 0d,
+            PassengerCabinActivity.ReceivingMeal => 10d + (selector % 20),
+            PassengerCabinActivity.ReceivingDrink => 6d + (selector % 12),
+            _ => 75d + (selector % 240)
+        };
         passenger.ActivityWaypoints.Clear();
+    }
+
+    private bool IsLavatoryAvailable(BoardingPassenger passenger) => !_passengers.Any(other =>
+        other.Id != passenger.Id &&
+        other.LavatoryIndex == passenger.LavatoryIndex &&
+        other.CabinActivity == PassengerCabinActivity.UsingLavatory);
+
+    private CabinPoint GetLavatoryQueuePoint(BoardingPassenger passenger)
+    {
+        var lavatoryX = passenger.LavatoryIndex == 0
+            ? Math.Max(35d, _cabinSeats.Min(seat => seat.X) - 12d)
+            : Math.Min(998d, _cabinSeats.Max(seat => seat.X) + 12d);
+        var queuePosition = _passengers.Count(other =>
+            other.Id < passenger.Id && other.LavatoryIndex == passenger.LavatoryIndex &&
+            other.CabinActivity == PassengerCabinActivity.QueuedForLavatory);
+        var direction = passenger.LavatoryIndex == 0 ? 1d : -1d;
+        return new CabinPoint(lavatoryX + (direction * queuePosition * 14d), passenger.Seat.AisleY);
+    }
+
+    private void CompletePurchase(BoardingPassenger passenger, CabinMenuItem item)
+    {
+        passenger.PurchaseSequence++;
+        passenger.OnboardSpendGbp += item.PriceGbp;
+        passenger.LastPurchase = item.Name;
+        _recentPurchases.Add(new CabinPurchase(
+            passenger.Id,
+            passenger.Seat.Number,
+            item.Id,
+            item.Name,
+            item.PriceGbp,
+            DateTimeOffset.UtcNow));
     }
 
     private void SkipAlreadyProcessedPassengers()
@@ -879,28 +1074,67 @@ public sealed class PassengerBoardingEngine
 
     private BoardingDoor SelectDoor(BoardingPassenger passenger)
     {
+        // Gate-desk/manual boarding can place a passenger directly in their seat
+        // before simulator door telemetry is available. Keep a deterministic door
+        // assignment for the manifest without treating that door as physically open.
+        if (_openDoors.Count == 0)
+        {
+            var availableBoardingDoors = _layoutDefinition.Doors
+                .Where(door => door.IsBoardingDoor && !door.IsEmergencyExit)
+                .Select(door => door.Door)
+                .ToArray();
+            if (availableBoardingDoors.Contains(BoardingDoor.L1) &&
+                passenger.Seat.CabinClass == PassengerCabinClass.First)
+            {
+                return BoardingDoor.L1;
+            }
+
+            if (availableBoardingDoors.Contains(BoardingDoor.L2))
+            {
+                return BoardingDoor.L2;
+            }
+
+            return availableBoardingDoors.FirstOrDefault();
+        }
+
         if (_openDoors.Count == 1)
         {
             return _openDoors.Single();
         }
 
-        if (Layout is PassengerCabinLayout.BritishAirwaysA320200 or PassengerCabinLayout.BritishAirwaysA320Neo)
+        if (Layout is PassengerCabinLayout.BritishAirwaysA320200 or
+            PassengerCabinLayout.BritishAirwaysA320Neo or
+            PassengerCabinLayout.BritishAirwaysA319 or
+            PassengerCabinLayout.BritishAirwaysA321 or
+            PassengerCabinLayout.BritishAirwaysA321Neo220M or
+            PassengerCabinLayout.BritishAirwaysEmbraer190)
         {
-            return passenger.Seat.CabinClass == PassengerCabinClass.Business
+            if (_openDoors.Count == 2 && _openDoors.Contains(BoardingDoor.L1) && _openDoors.Contains(BoardingDoor.L2))
+            {
+                return passenger.Seat.CabinClass == PassengerCabinClass.Business
+                    ? BoardingDoor.L1
+                    : BoardingDoor.L2;
+            }
+        }
+
+        if (_openDoors.Count == 2 && _openDoors.Contains(BoardingDoor.L1) && _openDoors.Contains(BoardingDoor.L2))
+        {
+            return passenger.Seat.CabinClass == PassengerCabinClass.First
                 ? BoardingDoor.L1
                 : BoardingDoor.L2;
         }
 
-        return passenger.Seat.CabinClass == PassengerCabinClass.First
-            ? BoardingDoor.L1
-            : BoardingDoor.L2;
+        return _openDoors
+            .OrderBy(door => Math.Abs(GetDoorEntryPoint(door).X - passenger.Seat.X))
+            .ThenBy(door => door)
+            .First();
     }
 
-    private CabinPoint GetDoorEntryPoint(BoardingDoor door) => door switch
+    private CabinPoint GetDoorEntryPoint(BoardingDoor door)
     {
-        BoardingDoor.L1 => new CabinPoint(_layoutDefinition.L1DoorX, _layoutDefinition.DoorEntryY),
-        _ => new CabinPoint(_layoutDefinition.L2DoorX, _layoutDefinition.DoorEntryY)
-    };
+        var definition = _layoutDefinition.Doors.FirstOrDefault(item => item.Door == door && item.IsBoardingDoor);
+        return new CabinPoint(definition?.X ?? _layoutDefinition.L2DoorX, _layoutDefinition.DoorEntryY);
+    }
 
     private int GetBoardingGroup(CabinSeat seat)
     {

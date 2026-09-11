@@ -47,6 +47,14 @@ struct Candidate
 SignalSlot gSeatbelt;
 SignalSlot gDoorL1;
 SignalSlot gDoorL2;
+SignalSlot gDoorL3;
+SignalSlot gDoorL4;
+SignalSlot gDoorL5;
+SignalSlot gDoorR1;
+SignalSlot gDoorR2;
+SignalSlot gDoorR3;
+SignalSlot gDoorR4;
+SignalSlot gDoorR5;
 int gPluginOnline = 1;
 int gTick = 0;
 
@@ -74,7 +82,42 @@ std::array<Candidate, 4> gDoorL2Candidates{{
     {"sim/flightmodel2/misc/door_open_ratio", 1, 75}
 }};
 
-std::array<XPLMDataRef, 7> gPublishedDatarefs{};
+std::array<Candidate, 2> gDoorL3Candidates{{
+    {"1-sim/anim/doorL3", -1, 2000},
+    {"sim/flightmodel2/misc/door_open_ratio", 2, 75}
+}};
+std::array<Candidate, 2> gDoorL4Candidates{{
+    {"1-sim/anim/doorL4", -1, 2000},
+    {"sim/flightmodel2/misc/door_open_ratio", 3, 75}
+}};
+std::array<Candidate, 2> gDoorL5Candidates{{
+    {"1-sim/anim/doorL5", -1, 2000},
+    {"sim/flightmodel2/misc/door_open_ratio", 4, 75}
+}};
+std::array<Candidate, 3> gDoorR1Candidates{{
+    {"1-sim/anim/doorR1", -1, 2000},
+    {"AirbusFBW/PaxDoorModeArray", 1, 1800, CandidateEncoding::ToLissDoorMode},
+    {"sim/flightmodel2/misc/door_open_ratio", 5, 75}
+}};
+std::array<Candidate, 3> gDoorR2Candidates{{
+    {"1-sim/anim/doorR2", -1, 2000},
+    {"AirbusFBW/PaxDoorModeArray", 3, 1800, CandidateEncoding::ToLissDoorMode},
+    {"sim/flightmodel2/misc/door_open_ratio", 6, 75}
+}};
+std::array<Candidate, 2> gDoorR3Candidates{{
+    {"1-sim/anim/doorR3", -1, 2000},
+    {"sim/flightmodel2/misc/door_open_ratio", 7, 75}
+}};
+std::array<Candidate, 2> gDoorR4Candidates{{
+    {"1-sim/anim/doorR4", -1, 2000},
+    {"sim/flightmodel2/misc/door_open_ratio", 8, 75}
+}};
+std::array<Candidate, 2> gDoorR5Candidates{{
+    {"1-sim/anim/doorR5", -1, 2000},
+    {"sim/flightmodel2/misc/door_open_ratio", 9, 75}
+}};
+
+std::array<XPLMDataRef, 23> gPublishedDatarefs{};
 
 float ClampRatio(float value)
 {
@@ -234,6 +277,14 @@ void ResolveAllCandidates()
     ResolveCandidates(gSeatbeltCandidates);
     ResolveCandidates(gDoorL1Candidates);
     ResolveCandidates(gDoorL2Candidates);
+    ResolveCandidates(gDoorL3Candidates);
+    ResolveCandidates(gDoorL4Candidates);
+    ResolveCandidates(gDoorL5Candidates);
+    ResolveCandidates(gDoorR1Candidates);
+    ResolveCandidates(gDoorR2Candidates);
+    ResolveCandidates(gDoorR3Candidates);
+    ResolveCandidates(gDoorR4Candidates);
+    ResolveCandidates(gDoorR5Candidates);
 }
 
 float FlightLoop(float, float, int, void*)
@@ -243,9 +294,25 @@ float FlightLoop(float, float, int, void*)
     ApplyPendingWrite(gSeatbeltCandidates, gSeatbelt);
     ApplyPendingWrite(gDoorL1Candidates, gDoorL1);
     ApplyPendingWrite(gDoorL2Candidates, gDoorL2);
+    ApplyPendingWrite(gDoorL3Candidates, gDoorL3);
+    ApplyPendingWrite(gDoorL4Candidates, gDoorL4);
+    ApplyPendingWrite(gDoorL5Candidates, gDoorL5);
+    ApplyPendingWrite(gDoorR1Candidates, gDoorR1);
+    ApplyPendingWrite(gDoorR2Candidates, gDoorR2);
+    ApplyPendingWrite(gDoorR3Candidates, gDoorR3);
+    ApplyPendingWrite(gDoorR4Candidates, gDoorR4);
+    ApplyPendingWrite(gDoorR5Candidates, gDoorR5);
     SampleSignal(gSeatbeltCandidates, gSeatbelt, true);
     SampleSignal(gDoorL1Candidates, gDoorL1, false);
     SampleSignal(gDoorL2Candidates, gDoorL2, false);
+    SampleSignal(gDoorL3Candidates, gDoorL3, false);
+    SampleSignal(gDoorL4Candidates, gDoorL4, false);
+    SampleSignal(gDoorL5Candidates, gDoorL5, false);
+    SampleSignal(gDoorR1Candidates, gDoorR1, false);
+    SampleSignal(gDoorR2Candidates, gDoorR2, false);
+    SampleSignal(gDoorR3Candidates, gDoorR3, false);
+    SampleSignal(gDoorR4Candidates, gDoorR4, false);
+    SampleSignal(gDoorR5Candidates, gDoorR5, false);
     return kSampleIntervalSeconds;
 }
 
@@ -254,7 +321,17 @@ void ResetForAircraft()
     ResetCandidates(gSeatbeltCandidates);
     ResetCandidates(gDoorL1Candidates);
     ResetCandidates(gDoorL2Candidates);
-    gSeatbelt.available = gDoorL1.available = gDoorL2.available = 0;
+    ResetCandidates(gDoorL3Candidates);
+    ResetCandidates(gDoorL4Candidates);
+    ResetCandidates(gDoorL5Candidates);
+    ResetCandidates(gDoorR1Candidates);
+    ResetCandidates(gDoorR2Candidates);
+    ResetCandidates(gDoorR3Candidates);
+    ResetCandidates(gDoorR4Candidates);
+    ResetCandidates(gDoorR5Candidates);
+    gSeatbelt.available = gDoorL1.available = gDoorL2.available = gDoorL3.available =
+        gDoorL4.available = gDoorL5.available = gDoorR1.available = gDoorR2.available =
+        gDoorR3.available = gDoorR4.available = gDoorR5.available = 0;
     gTick = 0;
 }
 }
@@ -271,7 +348,23 @@ PLUGIN_API int XPluginStart(char* outName, char* outSignature, char* outDescript
         RegisterInt("freeflight/cabin/door_l1_available", &gDoorL1.available),
         RegisterFloat("freeflight/cabin/door_l1_ratio", &gDoorL1, true),
         RegisterInt("freeflight/cabin/door_l2_available", &gDoorL2.available),
-        RegisterFloat("freeflight/cabin/door_l2_ratio", &gDoorL2, true)
+        RegisterFloat("freeflight/cabin/door_l2_ratio", &gDoorL2, true),
+        RegisterInt("freeflight/cabin/door_l3_available", &gDoorL3.available),
+        RegisterFloat("freeflight/cabin/door_l3_ratio", &gDoorL3, true),
+        RegisterInt("freeflight/cabin/door_l4_available", &gDoorL4.available),
+        RegisterFloat("freeflight/cabin/door_l4_ratio", &gDoorL4, true),
+        RegisterInt("freeflight/cabin/door_l5_available", &gDoorL5.available),
+        RegisterFloat("freeflight/cabin/door_l5_ratio", &gDoorL5, true),
+        RegisterInt("freeflight/cabin/door_r1_available", &gDoorR1.available),
+        RegisterFloat("freeflight/cabin/door_r1_ratio", &gDoorR1, true),
+        RegisterInt("freeflight/cabin/door_r2_available", &gDoorR2.available),
+        RegisterFloat("freeflight/cabin/door_r2_ratio", &gDoorR2, true),
+        RegisterInt("freeflight/cabin/door_r3_available", &gDoorR3.available),
+        RegisterFloat("freeflight/cabin/door_r3_ratio", &gDoorR3, true),
+        RegisterInt("freeflight/cabin/door_r4_available", &gDoorR4.available),
+        RegisterFloat("freeflight/cabin/door_r4_ratio", &gDoorR4, true),
+        RegisterInt("freeflight/cabin/door_r5_available", &gDoorR5.available),
+        RegisterFloat("freeflight/cabin/door_r5_ratio", &gDoorR5, true)
     };
     XPLMDebugString("FreeFlight Cabin Bridge: stable cabin datarefs registered.\n");
     return 1;

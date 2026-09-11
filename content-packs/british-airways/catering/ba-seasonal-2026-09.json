@@ -1,0 +1,53 @@
+{
+  "id": "british-airways-catering-2026-09",
+  "version": "2026.09.1",
+  "displayName": "British Airways September 2026 seasonal simulation pack",
+  "effectiveFrom": "2026-09-01",
+  "effectiveTo": "2026-11-30",
+  "items": [
+    { "id": "first-beetroot", "family": "LongHaul", "cabin": "First", "course": "Amuse-bouche", "service": "Departure meal", "name": "Beetroot rose", "description": "Whipped Tunworth cheese and beetroot", "dietary": "Vegetarian", "loadFactorPercent": 100 },
+    { "id": "first-salmon-blini", "family": "LongHaul", "cabin": "First", "course": "Amuse-bouche", "service": "Departure meal", "name": "Smoked salmon blini", "description": "Crème fraîche, chive oil and lemon", "loadFactorPercent": 100 },
+    { "id": "first-seasonal-amuse", "family": "LongHaul", "cabin": "First", "course": "Amuse-bouche", "service": "Departure meal", "name": "Seasonal amuse-bouche", "description": "Chef's selection prepared for today's flight", "loadFactorPercent": 100 },
+    { "id": "first-cured-salmon", "family": "LongHaul", "cabin": "First", "course": "Starters", "service": "Departure meal", "name": "Cured Scottish salmon", "description": "Cucumber, dill and lemon crème fraîche", "loadFactorPercent": 70 },
+    { "id": "first-seasonal-soup", "family": "LongHaul", "cabin": "First", "course": "Soup", "service": "Departure meal", "name": "Seasonal soup", "description": "A warming seasonal recipe with artisan bread", "dietary": "Vegetarian", "loadFactorPercent": 65 },
+    { "id": "first-beef", "family": "LongHaul", "cabin": "First", "course": "Mains", "service": "Dine Anytime", "name": "Fillet of British beef", "description": "Dauphinoise potato, greens and red-wine jus", "loadFactorPercent": 42 },
+    { "id": "first-chicken", "family": "LongHaul", "cabin": "First", "course": "Mains", "service": "Dine Anytime", "name": "Roast chicken crown", "description": "Fondant potato and seasonal vegetables", "loadFactorPercent": 36 },
+    { "id": "first-pappardelle", "family": "LongHaul", "cabin": "First", "course": "Mains", "service": "Dine Anytime", "name": "Wild mushroom pappardelle", "description": "Truffle cream and aged parmesan", "dietary": "Vegetarian", "loadFactorPercent": 30 },
+    { "id": "first-dessert", "family": "LongHaul", "cabin": "First", "course": "Desserts", "service": "Departure meal", "name": "Seasonal dessert collection", "description": "Dessert, fruit and chocolate selection", "loadFactorPercent": 100 },
+    { "id": "first-cheese", "family": "LongHaul", "cabin": "First", "course": "Cheese & extras", "service": "Departure meal", "name": "British cheese board", "description": "Three cheeses, chutney and biscuits", "loadFactorPercent": 100 },
+    { "id": "first-na-halibut", "family": "LongHaul", "region": "NorthAmerica", "cabin": "First", "course": "Mains", "service": "Dine Anytime", "name": "Roast halibut", "description": "North Atlantic halibut, shellfish bisque and leeks", "loadFactorPercent": 32 },
+    { "id": "first-apac-cod", "family": "LongHaul", "region": "AsiaPacific", "cabin": "First", "course": "Mains", "service": "Dine Anytime", "name": "Miso-glazed cod", "description": "Steamed rice, pak choi and ginger", "loadFactorPercent": 32 },
+
+    { "id": "club-beef", "family": "LongHaul", "cabin": "Club World", "course": "Mains", "service": "Departure meal", "name": "Braised British beef", "description": "Potato gratin, vegetables and peppercorn sauce", "loadFactorPercent": 38 },
+    { "id": "club-chicken", "family": "LongHaul", "cabin": "Club World", "course": "Mains", "service": "Departure meal", "name": "Herb-roasted chicken", "description": "Crushed potato, green beans and jus", "loadFactorPercent": 38 },
+    { "id": "club-pasta", "family": "LongHaul", "cabin": "Club World", "course": "Mains", "service": "Departure meal", "name": "Ricotta and spinach tortellini", "description": "Tomato fondue and basil", "dietary": "Vegetarian", "loadFactorPercent": 30 },
+    { "id": "club-dessert", "family": "LongHaul", "cabin": "Club World", "course": "Desserts", "service": "Departure meal", "name": "Chocolate and salted caramel slice", "description": "Chocolate crémeux and caramel", "loadFactorPercent": 100 },
+    { "id": "club-second", "family": "LongHaul", "cabin": "Club World", "course": "Second service", "service": "Second service", "name": "Warm breakfast or light meal", "description": "Selected to match the destination arrival time", "loadFactorPercent": 100 },
+    { "id": "club-na-salmon", "family": "LongHaul", "region": "NorthAmerica", "cabin": "Club World", "course": "Mains", "service": "Departure meal", "name": "Seared salmon", "description": "Herb potatoes, spinach and lemon butter", "loadFactorPercent": 30 },
+    { "id": "club-me-lamb", "family": "LongHaul", "region": "AfricaMiddleEast", "cabin": "Club World", "course": "Mains", "service": "Departure meal", "name": "Spiced lamb shoulder", "description": "Saffron rice, chickpeas and yoghurt", "loadFactorPercent": 30 },
+
+    { "id": "wtp-chicken", "family": "LongHaul", "cabin": "World Traveller Plus", "course": "Mains", "service": "Departure meal", "name": "Roast chicken", "description": "Potato gratin, seasonal greens and gravy", "loadFactorPercent": 46 },
+    { "id": "wtp-beef", "family": "LongHaul", "cabin": "World Traveller Plus", "course": "Mains", "service": "Departure meal", "name": "Slow-cooked beef", "description": "Mashed potato, carrots and red-wine sauce", "loadFactorPercent": 38 },
+    { "id": "wtp-veg", "family": "LongHaul", "cabin": "World Traveller Plus", "course": "Mains", "service": "Departure meal", "name": "Roasted vegetable lasagne", "description": "Tomato, basil and mature cheddar", "dietary": "Vegetarian", "loadFactorPercent": 28 },
+    { "id": "wtp-second", "family": "LongHaul", "cabin": "World Traveller Plus", "course": "Second service", "service": "Second service", "name": "Pre-arrival service", "description": "Breakfast or light meal according to arrival time", "loadFactorPercent": 100 },
+
+    { "id": "wt-chicken", "family": "LongHaul", "cabin": "World Traveller", "course": "Mains", "service": "Departure meal", "name": "Chicken in herb gravy", "description": "Potatoes and vegetables", "loadFactorPercent": 50 },
+    { "id": "wt-pasta", "family": "LongHaul", "cabin": "World Traveller", "course": "Mains", "service": "Departure meal", "name": "Tomato and basil pasta", "description": "Penne pasta with tomato and cheese", "dietary": "Vegetarian", "loadFactorPercent": 42 },
+    { "id": "wt-second", "family": "LongHaul", "cabin": "World Traveller", "course": "Second service", "service": "Second service", "name": "Pre-arrival meal", "description": "A light meal selected for the arrival time", "loadFactorPercent": 100 },
+    { "id": "longhaul-water", "family": "LongHaul", "cabin": "All", "course": "Drinks", "service": "Drinks service", "name": "Water, juice and soft drinks", "description": "Available throughout the flight", "loadFactorPercent": 100 },
+    { "id": "longhaul-snack", "family": "LongHaul", "cabin": "All", "course": "Mid-flight", "service": "Mid-flight refreshments", "name": "Mid-flight snack selection", "description": "Savoury and sweet snacks between services", "loadFactorPercent": 100 },
+
+    { "id": "ce-breakfast", "family": "ShortHaul", "mealPeriod": "Breakfast", "cabin": "Club Europe", "course": "Main service", "service": "Club Europe service", "name": "British breakfast", "description": "Hot breakfast with bakery selection", "loadFactorPercent": 100 },
+    { "id": "ce-lunch", "family": "ShortHaul", "mealPeriod": "Lunch", "cabin": "Club Europe", "course": "Main service", "service": "Club Europe service", "name": "Seasonal lunch plate", "description": "A choice of a warm main or seasonal salad", "loadFactorPercent": 100 },
+    { "id": "ce-tea", "family": "ShortHaul", "mealPeriod": "AfternoonTea", "cabin": "Club Europe", "course": "Afternoon tea", "service": "Club Europe service", "name": "Afternoon tea", "description": "Sandwiches, scone and sweet treat", "loadFactorPercent": 100 },
+    { "id": "ce-dinner", "family": "ShortHaul", "mealPeriod": "Dinner", "cabin": "Club Europe", "course": "Main service", "service": "Club Europe service", "name": "Seasonal evening meal", "description": "Warm main, salad and dessert", "loadFactorPercent": 100 },
+    { "id": "ce-drinks", "family": "ShortHaul", "cabin": "Club Europe", "course": "Drinks", "service": "Drinks service", "name": "Club Europe bar", "description": "Champagne, wine, spirits, soft drinks and hot drinks", "loadFactorPercent": 100 },
+
+    { "id": "et-water", "family": "ShortHaul", "cabin": "Euro Traveller", "course": "Complimentary", "service": "Euro Traveller service", "name": "Water and light snack", "description": "Complimentary onboard refreshment", "loadFactorPercent": 100 },
+    { "id": "cafe-sandwich", "family": "ShortHaul", "cabin": "Euro Traveller", "course": "High Life Café", "service": "Buy on board", "name": "Chicken and bacon sandwich", "description": "Chilled café sandwich", "priceGbp": 5.50, "complimentary": false, "loadFactorPercent": 18 },
+    { "id": "cafe-veg", "family": "ShortHaul", "cabin": "Euro Traveller", "course": "High Life Café", "service": "Buy on board", "name": "Mozzarella and tomato focaccia", "description": "Vegetarian café selection", "dietary": "Vegetarian", "priceGbp": 5.25, "complimentary": false, "loadFactorPercent": 16 },
+    { "id": "cafe-snack", "family": "ShortHaul", "cabin": "Euro Traveller", "course": "High Life Café", "service": "Buy on board", "name": "Savoury snack box", "description": "Crisps, nuts and snack selection", "priceGbp": 4.25, "complimentary": false, "loadFactorPercent": 22 },
+    { "id": "cafe-soft", "family": "ShortHaul", "cabin": "Euro Traveller", "course": "High Life Café", "service": "Buy on board", "name": "Soft drink", "description": "Cola, lemonade or tonic", "priceGbp": 2.75, "complimentary": false, "loadFactorPercent": 24 },
+    { "id": "cafe-wine", "family": "ShortHaul", "cabin": "Euro Traveller", "course": "High Life Café", "service": "Buy on board", "name": "Wine miniature", "description": "Red, white or sparkling wine", "priceGbp": 6.50, "complimentary": false, "loadFactorPercent": 18 }
+  ]
+}

@@ -7,14 +7,20 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.4.9</Version>
+    <Version>0.5.3</Version>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="Assets\Catering\*.png" />
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\content-packs\british-airways\simbrief\*.json">
       <Link>content-packs\british-airways\simbrief\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\content-packs\british-airways\catering\*.json">
+      <Link>content-packs\british-airways\catering\%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

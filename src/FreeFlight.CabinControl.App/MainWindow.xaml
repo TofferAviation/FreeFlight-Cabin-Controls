@@ -72,7 +72,7 @@
                                RenderOptions.BitmapScalingMode="HighQuality" />
                     </StackPanel>
 
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel VerticalAlignment="Top" Margin="0,5,0,0">
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Overview"
@@ -136,7 +136,15 @@
                                          CommandParameter="BoardingPasses" />
                         </StackPanel>
 
-                        <TextBlock Text="CABIN SYSTEMS" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
+                        <TextBlock Text="AIRLINE OPERATIONS" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Airliners"
+                                     Tag="&#xE709;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Airliners, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="Airliners" />
+                        <TextBlock Text="CABIN" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Live Cabin"
                                      Tag="&#xE7C8;"
@@ -146,12 +154,19 @@
                                      CommandParameter="Passengers"
                                      ToolTip="Live cabin overview for gate, taxi and flight operations" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
-                                     Content="Airliners"
-                                     Tag="&#xE709;"
+                                     Content="Catering &amp; Meal Service"
+                                     Tag="&#xED56;"
                                      GroupName="Navigation"
-                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Airliners, Mode=OneWay}"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Catering, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
-                                     CommandParameter="Airliners" />
+                                     CommandParameter="Catering" />
+                        <RadioButton Style="{StaticResource CompactNavRadioStyle}"
+                                     Content="Onboard Menu"
+                                     Tag="&#xE8A1;"
+                                     GroupName="Navigation"
+                                     IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=OnboardMenu, Mode=OneWay}"
+                                     Command="{Binding NavigateCommand}"
+                                     CommandParameter="OnboardMenu" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Cabin Panel"
                                      Tag="&#xE7F4;"
@@ -167,6 +182,7 @@
                                      IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Audio, Mode=OneWay}"
                                      Command="{Binding NavigateCommand}"
                                      CommandParameter="Audio" />
+                        <TextBlock Text="SYSTEM" Foreground="#61758E" FontSize="9" FontWeight="SemiBold" Margin="24,11,0,4" />
                         <RadioButton Style="{StaticResource CompactNavRadioStyle}"
                                      Content="Diagnostics"
                                      Tag="&#xE9D2;"
@@ -330,6 +346,10 @@
                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Airliners}" />
                     <views:PassengerFlowView DataContext="{Binding Passengers}"
                                              Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passengers}" />
+                    <views:CateringView DataContext="{Binding Catering}"
+                                         Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Catering}" />
+                    <views:OnboardMenuView DataContext="{Binding Catering}"
+                                           Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=OnboardMenu}" />
                     <views:CabinControlPanelView DataContext="{Binding CabinPanel}"
                                                  Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=CabinPanel}" />
                     <views:AudioView DataContext="{Binding Audio}"

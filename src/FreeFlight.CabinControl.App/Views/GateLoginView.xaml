@@ -69,7 +69,8 @@
                                              CaretBrush="#398EFF" FontSize="14" />
 
                                 <TextBlock Text="Station" FontSize="13" Margin="0,16,0,5" />
-                                <ComboBox ItemsSource="{Binding Stations}" SelectedItem="{Binding SelectedStation}" Height="43" />
+                                <ComboBox ItemsSource="{Binding Stations}" SelectedItem="{Binding SelectedStation}" Height="43"
+                                          IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True" />
 
                                 <CheckBox IsChecked="{Binding RememberStation}" Content="Remember this station" Foreground="#D6E0EC" Margin="0,14,0,0" />
                                 <Button Command="{Binding SignInCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,20,0,0" Height="54">

@@ -6,7 +6,15 @@ internal sealed record PassengerCabinLayoutDefinition(
     double L1DoorX,
     double L2DoorX,
     double DoorEntryY,
-    double DoorThresholdY);
+    double DoorThresholdY,
+    IReadOnlyList<CabinDoorDefinition>? CabinDoors = null)
+{
+    public IReadOnlyList<CabinDoorDefinition> Doors { get; } = CabinDoors ??
+    [
+        new(BoardingDoor.L1, "L1", L1DoorX, true),
+        new(BoardingDoor.L2, "L2", L2DoorX, true)
+    ];
+}
 
 internal static class PassengerCabinLayouts
 {
@@ -16,8 +24,173 @@ internal static class PassengerCabinLayouts
         PassengerCabinLayout.BritishAirways777300 => CreateBritishAirways777300(),
         PassengerCabinLayout.BritishAirwaysA320200 => CreateBritishAirwaysA320200(),
         PassengerCabinLayout.BritishAirwaysA320Neo => CreateBritishAirwaysA320Neo(),
+        PassengerCabinLayout.BritishAirwaysA319 => CreateSingleAisle(layout, 24, 10, 0),
+        PassengerCabinLayout.BritishAirwaysA321 => CreateSingleAisle(layout, 35, 12, 0),
+        PassengerCabinLayout.BritishAirwaysA321Neo220M => CreateSingleAisle(layout, 37, 0, 2),
+        PassengerCabinLayout.BritishAirwaysEmbraer190 => CreateEmbraer190(),
+        PassengerCabinLayout.BritishAirwaysA350 => CreateWideBody(layout, 2, 14, 7, 22, 9),
+        PassengerCabinLayout.BritishAirways777200Lgw => CreateWideBody(layout, 0, 8, 7, 25, 0),
+        PassengerCabinLayout.BritishAirways777200First => CreateWideBody(layout, 2, 12, 5, 14, 1),
+        PassengerCabinLayout.BritishAirways7878ClubSuite => CreateWideBody(layout, 0, 8, 5, 14, 8),
+        PassengerCabinLayout.BritishAirways7879 => CreateWideBody(layout, 2, 11, 5, 13, 6),
+        PassengerCabinLayout.BritishAirways7879Alternate => CreateWideBody(layout, 2, 11, 5, 13, 7),
+        PassengerCabinLayout.BritishAirways78710 => CreateWideBody(layout, 2, 12, 5, 17, 10),
         _ => CreateFlightFactor777V2()
     };
+
+    private static PassengerCabinLayoutDefinition CreateSingleAisle(
+        PassengerCabinLayout layout,
+        int rows,
+        int businessRows,
+        int seatsToRemove)
+    {
+        var seats = new List<CabinSeat>();
+        var rowSpacing = 790d / Math.Max(1, rows - 1);
+        for (var row = 1; row <= rows; row++)
+        {
+            var x = 125d + ((row - 1) * rowSpacing);
+            var letters = row <= businessRows ? new[] { "A", "C", "D", "F" } : new[] { "A", "B", "C", "D", "E", "F" };
+            var yPositions = row <= businessRows
+                ? new[] { 55d, 76d, 112d, 133d }
+                : new[] { 52d, 64d, 76d, 112d, 124d, 136d };
+            for (var index = 0; index < letters.Length; index++)
+            {
+                seats.Add(new CabinSeat(
+                    $"{row}{letters[index]}",
+                    row <= businessRows ? PassengerCabinClass.Business : PassengerCabinClass.Economy,
+                    x,
+                    yPositions[index],
+                    94d));
+            }
+        }
+
+        while (seatsToRemove-- > 0 && seats.Count > 0)
+        {
+            seats.RemoveAt(seats.Count - 1);
+        }
+
+        return new PassengerCabinLayoutDefinition(
+            layout,
+            seats,
+            72d,
+            960d,
+            210d,
+            174d,
+            CreateNarrowBodyDoors(72d, 960d));
+    }
+
+    private static PassengerCabinLayoutDefinition CreateEmbraer190()
+    {
+        var seats = new List<CabinSeat>(98);
+        for (var row = 1; row <= 25; row++)
+        {
+            var x = 135d + ((row - 1) * (770d / 24d));
+            var letters = row == 25 ? new[] { "A", "D" } : new[] { "A", "C", "D", "F" };
+            var yPositions = row == 25 ? new[] { 62d, 128d } : new[] { 57d, 75d, 113d, 131d };
+            for (var index = 0; index < letters.Length; index++)
+            {
+                seats.Add(new CabinSeat($"{row}{letters[index]}", row <= 8 ? PassengerCabinClass.Business : PassengerCabinClass.Economy, x, yPositions[index], 94d));
+            }
+        }
+
+        return new PassengerCabinLayoutDefinition(
+            PassengerCabinLayout.BritishAirwaysEmbraer190,
+            seats,
+            80d,
+            950d,
+            210d,
+            174d,
+            [
+                new(BoardingDoor.L1, "L1", 80d, true),
+                new(BoardingDoor.R1, "R1", 80d, false),
+                new(BoardingDoor.OverwingLeft, "OW L", 520d, false, true),
+                new(BoardingDoor.OverwingRight, "OW R", 520d, false, true),
+                new(BoardingDoor.L2, "L2", 950d, true),
+                new(BoardingDoor.R2, "R2", 950d, false)
+            ]);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateWideBody(
+        PassengerCabinLayout layout,
+        int firstRows,
+        int businessRows,
+        int premiumRows,
+        int economyRows,
+        int seatsToRemove)
+    {
+        var seats = new List<CabinSeat>();
+        var totalRows = firstRows + businessRows + premiumRows + economyRows;
+        var row = 1;
+        for (var section = 0; section < 4; section++)
+        {
+            var count = section switch { 0 => firstRows, 1 => businessRows, 2 => premiumRows, _ => economyRows };
+            var cabinClass = section switch
+            {
+                0 => PassengerCabinClass.First,
+                1 => PassengerCabinClass.Business,
+                2 => PassengerCabinClass.PremiumEconomy,
+                _ => PassengerCabinClass.Economy
+            };
+            var letters = section <= 1
+                ? new[] { "A", "E", "F", "K" }
+                : section == 2
+                    ? new[] { "A", "B", "D", "E", "F", "G", "J", "K" }
+                    : new[] { "A", "B", "C", "D", "E", "F", "G", "H", "J", "K" };
+            for (var sectionRow = 0; sectionRow < count; sectionRow++, row++)
+            {
+                var x = 125d + ((row - 1) * (790d / Math.Max(1, totalRows - 1)));
+                var yPositions = letters.Length switch
+                {
+                    4 => new[] { 48d, 76d, 112d, 140d },
+                    8 => new[] { 47d, 61d, 76d, 88d, 102d, 116d, 131d, 145d },
+                    _ => new[] { 45d, 57d, 69d, 82d, 91d, 101d, 113d, 125d, 137d, 149d }
+                };
+                for (var index = 0; index < letters.Length; index++)
+                {
+                    var aisleY = index < letters.Length / 2 ? 78d : 112d;
+                    seats.Add(new CabinSeat($"{row}{letters[index]}", cabinClass, x, yPositions[index], aisleY));
+                }
+            }
+        }
+
+        while (seatsToRemove-- > 0 && seats.Count > 0)
+        {
+            seats.RemoveAt(seats.Count - 1);
+        }
+
+        return new PassengerCabinLayoutDefinition(
+            layout,
+            seats,
+            55d,
+            295d,
+            208d,
+            174d,
+            CreateWideBodyDoors());
+    }
+
+    private static IReadOnlyList<CabinDoorDefinition> CreateNarrowBodyDoors(double l1X = 72d, double l2X = 960d) =>
+    [
+        new(BoardingDoor.L1, "L1", l1X, true),
+        new(BoardingDoor.R1, "R1", l1X, false),
+        new(BoardingDoor.OverwingLeft, "OW L", 520d, false, true),
+        new(BoardingDoor.OverwingRight, "OW R", 520d, false, true),
+        new(BoardingDoor.L2, "L2", l2X, true),
+        new(BoardingDoor.R2, "R2", l2X, false)
+    ];
+
+    private static IReadOnlyList<CabinDoorDefinition> CreateWideBodyDoors(double l1X = 55d, double l2X = 295d) =>
+    [
+        new(BoardingDoor.L1, "L1", l1X, true),
+        new(BoardingDoor.R1, "R1", l1X, false),
+        new(BoardingDoor.L2, "L2", l2X, true),
+        new(BoardingDoor.R2, "R2", l2X, false),
+        new(BoardingDoor.L3, "L3", 535d, true),
+        new(BoardingDoor.R3, "R3", 535d, false),
+        new(BoardingDoor.L4, "L4", 760d, true),
+        new(BoardingDoor.R4, "R4", 760d, false),
+        new(BoardingDoor.L5, "L5", 960d, true),
+        new(BoardingDoor.R5, "R5", 960d, false)
+    ];
 
     private static PassengerCabinLayoutDefinition CreateFlightFactor777V2()
     {
@@ -58,7 +231,8 @@ internal static class PassengerCabinLayouts
             183d,
             426d,
             145d,
-            128d);
+            128d,
+            CreateWideBodyDoors(183d, 426d));
     }
 
     private static PassengerCabinLayoutDefinition CreateBritishAirways777200Er()
@@ -112,7 +286,8 @@ internal static class PassengerCabinLayouts
             52d,
             295d,
             208d,
-            174d);
+            174d,
+            CreateWideBodyDoors(52d, 295d));
     }
 
     private static PassengerCabinLayoutDefinition CreateBritishAirways777300()
@@ -163,7 +338,8 @@ internal static class PassengerCabinLayouts
             50d,
             228d,
             208d,
-            174d);
+            174d,
+            CreateWideBodyDoors(50d, 228d));
     }
 
     private static PassengerCabinLayoutDefinition CreateBritishAirwaysA320200()
@@ -189,7 +365,8 @@ internal static class PassengerCabinLayouts
             72d,
             965d,
             210d,
-            174d);
+            174d,
+            CreateNarrowBodyDoors(72d, 965d));
     }
 
     private static PassengerCabinLayoutDefinition CreateBritishAirwaysA320Neo()
@@ -215,7 +392,8 @@ internal static class PassengerCabinLayouts
             70d,
             965d,
             210d,
-            174d);
+            174d,
+            CreateNarrowBodyDoors(70d, 965d));
     }
 
     private static void AddMappedRows(

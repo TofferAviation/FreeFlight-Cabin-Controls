@@ -30,6 +30,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Seat-belt sign controls cabin activities", SeatbeltSignControlsCabinActivitiesAsync),
     ("Seat-belt responses are delayed and staggered", SeatbeltResponsesAreStaggeredAsync),
     ("Cabin movement follows stable activity routes", CabinMovementFollowsStableRoutesAsync),
+    ("Complimentary cabin service never creates revenue", ComplimentaryCabinServiceCreatesNoRevenueAsync),
+    ("High Life Cafe revenue accepts only eligible purchases", HighLifeCafeRevenueEligibilityAsync),
     ("Door entry stays centred through the aisle crossing", DoorEntryStaysCentredAsync),
     ("FlightFactor doorway uses the cropped cabin threshold", FlightFactorDoorEntryUsesCabinThresholdAsync),
     ("FlightFactor cabin adapter matches only the intended aircraft", FlightFactorCabinAdapterMatchesAsync),
@@ -41,13 +43,40 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger deboarding completes", PassengerDeboardingCompletesAsync),
     ("British Airways cabin layouts map official seats", BritishAirwaysCabinLayoutsMapSeatsAsync),
     ("Airbus A320 cabin layouts map usable seats", AirbusA320CabinLayoutsMapSeatsAsync),
+    ("Expanded British Airways fleet layouts expose mapped seats and doors", ExpandedBritishAirwaysFleetLayoutsAsync),
     ("British Airways layouts board and deboard", BritishAirwaysLayoutsOperateAsync),
     ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync),
     ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync),
     ("No-show passengers are excluded from boarding", NoShowPassengersAreExcludedAsync),
     ("Route-aware no-show forecasts use configured profiles", RouteAwareNoShowForecastsAsync),
     ("X-Plane telemetry classifies flight phases", XPlaneTelemetryClassifiesFlightPhasesAsync)
+    ,("BA catering selects long-haul route and meal period", BritishAirwaysLongHaulCateringSelectionAsync)
+    ,("BA catering selects short-haul service band", BritishAirwaysShortHaulCateringSelectionAsync)
 };
+
+static Task BritishAirwaysLongHaulCateringSelectionAsync()
+{
+    var selection = BritishAirwaysCateringProfileSelector.Select(new CateringFlightContext(
+        "BA281", "LHR", "LAX", "B77W", new DateTimeOffset(2026, 9, 4, 14, 10, 0, TimeSpan.Zero),
+        TimeSpan.FromHours(10.75), false));
+    AssertEqual(CateringAircraftFamily.LongHaul, selection.AircraftFamily, "A 777 was not assigned long-haul catering.");
+    AssertEqual(CateringRouteRegion.NorthAmerica, selection.RouteRegion, "LAX did not select the North America menu variant.");
+    AssertEqual(CateringMealPeriod.AfternoonTea, selection.MealPeriod, "The departure time did not select afternoon tea.");
+    Assert(selection.ServiceSequence.Contains("Second service"), "An extended flight did not receive a second service.");
+    return Task.CompletedTask;
+}
+
+static Task BritishAirwaysShortHaulCateringSelectionAsync()
+{
+    var selection = BritishAirwaysCateringProfileSelector.Select(new CateringFlightContext(
+        "BA430", "LHR", "AMS", "A20N", new DateTimeOffset(2026, 9, 4, 8, 5, 0, TimeSpan.Zero),
+        TimeSpan.FromMinutes(75), true));
+    AssertEqual(CateringAircraftFamily.ShortHaul, selection.AircraftFamily, "An A320neo was not assigned short-haul catering.");
+    AssertEqual(CateringMealPeriod.Breakfast, selection.MealPeriod, "The morning departure did not select breakfast.");
+    Assert(selection.ServiceBand.Contains("Band 1", StringComparison.Ordinal), "The short sector did not select the express band.");
+    Assert(selection.ServiceSequence.Contains("High Life Café"), "Euro Traveller buy-on-board service was omitted.");
+    return Task.CompletedTask;
+}
 
 static Task EmptyPassengerManifestStaysEmptyAsync()
 {
@@ -751,6 +780,73 @@ static Task CabinMovementFollowsStableRoutesAsync()
     return Task.CompletedTask;
 }
 
+static Task ComplimentaryCabinServiceCreatesNoRevenueAsync()
+{
+    foreach (var layout in new[]
+             {
+                 PassengerCabinLayout.BritishAirways777300,
+                 PassengerCabinLayout.BritishAirwaysA320Neo
+             })
+    {
+        var engine = new PassengerBoardingEngine(int.MaxValue, layout);
+        foreach (var passenger in engine.Passengers)
+        {
+            Assert(engine.TryBoardPassenger(passenger.Id), $"{layout} passenger could not be seated for the catering revenue check.");
+        }
+
+        engine.ApplyCateringServiceProgress(55d, drinksService: false, serviceActive: true);
+        for (var index = 0; index < 80; index++)
+        {
+            engine.UpdateCabinActivities(TimeSpan.FromMilliseconds(250), false, "Cruise");
+        }
+
+        engine.ApplyCateringServiceProgress(65d, drinksService: true, serviceActive: true);
+        for (var index = 0; index < 80; index++)
+        {
+            engine.UpdateCabinActivities(TimeSpan.FromMilliseconds(250), false, "Cruise");
+        }
+
+        AssertEqual(0m, engine.Passengers.Sum(passenger => passenger.OnboardSpendGbp),
+            $"{layout} complimentary meal or drink service was counted as revenue.");
+        AssertEqual(0, engine.DrainRecentPurchases().Count,
+            $"{layout} emitted a paid purchase for complimentary service.");
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task HighLifeCafeRevenueEligibilityAsync()
+{
+    var shortHaul = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirwaysA320Neo);
+    var economy = shortHaul.Passengers.First(passenger => passenger.Seat.CabinClass == PassengerCabinClass.Economy);
+    var business = shortHaul.Passengers.First(passenger => passenger.Seat.CabinClass == PassengerCabinClass.Business);
+    Assert(shortHaul.TryBoardPassenger(economy.Id), "The Euro Traveller passenger could not be seated.");
+    Assert(shortHaul.TryBoardPassenger(business.Id), "The Club Europe passenger could not be seated.");
+
+    Assert(shortHaul.TryRecordHighLifeCafePurchase(
+            economy.Id, "cafe-sandwich", "Chicken and bacon sandwich", 5.50m),
+        "An eligible Euro Traveller High Life Cafe purchase was rejected.");
+    Assert(!shortHaul.TryRecordHighLifeCafePurchase(
+            business.Id, "cafe-soft", "Soft drink", 2.75m),
+        "A Club Europe passenger incorrectly generated High Life Cafe revenue.");
+    Assert(!shortHaul.TryRecordHighLifeCafePurchase(
+            economy.Id, "meal-generic", "Complimentary meal", 4m),
+        "A non-cafe item incorrectly generated High Life Cafe revenue.");
+    AssertEqual(5.50m, economy.OnboardSpendGbp, "The eligible cafe purchase was not added to passenger spend.");
+    var purchase = shortHaul.DrainRecentPurchases().Single();
+    AssertEqual("cafe-sandwich", purchase.ItemId, "The cafe purchase did not retain the menu-pack item id.");
+    AssertEqual(5.50m, purchase.PriceGbp, "The cafe purchase did not retain its realistic price.");
+
+    var longHaul = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirways777300);
+    var longHaulEconomy = longHaul.Passengers.First(passenger => passenger.Seat.CabinClass == PassengerCabinClass.Economy);
+    Assert(longHaul.TryBoardPassenger(longHaulEconomy.Id), "The long-haul economy passenger could not be seated.");
+    Assert(!longHaul.TryRecordHighLifeCafePurchase(
+            longHaulEconomy.Id, "cafe-wine", "Wine miniature", 6.50m),
+        "A long-haul passenger incorrectly generated High Life Cafe revenue.");
+
+    return Task.CompletedTask;
+}
+
 static Task UnfinishedPassengerSessionRestoresAsync()
 {
     var source = new PassengerBoardingEngine(24, PassengerCabinLayout.BritishAirways777200Er);
@@ -901,6 +997,51 @@ static Task PartialLoadsDistributeTicketsAsync()
         Assert(adjacentPairs.Any(pair => pair.First < pair.Second) &&
                adjacentPairs.Any(pair => pair.First > pair.Second),
             $"Boarding Group {group.Key} was assigned in a rigid front-to-back or back-to-front sequence.");
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task ExpandedBritishAirwaysFleetLayoutsAsync()
+{
+    var expectedCapacities = new Dictionary<PassengerCabinLayout, int>
+    {
+        [PassengerCabinLayout.BritishAirwaysA319] = 124,
+        [PassengerCabinLayout.BritishAirwaysA321] = 186,
+        [PassengerCabinLayout.BritishAirwaysA321Neo220M] = 220,
+        [PassengerCabinLayout.BritishAirwaysA350] = 331,
+        [PassengerCabinLayout.BritishAirways777200Lgw] = 338,
+        [PassengerCabinLayout.BritishAirways777200First] = 235,
+        [PassengerCabinLayout.BritishAirways7878ClubSuite] = 204,
+        [PassengerCabinLayout.BritishAirways7879] = 216,
+        [PassengerCabinLayout.BritishAirways7879Alternate] = 215,
+        [PassengerCabinLayout.BritishAirways78710] = 256,
+        [PassengerCabinLayout.BritishAirwaysEmbraer190] = 98
+    };
+
+    foreach (var (layout, expectedCapacity) in expectedCapacities)
+    {
+        var engine = new PassengerBoardingEngine(int.MaxValue, layout);
+        AssertEqual(expectedCapacity, engine.Capacity, $"{layout} mapped the wrong cabin capacity.");
+        AssertEqual(expectedCapacity, engine.Passengers.Count, $"{layout} did not fill every mapped seat.");
+        Assert(engine.Doors.Any(door => door.Door == BoardingDoor.L1 && door.IsBoardingDoor),
+            $"{layout} is missing its L1 passenger door.");
+        Assert(engine.Doors.Any(door => door.Door == BoardingDoor.L2 && door.IsBoardingDoor),
+            $"{layout} is missing its L2 passenger door.");
+
+        if (layout is PassengerCabinLayout.BritishAirwaysA319 or
+            PassengerCabinLayout.BritishAirwaysA321 or
+            PassengerCabinLayout.BritishAirwaysA321Neo220M or
+            PassengerCabinLayout.BritishAirwaysEmbraer190)
+        {
+            Assert(engine.Doors.Any(door => door.IsEmergencyExit),
+                $"{layout} did not distinguish its emergency exits from boarding doors.");
+        }
+        else
+        {
+            Assert(engine.Doors.Any(door => door.Door == BoardingDoor.L3),
+                $"{layout} did not expose its additional wide-body doors.");
+        }
     }
 
     return Task.CompletedTask;

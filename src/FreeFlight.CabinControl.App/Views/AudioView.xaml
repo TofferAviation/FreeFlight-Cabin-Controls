@@ -19,7 +19,7 @@
         </LinearGradientBrush>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

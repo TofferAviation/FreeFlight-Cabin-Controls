@@ -23,7 +23,7 @@
                 <TextBlock Text="Changes included with this installed version" Style="{StaticResource MutedTextStyle}" Margin="0,3,0,0" />
             </StackPanel>
             <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="16">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                     <TextBlock x:Name="ChangelogText"
                                TextWrapping="Wrap"
                                Foreground="#AFC2D8"

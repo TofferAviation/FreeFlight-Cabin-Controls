@@ -1,171 +1,52 @@
 <UserControl x:Class="FreeFlight.CabinControl.App.Views.PerformanceView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d"
-             d:DesignHeight="820"
-             d:DesignWidth="1200">
-    <UserControl.Resources>
-        <Style x:Key="MetricValueStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="28" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
-        </Style>
-    </UserControl.Resources>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Hidden">
+        <StackPanel>
+            <TextBlock Text="Cabin Control Performance" Style="{StaticResource PageTitleStyle}" />
+            <TextBlock Text="Current resource cost created by this application only" Style="{StaticResource PageSubtitleStyle}" />
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="18" />
-                <RowDefinition Height="125" />
-                <RowDefinition Height="16" />
-                <RowDefinition Height="275" />
-                <RowDefinition Height="16" />
-                <RowDefinition Height="240" />
-            </Grid.RowDefinitions>
+            <UniformGrid Columns="4" Margin="0,18,0,14">
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="APP CPU" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding CpuUsage}" FontSize="27" Foreground="#55AEFF"/><TextBlock Text="Current Cabin Control process" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource CardStyle}" Margin="8,0"><StackPanel><TextBlock Text="APP MEMORY" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding MemoryUsage}" FontSize="27" Foreground="#58E68A"/><TextBlock Text="Working set in RAM" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource CardStyle}" Margin="8,0"><StackPanel><TextBlock Text="MANAGED HEAP" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding ManagedHeap}" FontSize="20" Foreground="#B88CFF" TextWrapping="Wrap"/><TextBlock Text=".NET allocations used by the app" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource CardStyle}" Margin="8,0,0,0"><StackPanel><TextBlock Text="PROCESS DETAIL" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding ProcessDetail}" FontSize="20" Foreground="#FFCB69" TextWrapping="Wrap"/><TextBlock Text="Cabin Control threads and handles" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
+            </UniformGrid>
 
-            <Grid Grid.Row="0">
-                <StackPanel>
-                    <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" />
-                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Ellipse Width="13" Height="13" Fill="{Binding Status.ConnectionColor}" Margin="0,0,10,0" />
-                    <TextBlock Text="{Binding Status.ConnectionLabel}" Foreground="{Binding Status.ConnectionColor}" FontSize="14" FontWeight="SemiBold" />
-                </StackPanel>
-            </Grid>
-
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-
-                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,7,0" Padding="16">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE950;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Cabin Core CPU" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding CpuUsage}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Live process measurement" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="175"/></Grid.RowDefinitions>
+                    <Grid><StackPanel><TextBlock Text="60-second application footprint" Style="{StaticResource SectionTitleStyle}"/><TextBlock Text="Blue: app CPU % · Green: app memory MB" Style="{StaticResource MutedTextStyle}"/></StackPanel><TextBlock Text="{Binding PeakSummary}" HorizontalAlignment="Right" Foreground="#8FC8FF"/></Grid>
+                    <Grid Grid.Row="1" Margin="0,12,0,0">
+                        <Rectangle Fill="#091629" RadiusX="6" RadiusY="6"/>
+                        <Polyline Points="{Binding CpuGraphPoints}" Stroke="#42A8FF" StrokeThickness="2" Stretch="Fill" Margin="12"/>
+                        <Polyline Points="{Binding MemoryGraphPoints}" Stroke="#58E68A" StrokeThickness="2" Stretch="Fill" Margin="12" Opacity="0.85"/>
                     </Grid>
-                </Border>
+                </Grid>
+            </Border>
 
-                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="7,0" Padding="16">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xEDA2;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="Core Memory" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding MemoryUsage}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Live process measurement" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
-                    </Grid>
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.4*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="Measured app impact" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="{Binding Recommendation}" Foreground="{Binding RecommendationColor}" FontSize="15" TextWrapping="Wrap" LineHeight="23" Margin="0,12,0,8"/>
+                        <TextBlock Text="This page intentionally excludes total system load and simulator load. Simulator FPS impact requires a controlled A/B comparison and is not inferred from unrelated process usage." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap"/>
+                        <Button Content="Open Log Folder" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding OpenLogFolderCommand}" HorizontalAlignment="Left" Margin="0,16,0,0"/>
+                    </StackPanel>
                 </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="7,0" Padding="16">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE767;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="System CPU" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding SystemCpuUsage}" Style="{StaticResource MetricValueStyle}" /><TextBlock Text="Whole-system live load" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="3" Style="{StaticResource CardStyle}" Margin="7,0,0,0" Padding="16">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="58" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                        <Border Width="48" Height="48" CornerRadius="24" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Background="#0C1A30"><TextBlock Text="&#xE716;" FontFamily="Segoe Fluent Icons" FontSize="25" Foreground="{StaticResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="System Memory" Style="{StaticResource MutedTextStyle}" /><TextBlock Text="{Binding SystemMemoryUsage}" FontSize="21" FontWeight="SemiBold" Foreground="{StaticResource PrimaryBrush}" /><TextBlock Text="Used / installed RAM" Foreground="{StaticResource SuccessBrush}" FontSize="12" /></StackPanel>
-                    </Grid>
-                </Border>
-            </Grid>
-
-            <Grid Grid.Row="4">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="1.78*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="35" /><RowDefinition Height="*" /><RowDefinition Height="26" /></Grid.RowDefinitions>
-                        <Grid><TextBlock Text="Resource Usage" Style="{StaticResource SectionTitleStyle}" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Rectangle Width="22" Height="3" Fill="{StaticResource PrimaryBrush}" VerticalAlignment="Center" /><TextBlock Text="{Binding CpuUsage, StringFormat=CPU {0}}" Margin="8,0,20,0" /><Rectangle Width="22" Height="3" Fill="{StaticResource CyanBrush}" VerticalAlignment="Center" /><TextBlock Text="{Binding MemoryUsage, StringFormat=Memory {0}}" Margin="8,0,0,0" /></StackPanel></Grid>
-                        <Grid Grid.Row="1" Margin="10,4,4,0">
-                            <Rectangle Fill="#060E1C" Stroke="{StaticResource BorderSoftBrush}" />
-                            <Grid Opacity="0.45">
-                                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <Border Grid.Row="1" Grid.ColumnSpan="6" BorderBrush="#314155" BorderThickness="0,1,0,0" /><Border Grid.Row="2" Grid.ColumnSpan="6" BorderBrush="#314155" BorderThickness="0,1,0,0" /><Border Grid.Row="3" Grid.ColumnSpan="6" BorderBrush="#314155" BorderThickness="0,1,0,0" />
-                                <Border Grid.Column="1" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="2" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="3" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="4" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" /><Border Grid.Column="5" Grid.RowSpan="4" BorderBrush="#314155" BorderThickness="1,0,0,0" />
-                            </Grid>
-                            <Viewbox Stretch="Fill" Margin="0,12">
-                                <Canvas Width="700" Height="150">
-                                    <Polyline Stroke="{StaticResource CyanBrush}" StrokeThickness="3" Points="{Binding MemoryGraphPoints}" />
-                                    <Polyline Stroke="{StaticResource PrimaryBrush}" StrokeThickness="3" Points="{Binding CpuGraphPoints}" />
-                                </Canvas>
-                            </Viewbox>
-                        </Grid>
-                        <TextBlock Grid.Row="2" Text="Live 60-second process history" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
-                    </Grid>
-                </Border>
-
                 <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="36" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <TextBlock Text="Simulator / Process Detail" Style="{StaticResource SectionTitleStyle}" />
-                        <StackPanel Grid.Row="1">
-                            <Grid Height="45"><TextBlock Text="Simulator" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorProcess}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <Grid Height="45"><TextBlock Text="Simulator load" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorCpuUsage}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <Grid Height="45"><TextBlock Text="Simulator memory" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorMemoryUsage}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <Grid Height="45"><TextBlock Text="Simulator frame rate" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorFps}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#42A8FF" /></Grid><Separator Background="{StaticResource BorderSoftBrush}" />
-                            <StackPanel Margin="0,8,0,0"><TextBlock Text="{Binding ProcessDetail}" Foreground="#8DA0B8" /><TextBlock Text="{Binding ManagedHeap}" Foreground="#8DA0B8" Margin="0,3,0,0" /></StackPanel>
-                        </StackPanel>
-                    </Grid>
+                    <StackPanel>
+                        <TextBlock Text="Cabin rendering mode" Style="{StaticResource SectionTitleStyle}"/>
+                        <RadioButton Content="Quality" IsChecked="{Binding IsQualityMode}" GroupName="PerformanceMode" Margin="0,15,0,4"/>
+                        <TextBlock Text="Highest animation update rate" Style="{StaticResource MutedTextStyle}" Margin="22,0,0,7"/>
+                        <RadioButton Content="Balanced" IsChecked="{Binding IsBalancedMode}" GroupName="PerformanceMode" Margin="0,6,0,4"/>
+                        <TextBlock Text="Recommended default" Style="{StaticResource MutedTextStyle}" Margin="22,0,0,7"/>
+                        <RadioButton Content="Low Impact" IsChecked="{Binding IsLowImpactMode}" GroupName="PerformanceMode" Margin="0,6,0,4"/>
+                        <TextBlock Text="Reduced cabin refresh frequency" Style="{StaticResource MutedTextStyle}" Margin="22,0,0,0"/>
+                    </StackPanel>
                 </Border>
             </Grid>
-
-            <Grid Grid.Row="6">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*" /><ColumnDefinition Width="0.95*" /><ColumnDefinition Width="1.75*" /></Grid.ColumnDefinitions>
-                <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
-                    <Grid><Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition /></Grid.RowDefinitions>
-                        <TextBlock Text="Event Processing" Style="{StaticResource SectionTitleStyle}" />
-                        <StackPanel Grid.Row="1">
-                            <Grid Height="39"><TextBlock Text="Application shell" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
-                            <Grid Height="39"><TextBlock Text="Settings persistence" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
-                            <Grid Height="39"><TextBlock Text="Pack validation" /><TextBlock Text="OK" Foreground="{StaticResource SuccessBrush}" HorizontalAlignment="Right" /></Grid>
-                            <Grid Height="39"><TextBlock Text="{Binding Status.TelemetrySourceLabel}" /><TextBlock Text="{Binding BridgeFrameTime}" Foreground="{Binding Status.ConnectionColor}" HorizontalAlignment="Right" /></Grid>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0">
-                    <Grid><Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition /></Grid.RowDefinitions>
-                        <TextBlock Text="Performance Mode" Style="{StaticResource SectionTitleStyle}" />
-                        <StackPanel Grid.Row="1">
-                            <RadioButton Content="Quality" IsChecked="{Binding IsQualityMode}" GroupName="PerformanceMode" Margin="0,7" />
-                            <TextBlock Text="Highest fidelity" Style="{StaticResource MutedTextStyle}" Margin="22,-4,0,5" />
-                            <RadioButton Content="Balanced" IsChecked="{Binding IsBalancedMode}" GroupName="PerformanceMode" Margin="0,7" />
-                            <TextBlock Text="Recommended default" Style="{StaticResource MutedTextStyle}" Margin="22,-4,0,5" />
-                            <RadioButton Content="Low Impact" IsChecked="{Binding IsLowImpactMode}" GroupName="PerformanceMode" Margin="0,7" />
-                            <TextBlock Text="Reduced background work" Style="{StaticResource MutedTextStyle}" Margin="22,-4,0,0" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
-                    <Grid><Grid.RowDefinitions><RowDefinition Height="38" /><RowDefinition Height="*" /><RowDefinition Height="48" /></Grid.RowDefinitions>
-                        <TextBlock Text="Performance Recommendation" Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Grid.Row="1" Text="{Binding Recommendation}" Foreground="{Binding RecommendationColor}" FontSize="14" TextWrapping="Wrap" LineHeight="22" Margin="0,8,0,0" />
-                        <ItemsControl Grid.Row="1" ItemsSource="{Binding DiagnosticEntries}" Visibility="Collapsed">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Height="31">
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                        <TextBlock Text="●" FontSize="11" VerticalAlignment="Center">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
-                                                    <Style.Triggers><DataTrigger Binding="{Binding IsReady}" Value="False"><Setter Property="Foreground" Value="{StaticResource WarningBrush}" /></DataTrigger></Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                        <TextBlock Grid.Column="1" Text="{Binding Message}" FontSize="13" VerticalAlignment="Center" />
-                                    </Grid>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                            <Button Content="Export Diagnostics" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="False" ToolTip="Enabled after diagnostic export is implemented" Margin="0,0,10,0" />
-                            <Button Content="Open Log Folder" Style="{StaticResource SecondaryButtonStyle}" Command="{Binding OpenLogFolderCommand}" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
-            </Grid>
-        </Grid>
+        </StackPanel>
     </ScrollViewer>
 </UserControl>

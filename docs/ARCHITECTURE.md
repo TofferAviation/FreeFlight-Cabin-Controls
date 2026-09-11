@@ -12,7 +12,7 @@ Boarding-pass identities and personal details are deterministic fictional previe
 
 ### X-Plane bridge
 
-The Windows application connects to X-Plane through its built-in loopback Web API. REST discovers the simulator version and session-scoped dataref IDs; WebSockets stream values at up to 10 Hz. The bundled FreeFlight Cabin Bridge plugin uses the native SDK to normalize aircraft-specific L1/L2 door and seat-belt outputs into stable `freeflight/cabin/*` datarefs. The app prioritizes these stable signals, then falls back to adaptive Web API discovery and manual cabin controls.
+The Windows application connects to X-Plane through its built-in loopback Web API. REST discovers the simulator version and session-scoped dataref IDs; WebSockets stream values at up to 10 Hz. The bundled FreeFlight Cabin Bridge plugin uses the native SDK to normalize aircraft-specific L1/L2 door and seat-belt outputs into stable `freeflight/cabin/*` datarefs. The app prioritizes these stable signals, then falls back to adaptive Web API discovery and manual cabin controls. On Web API v2 or newer, Gate Desk discovers and activates the native `sim/ground_ops/jetway` command. It treats success as command acceptance only: native XP12 does not publish a reliable per-bridge, per-door assignment interface.
 
 The native C++ plugin caches resolved dataref handles, samples at 10 Hz, and performs no file or network I/O in X-Plane's flight loop. Future simulator audio-bus playback or simulator-side screen rendering must remain outside this small cabin-state bridge unless separately profiled and verified.
 

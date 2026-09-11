@@ -63,6 +63,12 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="DoorBorder" Property="Opacity" Value="0.88" />
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="DoorBorder" Property="Background" Value="#B51A2534" />
+                                <Setter TargetName="DoorBorder" Property="BorderBrush" Value="#8A9CAE" />
+                                <Setter TargetName="DoorLamp" Property="Fill" Value="#8A9CAE" />
+                                <Setter Property="Foreground" Value="#D7E0E8" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -73,6 +79,12 @@
             <Setter Property="Canvas.Left" Value="{Binding CanvasLeft}" />
             <Setter Property="Canvas.Top" Value="{Binding CanvasTop}" />
             <Setter Property="Panel.ZIndex" Value="3" />
+        </Style>
+
+        <Style x:Key="DoorCanvasItemStyle" TargetType="ContentPresenter">
+            <Setter Property="Canvas.Left" Value="{Binding CanvasLeft}" />
+            <Setter Property="Canvas.Top" Value="{Binding CanvasTop}" />
+            <Setter Property="Panel.ZIndex" Value="6" />
         </Style>
 
         <Style x:Key="OverlayBorderStyle" TargetType="Border">
@@ -91,14 +103,14 @@
     </UserControl.Resources>
 
     <Grid>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="14" />
                 <RowDefinition Height="94" />
                 <RowDefinition Height="14" />
-                <RowDefinition Height="420" />
+                <RowDefinition Height="460" />
                 <RowDefinition Height="14" />
                 <RowDefinition Height="118" />
             </Grid.RowDefinitions>
@@ -295,6 +307,11 @@
                                            FontSize="10"
                                            FontWeight="SemiBold"
                                            HorizontalAlignment="Right" />
+                                <TextBlock Text="{Binding DetectedDoorSummary}"
+                                           Foreground="#70A7D5"
+                                           FontSize="8"
+                                           TextAlignment="Right"
+                                           TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding LiveCabinStatus}"
                                            Foreground="#8FC8FF"
                                            FontSize="8"
@@ -311,10 +328,13 @@
                             </Grid>
                         </Grid>
 
-                        <Viewbox Grid.Row="1" Stretch="Uniform">
-                            <Canvas Width="1033" Height="230" ClipToBounds="False">
+                        <Viewbox Grid.Row="1"
+                                 Stretch="Uniform"
+                                 MaxWidth="{Binding SelectedCabinLayoutProfile.LivePreviewMaximumWidth}"
+                                 HorizontalAlignment="Center">
+                            <Canvas Width="1033" Height="282" ClipToBounds="False">
                                 <Border Canvas.Left="0"
-                                        Canvas.Top="0"
+                                        Canvas.Top="42"
                                         Width="1033"
                                         Height="192"
                                         Panel.ZIndex="0"
@@ -328,7 +348,7 @@
                                 </Border>
 
                                 <Border Canvas.Left="0"
-                                        Canvas.Top="0"
+                                        Canvas.Top="42"
                                         Width="1033"
                                         Height="192"
                                         Panel.ZIndex="0"
@@ -336,7 +356,7 @@
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LivePreviewUri}"
                                                     Viewbox="{Binding SelectedCabinLayoutProfile.LivePreviewViewbox}"
-                                                    ViewboxUnits="Absolute"
+                                                    ViewboxUnits="{Binding SelectedCabinLayoutProfile.LivePreviewViewboxUnits}"
                                                     Stretch="{Binding SelectedCabinLayoutProfile.LivePreviewStretch}"
                                                     AlignmentX="Center"
                                                     AlignmentY="Center" />
@@ -368,7 +388,7 @@
                                 </Canvas>
 
                                 <ItemsControl Canvas.Left="0"
-                                              Canvas.Top="0"
+                                              Canvas.Top="42"
                                               Width="1033"
                                               Height="192"
                                               ItemsSource="{Binding CabinCrewMarkers}"
@@ -398,9 +418,9 @@
                                 </ItemsControl>
 
                                 <ItemsControl Canvas.Left="0"
-                                              Canvas.Top="0"
+                                              Canvas.Top="42"
                                               Width="1033"
-                                              Height="230"
+                                              Height="192"
                                               ItemsSource="{Binding PassengerMarkers}"
                                               ItemContainerStyle="{StaticResource PassengerCanvasItemStyle}"
                                               Panel.ZIndex="3">
@@ -448,20 +468,35 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <ToggleButton Canvas.Left="{Binding L1DoorCanvasLeft}"
-                                              Canvas.Top="{Binding DoorControlCanvasTop}"
-                                              Panel.ZIndex="5"
-                                              Content="L1"
-                                              IsChecked="{Binding L1DoorOpen}"
-                                              Style="{StaticResource DoorToggleStyle}"
-                                              ToolTip="Open or close passenger door L1" />
-                                <ToggleButton Canvas.Left="{Binding L2DoorCanvasLeft}"
-                                              Canvas.Top="{Binding DoorControlCanvasTop}"
-                                              Panel.ZIndex="5"
-                                              Content="L2"
-                                              IsChecked="{Binding L2DoorOpen}"
-                                              Style="{StaticResource DoorToggleStyle}"
-                                              ToolTip="Open or close passenger door L2" />
+                                <ItemsControl Canvas.Left="0"
+                                              Canvas.Top="0"
+                                              Width="1033"
+                                              Height="282"
+                                              ItemsSource="{Binding CabinDoors}"
+                                              ItemContainerStyle="{StaticResource DoorCanvasItemStyle}"
+                                              Panel.ZIndex="6">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Width="58">
+                                                <ToggleButton Content="{Binding Label}"
+                                                              IsChecked="{Binding IsOpen}"
+                                                              IsEnabled="{Binding CanControl}"
+                                                              Style="{StaticResource DoorToggleStyle}"
+                                                              Width="58"
+                                                              Height="30"
+                                                              ToolTip="{Binding TypeLabel}" />
+                                                <TextBlock Text="{Binding StatusLabel}"
+                                                           Foreground="#7F9AB4"
+                                                           FontSize="7.5"
+                                                           FontWeight="SemiBold"
+                                                           TextAlignment="Center"
+                                                           TextWrapping="NoWrap"
+                                                           Margin="0,1,0,0" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </Canvas>
                         </Viewbox>
 
@@ -494,7 +529,7 @@
                             <RowDefinition Height="36" />
                             <RowDefinition Height="78" />
                             <RowDefinition Height="74" />
-                            <RowDefinition Height="62" />
+                            <RowDefinition Height="92" />
                             <RowDefinition Height="56" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
@@ -523,12 +558,30 @@
                         </Grid>
 
                         <Grid Grid.Row="3">
-                            <Grid.RowDefinitions><RowDefinition Height="24" /><RowDefinition /></Grid.RowDefinitions>
-                            <TextBlock Text="Passenger doors" Style="{StaticResource MutedTextStyle}" />
-                            <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                                <StackPanel><ToggleButton Content="L1" IsChecked="{Binding L1DoorOpen}" Style="{StaticResource DoorToggleStyle}" HorizontalAlignment="Left" /><TextBlock Text="{Binding L1PassengerCount, StringFormat={}{0} routed}" Style="{StaticResource MutedTextStyle}" FontSize="9" Margin="2,2,0,0" /></StackPanel>
-                                <StackPanel Grid.Column="1"><ToggleButton Content="L2" IsChecked="{Binding L2DoorOpen}" Style="{StaticResource DoorToggleStyle}" HorizontalAlignment="Left" /><TextBlock Text="{Binding L2PassengerCount, StringFormat={}{0} routed}" Style="{StaticResource MutedTextStyle}" FontSize="9" Margin="2,2,0,0" /></StackPanel>
+                            <Grid.RowDefinitions><RowDefinition Height="26" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <Grid>
+                                <TextBlock Text="Detected aircraft doors" Style="{StaticResource MutedTextStyle}" />
+                                <TextBlock Text="{Binding DetectedDoorSummary}" HorizontalAlignment="Right" Foreground="#6F8AA7" FontSize="9" TextTrimming="CharacterEllipsis" />
                             </Grid>
+                            <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding CabinDoors}">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,7,0">
+                                                <ToggleButton Content="{Binding Label}"
+                                                              IsChecked="{Binding IsOpen}"
+                                                              IsEnabled="{Binding CanControl}"
+                                                              Style="{StaticResource DoorToggleStyle}"
+                                                              Width="58"
+                                                              Height="30"
+                                                              ToolTip="{Binding TypeLabel}" />
+                                                <TextBlock Text="{Binding StatusLabel}" HorizontalAlignment="Center" Foreground="#7890AA" FontSize="8" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
                         </Grid>
 
                         <Grid Grid.Row="4" Margin="0,7,0,4">
@@ -678,7 +731,7 @@
                         <TextBlock Grid.Column="6" Text="STATUS" Style="{StaticResource MetricLabelStyle}" VerticalAlignment="Center" />
                     </Grid>
                 </Border>
-                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Hidden" Margin="0,4,0,0">
                     <ItemsControl ItemsSource="{Binding PassengerManifest}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -760,6 +813,8 @@
                         <TextBlock Text="ASSISTANCE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.Assistance}" TextWrapping="Wrap" Margin="0,2,0,14" />
                         <TextBlock Text="CURRENT ACTIVITY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.CurrentActivity}" Foreground="#8FC8FF" TextWrapping="Wrap" Margin="0,2,0,14" />
                         <TextBlock Text="SEAT BELT" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.SeatbeltStatus}" Foreground="{Binding SelectedPassenger.SeatbeltColor}" Margin="0,2,0,14" />
+                        <TextBlock Text="ONBOARD SPEND" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.OnboardSpend}" Foreground="#58E68A" FontSize="16" Margin="0,2,0,8" />
+                        <TextBlock Text="LAST PURCHASE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedPassenger.LastPurchase}" Foreground="#8FC8FF" TextWrapping="Wrap" Margin="0,2,0,14" />
                     </StackPanel>
                 </Grid>
             </Grid>
@@ -793,6 +848,7 @@
                 </Border>
                 <TextBlock Text="ROLE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedCrew.Role}" Margin="0,3,0,14" FontSize="15" />
                 <TextBlock Text="CURRENT DUTY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedCrew.Activity}" Margin="0,3,0,14" Foreground="#8FC8FF" TextWrapping="Wrap" />
+                <TextBlock Text="SERVICE ITEM" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SelectedCrew.ServiceItem}" Margin="0,3,0,14" Foreground="#FFCB69" TextWrapping="Wrap" />
                 <TextBlock Text="Crew identities are fictional and generated consistently from the passenger seed." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,8,0,0" />
             </StackPanel>
         </Border>

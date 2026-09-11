@@ -1,4 +1,4 @@
-name: Publish FreeFlight rollback
+name: Publish FreeFlight update
 
 on:
   push:
@@ -18,10 +18,9 @@ jobs:
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
-      RELEASE_VERSION: 0.4.9.0
 
     steps:
-      - name: Check out rollback source
+      - name: Check out the complete release history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -31,14 +30,31 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Restore and build stable rollback
+      - name: Choose the release version
+        id: version
+        shell: pwsh
+        run: |
+          $project = Get-Content src/FreeFlight.CabinControl.App/FreeFlight.CabinControl.App.csproj -Raw
+          if ($project -notmatch '<Version>\s*([^<\s]+)\s*</Version>') {
+            throw "Unable to read the application version from the project file."
+          }
+          $version = $Matches[1]
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Application version '$version' must use major.minor.patch format."
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+          "asset=FreeFlight-Cabin-Control-v$version-win-x64.zip" >> $env:GITHUB_OUTPUT
+          "installer=FreeFlight-Cabin-Control-v$version-Setup.exe" >> $env:GITHUB_OUTPUT
+
+      - name: Restore and build
         shell: pwsh
         run: |
           dotnet restore FreeFlight.CabinControl.slnx
           dotnet build FreeFlight.CabinControl.slnx -c Release --no-restore `
-            -p:Version=$env:RELEASE_VERSION `
-            -p:AssemblyVersion=$env:RELEASE_VERSION `
-            -p:FileVersion=$env:RELEASE_VERSION
+            -p:Version=${{ steps.version.outputs.version }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.version }}.0 `
+            -p:FileVersion=${{ steps.version.outputs.version }}.0
 
       - name: Run core regression checks
         shell: pwsh
@@ -48,15 +64,18 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-          Invoke-WebRequest -Uri "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip" -OutFile artifacts/XPSDK430.zip
+          Invoke-WebRequest `
+            -Uri "https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip" `
+            -OutFile artifacts/XPSDK430.zip
           Expand-Archive artifacts/XPSDK430.zip -DestinationPath artifacts/xplane-sdk
-          cmake -S xplane-plugin -B artifacts/xplane-plugin-build -A x64 -DXPLANE_SDK_ROOT="$PWD/artifacts/xplane-sdk/SDK"
+          cmake -S xplane-plugin -B artifacts/xplane-plugin-build -A x64 `
+            -DXPLANE_SDK_ROOT="$PWD/artifacts/xplane-sdk/SDK"
           cmake --build artifacts/xplane-plugin-build --config Release
           $destination = "xplane-plugin/dist/FreeFlightCabinBridge/64"
           New-Item -ItemType Directory -Path $destination -Force | Out-Null
           Copy-Item artifacts/xplane-plugin-build/Release/win.xpl "$destination/win.xpl" -Force
 
-      - name: Publish Windows application
+      - name: Publish the Windows application
         shell: pwsh
         run: |
           $shortSha = "${{ github.sha }}".Substring(0, 8)
@@ -64,49 +83,77 @@ jobs:
             -c Release -r win-x64 --self-contained true `
             --source https://api.nuget.org/v3/index.json `
             -o artifacts/publish `
-            -p:Version=$env:RELEASE_VERSION `
-            -p:AssemblyVersion=$env:RELEASE_VERSION `
-            -p:FileVersion=$env:RELEASE_VERSION `
-            -p:InformationalVersion="$env:RELEASE_VERSION+$shortSha"
+            -p:Version=${{ steps.version.outputs.version }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.version }}.0 `
+            -p:FileVersion=${{ steps.version.outputs.version }}.0 `
+            -p:InformationalVersion=${{ steps.version.outputs.version }}+$shortSha
 
-      - name: Build Windows installer
+      - name: Generate release notes and bundled changelog
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $date = Get-Date -Format "yyyy-MM-dd"
+          $previous = git describe --tags --abbrev=0 2>$null
+          if ($LASTEXITCODE -eq 0 -and $previous) {
+            $range = "$previous..HEAD"
+            $changes = git log $range --pretty=format:"- %s (`%h`)"
+            $comparison = "Changes since $previous"
+          } else {
+            $changes = git log -30 --pretty=format:"- %s (`%h`)"
+            $comparison = "Initial published release history"
+          }
+          if (-not $changes) { $changes = "- Release packaging and maintenance updates." }
+          $sourceChangelog = Get-Content CHANGELOG.md -Raw
+          $notes = @"
+          # FreeFlight Cabin Control $tag
+
+          Published $date from the `main` branch.
+
+          ## $comparison
+
+          $($changes -join "`n")
+
+          ## Project changelog
+
+          $sourceChangelog
+          "@
+          $notes | Set-Content artifacts/release-notes.md -Encoding utf8
+          $notes | Set-Content artifacts/publish/CHANGELOG.md -Encoding utf8
+
+      - name: Build the Windows installer
         shell: pwsh
         run: |
           choco install innosetup --no-progress -y
           $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          & $compiler "/DAppVersion=$env:RELEASE_VERSION" installer/FreeFlight.CabinControl.iss
+          & $compiler "/DAppVersion=${{ steps.version.outputs.version }}" installer/FreeFlight.CabinControl.iss
 
-      - name: Package rollback release
+      - name: Package and checksum the update
         shell: pwsh
         run: |
-          $asset = "artifacts/FreeFlight-Cabin-Control-v$env:RELEASE_VERSION-win-x64.zip"
+          $asset = "artifacts/${{ steps.version.outputs.asset }}"
           Compress-Archive -Path artifacts/publish/* -DestinationPath $asset -CompressionLevel Optimal
           $hash = (Get-FileHash $asset -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  FreeFlight-Cabin-Control-v$env:RELEASE_VERSION-win-x64.zip" | Set-Content "$asset.sha256" -Encoding ascii
-          $installer = "artifacts/FreeFlight-Cabin-Control-v$env:RELEASE_VERSION-Setup.exe"
+          "$hash  ${{ steps.version.outputs.asset }}" | Set-Content "$asset.sha256" -Encoding ascii
+          $installer = "artifacts/${{ steps.version.outputs.installer }}"
           $installerHash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$installerHash  FreeFlight-Cabin-Control-v$env:RELEASE_VERSION-Setup.exe" | Set-Content "$installer.sha256" -Encoding ascii
-          @"
-          # FreeFlight Cabin Control v$env:RELEASE_VERSION
+          "$installerHash  ${{ steps.version.outputs.installer }}" | Set-Content "$installer.sha256" -Encoding ascii
 
-          Stable rollback release based on the exact v0.4.9 codebase (commit acef525).
-
-          v0.5.0 development has been preserved separately on the codex/v0.5.0 branch for continued development and is not part of this rollback build.
-          "@ | Set-Content artifacts/release-notes.md -Encoding utf8
-
-      - name: Publish rollback as latest stable release
+      - name: Publish the GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "v$env:RELEASE_VERSION"
-          $asset = "artifacts/FreeFlight-Cabin-Control-v$env:RELEASE_VERSION-win-x64.zip"
+          $tag = "${{ steps.version.outputs.tag }}"
+          $asset = "artifacts/${{ steps.version.outputs.asset }}"
           $checksum = "$asset.sha256"
-          $installer = "artifacts/FreeFlight-Cabin-Control-v$env:RELEASE_VERSION-Setup.exe"
+          $installer = "artifacts/${{ steps.version.outputs.installer }}"
           $installerChecksum = "$installer.sha256"
           if (gh release view $tag 2>$null) {
             gh release upload $tag $asset $checksum $installer $installerChecksum --clobber
-            gh release edit $tag --title "FreeFlight Cabin Control $tag" --notes-file artifacts/release-notes.md --latest
+            gh release edit $tag `
+              --title "FreeFlight Cabin Control $tag" `
+              --notes-file artifacts/release-notes.md `
+              --latest
           } else {
             gh release create $tag $asset $checksum $installer $installerChecksum `
               --target "${{ github.sha }}" `

@@ -4,7 +4,7 @@ FreeFlight Cabin Control is a Windows desktop application with a live X-Plane 12
 
 ## Current baseline
 
-Version `0.4.x` is the current application line. GitHub release builds receive an automatically increasing patch number and are offered through the in-application updater. It provides:
+Version `0.5.x` is the current application line. GitHub release builds are offered through the in-application updater. It provides:
 
 - operational Overview, Gate Desk, Iport DCS, Passenger Manifest, Boarding Passes, Cabin, Settings, Airliners, Cabin Area Control Panel, Audio, and Diagnostics navigation;
 - a Real Tracker community section with the supplied FlightLogger presentation and an explicit browser link to `https://flightlogger.app/`; it is an external destination and receives no simulator, passenger, or unfinished-flight data from FreeFlight;
@@ -17,7 +17,7 @@ Version `0.4.x` is the current application line. GitHub release builds receive a
 - a gate-focused Settings screen for SimBrief, automatic timing, boarding rules, deterministic passenger generation, printer defaults, sound alerts, and flight defaults;
 - a functional flight-readiness Overview with a live local operations clock, a SimBrief-driven scheduled departure, a configurable 60-minute turnaround timeline, passenger and baggage totals, cabin distribution, and a navigation-only link into the protected gate workspace;
 - deterministic departure and arrival gate profiles that read the SimBrief aircraft ICAO (or the selected cabin layout offline), show `DEP → ARR` in the shared header, allocate compatible gates at Heathrow T5, JFK T8 and Oslo, and retain separate user-editable fallbacks for airports not yet profiled;
-- three operational cabin-layout choices shared by Settings and Cabin: the 311-position FlightFactor 777 v2 cabin, 272-position British Airways 777-200ER, and 256-position British Airways 777-300, all rendered horizontally with the nose left and tail right; the two authorised British Airways horizontal seat maps are compiled into every installation;
+- sixteen operational cabin-layout choices shared by Settings and Cabin, covering the FlightFactor 777 v2 and supplied British Airways Airbus, Boeing, and Embraer configurations; every cabin map is compiled into each installation;
 - a searchable local airline catalog with persistent selection and custom airline profiles;
 - an original simulator-free Passenger Flow page with profile-specific seat coordinates, mixed partial-load allocation, boarding-group calls with randomized within-group flow, varied passenger walking and entry timing, congestion slowdowns, complete boarding/deboarding, boarding-ticket-based L1/L2 routing, two-aisle movement, optional 30–45 minute real operations, accelerated previews, and a selected passenger's destination-seat highlight;
 - a full passenger manifest with deterministic fictional names and profiles, live operational status, seat and booking details revealed only when a passenger dot or manifest row is selected;
@@ -36,7 +36,7 @@ Version `0.4.x` is the current application line. GitHub release builds receive a
 - a vAMSYS Pilot API integration using browser-based Authorization Code + PKCE, Windows-user encrypted token storage, automatic token refresh, airline-scoped profile loading, a connected header account, and a local appearance editor; activation requires the public client ID from an attested VA-owned Pilot API registration;
 - optional local profile pictures and blurred custom background images with 10–20 percent strength, shared across parent pages according to user preference; identity, email, privacy and pilot-account changes remain on vAMSYS;
 - enumeration and persistent selection of active Windows playback endpoints;
-- automatic X-Plane connection through the simulator's built-in local Web API plus the bundled lightweight FreeFlight Cabin Bridge plugin, with stable bidirectional L1/L2 and seat-belt datarefs, adaptive fallback discovery, WebSocket telemetry, aircraft identity, flight state, diagnostics, and manual fail-safes;
+- automatic X-Plane connection through the simulator's built-in local Web API plus the bundled lightweight FreeFlight Cabin Bridge plugin, with stable bidirectional L1/L2 and seat-belt datarefs, adaptive fallback discovery, WebSocket telemetry, aircraft identity, flight state, diagnostics, manual fail-safes, and a native XP12 jetway-operation control in Gate Desk;
 - a loopable local passenger-ambience audio channel with independent enable and volume controls when a redistribution-cleared recording is installed through its content-pack slot;
 - persistent local application and audio settings;
 - a safe, versioned airline-content-pack model;
@@ -54,6 +54,8 @@ The FlightFactor 777 v2 L1/L2 and passenger-sign mappings are verified and imple
 4. If X-Plane was launched with a custom `--web_server_port`, enter that port under **Settings → X-Plane 12 Live Connection** and choose **Retry Connection**.
 
 The release includes the FreeFlight Cabin Bridge under `xplane-plugin`. Select the X-Plane folder in Settings and choose **Install / Update X-Plane Plugin**, then restart X-Plane once. The plugin converts aircraft outputs into stable FreeFlight datarefs while the loopback-only Web API transports them to the desktop app. Diagnostics shows the active aircraft, flight phase, plugin state, and age of the latest telemetry frame. See the [official X-Plane Data Access API](https://developer.x-plane.com/sdk/XPLMDataAccess/) and [Web API reference](https://developer.x-plane.com/article/x-plane-web-api/).
+
+For native jetways, Gate Desk sends X-Plane's `sim/ground_ops/jetway` command through the Web API. This requires X-Plane 12.1.4 or later. X-Plane selects any eligible bridge(s) and aircraft door(s), so FreeFlight reports the command result rather than claiming a specific bridge is docked. Individual bridge-to-door assignment and multi-bridge control are reserved for a future FreeFlight jetway engine or compatible scenery adapter.
 
 For first-time installation, use `FreeFlight-Cabin-Control-vX.Y.Z-Setup.exe` from GitHub Releases. The portable ZIP remains available for the in-app updater.
 

@@ -2,6 +2,64 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.3] - 2026-09-11
+
+### Fixed
+
+- Cabin crew markers now update at the active animation cadence instead of the old 250 ms dashboard refresh. Their aisle movement is time-based and substantially slower, eliminating the large horizontal jumps that made them look like they were spinning.
+- Cabin activity no longer invalidates the moving-passenger canvas a second time while boarding or deboarding is already refreshing it. Static dashboard and manifest updates now run at 2 Hz, preserving the 20 FPS Balanced animation budget.
+
+## [0.5.2] - 2026-09-11
+
+### Added
+
+- Gate Desk now includes Jetway Operations. With X-Plane 12.1.4 or later connected, **Operate Jetways** activates the simulator's native jetway command from Cabin Controls and reports whether the request was accepted.
+
+### Notes
+
+- Native X-Plane selects the eligible bridge(s) and door(s). Per-bridge, per-door assignment and multi-bridge orchestration require a future FreeFlight jetway engine or compatible scenery adapter.
+
+## [0.5.1] - 2026-09-04
+
+### Added
+
+- A complete five-part British Airways catering workspace covering Menu Selection, Service Progress, Inventory, Passenger Preferences, and Special Meals.
+- Automatic catering-profile selection from the SimBrief route, aircraft family, scheduled departure time, and estimated flight duration.
+- Long-haul First, Club World, World Traveller Plus, and World Traveller service structures, including Dine Anytime-style First choices, departure meals, mid-flight refreshments, and second services.
+- Short-haul Club Europe and Euro Traveller profiles with time-sensitive breakfast, lunch, afternoon-tea and dinner service, plus complimentary refreshments and High Life Café buy-on-board choices.
+- Individual passenger meal selections, deterministic special meals, limited meal quantities, low/out-of-stock states, and progressive service status.
+- Date-versioned catering packs. A bundled seasonal pack is used by default, while newer JSON packs placed in the local `catering-packs` folder can replace it without rebuilding the application.
+
+### Changed
+
+- Live cabin meal and drink activities now follow the active catering phase and pause while the simulator seat-belt sign is on.
+- Catering service progression, inventory use, passenger order status, and onboard spend are reconciled in real time.
+- Vertical catering scroll bars are visually hidden while mouse-wheel, touchpad, and touch scrolling remain functional.
+- Application and installer version advanced to 0.5.1.
+
+## [0.5.0] - 2026-09-04
+
+### Added
+
+- Eleven additional built-in British Airways cabin layouts covering the A319, A321, A321neo 220M, A350, two 777-200 configurations, three 787 variants, 787-10, and Embraer 190. The application now ships sixteen operational layouts in total.
+- A searchable offline Iport DCS station catalog covering British Airways destinations from the airline's published route network.
+- Aircraft-aware L1-L5 and R1-R5 door models for wide-body cabins, with overwing exits explicitly separated as emergency exits on applicable narrow-body aircraft.
+- A new Cabin parent menu with Live Cabin, Catering & Meal Service, and Onboard Menu pages, while Airliners now has its own parent section.
+- Live catering inventory, ground-uplift progress, realistic GBP menu pricing, recorded passenger purchases, per-passenger onboard spend, crew service duties, and lavatory demand/queues.
+- An app-only Diagnostics view showing current Cabin Control CPU percentage, memory in MB, managed heap, process detail, a 60-second graph, and measured peak impact.
+
+### Changed
+
+- SimBrief loads larger than the selected layout now activate a clear seat-map override and fill every mapped seat instead of reporting impossible passengers outside the cabin.
+- Passenger cabin movement is frame-time limited, queues approach their positions smoothly, and service/lavatory activities retain their action-specific colors.
+- Cabin crew receive moving service positions and selectable duty details for meal heating, food delivery, drink service, and tray collection.
+- Application and installer version advanced to 0.5.0.
+
+### Fixed
+
+- Manual gate-desk boarding once again works before simulator door telemetry is available without falsely opening an aircraft door.
+- Expanded fleet capacities, passenger routes, and emergency-exit classification are now covered by automated checks.
+
 ## [0.4.9] - 2026-09-04
 
 ### Fixed

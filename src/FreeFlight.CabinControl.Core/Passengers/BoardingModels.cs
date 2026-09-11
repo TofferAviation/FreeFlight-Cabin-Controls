@@ -3,7 +3,17 @@ namespace FreeFlight.CabinControl.Core.Passengers;
 public enum BoardingDoor
 {
     L1,
-    L2
+    L2,
+    L3,
+    L4,
+    L5,
+    R1,
+    R2,
+    R3,
+    R4,
+    R5,
+    OverwingLeft,
+    OverwingRight
 }
 
 public enum BoardingRunState
@@ -37,7 +47,18 @@ public enum PassengerCabinLayout
     BritishAirways777200Er,
     BritishAirways777300,
     BritishAirwaysA320200,
-    BritishAirwaysA320Neo
+    BritishAirwaysA320Neo,
+    BritishAirwaysA319,
+    BritishAirwaysA321,
+    BritishAirwaysA321Neo220M,
+    BritishAirwaysA350,
+    BritishAirways777200Lgw,
+    BritishAirways777200First,
+    BritishAirways7878ClubSuite,
+    BritishAirways7879,
+    BritishAirways7879Alternate,
+    BritishAirways78710,
+    BritishAirwaysEmbraer190
 }
 
 public enum PassengerMovementState
@@ -65,8 +86,14 @@ public enum PassengerCabinActivity
     Working,
     Talking,
     WalkingToLavatory,
+    QueuedForLavatory,
     UsingLavatory,
     ReturningToSeat,
+    WaitingForCabinService,
+    ReceivingMeal,
+    EatingMeal,
+    ReceivingDrink,
+    Drinking,
     Deboarding,
     OffAircraft
 }
@@ -79,6 +106,31 @@ public sealed record CabinSeat(
     double X,
     double Y,
     double AisleY);
+
+public sealed record CabinDoorDefinition(
+    BoardingDoor Door,
+    string Label,
+    double X,
+    bool IsBoardingDoor,
+    bool IsEmergencyExit = false)
+{
+    public string TypeLabel => IsEmergencyExit ? "Emergency exit" : IsBoardingDoor ? "Passenger door" : "Service door";
+}
+
+public sealed record CabinMenuItem(
+    string Id,
+    string Name,
+    string Category,
+    decimal PriceGbp,
+    string Description);
+
+public sealed record CabinPurchase(
+    int PassengerId,
+    string SeatNumber,
+    string ItemId,
+    string ItemName,
+    decimal PriceGbp,
+    DateTimeOffset Timestamp);
 
 public sealed record PassengerProfile(
     string FullName,
@@ -133,6 +185,14 @@ public sealed class BoardingPassenger
     internal double SecondsUntilSeatbeltResponse { get; set; }
 
     internal int ActivitySequence { get; set; }
+
+    public decimal OnboardSpendGbp { get; internal set; }
+
+    public string LastPurchase { get; internal set; } = "No purchases";
+
+    internal int PurchaseSequence { get; set; }
+
+    internal int LavatoryIndex { get; set; } = -1;
 }
 
 public sealed record BoardingPassengerSession(

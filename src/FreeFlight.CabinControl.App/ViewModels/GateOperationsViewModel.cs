@@ -21,6 +21,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private readonly IOperationsClock _operationsClock;
     private readonly Func<bool> _hasGateAccess;
     private readonly IBoardingPassPrinterService _boardingPassPrinterService;
+    private readonly ISimulatorJetwayControlBridge? _jetwayControlBridge;
     private readonly DispatcherTimer _clockTimer;
     private readonly Dictionary<int, GatePassengerViewModel> _passengersById = [];
     private GatePassengerViewModel? _selectedPassenger;
@@ -37,13 +38,16 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private double _liveAltitudeFeet;
     private string _flightBannerMessage = string.Empty;
     private bool _pushbackActive;
+    private string _jetwayStatus = "X-Plane not connected";
+    private bool _jetwayOperationInProgress;
 
     public GateOperationsViewModel(
         AppSettings settings,
         PassengerFlowViewModel passengers,
         IOperationsClock operationsClock,
         Func<bool>? hasGateAccess = null,
-        IBoardingPassPrinterService? boardingPassPrinterService = null)
+        IBoardingPassPrinterService? boardingPassPrinterService = null,
+        ISimulatorJetwayControlBridge? jetwayControlBridge = null)
         : base("Overview", "Gate preparation, boarding readiness, and live passenger operations")
     {
         _settings = settings;
@@ -51,6 +55,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         _operationsClock = operationsClock;
         _hasGateAccess = hasGateAccess ?? (() => true);
         _boardingPassPrinterService = boardingPassPrinterService ?? new WindowsBoardingPassPrinterService();
+        _jetwayControlBridge = jetwayControlBridge;
         CabinFilters = ["All Passengers", "First", "Club World", "World Traveller Plus", "World Traveller"];
         TimelineEvents =
         [
@@ -72,6 +77,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         MarkBoardingPassIssuedCommand = new RelayCommand(MarkBoardingPassIssued);
         ImportSimBriefCommand = new AsyncRelayCommand(ImportSimBriefAsync, HandleImportError);
         UnloadFlightCommand = new RelayCommand(_ => UnloadFlight());
+        OperateJetwaysCommand = new AsyncRelayCommand(OperateJetwaysAsync, HandleJetwayError);
 
         _passengers.PassengerManifest.CollectionChanged += HandleManifestCollectionChanged;
         _passengers.PropertyChanged += HandlePassengerFlowPropertyChanged;
@@ -103,6 +109,33 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public ICommand MarkBoardingPassIssuedCommand { get; }
     public ICommand ImportSimBriefCommand { get; }
     public ICommand UnloadFlightCommand { get; }
+    public ICommand OperateJetwaysCommand { get; }
+
+    public string JetwayStatus
+    {
+        get => _jetwayStatus;
+        private set => SetProperty(ref _jetwayStatus, value);
+    }
+
+    public string JetwayStatusColor => JetwayStatus.StartsWith("Command sent", StringComparison.Ordinal)
+        ? "#58E68A"
+        : JetwayStatus.StartsWith("Sending", StringComparison.Ordinal)
+            ? "#63B9FF"
+            : "#F0C64E";
+
+    public bool IsJetwayOperationInProgress
+    {
+        get => _jetwayOperationInProgress;
+        private set
+        {
+            if (SetProperty(ref _jetwayOperationInProgress, value))
+            {
+                OnPropertyChanged(nameof(JetwayActionLabel));
+            }
+        }
+    }
+
+    public string JetwayActionLabel => IsJetwayOperationInProgress ? "Sending…" : "Operate Jetways";
 
     public GatePassengerViewModel? SelectedPassenger
     {
@@ -475,6 +508,48 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         }
 
         NotifyOperationalMetrics();
+    }
+
+    private async Task OperateJetwaysAsync()
+    {
+        if (!RequireGateAccess())
+        {
+            return;
+        }
+
+        if (_jetwayControlBridge is null)
+        {
+            JetwayStatus = "X-Plane control unavailable";
+            OnPropertyChanged(nameof(JetwayStatusColor));
+            return;
+        }
+
+        IsJetwayOperationInProgress = true;
+        JetwayStatus = "Sending native request…";
+        OnPropertyChanged(nameof(JetwayStatusColor));
+        try
+        {
+            if (await _jetwayControlBridge.OperateJetwaysAsync())
+            {
+                JetwayStatus = "Command sent · X-Plane choosing jetway(s)";
+                OperationMessage = "Jetway operation requested from Cabin Controls.";
+            }
+            else
+            {
+                JetwayStatus = "Native control unavailable";
+            }
+        }
+        finally
+        {
+            IsJetwayOperationInProgress = false;
+            OnPropertyChanged(nameof(JetwayStatusColor));
+        }
+    }
+
+    private void HandleJetwayError(Exception exception)
+    {
+        JetwayStatus = $"Jetway request failed: {exception.Message}";
+        OnPropertyChanged(nameof(JetwayStatusColor));
     }
 
     private void StartManageBoarding()

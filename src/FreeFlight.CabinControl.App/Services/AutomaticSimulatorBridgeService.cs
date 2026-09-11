@@ -3,7 +3,7 @@ using FreeFlight.CabinControl.Core.Integration;
 
 namespace FreeFlight.CabinControl.App.Services;
 
-public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge
+public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge, ISimulatorJetwayControlBridge
 {
     private readonly AppSettings _settings;
     private readonly ISimulatorBridge _xPlane;
@@ -57,11 +57,24 @@ public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge, ISimulat
             ? controller.SetPassengerDoorOpenAsync(doorNumber, isOpen, cancellationToken)
             : Task.FromResult(false);
 
+    public Task<bool> SetAircraftDoorOpenAsync(
+        string doorCode,
+        bool isOpen,
+        CancellationToken cancellationToken = default) =>
+        ResolveActiveCabinController() is { } controller
+            ? controller.SetAircraftDoorOpenAsync(doorCode, isOpen, cancellationToken)
+            : Task.FromResult(false);
+
     public Task<bool> SetSeatbeltSignAsync(
         bool isOn,
         CancellationToken cancellationToken = default) =>
         ResolveActiveCabinController() is { } controller
             ? controller.SetSeatbeltSignAsync(isOn, cancellationToken)
+            : Task.FromResult(false);
+
+    public Task<bool> OperateJetwaysAsync(CancellationToken cancellationToken = default) =>
+        _activeSimulator == "X-Plane" && _xPlane is ISimulatorJetwayControlBridge controller
+            ? controller.OperateJetwaysAsync(cancellationToken)
             : Task.FromResult(false);
 
     public void Dispose()

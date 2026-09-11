@@ -37,6 +37,8 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
     private string _recommendation = "Collecting a baseline…";
     private string _recommendationColor = "#8FC8FF";
     private double _simulatorFps;
+    private double _peakAppCpu;
+    private double _peakAppMemoryMb;
 
     public PerformanceViewModel(
         AppSettings settings,
@@ -44,7 +46,7 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
         string logDirectory,
         ISimulatorBridge? simulatorBridge = null,
         ISettingsStore? settingsStore = null)
-        : base("System Performance", "Live Cabin Core resource monitoring")
+        : base("Cabin Control Performance", "Current resource cost created by this application only")
     {
         _settings = settings;
         _simulatorBridge = simulatorBridge;
@@ -121,6 +123,7 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
     public string ManagedHeap { get => _managedHeap; private set => SetProperty(ref _managedHeap, value); }
     public string Recommendation { get => _recommendation; private set => SetProperty(ref _recommendation, value); }
     public string RecommendationColor { get => _recommendationColor; private set => SetProperty(ref _recommendationColor, value); }
+    public string PeakSummary => $"Peak {_peakAppCpu:F1}% CPU · {_peakAppMemoryMb:F0} MB";
 
     public string BridgeFrameTime
     {
@@ -210,6 +213,9 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
         var appMemoryMb = sample.AppMemoryBytes / 1024d / 1024d;
         CpuUsage = $"{sample.AppCpuPercent:F1}%";
         MemoryUsage = $"{appMemoryMb:F0} MB";
+        _peakAppCpu = Math.Max(_peakAppCpu, sample.AppCpuPercent);
+        _peakAppMemoryMb = Math.Max(_peakAppMemoryMb, appMemoryMb);
+        OnPropertyChanged(nameof(PeakSummary));
         SystemCpuUsage = $"{sample.SystemCpuPercent:F1}%";
         var usedGb = (sample.SystemTotalMemoryBytes - sample.SystemAvailableMemoryBytes) / 1024d / 1024d / 1024d;
         var totalGb = sample.SystemTotalMemoryBytes / 1024d / 1024d / 1024d;
@@ -224,7 +230,7 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
         PushHistory(_memoryHistory, appMemoryMb);
         CpuGraphPoints = BuildPoints(_cpuHistory, 100d);
         MemoryGraphPoints = BuildPoints(_memoryHistory, Math.Max(512d, _memoryHistory.DefaultIfEmpty().Max() * 1.15d));
-        UpdateRecommendation(sample, usedGb, totalGb);
+        UpdateRecommendation(sample, appMemoryMb);
         OnPropertyChanged(nameof(BridgeFrameTime));
         var bridgeEntry = new DiagnosticEntry(
             Status.IsConnected
@@ -245,31 +251,21 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
         }
     }
 
-    private void UpdateRecommendation(DetailedPerformanceSample sample, double usedGb, double totalGb)
+    private void UpdateRecommendation(DetailedPerformanceSample sample, double appMemoryMb)
     {
-        if (_simulatorFps is > 0d and < 25d)
+        if (sample.AppCpuPercent > 12d)
         {
-            Recommendation = "Simulator frame rate is below 25 FPS. Reduce world objects/traffic first, then lower cloud or shadow quality.";
+            Recommendation = $"Cabin Control is currently using {sample.AppCpuPercent:F1}% CPU and {appMemoryMb:F0} MB. Low Impact mode will reduce animation and telemetry refresh work.";
             RecommendationColor = "#FFB55F";
         }
-        else if (totalGb > 0d && usedGb / totalGb > 0.90d)
+        else if (appMemoryMb > 750d)
         {
-            Recommendation = "System memory pressure is above 90%. Close background apps and reduce texture resolution to avoid stutters.";
-            RecommendationColor = "#FF6B6B";
-        }
-        else if (sample.SystemCpuPercent > 92d)
-        {
-            Recommendation = "System CPU load is saturated. Reduce simulator traffic and object density, or select Low Impact mode here.";
-            RecommendationColor = "#FFB55F";
-        }
-        else if (sample.AppCpuPercent > 12d)
-        {
-            Recommendation = "Cabin Control is using more CPU than expected. Low Impact mode reduces background refresh work.";
+            Recommendation = $"Cabin Control memory is elevated at {appMemoryMb:F0} MB. Finish or unload old flight sessions and review the log if usage continues to rise.";
             RecommendationColor = "#FFB55F";
         }
         else
         {
-            Recommendation = "No current bottleneck detected. Balanced mode is appropriate for this system.";
+            Recommendation = $"Cabin Control is using {sample.AppCpuPercent:F1}% CPU and {appMemoryMb:F0} MB. No app-side resource warning is active; Balanced mode is appropriate.";
             RecommendationColor = "#58E68A";
         }
     }
