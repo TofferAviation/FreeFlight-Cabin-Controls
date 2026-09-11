@@ -127,7 +127,7 @@
                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="18" /><RowDefinition Height="98" /><RowDefinition Height="18" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                         <Grid Margin="20,18,20,0">
                             <StackPanel><TextBlock Text="{Binding Registration}" FontSize="28" FontWeight="SemiBold" /><TextBlock Text="{Binding AircraftType}" Style="{StaticResource PageSubtitleStyle}" Margin="0,2,0,0" /></StackPanel>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"><Ellipse Width="10" Height="10" Fill="{Binding DispatchStatusBrush}" Margin="0,0,7,0" /><TextBlock Text="{Binding DispatchStatus}" Foreground="{Binding DispatchStatusBrush}" FontWeight="SemiBold" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"><Ellipse Width="10" Height="10" Fill="{Binding DispatchStatusBrush}" Margin="0,0,7,0" /><TextBlock Text="{Binding DispatchStatus}" Foreground="{Binding DispatchStatusBrush}" FontWeight="SemiBold" /><Button Content="Report cabin defect" Command="{Binding DataContext.OpenDefectReportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="32" Padding="12,4" Margin="14,0,0,0" /></StackPanel>
                         </Grid>
                         <Grid Grid.Row="2" Margin="20,0">
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="12" /><ColumnDefinition /><ColumnDefinition Width="12" /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -161,6 +161,33 @@
                     </Grid>
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="430" Visibility="{Binding HasSelectedAircraft, Converter={StaticResource InverseBooleanToVisibilityConverter}}"><TextBlock Text="&#xE709;" FontFamily="Segoe Fluent Icons" FontSize="42" Foreground="#4275A8" HorizontalAlignment="Center" /><TextBlock Text="Select an aircraft" Style="{StaticResource SectionTitleStyle}" HorizontalAlignment="Center" Margin="0,12,0,5" /><TextBlock Text="Once your Fleet connection is configured, select an aircraft from the list to see a focused pilot briefing with its operational, technical and dispatch condition." Style="{StaticResource MutedTextStyle}" TextAlignment="Center" TextWrapping="Wrap" /></StackPanel>
                 </Grid>
+            </Border>
+            <Border Grid.RowSpan="4"
+                    Panel.ZIndex="10"
+                    Background="#D9030C1A"
+                    Visibility="{Binding IsDefectReportOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Border Width="620" MaxHeight="680" Padding="24" Background="#071426" BorderBrush="#398EFF" BorderThickness="1" CornerRadius="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Grid>
+                            <StackPanel><TextBlock Text="Report cabin defect" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Submit an observed issue to the selected aircraft’s permanent Fleet technical record." Style="{StaticResource MutedTextStyle}" Margin="0,4,0,0" TextWrapping="Wrap" /></StackPanel>
+                            <Button Content="&#xE8BB;" Command="{Binding CancelDefectReportCommand}" Style="{StaticResource CircleButtonStyle}" Width="34" Height="34" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="Close" />
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" Margin="0,18,0,14" VerticalScrollBarVisibility="Hidden">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="CATEGORY" Style="{StaticResource MetricLabelStyle}" Margin="0,0,0,5" /><ComboBox ItemsSource="{Binding DefectCategories}" SelectedItem="{Binding DefectCategory}" /></StackPanel>
+                                <StackPanel Grid.Column="2"><TextBlock Text="LOCATION / SEAT" Style="{StaticResource MetricLabelStyle}" Margin="0,0,0,5" /><TextBox Text="{Binding DefectLocation, UpdateSourceTrigger=PropertyChanged}" MaxLength="24" ToolTip="For example: 12A, FWD GALLEY, L1" /></StackPanel>
+                                <StackPanel Grid.Row="1" Margin="0,16,0,0"><TextBlock Text="SEVERITY" Style="{StaticResource MetricLabelStyle}" Margin="0,0,0,5" /><ComboBox ItemsSource="{Binding DefectSeverities}" SelectedItem="{Binding DefectSeverity}" /></StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,16,0,0"><TextBlock Text="DISPATCH IMPACT" Style="{StaticResource MetricLabelStyle}" Margin="0,0,0,5" /><ComboBox ItemsSource="{Binding DefectDispatchImpacts}" SelectedItem="{Binding DefectDispatchImpact}" /></StackPanel>
+                                <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="0,16,0,0"><TextBlock Text="OBSERVED CONDITION" Style="{StaticResource MetricLabelStyle}" Margin="0,0,0,5" /><TextBox Text="{Binding DefectDescription, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="110" ToolTip="Describe the observed condition and its cabin or operational effect." /></StackPanel>
+                                <Border Grid.Row="3" Grid.ColumnSpan="3" Background="#11213A" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="7" Padding="12" Margin="0,16,0,0"><TextBlock Text="{Binding DefectReportStatus}" Foreground="{Binding DefectReportStatusColor}" TextWrapping="Wrap" FontSize="12" /></Border>
+                            </Grid>
+                        </ScrollViewer>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Cancel" Command="{Binding CancelDefectReportCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="36" Padding="16,5" Margin="0,0,10,0" /><Button Content="Submit defect report" Command="{Binding SubmitDefectReportCommand}" Style="{StaticResource PrimaryButtonStyle}" MinHeight="36" Padding="16,5" /></StackPanel>
+                    </Grid>
+                </Border>
             </Border>
         </Grid>
     </Grid>

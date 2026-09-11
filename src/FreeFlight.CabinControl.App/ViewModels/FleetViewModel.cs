@@ -31,6 +31,14 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     private bool _isDetailLoading;
     private string _detailStatusLabel = "Select an aircraft to load its live fleet record.";
     private Brush _detailStatusColor = MutedBrush;
+    private bool _isDefectReportOpen;
+    private string _defectCategory = "Passenger seat";
+    private string _defectLocation = string.Empty;
+    private string _defectDescription = string.Empty;
+    private string _defectSeverity = "normal";
+    private string _defectDispatchImpact = "none";
+    private string _defectReportStatus = string.Empty;
+    private Brush _defectReportStatusColor = MutedBrush;
 
     public FleetViewModel(AppSettings settings, FleetApiClient fleetApiClient)
         : base("Fleet Management", "Pilot-facing aircraft status, dispatch availability and fleet awareness")
@@ -38,6 +46,13 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         _settings = settings;
         _fleetApiClient = fleetApiClient;
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, exception => ConnectionDetail = exception.Message);
+        OpenDefectReportCommand = new RelayCommand(_ => OpenDefectReport());
+        CancelDefectReportCommand = new RelayCommand(_ => CloseDefectReport());
+        SubmitDefectReportCommand = new AsyncRelayCommand(SubmitDefectReportAsync, exception =>
+        {
+            DefectReportStatus = exception.Message;
+            DefectReportStatusColor = WarningBrush;
+        });
         _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(settings.FleetSyncIntervalSeconds, 10, 300)) };
         _syncTimer.Tick += async (_, _) => await RefreshAsync();
         if (settings.FleetAutoSync)
@@ -59,6 +74,12 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     public ObservableCollection<FleetActivityLine> RecentActivity { get; } = [];
 
     public ICommand RefreshCommand { get; }
+
+    public ICommand OpenDefectReportCommand { get; }
+
+    public ICommand CancelDefectReportCommand { get; }
+
+    public ICommand SubmitDefectReportCommand { get; }
 
     public bool IsSynchronizing
     {
@@ -132,6 +153,60 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     {
         get => _detailStatusColor;
         private set => SetProperty(ref _detailStatusColor, value);
+    }
+
+    public bool IsDefectReportOpen
+    {
+        get => _isDefectReportOpen;
+        private set => SetProperty(ref _isDefectReportOpen, value);
+    }
+
+    public IReadOnlyList<string> DefectCategories { get; } = ["Passenger seat", "IFE", "USB / power", "PSU / lighting", "Galley", "Lavatory", "Cabin door", "PA / interphone", "Other"];
+
+    public IReadOnlyList<string> DefectSeverities { get; } = ["low", "normal", "high", "critical"];
+
+    public IReadOnlyList<string> DefectDispatchImpacts { get; } = ["none", "restriction", "blocking"];
+
+    public string DefectCategory
+    {
+        get => _defectCategory;
+        set => SetProperty(ref _defectCategory, value);
+    }
+
+    public string DefectLocation
+    {
+        get => _defectLocation;
+        set => SetProperty(ref _defectLocation, value.ToUpperInvariant());
+    }
+
+    public string DefectDescription
+    {
+        get => _defectDescription;
+        set => SetProperty(ref _defectDescription, value);
+    }
+
+    public string DefectSeverity
+    {
+        get => _defectSeverity;
+        set => SetProperty(ref _defectSeverity, value);
+    }
+
+    public string DefectDispatchImpact
+    {
+        get => _defectDispatchImpact;
+        set => SetProperty(ref _defectDispatchImpact, value);
+    }
+
+    public string DefectReportStatus
+    {
+        get => _defectReportStatus;
+        private set => SetProperty(ref _defectReportStatus, value);
+    }
+
+    public Brush DefectReportStatusColor
+    {
+        get => _defectReportStatusColor;
+        private set => SetProperty(ref _defectReportStatusColor, value);
     }
 
     public int FleetCount => Aircraft.Count;
@@ -251,6 +326,57 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         var cancellation = new CancellationTokenSource();
         _detailLoadCancellation = cancellation;
         _ = LoadDetailAsync(aircraft, cancellation.Token);
+    }
+
+    private void OpenDefectReport()
+    {
+        if (SelectedAircraft is null)
+        {
+            DetailStatusLabel = "Select an aircraft before reporting a cabin defect.";
+            DetailStatusColor = WarningBrush;
+            return;
+        }
+
+        DefectLocation = string.Empty;
+        DefectDescription = string.Empty;
+        DefectSeverity = "normal";
+        DefectDispatchImpact = "none";
+        DefectReportStatus = "Reports are saved only after the Fleet server accepts them.";
+        DefectReportStatusColor = InfoBrush;
+        IsDefectReportOpen = true;
+    }
+
+    private void CloseDefectReport()
+    {
+        IsDefectReportOpen = false;
+        DefectReportStatus = string.Empty;
+    }
+
+    private async Task SubmitDefectReportAsync()
+    {
+        var aircraft = SelectedAircraft;
+        if (aircraft is null)
+        {
+            throw new FleetApiException("Select an aircraft before reporting a cabin defect.");
+        }
+        if (string.IsNullOrWhiteSpace(DefectCategory) || DefectDescription.Trim().Length < 3)
+        {
+            throw new FleetApiException("Choose a category and enter a clear defect description of at least three characters.");
+        }
+
+        DefectReportStatus = "Submitting defect report…";
+        DefectReportStatusColor = InfoBrush;
+        var defect = await _fleetApiClient.ReportDefectAsync(_settings, aircraft.Id, new FleetDefectSubmissionDto(
+            DefectCategory,
+            DefectDescription.Trim(),
+            DefectSeverity,
+            DefectDispatchImpact,
+            aircraft.Station,
+            string.IsNullOrWhiteSpace(DefectLocation) ? null : DefectLocation));
+        DefectReportStatus = $"{defect.Reference} accepted by Fleet. Refreshing the aircraft record…";
+        DefectReportStatusColor = SuccessBrush;
+        await RefreshAsync();
+        IsDefectReportOpen = false;
     }
 
     private async Task LoadDetailAsync(FleetAircraftRow aircraft, CancellationToken cancellationToken)
