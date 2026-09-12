@@ -23,8 +23,16 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private int _telemetryDispatchPending;
     private bool _hasObservedEnginesRunning;
     private bool _hasObservedDeparture;
+    private bool _wasAirborne;
+    private bool _landingAssessmentReported;
+    private bool _fleetFlightStartRequested;
+    private bool _fleetFlightCompletionInProgress;
+    private bool _acarsTelemetryInFlight;
+    private int? _touchdownFpm;
+    private string? _fleetAircraftIdForCurrentFlight;
     private bool _preserveFlightForUpdate;
     private DateTimeOffset? _engineShutdownCandidateSince;
+    private DateTimeOffset? _lastAcarsTelemetrySentAt;
     private PageViewModel _currentPage;
     private string _activePage = "Dashboard";
 
@@ -97,7 +105,14 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             PrepareFlightForUpdate,
             CancelFlightUpdateShutdown);
         FlightLogger = new FlightLoggerViewModel();
-        Fleet = new FleetViewModel(settings, new FleetApiClient());
+        Account = new CabinAccountViewModel(settings, new FleetApiClient());
+        Fleet = new FleetViewModel(
+            settings,
+            new FleetApiClient(),
+            () => Account.Session,
+            Account.GetCurrentFlightContext);
+        Account.SessionChanged += HandleBavAccountSessionChanged;
+        Passengers.PropertyChanged += HandlePassengerFlightPropertyChanged;
         _currentPage = Dashboard;
         NavigateCommand = new RelayCommand(Navigate);
         _sessionSaveTimer = new DispatcherTimer(DispatcherPriority.Background)
@@ -145,6 +160,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public FlightLoggerViewModel FlightLogger { get; }
 
+    public CabinAccountViewModel Account { get; }
+
     public FleetViewModel Fleet { get; }
 
     public bool IsFlightInProgress =>
@@ -178,6 +195,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
         GateLogin.SignedIn -= HandleGateSignedIn;
         GateLogin.SignedOut -= HandleGateSignedOut;
+        Account.SessionChanged -= HandleBavAccountSessionChanged;
+        Passengers.PropertyChanged -= HandlePassengerFlightPropertyChanged;
         Performance.PropertyChanged -= HandlePerformancePropertyChanged;
         Passengers.DoorControlRequested -= HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested -= HandleSeatbeltControlRequested;
@@ -196,6 +215,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers.Dispose();
         Catering.Dispose();
         Performance.Dispose();
+        Account.Dispose();
         Fleet.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -220,10 +240,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (IsGateWorkspacePage(destination) && !GateLogin.IsAuthenticated)
+        if (IsGateWorkspacePage(destination) && !Account.IsAuthenticated)
         {
-            CurrentPage = GateLogin;
-            ActivePage = "GateLogin";
+            CurrentPage = Account;
+            ActivePage = "CabinAccount";
             return;
         }
 
@@ -254,6 +274,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "Performance" => Performance,
             "Settings" => Settings,
             "FlightLogger" => FlightLogger,
+            "CabinAccount" => Account,
             "Fleet" => Fleet,
             _ => Dashboard
         };
@@ -311,6 +332,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
         Passengers.ApplyCabinTelemetry(snapshot);
         Operations.ApplyCabinTelemetry(snapshot);
+        SendAcarsTelemetryWhenDue(snapshot);
         if (TrackAutomaticFlightCompletion(snapshot))
         {
             return;
@@ -335,16 +357,34 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private bool TrackAutomaticFlightCompletion(CabinTelemetrySnapshot snapshot)
     {
-        if (!Passengers.HasPassengerManifest)
+        if (!Passengers.HasPassengerManifest && !Fleet.HasActiveFlightAssignment && !Account.IsAcarsOperating)
         {
             ResetFlightCompletionTracking();
             return false;
         }
 
         var enginesRunning = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d;
+        var pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d;
         var groundSpeed = snapshot.Signals.GetValueOrDefault("groundspeed_mps");
+        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved && (enginesRunning || pushbackActive))
+        {
+            _fleetFlightStartRequested = true;
+            _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
+            _ = StartFleetFlightAsync();
+        }
         _hasObservedEnginesRunning |= enginesRunning;
         _hasObservedDeparture |= !snapshot.OnGround || Operations.IsArrivalMode;
+        if (!snapshot.OnGround)
+        {
+            _wasAirborne = true;
+            _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
+        }
+        else if (_wasAirborne && _touchdownFpm is null &&
+                 snapshot.Signals.TryGetValue("vertical_speed_fpm", out var verticalSpeed) &&
+                 double.IsFinite(verticalSpeed) && verticalSpeed < -20d)
+        {
+            _touchdownFpm = (int)Math.Round(verticalSpeed);
+        }
 
         var completedShutdown = _hasObservedEnginesRunning &&
                                 _hasObservedDeparture &&
@@ -363,12 +403,95 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return false;
         }
 
-        Passengers.UnloadFlight("Flight completed · aircraft stopped and engines shut down");
+        if (_fleetFlightCompletionInProgress)
+        {
+            return true;
+        }
+
+        _fleetFlightCompletionInProgress = true;
+        _ = CompleteFleetFlightAndUnloadAsync(_fleetAircraftIdForCurrentFlight, _touchdownFpm);
         return true;
+    }
+
+    private void HandleBavAccountSessionChanged(object? sender, EventArgs e)
+    {
+        if (Account.Session is not null)
+        {
+            GateLogin.SignInWithBavAccount(Account.Session);
+        }
+        else
+        {
+            GateLogin.SignOutBavAccount();
+        }
+
+        Operations.ApplyGateAccessState();
+        Account.RefreshFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
+    }
+
+    private void HandlePassengerFlightPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(PassengerFlowViewModel.ImportedFlightNumber) or
+            nameof(PassengerFlowViewModel.ImportedOrigin) or
+            nameof(PassengerFlowViewModel.ImportedDestination))
+        {
+            Account.RefreshFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
+        }
+    }
+
+    private async Task StartFleetFlightAsync()
+    {
+        try
+        {
+            Account.EnsureFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
+        }
+        catch (Exception exception)
+        {
+            Account.ReportFlightLinkFailure(exception);
+            _fleetFlightStartRequested = false;
+            return;
+        }
+
+        if (!await Fleet.StartAssignedFlightAsync())
+        {
+            _fleetFlightStartRequested = false;
+            return;
+        }
+
+        try
+        {
+            await Account.StartAcarsSessionAsync(ResolveAcarsSimulator());
+        }
+        catch (Exception exception)
+        {
+            Account.ReportBackgroundAcarsFailure(exception);
+        }
+    }
+
+    private async Task CompleteFleetFlightAndUnloadAsync(string? aircraftId, int? touchdownFpm)
+    {
+        try
+        {
+            await Fleet.CompleteAssignedFlightAsync();
+            if (!_landingAssessmentReported && aircraftId is not null && touchdownFpm is <= -500)
+            {
+                _landingAssessmentReported = true;
+                await Fleet.RecordHardLandingAssessmentAsync(aircraftId, touchdownFpm.Value, Passengers.ImportedDestination);
+            }
+            await Account.CompleteAcarsSessionAsync(touchdownFpm);
+        }
+        finally
+        {
+            Passengers.UnloadFlight("Flight completed · aircraft stopped and engines shut down");
+            _fleetFlightCompletionInProgress = false;
+        }
     }
 
     private void HandleFlightUnloaded()
     {
+        if (Fleet.IsFlightReserved && !_fleetFlightCompletionInProgress)
+        {
+            _ = Fleet.ReleaseAircraftReservationAsync();
+        }
         _flightSessionStore?.Clear();
         ResetFlightCompletionTracking();
     }
@@ -377,7 +500,89 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     {
         _hasObservedEnginesRunning = false;
         _hasObservedDeparture = false;
+        _wasAirborne = false;
+        _landingAssessmentReported = false;
+        _fleetFlightStartRequested = false;
+        _fleetFlightCompletionInProgress = false;
+        _touchdownFpm = null;
+        _fleetAircraftIdForCurrentFlight = null;
         _engineShutdownCandidateSince = null;
+        _lastAcarsTelemetrySentAt = null;
+        _acarsTelemetryInFlight = false;
+    }
+
+    private void SendAcarsTelemetryWhenDue(CabinTelemetrySnapshot snapshot)
+    {
+        if (!Account.IsAcarsOperating || _acarsTelemetryInFlight)
+        {
+            return;
+        }
+
+        if (_lastAcarsTelemetrySentAt is { } lastSent && snapshot.Timestamp - lastSent < TimeSpan.FromSeconds(15))
+        {
+            return;
+        }
+
+        if (!TryCreateAcarsTelemetry(snapshot, out var telemetry))
+        {
+            return;
+        }
+
+        _lastAcarsTelemetrySentAt = snapshot.Timestamp;
+        _acarsTelemetryInFlight = true;
+        _ = SendAcarsTelemetryAsync(telemetry);
+    }
+
+    private async Task SendAcarsTelemetryAsync(FleetAcarsTelemetryDto telemetry)
+    {
+        try
+        {
+            await Account.SendAcarsTelemetryAsync(telemetry);
+        }
+        catch (Exception exception)
+        {
+            Account.ReportBackgroundAcarsFailure(exception);
+        }
+        finally
+        {
+            _acarsTelemetryInFlight = false;
+        }
+    }
+
+    private static bool TryCreateAcarsTelemetry(CabinTelemetrySnapshot snapshot, out FleetAcarsTelemetryDto telemetry)
+    {
+        var latitude = snapshot.Signals.GetValueOrDefault("latitude_deg", double.NaN);
+        var longitude = snapshot.Signals.GetValueOrDefault("longitude_deg", double.NaN);
+        var heading = snapshot.Signals.GetValueOrDefault("heading_deg", double.NaN);
+        if (!double.IsFinite(latitude) || !double.IsFinite(longitude) || !double.IsFinite(heading))
+        {
+            telemetry = default!;
+            return false;
+        }
+
+        var groundSpeedMetresPerSecond = snapshot.Signals.GetValueOrDefault("groundspeed_mps", 0d);
+        var fuelKg = snapshot.Signals.GetValueOrDefault("fuel_kg", double.NaN);
+        var verticalSpeed = snapshot.Signals.GetValueOrDefault("vertical_speed_fpm", double.NaN);
+        telemetry = new FleetAcarsTelemetryDto(
+            latitude,
+            longitude,
+            snapshot.AltitudeFeet,
+            Math.Max(0d, groundSpeedMetresPerSecond * 1.9438444924406d),
+            ((heading % 360d) + 360d) % 360d,
+            double.IsFinite(fuelKg) ? Math.Max(0d, fuelKg) : null,
+            snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d,
+            snapshot.Signals.GetValueOrDefault("parking_brake_set") >= 0.5d,
+            snapshot.OnGround,
+            double.IsFinite(verticalSpeed) ? verticalSpeed : null);
+        return true;
+    }
+
+    private string ResolveAcarsSimulator()
+    {
+        var simulator = _simulatorBridge?.CurrentStatus.Simulator ?? string.Empty;
+        if (simulator.Contains("X-Plane", StringComparison.OrdinalIgnoreCase)) return "xplane12";
+        if (simulator.Contains("2020", StringComparison.OrdinalIgnoreCase)) return "msfs2020";
+        return "msfs2024";
     }
 
     private void PrepareFlightForUpdate()

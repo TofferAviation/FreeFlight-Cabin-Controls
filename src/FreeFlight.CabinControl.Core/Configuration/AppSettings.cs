@@ -108,7 +108,7 @@ public sealed class AppSettings
 
     public bool FleetAutoSync { get; set; } = true;
 
-    public int FleetSyncIntervalSeconds { get; set; } = 20;
+    public int FleetSyncIntervalSeconds { get; set; } = 90;
 
     public string SelectedFleetRegistration { get; set; } = string.Empty;
 

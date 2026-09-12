@@ -157,6 +157,11 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         AddDouble("GENERAL ENG COMBUSTION:2", "bool", 9);
         AddDouble("LOCAL TIME", "seconds", 10);
         AddDouble("PUSHBACK STATE", "enum", 11);
+        AddDouble("PLANE LATITUDE", "degrees", 12);
+        AddDouble("PLANE LONGITUDE", "degrees", 13);
+        AddDouble("PLANE HEADING DEGREES TRUE", "degrees", 14);
+        AddDouble("FUEL TOTAL QUANTITY WEIGHT", "kilograms", 15);
+        AddDouble("PARKING BRAKE POSITION", "bool", 16);
         result = SimConnectRequestDataOnSimObject(
             _connection, RequestId, DefinitionId, UserObjectId, SimConnectPeriod.Second, 0, 0, 0, 0);
         if (result < 0)
@@ -219,7 +224,12 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
             ["pushback_active"] = telemetry.PushbackState >= 0.5d ||
                                   (onGround && telemetry.GroundSpeed >= 0.35d && telemetry.AltitudeAglFeet < 15d)
                 ? 1d
-                : 0d
+                : 0d,
+            ["latitude_deg"] = telemetry.LatitudeDegrees,
+            ["longitude_deg"] = telemetry.LongitudeDegrees,
+            ["heading_deg"] = telemetry.TrueHeadingDegrees,
+            ["fuel_kg"] = telemetry.FuelKilograms,
+            ["parking_brake_set"] = telemetry.ParkingBrakeSet
         };
         try
         {
@@ -281,6 +291,11 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         public double Engine2Running;
         public double LocalTimeSeconds;
         public double PushbackState;
+        public double LatitudeDegrees;
+        public double LongitudeDegrees;
+        public double TrueHeadingDegrees;
+        public double FuelKilograms;
+        public double ParkingBrakeSet;
     }
 
     [DllImport("SimConnect.dll", EntryPoint = "SimConnect_Open", CharSet = CharSet.Ansi)]

@@ -1,0 +1,347 @@
+using System.Windows.Input;
+using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
+using FreeFlight.CabinControl.Core.Configuration;
+
+namespace FreeFlight.CabinControl.App.ViewModels;
+
+/// <summary>
+/// The Cabin Control account is a short-lived session authenticated by the
+/// British Airways Virtual website. Only the resulting session token is kept
+/// in memory; the website password is cleared immediately after sign-in.
+/// </summary>
+public sealed class CabinAccountViewModel : PageViewModel, IDisposable
+{
+    private readonly AppSettings _settings;
+    private readonly FleetApiClient _apiClient;
+    private string _email = string.Empty;
+    private string _password = string.Empty;
+    private FleetAccountSession? _session;
+    private FleetWebsiteFlightAssignmentDto? _websiteFlightAssignment;
+    private FleetAcarsSessionDto? _activeAcarsSession;
+    private string _flightPlanLinkLabel = "Choose a BAV flight, then import SimBrief to verify the route.";
+    private string _flightPlanLinkDetail = "Cabin Control will prevent an aircraft lifecycle from starting when the two flights disagree.";
+    private bool _hasSimBriefFlightPlan;
+    private bool _isFlightPlanLinked;
+    private string _acarsSessionLabel = "No active ACARS flight";
+    private string _lastFlightCompletionLabel = "No ACARS flight has been completed in this Cabin Control session.";
+    private string _statusMessage = "Sign in with your British Airways Virtual website account to reserve an aircraft for a flight.";
+    private bool _isBusy;
+
+    public CabinAccountViewModel(AppSettings settings, FleetApiClient apiClient)
+        : base("BAV Account", "Your British Airways Virtual identity for Fleet operations")
+    {
+        _settings = settings;
+        _apiClient = apiClient;
+        SignInCommand = new AsyncRelayCommand(SignInAsync, exception => StatusMessage = exception.Message);
+        SignOutCommand = new RelayCommand(_ => SignOut());
+        RefreshWebsiteFlightCommand = new AsyncRelayCommand(RefreshWebsiteFlightAsync, exception => StatusMessage = exception.Message);
+    }
+
+    public event EventHandler? SessionChanged;
+
+    public ICommand SignInCommand { get; }
+    public ICommand SignOutCommand { get; }
+    public ICommand RefreshWebsiteFlightCommand { get; }
+
+    public string Email
+    {
+        get => _email;
+        set => SetProperty(ref _email, value);
+    }
+
+    public string Password
+    {
+        get => _password;
+        set => SetProperty(ref _password, value);
+    }
+
+    public FleetAccountSession? Session
+    {
+        get => _session;
+        private set
+        {
+            if (!SetProperty(ref _session, value)) return;
+            OnPropertyChanged(nameof(IsAuthenticated));
+            OnPropertyChanged(nameof(DisplayName));
+            OnPropertyChanged(nameof(PilotLabel));
+            OnPropertyChanged(nameof(Initials));
+            SessionChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public bool IsAuthenticated => Session is not null;
+    public string DisplayName => Session?.Name ?? "British Airways Virtual pilot";
+    public string PilotLabel => Session is null ? "Not signed in" : $"Pilot {Session.PilotNumber}";
+    public string Initials => string.Concat(DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+
+    public FleetWebsiteFlightAssignmentDto? WebsiteFlightAssignment
+    {
+        get => _websiteFlightAssignment;
+        private set
+        {
+            if (!SetProperty(ref _websiteFlightAssignment, value)) return;
+            OnPropertyChanged(nameof(HasWebsiteFlightAssignment));
+            OnPropertyChanged(nameof(WebsiteFlightAssignmentLabel));
+            OnPropertyChanged(nameof(WebsiteFlightAssignmentDetail));
+            SessionChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public bool HasWebsiteFlightAssignment => WebsiteFlightAssignment is not null;
+
+    public string FlightPlanLinkLabel
+    {
+        get => _flightPlanLinkLabel;
+        private set => SetProperty(ref _flightPlanLinkLabel, value);
+    }
+
+    public string FlightPlanLinkDetail
+    {
+        get => _flightPlanLinkDetail;
+        private set => SetProperty(ref _flightPlanLinkDetail, value);
+    }
+
+    public bool HasSimBriefFlightPlan
+    {
+        get => _hasSimBriefFlightPlan;
+        private set => SetProperty(ref _hasSimBriefFlightPlan, value);
+    }
+
+    public bool IsFlightPlanLinked
+    {
+        get => _isFlightPlanLinked;
+        private set => SetProperty(ref _isFlightPlanLinked, value);
+    }
+
+    public FleetAcarsSessionDto? ActiveAcarsSession
+    {
+        get => _activeAcarsSession;
+        private set
+        {
+            if (!SetProperty(ref _activeAcarsSession, value)) return;
+            OnPropertyChanged(nameof(IsAcarsOperating));
+        }
+    }
+
+    public bool IsAcarsOperating => ActiveAcarsSession?.Status == "active";
+
+    public string AcarsSessionLabel
+    {
+        get => _acarsSessionLabel;
+        private set => SetProperty(ref _acarsSessionLabel, value);
+    }
+
+    public string LastFlightCompletionLabel
+    {
+        get => _lastFlightCompletionLabel;
+        private set => SetProperty(ref _lastFlightCompletionLabel, value);
+    }
+
+    public string WebsiteFlightAssignmentLabel => WebsiteFlightAssignment is null
+        ? "No BAV flight selected"
+        : $"{WebsiteFlightAssignment.FlightNumber} · {WebsiteFlightAssignment.From} → {WebsiteFlightAssignment.To}";
+
+    public string WebsiteFlightAssignmentDetail => WebsiteFlightAssignment is null
+        ? "Choose a flight on the BAV website, then refresh it here."
+        : $"{WebsiteFlightAssignment.Date} · {WebsiteFlightAssignment.Aircraft} · dep {WebsiteFlightAssignment.Departure}";
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set => SetProperty(ref _isBusy, value);
+    }
+
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        private set => SetProperty(ref _statusMessage, value);
+    }
+
+    private async Task SignInAsync()
+    {
+        IsBusy = true;
+        StatusMessage = "Signing in securely…";
+        try
+        {
+            Session = await _apiClient.SignInAsync(_settings, Email, Password);
+            Password = string.Empty;
+            await RefreshWebsiteFlightAsync();
+            await RecoverActiveAcarsSessionAsync();
+        }
+        finally
+        {
+            Password = string.Empty;
+            IsBusy = false;
+        }
+    }
+
+    private void SignOut()
+    {
+        Session = null;
+        WebsiteFlightAssignment = null;
+        ActiveAcarsSession = null;
+        AcarsSessionLabel = "No active ACARS flight";
+        Password = string.Empty;
+        StatusMessage = "Signed out. Your website password is never stored by Cabin Control.";
+    }
+
+    public FleetFlightAssignmentSubmissionDto GetCurrentFlightContext()
+    {
+        var assignment = WebsiteFlightAssignment
+            ?? throw new FleetApiException("Choose a flight on the BAV website, then select Refresh website flight in Cabin Control.");
+        return new FleetFlightAssignmentSubmissionDto(assignment.FlightNumber, assignment.From, assignment.To);
+    }
+
+    public void RefreshFlightPlanLink(string? simBriefFlightNumber, string? simBriefOrigin, string? simBriefDestination)
+    {
+        var hasFlightPlan = !string.IsNullOrWhiteSpace(simBriefFlightNumber) &&
+                            !string.IsNullOrWhiteSpace(simBriefOrigin) &&
+                            !string.IsNullOrWhiteSpace(simBriefDestination);
+        HasSimBriefFlightPlan = hasFlightPlan;
+
+        if (WebsiteFlightAssignment is null)
+        {
+            IsFlightPlanLinked = false;
+            FlightPlanLinkLabel = "No BAV flight selected";
+            FlightPlanLinkDetail = "Choose the flight on the BAV website and refresh it here before reserving an aircraft.";
+            return;
+        }
+
+        if (!hasFlightPlan)
+        {
+            IsFlightPlanLinked = false;
+            FlightPlanLinkLabel = "BAV flight selected · SimBrief validation pending";
+            FlightPlanLinkDetail = "Import the SimBrief OFP when available. The BAV flight can still be reserved before then.";
+            return;
+        }
+
+        var flightMatches = string.Equals(NormalizeFlightNumber(WebsiteFlightAssignment.FlightNumber), NormalizeFlightNumber(simBriefFlightNumber), StringComparison.Ordinal);
+        var originMatches = string.Equals(NormalizeAirport(WebsiteFlightAssignment.From), NormalizeAirport(simBriefOrigin), StringComparison.Ordinal);
+        var destinationMatches = string.Equals(NormalizeAirport(WebsiteFlightAssignment.To), NormalizeAirport(simBriefDestination), StringComparison.Ordinal);
+        IsFlightPlanLinked = flightMatches && originMatches && destinationMatches;
+
+        if (IsFlightPlanLinked)
+        {
+            FlightPlanLinkLabel = "BAV website flight and SimBrief OFP match";
+            FlightPlanLinkDetail = $"{WebsiteFlightAssignment.FlightNumber} · {NormalizeAirport(WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.To)} is ready for aircraft operations.";
+            return;
+        }
+
+        FlightPlanLinkLabel = "BAV website flight and SimBrief OFP do not match";
+        FlightPlanLinkDetail = $"BAV: {WebsiteFlightAssignment.FlightNumber} {NormalizeAirport(WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.To)}. SimBrief: {simBriefFlightNumber?.Trim()} {NormalizeAirport(simBriefOrigin)} → {NormalizeAirport(simBriefDestination)}. Select or import the correct flight before pushback.";
+    }
+
+    public void EnsureFlightPlanLink(string? simBriefFlightNumber, string? simBriefOrigin, string? simBriefDestination)
+    {
+        RefreshFlightPlanLink(simBriefFlightNumber, simBriefOrigin, simBriefDestination);
+        if (HasSimBriefFlightPlan && !IsFlightPlanLinked)
+        {
+            throw new FleetApiException("The selected BAV flight does not match the loaded SimBrief OFP. Select or import the correct flight before pushback.");
+        }
+    }
+
+    public async Task StartAcarsSessionAsync(string simulator)
+    {
+        if (IsAcarsOperating)
+        {
+            return;
+        }
+
+        var account = Session ?? throw new FleetApiException("Sign in with your BAV website account before starting a flight.");
+        ActiveAcarsSession = await _apiClient.StartAcarsSessionAsync(_settings, account, simulator);
+        AcarsSessionLabel = $"ACARS active · {ActiveAcarsSession.FlightNumber} · {ActiveAcarsSession.From} → {ActiveAcarsSession.To}";
+        StatusMessage = $"ACARS is running for {ActiveAcarsSession.FlightNumber}. Cabin Control will record the flight in the background.";
+    }
+
+    public async Task SendAcarsTelemetryAsync(FleetAcarsTelemetryDto telemetry)
+    {
+        var account = Session;
+        var session = ActiveAcarsSession;
+        if (account is null || session is null || session.Status != "active")
+        {
+            return;
+        }
+
+        await _apiClient.SendAcarsTelemetryAsync(_settings, account, session.Id, telemetry);
+    }
+
+    public async Task CompleteAcarsSessionAsync(int? landingFpm)
+    {
+        var account = Session;
+        var session = ActiveAcarsSession;
+        if (account is null || session is null || session.Status != "active")
+        {
+            return;
+        }
+
+        var completed = await _apiClient.CompleteAcarsSessionAsync(_settings, account, session.Id, landingFpm);
+        ActiveAcarsSession = null;
+        AcarsSessionLabel = "No active ACARS flight";
+        LastFlightCompletionLabel = FormatCompletion(completed.Pirep);
+        StatusMessage = "ACARS flight completed. Your BAV flight history and PIREP have been updated.";
+    }
+
+    public void ReportBackgroundAcarsFailure(Exception exception)
+    {
+        StatusMessage = $"ACARS needs attention: {exception.Message}";
+    }
+
+    public void ReportFlightLinkFailure(Exception exception)
+    {
+        StatusMessage = exception.Message;
+    }
+
+    private async Task RefreshWebsiteFlightAsync()
+    {
+        var account = Session ?? throw new FleetApiException("Sign in with your BAV website account first.");
+        IsBusy = true;
+        try
+        {
+            WebsiteFlightAssignment = await _apiClient.GetWebsiteFlightAssignmentAsync(_settings, account);
+            StatusMessage = WebsiteFlightAssignment is null
+                ? "No active flight is selected on the BAV website. Choose one there, then refresh this page."
+                : $"Loaded {WebsiteFlightAssignment.FlightNumber} from your BAV account. Fleet aircraft selection now uses this flight.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task RecoverActiveAcarsSessionAsync()
+    {
+        var account = Session ?? throw new FleetApiException("Sign in with your BAV website account first.");
+        var recovered = await _apiClient.GetActiveAcarsSessionAsync(_settings, account);
+        ActiveAcarsSession = recovered;
+        if (recovered is null)
+        {
+            AcarsSessionLabel = "No active ACARS flight";
+            return;
+        }
+
+        AcarsSessionLabel = $"ACARS recovered · {recovered.FlightNumber} · {recovered.From} → {recovered.To}";
+        StatusMessage = $"Recovered active ACARS session for {recovered.FlightNumber}. Telemetry will continue in the background.";
+    }
+
+    public void Dispose() => _apiClient.Dispose();
+
+    private static string NormalizeFlightNumber(string? value) =>
+        string.Concat((value ?? string.Empty).Where(char.IsLetterOrDigit)).ToUpperInvariant();
+
+    private static string NormalizeAirport(string? value) => (value ?? string.Empty).Trim().ToUpperInvariant() switch
+    {
+        "EGLL" => "LHR",
+        "KJFK" => "JFK",
+        var airport when airport.Length > 3 => airport[^3..],
+        var airport => airport
+    };
+
+    private static string FormatCompletion(FleetPirepDto pirep)
+    {
+        var block = TimeSpan.FromMinutes(Math.Max(0, pirep.BlockMinutes));
+        var landing = pirep.LandingFpm is null ? "landing rate unavailable" : $"{pirep.LandingFpm.Value} fpm";
+        var fuel = pirep.FuelUsedKg is null ? "fuel use unavailable" : $"{pirep.FuelUsedKg.Value:N0} kg used";
+        return $"PIREP submitted · {pirep.FlightNumber} {pirep.From} → {pirep.To} · block {block:h\\:mm} · {pirep.DistanceNm:N0} nm · {landing} · {fuel}.";
+    }
+}

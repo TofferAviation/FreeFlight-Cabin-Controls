@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using FreeFlight.CabinControl.Core.Configuration;
 
 namespace FreeFlight.CabinControl.App.Services;
@@ -48,6 +49,178 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return payload?.Defect ?? throw new FleetApiException("The Fleet API did not confirm the defect report.");
     }
 
+    public async Task<FleetLandingAssessmentDto> RecordHardLandingAssessmentAsync(
+        AppSettings settings,
+        string aircraftId,
+        FleetLandingAssessmentSubmissionDto landing,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(aircraftId);
+        var payload = await SendAsync<FleetLandingAssessmentEnvelope>(
+            settings,
+            HttpMethod.Post,
+            $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/landing-assessment",
+            new { landing },
+            cancellationToken);
+        return payload?.Assessment ?? throw new FleetApiException("The Fleet API did not confirm the hard-landing assessment.");
+    }
+
+    public async Task<FleetAccountSession> SignInAsync(
+        AppSettings settings,
+        string email,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            throw new FleetApiException("Enter your British Airways Virtual email address and password.");
+        }
+
+        var baseUri = ResolveBaseUri(settings);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(baseUri, "/api/acars/v1/auth"))
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new { email = email.Trim(), password }, JsonWriteOptions), Encoding.UTF8, "application/json")
+        };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new FleetApiException($"British Airways Virtual sign-in failed: {ExtractError(content)}");
+        }
+
+        var payload = JsonSerializer.Deserialize<FleetAccountEnvelope>(content, JsonOptions)
+                      ?? throw new FleetApiException("British Airways Virtual returned an empty sign-in response.");
+        if (string.IsNullOrWhiteSpace(payload.Token) || payload.Pilot is null)
+        {
+            throw new FleetApiException("British Airways Virtual did not return a usable account session.");
+        }
+
+        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email);
+    }
+
+    public async Task<FleetWebsiteFlightAssignmentDto?> GetWebsiteFlightAssignmentAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var baseUri = ResolveBaseUri(settings);
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, "/api/acars/v1/assignment"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.Token);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new FleetApiException($"Could not load your selected BAV flight: {ExtractError(content)}");
+        }
+
+        return JsonSerializer.Deserialize<FleetWebsiteFlightAssignmentEnvelope>(content, JsonOptions)?.Assignment;
+    }
+
+    public async Task<FleetAcarsSessionDto> StartAcarsSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string simulator,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetAcarsSessionEnvelope>(
+            settings,
+            account,
+            HttpMethod.Post,
+            "/api/acars/v1/sessions/start",
+            new { simulator },
+            cancellationToken);
+        return payload?.Session ?? throw new FleetApiException("British Airways Virtual did not confirm the ACARS session.");
+    }
+
+    public async Task<FleetAcarsSessionDto?> GetActiveAcarsSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetAcarsSessionEnvelope>(
+            settings,
+            account,
+            HttpMethod.Get,
+            "/api/acars/v1/sessions/active",
+            null,
+            cancellationToken);
+        return payload?.Session;
+    }
+
+    public async Task SendAcarsTelemetryAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string sessionId,
+        FleetAcarsTelemetryDto telemetry,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        _ = await SendBavAsync<FleetAcarsTelemetryEnvelope>(
+            settings,
+            account,
+            HttpMethod.Post,
+            $"/api/acars/v1/sessions/{Uri.EscapeDataString(sessionId)}/telemetry",
+            telemetry,
+            cancellationToken);
+    }
+
+    public async Task<FleetAcarsCompletionDto> CompleteAcarsSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string sessionId,
+        int? landingFpm,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        var payload = await SendBavAsync<FleetAcarsCompleteEnvelope>(
+            settings,
+            account,
+            HttpMethod.Post,
+            $"/api/acars/v1/sessions/{Uri.EscapeDataString(sessionId)}/end",
+            new { landingFpm },
+            cancellationToken);
+        if (payload?.Session is null || payload.Pirep is null)
+        {
+            throw new FleetApiException("British Airways Virtual did not confirm the completed ACARS flight.");
+        }
+
+        return new FleetAcarsCompletionDto(payload.Session, payload.Pirep);
+    }
+
+    public async Task<FleetFlightAssignmentDto> ReserveAircraftForFlightAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string aircraftId,
+        FleetFlightAssignmentSubmissionDto assignment,
+        CancellationToken cancellationToken = default) =>
+        await SendFlightAssignmentAsync(settings, account, HttpMethod.Post, $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/flight-assignment", assignment, cancellationToken);
+
+    public async Task<FleetFlightAssignmentDto> StartAircraftFlightAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string aircraftId,
+        FleetFlightAssignmentSubmissionDto assignment,
+        CancellationToken cancellationToken = default) =>
+        await SendFlightAssignmentAsync(settings, account, HttpMethod.Post, $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/flight-assignment/start", assignment, cancellationToken);
+
+    public async Task<FleetFlightAssignmentDto> CompleteAircraftFlightAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string aircraftId,
+        FleetFlightAssignmentSubmissionDto assignment,
+        CancellationToken cancellationToken = default) =>
+        await SendFlightAssignmentAsync(settings, account, HttpMethod.Post, $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/flight-assignment/complete", assignment, cancellationToken);
+
+    public async Task<FleetFlightAssignmentDto> CancelAircraftReservationAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string aircraftId,
+        FleetFlightAssignmentSubmissionDto assignment,
+        CancellationToken cancellationToken = default) =>
+        await SendFlightAssignmentAsync(settings, account, HttpMethod.Delete, $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/flight-assignment", assignment, cancellationToken);
+
     private async Task<T?> GetAsync<T>(AppSettings settings, string route, CancellationToken cancellationToken)
     {
         return await SendAsync<T>(settings, HttpMethod.Get, route, null, cancellationToken);
@@ -60,11 +233,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         object? payload,
         CancellationToken cancellationToken)
     {
-        var baseUrl = settings.FleetApiBaseUrl.Trim().TrimEnd('/');
-        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme is not ("https" or "http"))
-        {
-            throw new FleetApiException("Enter the Fleet API website address in Settings before synchronizing.");
-        }
+        var baseUri = ResolveBaseUri(settings);
         if (string.IsNullOrWhiteSpace(settings.FleetApiAccessKey))
         {
             throw new FleetApiException("Enter the Fleet device access key in Settings before synchronizing.");
@@ -87,6 +256,68 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return JsonSerializer.Deserialize<T>(content, JsonOptions);
     }
 
+    private async Task<FleetFlightAssignmentDto> SendFlightAssignmentAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        HttpMethod method,
+        string route,
+        FleetFlightAssignmentSubmissionDto assignment,
+        CancellationToken cancellationToken)
+    {
+        var baseUri = ResolveBaseUri(settings);
+        using var request = new HttpRequestMessage(method, new Uri(baseUri, route));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.Token);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Content = new StringContent(JsonSerializer.Serialize(new { assignment }, JsonWriteOptions), Encoding.UTF8, "application/json");
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new FleetApiException($"Fleet aircraft selection failed: {ExtractError(content)}");
+        }
+
+        var payload = JsonSerializer.Deserialize<FleetFlightAssignmentEnvelope>(content, JsonOptions);
+        return payload?.Assignment ?? throw new FleetApiException("The Fleet API did not confirm the aircraft assignment.");
+    }
+
+    private async Task<T?> SendBavAsync<T>(
+        AppSettings settings,
+        FleetAccountSession account,
+        HttpMethod method,
+        string route,
+        object? payload,
+        CancellationToken cancellationToken)
+    {
+        var baseUri = ResolveBaseUri(settings);
+        using var request = new HttpRequestMessage(method, new Uri(baseUri, route));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.Token);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        if (payload is not null)
+        {
+            request.Content = new StringContent(JsonSerializer.Serialize(payload, JsonWriteOptions), Encoding.UTF8, "application/json");
+        }
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new FleetApiException($"British Airways Virtual ACARS request failed: {ExtractError(content)}");
+        }
+
+        return JsonSerializer.Deserialize<T>(content, JsonOptions);
+    }
+
+    private static Uri ResolveBaseUri(AppSettings settings)
+    {
+        var baseUrl = settings.FleetApiBaseUrl.Trim().TrimEnd('/');
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme is not ("https" or "http"))
+        {
+            throw new FleetApiException("Enter the Fleet API website address in Settings before connecting your account.");
+        }
+
+        return baseUri;
+    }
+
     private static string ExtractError(string json)
     {
         try { return JsonSerializer.Deserialize<FleetErrorEnvelope>(json, JsonOptions)?.Error ?? "Request failed."; }
@@ -105,6 +336,41 @@ public sealed record FleetAircraftEnvelope(IReadOnlyList<FleetAircraftSummaryDto
 public sealed record FleetErrorEnvelope(string? Error);
 public sealed record FleetAircraftRecordEnvelope(FleetAircraftRecordDto? Aircraft);
 public sealed record FleetDefectEnvelope(FleetDefectDto? Defect);
+public sealed record FleetLandingAssessmentEnvelope(FleetLandingAssessmentDto? Assessment);
+public sealed record FleetAccountEnvelope(string? Token, FleetAccountPilotDto? Pilot, long? ExpiresInSeconds);
+public sealed record FleetAccountPilotDto(string Id, string PilotNumber, string Name, string Email);
+public sealed record FleetAccountSession(string Token, string PilotId, string PilotNumber, string Name, string Email);
+public sealed record FleetWebsiteFlightAssignmentEnvelope(FleetWebsiteFlightAssignmentDto? Assignment);
+public sealed record FleetWebsiteFlightAssignmentDto(
+    string Id,
+    string FlightNumber,
+    string From,
+    string To,
+    string Aircraft,
+    string Departure,
+    string Arrival,
+    string Date,
+    string Status);
+public sealed record FleetFlightAssignmentEnvelope(FleetFlightAssignmentDto? Assignment);
+public sealed record FleetFlightAssignmentSubmissionDto(string FlightReference, string? DepartureStation, string? ArrivalStation);
+public sealed record FleetFlightAssignmentDto(string Id, string AircraftId, string PilotSubject, string PilotDisplayName, string FlightReference, string? DepartureStation, string? ArrivalStation, string Status, string ReservedAt, string? OffBlockAt, string? OnBlockAt, int? BlockMinutes);
+public sealed record FleetAcarsSessionEnvelope(FleetAcarsSessionDto? Session);
+public sealed record FleetAcarsTelemetryEnvelope(bool Ok, string? UpdatedAt, double? DistanceNm);
+public sealed record FleetAcarsCompleteEnvelope(FleetAcarsSessionDto? Session, FleetPirepDto? Pirep);
+public sealed record FleetAcarsSessionDto(string Id, string FlightNumber, string From, string To, string Aircraft, string Simulator, string Status, string StartedAt);
+public sealed record FleetAcarsCompletionDto(FleetAcarsSessionDto Session, FleetPirepDto Pirep);
+public sealed record FleetPirepDto(string Id, string FlightNumber, string From, string To, string Aircraft, int BlockMinutes, int DistanceNm, int? LandingFpm, int? FuelUsedKg, string Status, string Source, string Simulator);
+public sealed record FleetAcarsTelemetryDto(
+    double Latitude,
+    double Longitude,
+    double AltitudeFt,
+    double GroundSpeedKt,
+    double HeadingDeg,
+    double? FuelKg,
+    bool EnginesRunning,
+    bool ParkingBrakeSet,
+    bool OnGround,
+    double? VerticalSpeedFpm);
 public sealed record FleetAircraftSummaryDto(
     string Id,
     string Registration,
@@ -120,9 +386,35 @@ public sealed record FleetAircraftSummaryDto(
     long AirframeCycles,
     string? LastFlightAt,
     string? NextAssignedFlightReference,
-    long StatusVersion);
+    long StatusVersion,
+    FleetAircraftImageDto? Image);
+public sealed record FleetAircraftImageDto(string Url, string Source, string? Credit, string? SourcePageUrl);
 public sealed record FleetAvailabilityDto(string DispatchStatus, bool Available, IReadOnlyList<string>? Reasons);
-public sealed record FleetDefectDto(string Reference, string? ReportingStation, string Category, string? SeatNumber, string Description, string Severity, string DispatchImpact, string Status);
+// The Fleet API uses snake_case for its technical-record fields.  These names
+// must be explicit: case-insensitive JSON matching does not translate '_' to
+// PascalCase, which otherwise makes a deferred defect look like an empty one.
+public sealed record FleetDeferralDto(
+    [property: JsonPropertyName("deferral_kind")] string DeferralKind,
+    [property: JsonPropertyName("reference")] string Reference,
+    [property: JsonPropertyName("restriction")] string Restriction,
+    [property: JsonPropertyName("operational_procedure")] string? OperationalProcedure,
+    [property: JsonPropertyName("maintenance_procedure")] string? MaintenanceProcedure,
+    [property: JsonPropertyName("due_at")] string? DueAt,
+    [property: JsonPropertyName("due_cycles")] long? DueCycles,
+    [property: JsonPropertyName("due_hours_minutes")] long? DueHoursMinutes);
+
+public sealed record FleetDefectDto(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("reference")] string Reference,
+    [property: JsonPropertyName("reporting_station")] string? ReportingStation,
+    [property: JsonPropertyName("category")] string Category,
+    [property: JsonPropertyName("seat_number")] string? SeatNumber,
+    [property: JsonPropertyName("description")] string Description,
+    [property: JsonPropertyName("severity")] string Severity,
+    [property: JsonPropertyName("dispatch_impact")] string DispatchImpact,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("version")] long Version,
+    [property: JsonPropertyName("deferral")] FleetDeferralDto? Deferral);
 public sealed record FleetDefectSubmissionDto(
     string Category,
     string Description,
@@ -131,6 +423,8 @@ public sealed record FleetDefectSubmissionDto(
     string? Station,
     string? SeatNumber,
     string Source = "cabin_crew");
+public sealed record FleetLandingAssessmentSubmissionDto(int LandingFpm, string? Station);
+public sealed record FleetLandingAssessmentDto(string Outcome, int LandingFpm, string Registration, string Reference);
 public sealed record FleetMaintenanceDueDto(string TaskCode, string TaskName, string? DueDate, long? DueHoursMinutes, long? DueCycles, string DueStatus, string? DueReason);
 public sealed record FleetStatusHistoryDto(string OperationalStatus, string TechnicalStatus, string DispatchStatus, string Reason, string? Remarks, string? Station, string EffectiveAt, string Source);
 public sealed record FleetLogEntryDto(string Reference, string OccurredAt, string? Station, string Category, string Description, string Status);
@@ -149,6 +443,7 @@ public sealed record FleetAircraftRecordDto(
     string? Msn,
     string? HomeBase,
     string? CurrentLivery,
+    FleetAircraftImageDto? Image,
     FleetAvailabilityDto? Availability,
     IReadOnlyList<FleetDefectDto>? Defects,
     IReadOnlyList<FleetMaintenanceDueDto>? MaintenanceDue,

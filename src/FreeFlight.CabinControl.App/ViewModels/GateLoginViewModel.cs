@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Operations;
 
@@ -118,6 +119,39 @@ public sealed class GateLoginViewModel : PageViewModel, IDisposable
         _clockTimer.Stop();
         _clockTimer.Tick -= HandleClockTick;
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Gate access inherits the authenticated British Airways Virtual pilot
+    /// identity.  The desktop never asks for a second local gate password.
+    /// </summary>
+    public void SignInWithBavAccount(FleetAccountSession account)
+    {
+        ArgumentNullException.ThrowIfNull(account);
+        var wasAuthenticated = IsAuthenticated;
+        SignedInStaff = account.PilotNumber;
+        EmployeeId = account.PilotNumber;
+        Password = string.Empty;
+        IsAuthenticated = true;
+        StatusMessage = $"{account.Name} · {account.PilotNumber} is authorised for Gate Operations.";
+        if (!wasAuthenticated)
+        {
+            SignedIn?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    public void SignOutBavAccount()
+    {
+        if (!IsAuthenticated)
+        {
+            return;
+        }
+
+        IsAuthenticated = false;
+        SignedInStaff = string.Empty;
+        Password = string.Empty;
+        StatusMessage = "Sign in to your BAV account to access Gate Operations.";
+        SignedOut?.Invoke(this, EventArgs.Empty);
     }
 
     private void SignIn()

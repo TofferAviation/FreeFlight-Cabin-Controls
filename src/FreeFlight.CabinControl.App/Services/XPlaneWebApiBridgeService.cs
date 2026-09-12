@@ -17,6 +17,11 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private const string AltitudeAgl = "sim/flightmodel/position/y_agl";
     private const string GroundSpeed = "sim/flightmodel/position/groundspeed";
     private const string VerticalSpeed = "sim/flightmodel/position/vh_ind_fpm";
+    private const string Latitude = "sim/flightmodel/position/latitude";
+    private const string Longitude = "sim/flightmodel/position/longitude";
+    private const string TrueHeading = "sim/flightmodel/position/true_psi";
+    private const string FuelTotalKilograms = "sim/flightmodel/weight/m_fuel_total";
+    private const string ParkingBrakeRatio = "sim/cockpit2/controls/parking_brake_ratio";
     private const string OnGroundAny = "sim/flightmodel/failures/onground_any";
     private const string GearOnGround = "sim/flightmodel2/gear/on_ground";
     private const string SeatbeltAnnunciator = "sim/cockpit2/annunciators/fasten_seatbelt";
@@ -51,6 +56,11 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         AltitudeAgl,
         GroundSpeed,
         VerticalSpeed,
+        Latitude,
+        Longitude,
+        TrueHeading,
+        FuelTotalKilograms,
+        ParkingBrakeRatio,
         OnGroundAny,
         GearOnGround,
         SeatbeltAnnunciator,
@@ -658,6 +668,11 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             ["seatbelt_signal_available"] = seatbeltSignal.IsAvailable ? 1d : 0d,
             ["seatbelt_signal_raw"] = seatbeltSignal.IsAvailable ? seatbeltSignal.Value : double.NaN,
             ["pushback_active"] = onGround && groundSpeed >= 0.35d && altitudeAglFeet < 15d ? 1d : 0d
+            , ["latitude_deg"] = GetScalar(Latitude)
+            , ["longitude_deg"] = GetScalar(Longitude)
+            , ["heading_deg"] = GetScalar(TrueHeading)
+            , ["fuel_kg"] = GetScalar(FuelTotalKilograms)
+            , ["parking_brake_set"] = GetScalar(ParkingBrakeRatio) >= 0.5d ? 1d : 0d
         };
         if (!double.IsNaN(l1DoorRatio))
         {

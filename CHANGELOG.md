@@ -2,6 +2,19 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.5] - 2026-09-12
+
+### Added
+
+- Shared British Airways Virtual pilot-account sign-in, active aircraft reservation, and ACARS session recovery between Cabin Control and the website.
+- Live simulator telemetry for Microsoft Flight Simulator and X-Plane, including public BA-Radar positioning, recent trails, and completed-flight recovery.
+- Fleet hard-landing assessment, visual-inspection and maintenance workflows, plus controlled cabin-defect reporting and resolution actions.
+
+### Changed
+
+- Rebranded the desktop shell for British Airways Virtual and added the pilot identity, callsign and employee-ID presentation to the operational header.
+- Fleet photos, assignment state, defect state and operational availability now remain synchronised with the protected website API.
+
 ## [0.5.4] - 2026-09-11
 
 ### Added

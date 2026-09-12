@@ -25,10 +25,18 @@ public sealed class BooleanToVisibilityConverter : IValueConverter
 public sealed class InverseBooleanToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
-        value is true ? Visibility.Collapsed : Visibility.Visible;
+        IsPresent(value) ? Visibility.Collapsed : Visibility.Visible;
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         value is Visibility.Collapsed;
+
+    private static bool IsPresent(object value) => value switch
+    {
+        bool boolean => boolean,
+        int count => count > 0,
+        long count => count > 0,
+        _ => false
+    };
 }
 
 public sealed class StringEqualsToVisibilityConverter : IValueConverter

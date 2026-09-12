@@ -7,7 +7,7 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.5.4</Version>
+    <Version>0.5.5</Version>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets\Catering\*.png" />
@@ -45,6 +45,7 @@
     <Resource Include="Assets\FreeFlightBrand.png" />
     <Resource Include="Assets\FreeFlightHeaderMark.png" />
     <Resource Include="Assets\FreeFlightHeaderWordmark.png" />
+    <Resource Include="Assets\BritishAirwaysVirtual.png" />
     <Resource Include="Assets\FlightLoggerPromo.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
     <EmbeddedResource Include="Assets\Operators\real-world-operators.json"

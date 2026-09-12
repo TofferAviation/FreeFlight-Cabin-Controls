@@ -19,18 +19,23 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
 
     private readonly AppSettings _settings;
     private readonly FleetApiClient _fleetApiClient;
+    private readonly Func<FleetAccountSession?> _accountSession;
+    private readonly Func<FleetFlightAssignmentSubmissionDto> _flightContext;
     private readonly DispatcherTimer _syncTimer;
     private string _connectionLabel = "Fleet connection required";
     private string _connectionDetail = "Add the protected website address and desktop access key in Settings to see your airline's live fleet.";
     private Brush _connectionColor = WarningBrush;
     private string _lastSynchronizedLabel = "No fleet data synchronized";
     private bool _isSynchronizing;
+    private bool _replacingAircraft;
+    private string _selectedFleetRegistration;
     private string _searchText = string.Empty;
     private FleetAircraftRow? _selectedAircraft;
     private CancellationTokenSource? _detailLoadCancellation;
     private bool _isDetailLoading;
     private string _detailStatusLabel = "Select an aircraft to load its live fleet record.";
     private Brush _detailStatusColor = MutedBrush;
+    private FleetWorkspaceTab _selectedWorkspaceTab = FleetWorkspaceTab.Overview;
     private bool _isDefectReportOpen;
     private string _defectCategory = "Passenger seat";
     private string _defectLocation = string.Empty;
@@ -39,13 +44,24 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     private string _defectDispatchImpact = "none";
     private string _defectReportStatus = string.Empty;
     private Brush _defectReportStatusColor = MutedBrush;
+    private FleetFlightAssignmentDto? _activeFlightAssignment;
+    private string _flightAssignmentStatus = "Sign in with your BAV account to reserve an aircraft for a flight.";
+    private Brush _flightAssignmentStatusColor = MutedBrush;
 
-    public FleetViewModel(AppSettings settings, FleetApiClient fleetApiClient)
+    public FleetViewModel(
+        AppSettings settings,
+        FleetApiClient fleetApiClient,
+        Func<FleetAccountSession?>? accountSession = null,
+        Func<FleetFlightAssignmentSubmissionDto>? flightContext = null)
         : base("Fleet Management", "Pilot-facing aircraft status, dispatch availability and fleet awareness")
     {
         _settings = settings;
         _fleetApiClient = fleetApiClient;
+        _accountSession = accountSession ?? (() => null);
+        _flightContext = flightContext ?? (() => new FleetFlightAssignmentSubmissionDto("BAV PREVIEW", null, null));
+        _selectedFleetRegistration = settings.SelectedFleetRegistration;
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, exception => ConnectionDetail = exception.Message);
+        SelectWorkspaceTabCommand = new RelayCommand(parameter => SelectWorkspaceTab(parameter as string));
         OpenDefectReportCommand = new RelayCommand(_ => OpenDefectReport());
         CancelDefectReportCommand = new RelayCommand(_ => CloseDefectReport());
         SubmitDefectReportCommand = new AsyncRelayCommand(SubmitDefectReportAsync, exception =>
@@ -53,7 +69,9 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
             DefectReportStatus = exception.Message;
             DefectReportStatusColor = WarningBrush;
         });
-        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(settings.FleetSyncIntervalSeconds, 10, 300)) };
+        ReserveAircraftCommand = new AsyncRelayCommand(ReserveSelectedAircraftAsync, ShowFlightAssignmentError);
+        ReleaseAircraftCommand = new AsyncRelayCommand(ReleaseAircraftReservationAsync, ShowFlightAssignmentError);
+        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(settings.FleetSyncIntervalSeconds, 60, 900)) };
         _syncTimer.Tick += async (_, _) => await RefreshAsync();
         if (settings.FleetAutoSync)
         {
@@ -69,17 +87,29 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
 
     public ObservableCollection<FleetDefectLine> ActiveDefects { get; } = [];
 
+    public ObservableCollection<FleetDefectLine> OpenDefects { get; } = [];
+
+    public ObservableCollection<FleetDefectLine> DeferredDefects { get; } = [];
+
+    public ObservableCollection<FleetDefectLine> OperationalRestrictions { get; } = [];
+
     public ObservableCollection<FleetMaintenanceLine> MaintenanceWatch { get; } = [];
 
     public ObservableCollection<FleetActivityLine> RecentActivity { get; } = [];
 
     public ICommand RefreshCommand { get; }
 
+    public ICommand SelectWorkspaceTabCommand { get; }
+
     public ICommand OpenDefectReportCommand { get; }
 
     public ICommand CancelDefectReportCommand { get; }
 
     public ICommand SubmitDefectReportCommand { get; }
+
+    public ICommand ReserveAircraftCommand { get; }
+
+    public ICommand ReleaseAircraftCommand { get; }
 
     public bool IsSynchronizing
     {
@@ -130,7 +160,14 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         {
             if (SetProperty(ref _selectedAircraft, value))
             {
-                _settings.SelectedFleetRegistration = value?.Registration ?? string.Empty;
+                if (!_replacingAircraft)
+                {
+                    if (!string.IsNullOrWhiteSpace(value?.Registration))
+                    {
+                        _selectedFleetRegistration = value.Registration;
+                        _settings.SelectedFleetRegistration = value.Registration;
+                    }
+                }
                 OnPropertyChanged(nameof(HasSelectedAircraft));
                 StartDetailLoad(value);
             }
@@ -159,6 +196,45 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     {
         get => _isDefectReportOpen;
         private set => SetProperty(ref _isDefectReportOpen, value);
+    }
+
+    public FleetFlightAssignmentDto? ActiveFlightAssignment
+    {
+        get => _activeFlightAssignment;
+        private set
+        {
+            if (!SetProperty(ref _activeFlightAssignment, value)) return;
+            OnPropertyChanged(nameof(HasActiveFlightAssignment));
+            OnPropertyChanged(nameof(IsFlightReserved));
+            OnPropertyChanged(nameof(IsFlightOperating));
+            OnPropertyChanged(nameof(FlightAssignmentLabel));
+        }
+    }
+
+    public bool HasActiveFlightAssignment => ActiveFlightAssignment?.Status is "reserved" or "operating";
+
+    public bool IsFlightReserved => ActiveFlightAssignment?.Status == "reserved";
+
+    public bool IsFlightOperating => ActiveFlightAssignment?.Status == "operating";
+
+    public string FlightAssignmentLabel => ActiveFlightAssignment is null
+        ? "No aircraft reserved for this flight"
+        : ActiveFlightAssignment.Status == "operating"
+            ? $"{ActiveFlightAssignment.FlightReference} is operating"
+            : $"{ActiveFlightAssignment.FlightReference} has an aircraft reserved";
+
+    public string? ActiveFlightAircraftId => HasActiveFlightAssignment ? ActiveFlightAssignment?.AircraftId : null;
+
+    public string FlightAssignmentStatus
+    {
+        get => _flightAssignmentStatus;
+        private set => SetProperty(ref _flightAssignmentStatus, value);
+    }
+
+    public Brush FlightAssignmentStatusColor
+    {
+        get => _flightAssignmentStatusColor;
+        private set => SetProperty(ref _flightAssignmentStatusColor, value);
     }
 
     public IReadOnlyList<string> DefectCategories { get; } = ["Passenger seat", "IFE", "USB / power", "PSU / lighting", "Galley", "Lavatory", "Cabin door", "PA / interphone", "Other"];
@@ -219,11 +295,29 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
 
     public int RestrictionCount => Aircraft.Count(item => item.HasRestrictions);
 
+    public int OtherCount => Aircraft.Count(item => !item.IsInService && !item.IsInMaintenance && !item.IsUnavailable && !item.HasRestrictions);
+
+    public int SelectedOpenDefectCount => OpenDefects.Count;
+
+    public int SelectedDeferredDefectCount => DeferredDefects.Count;
+
+    public int SelectedRestrictionCount => OperationalRestrictions.Count;
+
     public bool HasAircraft => Aircraft.Count > 0;
 
     public bool HasVisibleAircraft => VisibleAircraft.Count > 0;
 
     public bool HasSelectedAircraft => SelectedAircraft is not null;
+
+    public bool IsOverviewTab => _selectedWorkspaceTab == FleetWorkspaceTab.Overview;
+
+    public bool IsStatusTab => _selectedWorkspaceTab == FleetWorkspaceTab.Status;
+
+    public bool IsDefectsTab => _selectedWorkspaceTab == FleetWorkspaceTab.Defects;
+
+    public bool IsMaintenanceTab => _selectedWorkspaceTab == FleetWorkspaceTab.Maintenance;
+
+    public bool IsLogbookTab => _selectedWorkspaceTab == FleetWorkspaceTab.Logbook;
 
     public string EmptyAircraftMessage => string.IsNullOrWhiteSpace(SearchText)
         ? "No aircraft have been received yet. Configure the Fleet website address and desktop access key in Settings, then refresh."
@@ -240,18 +334,41 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         try
         {
             var aircraft = await _fleetApiClient.GetAircraftAsync(_settings);
-            Aircraft.Clear();
-            foreach (var item in aircraft.OrderBy(item => item.Registration, StringComparer.OrdinalIgnoreCase))
+            var selectedRegistration = _selectedFleetRegistration;
+            if (string.IsNullOrWhiteSpace(selectedRegistration))
             {
-                Aircraft.Add(new FleetAircraftRow(item));
+                selectedRegistration = SelectedAircraft?.Registration;
+            }
+            if (string.IsNullOrWhiteSpace(selectedRegistration))
+            {
+                selectedRegistration = _settings.SelectedFleetRegistration;
             }
 
-            ApplyFilter();
-            SelectedAircraft = Aircraft.FirstOrDefault(item => string.Equals(
-                                   item.Registration,
-                                   _settings.SelectedFleetRegistration,
-                                   StringComparison.OrdinalIgnoreCase))
-                               ?? Aircraft.FirstOrDefault();
+            _replacingAircraft = true;
+            try
+            {
+                Aircraft.Clear();
+                foreach (var item in aircraft.OrderBy(item => item.Registration, StringComparer.OrdinalIgnoreCase))
+                {
+                    Aircraft.Add(new FleetAircraftRow(item));
+                }
+
+                ApplyFilter();
+                SelectedAircraft = Aircraft.FirstOrDefault(item => string.Equals(
+                                       item.Registration,
+                                       selectedRegistration,
+                                       StringComparison.OrdinalIgnoreCase))
+                                   ?? Aircraft.FirstOrDefault();
+            }
+            finally
+            {
+                _replacingAircraft = false;
+            }
+            if (!string.IsNullOrWhiteSpace(SelectedAircraft?.Registration))
+            {
+                _selectedFleetRegistration = SelectedAircraft.Registration;
+                _settings.SelectedFleetRegistration = SelectedAircraft.Registration;
+            }
 
             ConnectionLabel = "Fleet data live";
             ConnectionDetail = $"{Aircraft.Count} aircraft synchronized from the authoritative Fleet API.";
@@ -272,6 +389,27 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         finally
         {
             IsSynchronizing = false;
+        }
+    }
+
+    public async Task RecordHardLandingAssessmentAsync(string aircraftId, int landingFpm, string? station)
+    {
+        try
+        {
+            var assessment = await _fleetApiClient.RecordHardLandingAssessmentAsync(
+                _settings,
+                aircraftId,
+                new FleetLandingAssessmentSubmissionDto(landingFpm, station));
+            DetailStatusLabel = assessment.Outcome == "maintenance_required"
+                ? $"{assessment.Registration} is held for maintenance after a {assessment.LandingFpm} fpm landing."
+                : $"{assessment.Registration} requires a visual inspection after a {assessment.LandingFpm} fpm landing.";
+            DetailStatusColor = assessment.Outcome == "maintenance_required" ? DangerBrush : WarningBrush;
+            await RefreshAsync();
+        }
+        catch (Exception exception) when (exception is FleetApiException or HttpRequestException or TaskCanceledException)
+        {
+            DetailStatusLabel = $"Hard-landing assessment could not be recorded: {exception.Message}";
+            DetailStatusColor = WarningBrush;
         }
     }
 
@@ -296,6 +434,24 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(HasVisibleAircraft));
     }
 
+    private void SelectWorkspaceTab(string? value)
+    {
+        _selectedWorkspaceTab = value?.ToLowerInvariant() switch
+        {
+            "status" => FleetWorkspaceTab.Status,
+            "defects" => FleetWorkspaceTab.Defects,
+            "maintenance" => FleetWorkspaceTab.Maintenance,
+            "logbook" => FleetWorkspaceTab.Logbook,
+            _ => FleetWorkspaceTab.Overview
+        };
+
+        OnPropertyChanged(nameof(IsOverviewTab));
+        OnPropertyChanged(nameof(IsStatusTab));
+        OnPropertyChanged(nameof(IsDefectsTab));
+        OnPropertyChanged(nameof(IsMaintenanceTab));
+        OnPropertyChanged(nameof(IsLogbookTab));
+    }
+
     private void RefreshSummary()
     {
         OnPropertyChanged(nameof(FleetCount));
@@ -303,8 +459,142 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(MaintenanceCount));
         OnPropertyChanged(nameof(UnavailableCount));
         OnPropertyChanged(nameof(RestrictionCount));
+        OnPropertyChanged(nameof(OtherCount));
         OnPropertyChanged(nameof(HasAircraft));
         OnPropertyChanged(nameof(EmptyAircraftMessage));
+    }
+
+    private void RefreshDefectSummary()
+    {
+        OnPropertyChanged(nameof(SelectedOpenDefectCount));
+        OnPropertyChanged(nameof(SelectedDeferredDefectCount));
+        OnPropertyChanged(nameof(SelectedRestrictionCount));
+    }
+
+    private FleetAccountSession RequireAccount() => _accountSession()
+        ?? throw new FleetApiException("Sign in on the BAV Account page before reserving an aircraft.");
+
+    private FleetFlightAssignmentSubmissionDto CurrentFlightContext()
+    {
+        var context = _flightContext();
+        if (string.IsNullOrWhiteSpace(context.FlightReference))
+        {
+            throw new FleetApiException("Load a flight before reserving an aircraft.");
+        }
+
+        return context with { FlightReference = context.FlightReference.Trim() };
+    }
+
+    private async Task ReserveSelectedAircraftAsync()
+    {
+        if (HasActiveFlightAssignment)
+        {
+            throw new FleetApiException("Release or complete your current aircraft assignment before selecting another registration.");
+        }
+
+        var aircraft = SelectedAircraft ?? throw new FleetApiException("Select an aircraft before reserving it for a flight.");
+        var assignment = await _fleetApiClient.ReserveAircraftForFlightAsync(
+            _settings,
+            RequireAccount(),
+            aircraft.Id,
+            CurrentFlightContext());
+        ActiveFlightAssignment = assignment;
+        FlightAssignmentStatus = $"{aircraft.Registration} is reserved for {assignment.FlightReference}. Other pilots cannot select it.";
+        FlightAssignmentStatusColor = SuccessBrush;
+        await RefreshAsync();
+    }
+
+    public async Task<bool> StartAssignedFlightAsync()
+    {
+        if (IsFlightOperating)
+        {
+            return true;
+        }
+        if (!IsFlightReserved || ActiveFlightAssignment is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            var assignment = ActiveFlightAssignment;
+            ActiveFlightAssignment = await _fleetApiClient.StartAircraftFlightAsync(
+                _settings,
+                RequireAccount(),
+                assignment.AircraftId,
+                new FleetFlightAssignmentSubmissionDto(
+                    assignment.FlightReference,
+                    assignment.DepartureStation,
+                    assignment.ArrivalStation));
+            FlightAssignmentStatus = $"{assignment.FlightReference} is operating. Aircraft hours and cycle tracking are live.";
+            FlightAssignmentStatusColor = SuccessBrush;
+            await RefreshAsync();
+            return true;
+        }
+        catch (Exception exception) when (exception is FleetApiException or HttpRequestException or TaskCanceledException)
+        {
+            FlightAssignmentStatus = $"Could not start the aircraft assignment: {exception.Message}";
+            FlightAssignmentStatusColor = WarningBrush;
+            return false;
+        }
+    }
+
+    public async Task CompleteAssignedFlightAsync()
+    {
+        if (!IsFlightOperating || ActiveFlightAssignment is null)
+        {
+            return;
+        }
+
+        var assignment = ActiveFlightAssignment;
+        try
+        {
+            await _fleetApiClient.CompleteAircraftFlightAsync(
+                _settings,
+                RequireAccount(),
+                assignment.AircraftId,
+                new FleetFlightAssignmentSubmissionDto(
+                    assignment.FlightReference,
+                    assignment.DepartureStation,
+                    assignment.ArrivalStation));
+            ActiveFlightAssignment = null;
+            FlightAssignmentStatus = $"{assignment.FlightReference} completed. Flight hours, cycle, station and technical log were updated.";
+            FlightAssignmentStatusColor = SuccessBrush;
+            await RefreshAsync();
+        }
+        catch (Exception exception) when (exception is FleetApiException or HttpRequestException or TaskCanceledException)
+        {
+            FlightAssignmentStatus = $"Could not complete the aircraft assignment: {exception.Message}";
+            FlightAssignmentStatusColor = WarningBrush;
+        }
+    }
+
+    public async Task ReleaseAircraftReservationAsync()
+    {
+        if (!IsFlightReserved || ActiveFlightAssignment is null)
+        {
+            return;
+        }
+
+        var assignment = ActiveFlightAssignment;
+        await _fleetApiClient.CancelAircraftReservationAsync(
+            _settings,
+            RequireAccount(),
+            assignment.AircraftId,
+            new FleetFlightAssignmentSubmissionDto(
+                assignment.FlightReference,
+                assignment.DepartureStation,
+                assignment.ArrivalStation));
+        ActiveFlightAssignment = null;
+        FlightAssignmentStatus = $"{assignment.FlightReference} reservation released. The registration is available again.";
+        FlightAssignmentStatusColor = MutedBrush;
+        await RefreshAsync();
+    }
+
+    private void ShowFlightAssignmentError(Exception exception)
+    {
+        FlightAssignmentStatus = exception.Message;
+        FlightAssignmentStatusColor = WarningBrush;
     }
 
     private void StartDetailLoad(FleetAircraftRow? aircraft)
@@ -313,8 +603,12 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         _detailLoadCancellation?.Dispose();
         _detailLoadCancellation = null;
         ActiveDefects.Clear();
+        OpenDefects.Clear();
+        DeferredDefects.Clear();
+        OperationalRestrictions.Clear();
         MaintenanceWatch.Clear();
         RecentActivity.Clear();
+        RefreshDefectSummary();
 
         if (aircraft is null)
         {
@@ -392,10 +686,21 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
                 return;
             }
 
-            foreach (var defect in (record.Defects ?? []).Where(item => !string.Equals(item.Status, "closed", StringComparison.OrdinalIgnoreCase)).Take(3))
+            foreach (var defect in (record.Defects ?? []).Where(item => item.Status is not ("closed" or "rectified" or "voided")))
             {
-                ActiveDefects.Add(new FleetDefectLine(defect));
+                var line = new FleetDefectLine(defect);
+                if (line.IsDeferred)
+                {
+                    DeferredDefects.Add(line);
+                    if (!string.IsNullOrWhiteSpace(line.Restriction)) OperationalRestrictions.Add(line);
+                }
+                else
+                {
+                    OpenDefects.Add(line);
+                    if (ActiveDefects.Count < 3) ActiveDefects.Add(line);
+                }
             }
+            RefreshDefectSummary();
             foreach (var maintenance in (record.MaintenanceDue ?? []).Where(item => item.DueStatus is "due_soon" or "overdue").Take(3))
             {
                 MaintenanceWatch.Add(new FleetMaintenanceLine(maintenance));
@@ -418,7 +723,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         {
             // A newer selection superseded this request.
         }
-        catch (Exception exception) when (exception is FleetApiException or HttpRequestException or TaskCanceledException)
+        catch (Exception exception)
         {
             if (!cancellationToken.IsCancellationRequested)
             {
@@ -452,7 +757,16 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     };
 }
 
-public sealed class FleetAircraftRow
+public enum FleetWorkspaceTab
+{
+    Overview,
+    Status,
+    Defects,
+    Maintenance,
+    Logbook
+}
+
+public sealed class FleetAircraftRow : ObservableObject
 {
     public FleetAircraftRow(FleetAircraftSummaryDto aircraft)
     {
@@ -476,6 +790,10 @@ public sealed class FleetAircraftRow
         IsInMaintenance = aircraft.TechnicalStatus is "scheduled_maintenance" or "in_maintenance" or "awaiting_parts" or "awaiting_engineering";
         IsUnavailable = aircraft.DispatchStatus == "not_dispatchable" || aircraft.TechnicalStatus is "grounded" or "aog" or "damage_inspection";
         HasRestrictions = aircraft.DispatchStatus == "dispatchable_with_restrictions" || aircraft.TechnicalStatus is "serviceable_with_deferred_defects" or "inspection_required";
+        AircraftImageUri = Uri.TryCreate(aircraft.Image?.Url, UriKind.Absolute, out var imageUri) && imageUri.Scheme is "https" or "http" ? imageUri : null;
+        AircraftImageAttribution = AircraftImageUri is null ? string.Empty : string.IsNullOrWhiteSpace(aircraft.Image?.Credit)
+            ? aircraft.Image?.Source ?? "Fleet image catalogue"
+            : $"{aircraft.Image.Source} · {aircraft.Image.Credit}";
     }
 
     public string Id { get; }
@@ -496,6 +814,10 @@ public sealed class FleetAircraftRow
     public bool IsInMaintenance { get; }
     public bool IsUnavailable { get; }
     public bool HasRestrictions { get; }
+    public Uri? AircraftImageUri { get; }
+    public bool HasAircraftImage => AircraftImageUri is not null;
+    public string AircraftImageAttribution { get; }
+    public string AircraftImageStatus => HasAircraftImage ? AircraftImageAttribution : "No approved fleet photo has been added yet";
 
     public bool Matches(string query) =>
         Registration.Contains(query, StringComparison.OrdinalIgnoreCase) ||
@@ -517,6 +839,17 @@ public sealed class FleetDefectLine(FleetDefectDto defect)
     public string Location { get; } = defect.SeatNumber ?? defect.ReportingStation ?? "Location not recorded";
     public string Status { get; } = FleetAircraftRow.Label(defect.Status);
     public Brush StatusBrush { get; } = FleetViewModel.ResolveStatusBrush(defect.DispatchImpact == "blocking" ? "not_dispatchable" : defect.Severity);
+    // A valid MEL/CDL record is authoritative even if a legacy endpoint omits
+    // the status text. This prevents a deferred item being hidden as an empty
+    // open defect during a sync.
+    public bool IsDeferred { get; } =
+        string.Equals(defect.Status, "deferred", StringComparison.OrdinalIgnoreCase) ||
+        defect.Deferral is not null;
+    public string Category { get; } = defect.Category;
+    public string Severity { get; } = FleetAircraftRow.Label(defect.Severity);
+    public string DispatchImpact { get; } = FleetAircraftRow.Label(defect.DispatchImpact);
+    public string Restriction { get; } = defect.Deferral?.Restriction ?? string.Empty;
+    public string DeferralReference { get; } = defect.Deferral is null ? string.Empty : $"{defect.Deferral.DeferralKind.ToUpperInvariant()} {defect.Deferral.Reference}";
 }
 
 public sealed class FleetMaintenanceLine(FleetMaintenanceDueDto maintenance)

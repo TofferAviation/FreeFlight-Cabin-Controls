@@ -181,7 +181,7 @@ public sealed class SettingsViewModel : PageViewModel
     public int FleetSyncIntervalSeconds
     {
         get => _settings.FleetSyncIntervalSeconds;
-        set => SetSetting(Math.Clamp(value, 10, 300), current => _settings.FleetSyncIntervalSeconds = current);
+        set => SetSetting(Math.Clamp(value, 60, 900), current => _settings.FleetSyncIntervalSeconds = current);
     }
 
     public string SelectedFleetRegistration
