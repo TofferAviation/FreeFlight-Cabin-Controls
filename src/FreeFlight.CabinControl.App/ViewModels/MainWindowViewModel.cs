@@ -112,6 +112,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             () => Account.Session,
             Account.GetCurrentFlightContext);
         Account.SessionChanged += HandleBavAccountSessionChanged;
+        Account.WebsiteFlightAssignmentRefreshed += HandleWebsiteFlightAssignmentRefreshed;
         Passengers.PropertyChanged += HandlePassengerFlightPropertyChanged;
         _currentPage = Dashboard;
         NavigateCommand = new RelayCommand(Navigate);
@@ -196,6 +197,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         GateLogin.SignedIn -= HandleGateSignedIn;
         GateLogin.SignedOut -= HandleGateSignedOut;
         Account.SessionChanged -= HandleBavAccountSessionChanged;
+        Account.WebsiteFlightAssignmentRefreshed -= HandleWebsiteFlightAssignmentRefreshed;
         Passengers.PropertyChanged -= HandlePassengerFlightPropertyChanged;
         Performance.PropertyChanged -= HandlePerformancePropertyChanged;
         Passengers.DoorControlRequested -= HandleDoorControlRequested;
@@ -439,6 +441,38 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             nameof(PassengerFlowViewModel.ImportedDestination))
         {
             Account.RefreshFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
+        }
+    }
+
+    private async void HandleWebsiteFlightAssignmentRefreshed(object? sender, WebsiteFlightAssignmentRefreshedEventArgs e)
+    {
+        if (!e.IsNewAssignment)
+        {
+            return;
+        }
+
+        try
+        {
+            var cabinLayout = Passengers.ApplyBavAssignmentAircraft(e.Assignment);
+            await Fleet.RefreshAsync();
+            Fleet.SelectAircraftForBavAssignment(e.Assignment);
+            var import = await Passengers.ImportBavAssignmentAsync(e.Assignment);
+
+            if (import.Imported)
+            {
+                Operations.ApplySettings();
+                Account.RefreshFlightPlanLink(
+                    Passengers.ImportedFlightNumber,
+                    Passengers.ImportedOrigin,
+                    Passengers.ImportedDestination);
+            }
+
+            Account.ReportAutomaticAssignmentImport($"{cabinLayout.Message} {import.Message}");
+        }
+        catch (Exception exception)
+        {
+            Account.ReportAutomaticAssignmentImport(
+                $"BAV assignment {e.Assignment.FlightNumber} was detected, but the automatic import needs attention: {exception.Message}");
         }
     }
 

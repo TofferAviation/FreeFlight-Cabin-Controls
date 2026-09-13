@@ -2,6 +2,19 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.8] - 2026-09-13
+
+### Added
+
+- **Refresh BAV flight and profile** now recognizes a newly selected BAV assignment and safely imports its matching SimBrief passenger list when the latest OFP matches the BAV flight number and route.
+- The BAV assignment aircraft type now selects the corresponding live-cabin layout before the OFP arrives, including Airbus A319/A320/A321/A350, Boeing 777/787 and Embraer 190 variants.
+- Fleet Management refreshes its live aircraft list before selecting the first matching, in-service airframe for the new BAV flight. Reserving that registration remains an explicit pilot action.
+
+### Changed
+
+- Overlapping Fleet refresh requests are serialized, ensuring a new BAV flight selects against the latest website fleet data rather than a stale or empty list.
+- An active boarding or ACARS operation is never overwritten by a later BAV refresh.
+
 ## [0.5.7] - 2026-09-13
 
 ### Added

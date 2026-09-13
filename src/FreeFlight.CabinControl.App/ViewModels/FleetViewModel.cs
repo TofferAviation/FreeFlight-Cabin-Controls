@@ -22,6 +22,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     private readonly Func<FleetAccountSession?> _accountSession;
     private readonly Func<FleetFlightAssignmentSubmissionDto> _flightContext;
     private readonly DispatcherTimer _syncTimer;
+    private readonly SemaphoreSlim _refreshGate = new(1, 1);
     private string _connectionLabel = "Fleet connection required";
     private string _connectionDetail = "Sign in on the BAV Account page to view the live British Airways Virtual fleet.";
     private Brush _connectionColor = WarningBrush;
@@ -325,14 +326,10 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
 
     public async Task RefreshAsync()
     {
-        if (IsSynchronizing)
-        {
-            return;
-        }
-
-        IsSynchronizing = true;
+        await _refreshGate.WaitAsync();
         try
         {
+            IsSynchronizing = true;
             var aircraft = await _fleetApiClient.GetAircraftAsync(_settings, RequireAccount());
             var selectedRegistration = _selectedFleetRegistration;
             if (string.IsNullOrWhiteSpace(selectedRegistration))
@@ -389,7 +386,51 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         finally
         {
             IsSynchronizing = false;
+            _refreshGate.Release();
         }
+    }
+
+    /// <summary>
+    /// Makes a newly selected BAV aircraft type the active Fleet workspace
+    /// selection. A reservation is still an explicit pilot action: automatic
+    /// selection must not take an available aircraft away from another pilot.
+    /// </summary>
+    public bool SelectAircraftForBavAssignment(FleetWebsiteFlightAssignmentDto assignment)
+    {
+        ArgumentNullException.ThrowIfNull(assignment);
+
+        if (HasActiveFlightAssignment)
+        {
+            var assignedAircraft = Aircraft.FirstOrDefault(item => string.Equals(
+                item.Id,
+                ActiveFlightAssignment?.AircraftId,
+                StringComparison.Ordinal));
+            if (assignedAircraft is not null)
+            {
+                SelectedAircraft = assignedAircraft;
+            }
+
+            FlightAssignmentStatus = $"Your existing {ActiveFlightAssignment!.FlightReference} aircraft reservation was kept unchanged.";
+            FlightAssignmentStatusColor = WarningBrush;
+            return false;
+        }
+
+        var matchingAircraft = Aircraft
+            .Where(item => MatchesBavAircraft(item, assignment.Aircraft))
+            .OrderByDescending(item => item.IsInService)
+            .ThenBy(item => item.Registration, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+        if (matchingAircraft is null)
+        {
+            FlightAssignmentStatus = $"No live fleet airframe matches the BAV aircraft {assignment.Aircraft}. Your current selection was left unchanged.";
+            FlightAssignmentStatusColor = WarningBrush;
+            return false;
+        }
+
+        SelectedAircraft = matchingAircraft;
+        FlightAssignmentStatus = $"{matchingAircraft.Registration} ({matchingAircraft.AircraftType}) is selected for {assignment.FlightNumber}. Reserve it to acquire the airframe.";
+        FlightAssignmentStatusColor = matchingAircraft.IsInService ? SuccessBrush : WarningBrush;
+        return true;
     }
 
     public async Task RecordHardLandingAssessmentAsync(string aircraftId, int landingFpm, string? station)
@@ -420,6 +461,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         _detailLoadCancellation?.Cancel();
         _detailLoadCancellation?.Dispose();
         _fleetApiClient.Dispose();
+        _refreshGate.Dispose();
     }
 
     private void ApplyFilter()
@@ -470,6 +512,42 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(SelectedOpenDefectCount));
         OnPropertyChanged(nameof(SelectedDeferredDefectCount));
         OnPropertyChanged(nameof(SelectedRestrictionCount));
+    }
+
+    private static bool MatchesBavAircraft(FleetAircraftRow aircraft, string? requestedAircraft)
+    {
+        var requestedIcao = ResolveBavAircraftIcao(requestedAircraft);
+        if (!string.IsNullOrWhiteSpace(requestedIcao) &&
+            string.Equals(aircraft.IcaoType, requestedIcao, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var requested = string.Concat((requestedAircraft ?? string.Empty).Where(char.IsLetterOrDigit));
+        var fleetType = string.Concat(aircraft.AircraftType.Where(char.IsLetterOrDigit));
+        return !string.IsNullOrWhiteSpace(requested) &&
+               fleetType.Contains(requested, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveBavAircraftIcao(string? aircraft)
+    {
+        var normalized = string.Concat((aircraft ?? string.Empty).Where(char.IsLetterOrDigit)).ToUpperInvariant();
+        return normalized switch
+        {
+            var value when value.Contains("777200") || value.Contains("B772") || value.Contains("B77E") => "B772",
+            var value when value.Contains("777300") || value.Contains("B773") || value.Contains("B77W") => "B773",
+            var value when value.Contains("7878") || value.Contains("B788") => "B788",
+            var value when value.Contains("7879") || value.Contains("B789") => "B789",
+            var value when value.Contains("78710") || value.Contains("B78X") => "B78X",
+            var value when value.Contains("A319") => "A319",
+            var value when value.Contains("A320NEO") || value.Contains("A20N") => "A20N",
+            var value when value.Contains("A320") => "A320",
+            var value when value.Contains("A321NEO") || value.Contains("A21N") => "A21N",
+            var value when value.Contains("A321") => "A321",
+            var value when value.Contains("A350") || value.Contains("A359") || value.Contains("A35K") => "A359",
+            var value when value.Contains("E190") => "E190",
+            _ => string.Empty
+        };
     }
 
     private FleetAccountSession RequireAccount() => _accountSession()
@@ -774,6 +852,7 @@ public sealed class FleetAircraftRow : ObservableObject
         Id = aircraft.Id;
         Registration = aircraft.Registration;
         AircraftType = string.IsNullOrWhiteSpace(aircraft.Variant) ? aircraft.AircraftModel : $"{aircraft.AircraftModel} · {aircraft.Variant}";
+        IcaoType = aircraft.IcaoType;
         Station = aircraft.CurrentStation ?? "Station not reported";
         OperationalStatus = Label(aircraft.OperationalStatus);
         TechnicalStatus = Label(aircraft.TechnicalStatus);
@@ -800,6 +879,7 @@ public sealed class FleetAircraftRow : ObservableObject
     public string Id { get; }
     public string Registration { get; }
     public string AircraftType { get; }
+    public string? IcaoType { get; }
     public string Station { get; }
     public string OperationalStatus { get; }
     public string TechnicalStatus { get; }

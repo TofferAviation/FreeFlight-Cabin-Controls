@@ -43,6 +43,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     }
 
     public event EventHandler? SessionChanged;
+    public event EventHandler<WebsiteFlightAssignmentRefreshedEventArgs>? WebsiteFlightAssignmentRefreshed;
 
     public ICommand SignInCommand { get; }
     public ICommand SignOutCommand { get; }
@@ -309,6 +310,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         StatusMessage = exception.Message;
     }
 
+    public void ReportAutomaticAssignmentImport(string message) => StatusMessage = message;
+
     private async Task RefreshWebsiteFlightAsync()
     {
         var account = Session ?? throw new FleetApiException("Sign in with your BAV website account first.");
@@ -332,10 +335,20 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
                 // A profile refresh must never prevent pilots from refreshing
                 // their active website flight during a temporary API failure.
             }
-            WebsiteFlightAssignment = await _apiClient.GetWebsiteFlightAssignmentAsync(_settings, account);
+            var previousAssignmentId = WebsiteFlightAssignment?.Id;
+            var assignment = await _apiClient.GetWebsiteFlightAssignmentAsync(_settings, account);
+            WebsiteFlightAssignment = assignment;
             StatusMessage = WebsiteFlightAssignment is null
                 ? "No active flight is selected on the BAV website. Choose one there, then refresh this page."
                 : $"Loaded {WebsiteFlightAssignment.FlightNumber} from your BAV account. Fleet aircraft selection now uses this flight.";
+            if (assignment is not null)
+            {
+                WebsiteFlightAssignmentRefreshed?.Invoke(
+                    this,
+                    new WebsiteFlightAssignmentRefreshedEventArgs(
+                        assignment,
+                        !string.Equals(previousAssignmentId, assignment.Id, StringComparison.Ordinal)));
+            }
         }
         finally
         {
@@ -389,14 +402,19 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         }
     }
 
-    private static string NormalizeFlightNumber(string? value) =>
-        string.Concat((value ?? string.Empty).Where(char.IsLetterOrDigit)).ToUpperInvariant();
+    private static string NormalizeFlightNumber(string? value)
+    {
+        var normalized = string.Concat((value ?? string.Empty).Where(char.IsLetterOrDigit)).ToUpperInvariant();
+        return normalized.StartsWith("BAW", StringComparison.Ordinal) && normalized[3..].All(char.IsDigit)
+            ? $"BA{normalized[3..]}"
+            : normalized;
+    }
 
     private static string NormalizeAirport(string? value) => (value ?? string.Empty).Trim().ToUpperInvariant() switch
     {
-        "EGLL" => "LHR",
-        "KJFK" => "JFK",
-        var airport when airport.Length > 3 => airport[^3..],
+        "EGLL" => "LHR", "EGKK" => "LGW", "EGLC" => "LCY", "ENGM" => "OSL",
+        "KJFK" => "JFK", "KLAX" => "LAX", "KPDX" => "PDX", "KSEA" => "SEA", "KSFO" => "SFO", "KIAH" => "IAH",
+        "OMDB" => "DXB", "WSSS" => "SIN", "RJTT" => "HND", "FACT" => "CPT", "YSSY" => "SYD", "FAOR" => "JNB",
         var airport => airport
     };
 
@@ -408,3 +426,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         return $"PIREP submitted · {pirep.FlightNumber} {pirep.From} → {pirep.To} · block {block:h\\:mm} · {pirep.DistanceNm:N0} nm · {landing} · {fuel}.";
     }
 }
+
+public sealed record WebsiteFlightAssignmentRefreshedEventArgs(
+    FleetWebsiteFlightAssignmentDto Assignment,
+    bool IsNewAssignment);

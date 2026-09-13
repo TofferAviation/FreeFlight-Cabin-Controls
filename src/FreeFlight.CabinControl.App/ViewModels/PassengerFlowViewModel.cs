@@ -844,17 +844,80 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     public async Task SyncSimBriefAsync()
     {
+        await SyncSimBriefCoreAsync(null);
+    }
+
+    /// <summary>
+    /// Safely imports the newest SimBrief passenger list after Cabin Control
+    /// detects a new BAV website assignment. A mismatch is left untouched so
+    /// an old or unrelated OFP can never replace the current cabin flight.
+    /// </summary>
+    public async Task<BavAssignmentImportResult> ImportBavAssignmentAsync(FleetWebsiteFlightAssignmentDto assignment)
+    {
+        ArgumentNullException.ThrowIfNull(assignment);
+        if (!CanEditPassengerLoad)
+        {
+            return new BavAssignmentImportResult(false, "New BAV assignment detected, but the current boarding operation is in progress and was left unchanged.");
+        }
+
+        if (string.IsNullOrWhiteSpace(SimBriefPilotId))
+        {
+            SimBriefStatus = $"New BAV assignment {assignment.FlightNumber} detected. Add your SimBrief Pilot ID to import its passenger list automatically.";
+            AddActivity($"BAV assignment detected — {assignment.FlightNumber} {assignment.From} → {assignment.To} — SimBrief Pilot ID required");
+            return new BavAssignmentImportResult(false, SimBriefStatus);
+        }
+
+        return await SyncSimBriefCoreAsync(assignment);
+    }
+
+    /// <summary>
+    /// Applies the aircraft selected with a BAV flight assignment before its
+    /// SimBrief OFP is available. This keeps the live cabin out of a stale
+    /// default layout while deliberately preserving any active cabin operation.
+    /// </summary>
+    public BavAircraftLayoutResult ApplyBavAssignmentAircraft(FleetWebsiteFlightAssignmentDto assignment)
+    {
+        ArgumentNullException.ThrowIfNull(assignment);
+        if (!CanEditPassengerLoad)
+        {
+            return new BavAircraftLayoutResult(false, "The BAV aircraft was detected, but the active cabin operation was left unchanged.");
+        }
+
+        var aircraftIcao = ResolveBavAircraftIcao(assignment.Aircraft);
+        if (string.IsNullOrWhiteSpace(aircraftIcao))
+        {
+            return new BavAircraftLayoutResult(false, $"BAV selected {assignment.Aircraft}, which does not yet have a Cabin Control layout profile.");
+        }
+
+        ImportedAircraftIcao = aircraftIcao;
+        ApplyImportedAircraftCabinProfile(aircraftIcao);
+        var message = $"BAV selected {assignment.Aircraft}; the {SelectedCabinLayoutProfile.Name} cabin layout is now ready.";
+        AddActivity($"BAV aircraft selected — {assignment.Aircraft} — cabin layout updated");
+        return new BavAircraftLayoutResult(true, message);
+    }
+
+    private async Task<BavAssignmentImportResult> SyncSimBriefCoreAsync(FleetWebsiteFlightAssignmentDto? expectedBavAssignment)
+    {
         if (!CanEditPassengerLoad)
         {
             SimBriefStatus = "Finish or reset the current cabin operation before importing another OFP.";
-            return;
+            return new BavAssignmentImportResult(false, SimBriefStatus);
         }
 
         IsSimBriefSyncing = true;
-        SimBriefStatus = "Reading latest generated SimBrief OFP…";
+        SimBriefStatus = expectedBavAssignment is null
+            ? "Reading latest generated SimBrief OFP…"
+            : $"New BAV assignment detected — checking its matching SimBrief passenger list…";
         try
         {
             var summary = await _simBriefClient.FetchLatestOfpAsync(SimBriefPilotId);
+            if (expectedBavAssignment is not null && !MatchesBavAssignment(summary, expectedBavAssignment))
+            {
+                SimBriefStatus = $"BAV assignment {expectedBavAssignment.FlightNumber} was detected, but the latest SimBrief OFP does not match it. Nothing was imported.";
+                AddActivity($"BAV assignment waiting — {expectedBavAssignment.FlightNumber} {expectedBavAssignment.From} → {expectedBavAssignment.To} — latest SimBrief OFP differs");
+                return new BavAssignmentImportResult(false, SimBriefStatus);
+            }
+
             var passengerCount = Math.Max(0, summary.PassengerCount);
             HasSimBriefFlight = true;
             ImportedFlightNumber = summary.FlightNumber;
@@ -874,15 +937,58 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             _settings.SimBriefPilotId = SimBriefPilotId.Trim();
             SimBriefFlightSummary = BuildFlightSummary(summary);
             SimBriefStatus = passengerCount > CabinCapacity
-                ? $"Synced {passengerCount} planned passengers. Seat-map override filled all {CabinCapacity} mapped seats."
-                : $"Synced {passengerCount} passengers from the latest OFP.";
-            AddActivity($"SimBrief sync — {SimBriefFlightSummary} — {passengerCount} passengers");
+                ? $"{(expectedBavAssignment is null ? "Synced" : "Imported new BAV assignment and synced")} {passengerCount} planned passengers. Seat-map override filled all {CabinCapacity} mapped seats."
+                : $"{(expectedBavAssignment is null ? "Synced" : "Imported new BAV assignment and synced")} {passengerCount} passengers from the latest OFP.";
+            AddActivity($"{(expectedBavAssignment is null ? "SimBrief sync" : "BAV assignment import")} — {SimBriefFlightSummary} — {passengerCount} passengers");
             await SaveSettingsQuietlyAsync();
+            return new BavAssignmentImportResult(true, SimBriefStatus);
         }
         finally
         {
             IsSimBriefSyncing = false;
         }
+    }
+
+    private static bool MatchesBavAssignment(SimBriefFlightSummary simBrief, FleetWebsiteFlightAssignmentDto assignment) =>
+        string.Equals(NormalizeFlightNumber(simBrief.FlightNumber), NormalizeFlightNumber(assignment.FlightNumber), StringComparison.Ordinal) &&
+        string.Equals(NormalizeAirport(simBrief.Origin), NormalizeAirport(assignment.From), StringComparison.Ordinal) &&
+        string.Equals(NormalizeAirport(simBrief.Destination), NormalizeAirport(assignment.To), StringComparison.Ordinal);
+
+    private static string NormalizeFlightNumber(string? value)
+    {
+        var normalized = string.Concat((value ?? string.Empty).Where(char.IsLetterOrDigit)).ToUpperInvariant();
+        return normalized.StartsWith("BAW", StringComparison.Ordinal) && normalized[3..].All(char.IsDigit)
+            ? $"BA{normalized[3..]}"
+            : normalized;
+    }
+
+    private static string NormalizeAirport(string? value) => (value ?? string.Empty).Trim().ToUpperInvariant() switch
+    {
+        "EGLL" => "LHR", "EGKK" => "LGW", "EGLC" => "LCY", "ENGM" => "OSL",
+        "KJFK" => "JFK", "KLAX" => "LAX", "KPDX" => "PDX", "KSEA" => "SEA", "KSFO" => "SFO", "KIAH" => "IAH",
+        "OMDB" => "DXB", "WSSS" => "SIN", "RJTT" => "HND", "FACT" => "CPT", "YSSY" => "SYD", "FAOR" => "JNB",
+        var airport => airport
+    };
+
+    private static string ResolveBavAircraftIcao(string? aircraft)
+    {
+        var normalized = string.Concat((aircraft ?? string.Empty).Where(char.IsLetterOrDigit)).ToUpperInvariant();
+        return normalized switch
+        {
+            var value when value.Contains("777200") || value.Contains("B772") || value.Contains("B77E") => "B772",
+            var value when value.Contains("777300") || value.Contains("B773") || value.Contains("B77W") => "B773",
+            var value when value.Contains("7878") || value.Contains("B788") => "B788",
+            var value when value.Contains("7879") || value.Contains("B789") => "B789",
+            var value when value.Contains("78710") || value.Contains("B78X") => "B78X",
+            var value when value.Contains("A319") => "A319",
+            var value when value.Contains("A320NEO") || value.Contains("A20N") => "A20N",
+            var value when value.Contains("A320") => "A320",
+            var value when value.Contains("A321NEO") || value.Contains("A21N") => "A21N",
+            var value when value.Contains("A321") => "A321",
+            var value when value.Contains("A350") || value.Contains("A359") || value.Contains("A35K") => "A359",
+            var value when value.Contains("E190") => "E190",
+            _ => string.Empty
+        };
     }
 
     public void Dispose()
@@ -1685,6 +1791,10 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         }
     }
 }
+
+public sealed record BavAssignmentImportResult(bool Imported, string Message);
+
+public sealed record BavAircraftLayoutResult(bool Applied, string Message);
 
 public sealed record BoardingSpeedOption(string Label, double Multiplier)
 {
