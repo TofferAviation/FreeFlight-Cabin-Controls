@@ -315,8 +315,8 @@
                                 <Grid Width="36" Height="36">
                                     <Ellipse Fill="#173B67" Stroke="#55AEFF" StrokeThickness="1.5" />
                                     <TextBlock Text="{Binding Account.Initials}" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <Ellipse Visibility="{Binding Airliners.HasAccountProfileImage, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <Ellipse.Fill><ImageBrush ImageSource="{Binding Airliners.AccountProfileImageUri}" Stretch="UniformToFill" /></Ellipse.Fill>
+                                    <Ellipse Visibility="{Binding Account.HasProfileImage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Ellipse.Fill><ImageBrush ImageSource="{Binding Account.ProfileImageSource}" Stretch="UniformToFill" /></Ellipse.Fill>
                                     </Ellipse>
                                 </Grid>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center">

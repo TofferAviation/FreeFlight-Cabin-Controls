@@ -1,3 +1,6 @@
+using System.IO;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Input;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
@@ -27,6 +30,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private string _lastFlightCompletionLabel = "No ACARS flight has been completed in this Cabin Control session.";
     private string _statusMessage = "Sign in with your British Airways Virtual website account to reserve an aircraft for a flight.";
     private bool _isBusy;
+    private ImageSource? _profileImageSource;
 
     public CabinAccountViewModel(AppSettings settings, FleetApiClient apiClient)
         : base("BAV Account", "Your British Airways Virtual identity for Fleet operations")
@@ -66,6 +70,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(DisplayName));
             OnPropertyChanged(nameof(PilotLabel));
             OnPropertyChanged(nameof(Initials));
+            ProfileImageSource = LoadProfileImage(value?.ProfileImage);
             SessionChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -74,6 +79,18 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     public string DisplayName => Session?.Name ?? "British Airways Virtual pilot";
     public string PilotLabel => Session is null ? "Not signed in" : $"Pilot {Session.PilotNumber}";
     public string Initials => string.Concat(DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+
+    public ImageSource? ProfileImageSource
+    {
+        get => _profileImageSource;
+        private set
+        {
+            if (!SetProperty(ref _profileImageSource, value)) return;
+            OnPropertyChanged(nameof(HasProfileImage));
+        }
+    }
+
+    public bool HasProfileImage => ProfileImageSource is not null;
 
     public FleetWebsiteFlightAssignmentDto? WebsiteFlightAssignment
     {
@@ -298,6 +315,23 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         IsBusy = true;
         try
         {
+            try
+            {
+                var latestProfile = await _apiClient.GetAccountProfileAsync(_settings, account);
+                Session = account with
+                {
+                    PilotNumber = latestProfile.PilotNumber,
+                    Name = latestProfile.Name,
+                    Email = latestProfile.Email,
+                    ProfileImage = latestProfile.ProfileImage
+                };
+                account = Session ?? account;
+            }
+            catch (FleetApiException)
+            {
+                // A profile refresh must never prevent pilots from refreshing
+                // their active website flight during a temporary API failure.
+            }
             WebsiteFlightAssignment = await _apiClient.GetWebsiteFlightAssignmentAsync(_settings, account);
             StatusMessage = WebsiteFlightAssignment is null
                 ? "No active flight is selected on the BAV website. Choose one there, then refresh this page."
@@ -325,6 +359,35 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     }
 
     public void Dispose() => _apiClient.Dispose();
+
+    private static ImageSource? LoadProfileImage(string? dataUrl)
+    {
+        if (string.IsNullOrWhiteSpace(dataUrl) || !dataUrl.StartsWith("data:image/webp;base64,", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        try
+        {
+            var base64 = dataUrl["data:image/webp;base64,".Length..];
+            using var stream = new MemoryStream(Convert.FromBase64String(base64));
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = stream;
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
 
     private static string NormalizeFlightNumber(string? value) =>
         string.Concat((value ?? string.Empty).Where(char.IsLetterOrDigit)).ToUpperInvariant();

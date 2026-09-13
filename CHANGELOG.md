@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.7] - 2026-09-13
+
+### Added
+
+- Cabin Control now displays the signed-in pilot's British Airways Virtual profile photo as a circular avatar in the account page and operational header.
+- The app retrieves the photo from the protected BAV account API at sign-in and whenever **Refresh BAV flight and profile** is selected, keeping it aligned with the website profile.
+
 ## [0.5.6] - 2026-09-13
 
 ### Changed
