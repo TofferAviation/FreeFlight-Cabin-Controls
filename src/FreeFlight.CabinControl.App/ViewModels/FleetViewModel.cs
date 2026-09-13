@@ -23,7 +23,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     private readonly Func<FleetFlightAssignmentSubmissionDto> _flightContext;
     private readonly DispatcherTimer _syncTimer;
     private string _connectionLabel = "Fleet connection required";
-    private string _connectionDetail = "Add the protected website address and desktop access key in Settings to see your airline's live fleet.";
+    private string _connectionDetail = "Sign in on the BAV Account page to view the live British Airways Virtual fleet.";
     private Brush _connectionColor = WarningBrush;
     private string _lastSynchronizedLabel = "No fleet data synchronized";
     private bool _isSynchronizing;
@@ -320,7 +320,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     public bool IsLogbookTab => _selectedWorkspaceTab == FleetWorkspaceTab.Logbook;
 
     public string EmptyAircraftMessage => string.IsNullOrWhiteSpace(SearchText)
-        ? "No aircraft have been received yet. Configure the Fleet website address and desktop access key in Settings, then refresh."
+        ? "No aircraft have been received yet. Sign in on the BAV Account page, then refresh."
         : "No aircraft match your search.";
 
     public async Task RefreshAsync()
@@ -333,7 +333,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         IsSynchronizing = true;
         try
         {
-            var aircraft = await _fleetApiClient.GetAircraftAsync(_settings);
+            var aircraft = await _fleetApiClient.GetAircraftAsync(_settings, RequireAccount());
             var selectedRegistration = _selectedFleetRegistration;
             if (string.IsNullOrWhiteSpace(selectedRegistration))
             {
@@ -398,6 +398,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         {
             var assessment = await _fleetApiClient.RecordHardLandingAssessmentAsync(
                 _settings,
+                RequireAccount(),
                 aircraftId,
                 new FleetLandingAssessmentSubmissionDto(landingFpm, station));
             DetailStatusLabel = assessment.Outcome == "maintenance_required"
@@ -472,7 +473,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     }
 
     private FleetAccountSession RequireAccount() => _accountSession()
-        ?? throw new FleetApiException("Sign in on the BAV Account page before reserving an aircraft.");
+        ?? throw new FleetApiException("Sign in on the BAV Account page to use the live fleet.");
 
     private FleetFlightAssignmentSubmissionDto CurrentFlightContext()
     {
@@ -660,7 +661,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
 
         DefectReportStatus = "Submitting defect report…";
         DefectReportStatusColor = InfoBrush;
-        var defect = await _fleetApiClient.ReportDefectAsync(_settings, aircraft.Id, new FleetDefectSubmissionDto(
+        var defect = await _fleetApiClient.ReportDefectAsync(_settings, RequireAccount(), aircraft.Id, new FleetDefectSubmissionDto(
             DefectCategory,
             DefectDescription.Trim(),
             DefectSeverity,
@@ -680,7 +681,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         DetailStatusColor = InfoBrush;
         try
         {
-            var record = await _fleetApiClient.GetAircraftRecordAsync(_settings, aircraft.Id, cancellationToken);
+            var record = await _fleetApiClient.GetAircraftRecordAsync(_settings, RequireAccount(), aircraft.Id, cancellationToken);
             if (cancellationToken.IsCancellationRequested || !ReferenceEquals(SelectedAircraft, aircraft))
             {
                 return;

@@ -426,6 +426,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         Operations.ApplyGateAccessState();
         Account.RefreshFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
+        // Fleet data is authorized by the same short-lived BAV account
+        // session. Refresh immediately after sign-in instead of making pilots
+        // discover that they must press Refresh a second time.
+        _ = Fleet.RefreshAsync();
     }
 
     private void HandlePassengerFlightPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

@@ -14,34 +14,43 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
     private static readonly JsonSerializerOptions JsonWriteOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public async Task<IReadOnlyList<FleetAircraftSummaryDto>> GetAircraftAsync(AppSettings settings, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<FleetAircraftSummaryDto>> GetAircraftAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
     {
-        var payload = await GetAsync<FleetAircraftEnvelope>(settings, "/api/fleet/v1/aircraft", cancellationToken);
+        var payload = await SendBavAsync<FleetAircraftEnvelope>(settings, account, HttpMethod.Get, "/api/fleet/v1/aircraft", null, cancellationToken);
         return payload?.Aircraft ?? [];
     }
 
     public async Task<FleetAircraftRecordDto> GetAircraftRecordAsync(
         AppSettings settings,
+        FleetAccountSession account,
         string aircraftId,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aircraftId);
-        var payload = await GetAsync<FleetAircraftRecordEnvelope>(
+        var payload = await SendBavAsync<FleetAircraftRecordEnvelope>(
             settings,
+            account,
+            HttpMethod.Get,
             $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}",
+            null,
             cancellationToken);
         return payload?.Aircraft ?? throw new FleetApiException("The Fleet API returned an empty aircraft record.");
     }
 
     public async Task<FleetDefectDto> ReportDefectAsync(
         AppSettings settings,
+        FleetAccountSession account,
         string aircraftId,
         FleetDefectSubmissionDto defect,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aircraftId);
-        var payload = await SendAsync<FleetDefectEnvelope>(
+        var payload = await SendBavAsync<FleetDefectEnvelope>(
             settings,
+            account,
             HttpMethod.Post,
             $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/defects",
             new { defect },
@@ -51,13 +60,15 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
 
     public async Task<FleetLandingAssessmentDto> RecordHardLandingAssessmentAsync(
         AppSettings settings,
+        FleetAccountSession account,
         string aircraftId,
         FleetLandingAssessmentSubmissionDto landing,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(aircraftId);
-        var payload = await SendAsync<FleetLandingAssessmentEnvelope>(
+        var payload = await SendBavAsync<FleetLandingAssessmentEnvelope>(
             settings,
+            account,
             HttpMethod.Post,
             $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/landing-assessment",
             new { landing },
@@ -221,41 +232,6 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         CancellationToken cancellationToken = default) =>
         await SendFlightAssignmentAsync(settings, account, HttpMethod.Delete, $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/flight-assignment", assignment, cancellationToken);
 
-    private async Task<T?> GetAsync<T>(AppSettings settings, string route, CancellationToken cancellationToken)
-    {
-        return await SendAsync<T>(settings, HttpMethod.Get, route, null, cancellationToken);
-    }
-
-    private async Task<T?> SendAsync<T>(
-        AppSettings settings,
-        HttpMethod method,
-        string route,
-        object? payload,
-        CancellationToken cancellationToken)
-    {
-        var baseUri = ResolveBaseUri(settings);
-        if (string.IsNullOrWhiteSpace(settings.FleetApiAccessKey))
-        {
-            throw new FleetApiException("Enter the Fleet device access key in Settings before synchronizing.");
-        }
-
-        using var request = new HttpRequestMessage(method, new Uri(baseUri, route));
-        request.Headers.Add("X-FreeFlight-Fleet-Key", settings.FleetApiAccessKey.Trim());
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        if (payload is not null)
-        {
-            request.Content = new StringContent(JsonSerializer.Serialize(payload, JsonWriteOptions), Encoding.UTF8, "application/json");
-        }
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new FleetApiException($"Fleet API returned {(int)response.StatusCode}: {ExtractError(content)}");
-        }
-
-        return JsonSerializer.Deserialize<T>(content, JsonOptions);
-    }
-
     private async Task<FleetFlightAssignmentDto> SendFlightAssignmentAsync(
         AppSettings settings,
         FleetAccountSession account,
@@ -309,13 +285,11 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
 
     private static Uri ResolveBaseUri(AppSettings settings)
     {
-        var baseUrl = settings.FleetApiBaseUrl.Trim().TrimEnd('/');
-        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme is not ("https" or "http"))
-        {
-            throw new FleetApiException("Enter the Fleet API website address in Settings before connecting your account.");
-        }
-
-        return baseUri;
+        // The BAV app is intentionally a production client, not a local API
+        // browser. Keep the in-memory value synchronized for old settings
+        // files, then use the bundled HTTPS origin for every request.
+        settings.FleetApiBaseUrl = AppSettings.BritishAirwaysVirtualWebsiteUrl;
+        return new Uri(AppSettings.BritishAirwaysVirtualWebsiteUrl, UriKind.Absolute);
     }
 
     private static string ExtractError(string json)

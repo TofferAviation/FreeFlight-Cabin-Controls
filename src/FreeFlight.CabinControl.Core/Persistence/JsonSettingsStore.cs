@@ -34,13 +34,16 @@ public sealed class JsonSettingsStore : ISettingsStore
         }
 
         await using var stream = File.OpenRead(_settingsPath);
-        return await JsonSerializer.DeserializeAsync<AppSettings>(stream, SerializerOptions, cancellationToken)
+        var settings = await JsonSerializer.DeserializeAsync<AppSettings>(stream, SerializerOptions, cancellationToken)
             .ConfigureAwait(false) ?? new AppSettings();
+        NormalizeBritishAirwaysFleetConnection(settings);
+        return settings;
     }
 
     public async Task SaveAsync(AppSettings settings, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        NormalizeBritishAirwaysFleetConnection(settings);
 
         var directory = Path.GetDirectoryName(_settingsPath)
             ?? throw new InvalidOperationException("The settings path has no parent directory.");
@@ -60,5 +63,14 @@ public sealed class JsonSettingsStore : ISettingsStore
         }
 
         File.Move(temporaryPath, _settingsPath, true);
+    }
+
+    private static void NormalizeBritishAirwaysFleetConnection(AppSettings settings)
+    {
+        // Replace every historical local, preview, or custom endpoint with the
+        // single public BAV API. A shared device key is no longer used by the
+        // desktop client, so do not carry one forward into a new settings file.
+        settings.FleetApiBaseUrl = AppSettings.BritishAirwaysVirtualWebsiteUrl;
+        settings.FleetApiAccessKey = string.Empty;
     }
 }

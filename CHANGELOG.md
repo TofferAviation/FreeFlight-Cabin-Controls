@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.6] - 2026-09-13
+
+### Changed
+
+- Cabin Control now ships permanently connected to `https://britishairwaysva.co.uk`; historical localhost, preview, and manually entered Fleet endpoints are replaced safely on launch.
+- Fleet refreshes, aircraft records, cabin-defect reports, and hard-landing assessments now use the signed-in pilot's BAV account session. Pilots no longer need a shared Fleet device key.
+- The Fleet workspace refreshes automatically when a pilot signs in, while Settings shows the fixed live website address.
+
 ## [0.5.5] - 2026-09-12
 
 ### Added

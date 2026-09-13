@@ -215,8 +215,8 @@ static async Task SettingsRoundTripAsync()
         AssertEqual(8088, actual.XPlaneWebApiPort, "X-Plane Web API port was not persisted.");
         AssertEqual(false, actual.SyncXPlaneDoors, "X-Plane door synchronization was not persisted.");
         AssertEqual(false, actual.Msfs2024AutoConnect, "MSFS 2024 auto-connect was not persisted.");
-        AssertEqual("https://fleet.example.test", actual.FleetApiBaseUrl, "Fleet API address was not persisted.");
-        AssertEqual("test-device-key", actual.FleetApiAccessKey, "Fleet API access key was not persisted.");
+        AssertEqual(AppSettings.BritishAirwaysVirtualWebsiteUrl, actual.FleetApiBaseUrl, "Fleet API address was not normalized to the bundled production website.");
+        AssertEqual(string.Empty, actual.FleetApiAccessKey, "A retired Fleet device access key was retained in local settings.");
         AssertEqual(false, actual.FleetAutoSync, "Fleet auto-sync preference was not persisted.");
         AssertEqual(45, actual.FleetSyncIntervalSeconds, "Fleet sync interval was not persisted.");
         AssertEqual("G-TEST", actual.SelectedFleetRegistration, "Selected fleet aircraft was not persisted.");

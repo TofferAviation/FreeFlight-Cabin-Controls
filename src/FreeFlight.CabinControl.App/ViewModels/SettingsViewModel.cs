@@ -160,17 +160,7 @@ public sealed class SettingsViewModel : PageViewModel
         set => SetSetting(value, current => _settings.SyncSimulatorSeatbeltSign = current);
     }
 
-    public string FleetApiBaseUrl
-    {
-        get => _settings.FleetApiBaseUrl;
-        set => SetSetting(value.Trim().TrimEnd('/'), current => _settings.FleetApiBaseUrl = current);
-    }
-
-    public string FleetApiAccessKey
-    {
-        get => _settings.FleetApiAccessKey;
-        set => SetSetting(value.Trim(), current => _settings.FleetApiAccessKey = current);
-    }
+    public string FleetApiBaseUrl => AppSettings.BritishAirwaysVirtualWebsiteUrl;
 
     public bool FleetAutoSync
     {

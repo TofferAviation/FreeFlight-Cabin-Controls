@@ -3,6 +3,7 @@ namespace FreeFlight.CabinControl.Core.Configuration;
 public sealed class AppSettings
 {
     public const string DefaultAirlinePackId = "freeflight.generic";
+    public const string BritishAirwaysVirtualWebsiteUrl = "https://britishairwaysva.co.uk";
 
     public string UserDisplayName { get; set; } = "FreeFlight User";
 
@@ -100,10 +101,12 @@ public sealed class AppSettings
 
     public bool Msfs2024AutoConnect { get; set; } = true;
 
-    // The desktop client talks only to the protected website Fleet API. It never
-    // receives a Supabase URL or database credential.
-    public string FleetApiBaseUrl { get; set; } = string.Empty;
+    // Cabin Control has one production Fleet source. The URL is bundled with
+    // the release so pilots are never asked to point the app at localhost.
+    public string FleetApiBaseUrl { get; set; } = BritishAirwaysVirtualWebsiteUrl;
 
+    // Retained solely to read and safely discard older local settings files.
+    // Fleet access is now authorized by each pilot's signed-in BAV account.
     public string FleetApiAccessKey { get; set; } = string.Empty;
 
     public bool FleetAutoSync { get; set; } = true;
