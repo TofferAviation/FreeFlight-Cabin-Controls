@@ -586,11 +586,15 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         }
 
         var aircraft = SelectedAircraft ?? throw new FleetApiException("Select an aircraft before reserving it for a flight.");
+        var flightContext = CurrentFlightContext();
+        var account = RequireAccount();
+        FlightAssignmentStatus = $"Reserving {aircraft.Registration} for {flightContext.FlightReference}…";
+        FlightAssignmentStatusColor = InfoBrush;
         var assignment = await _fleetApiClient.ReserveAircraftForFlightAsync(
             _settings,
-            RequireAccount(),
+            account,
             aircraft.Id,
-            CurrentFlightContext());
+            flightContext);
         ActiveFlightAssignment = assignment;
         FlightAssignmentStatus = $"{aircraft.Registration} is reserved for {assignment.FlightReference}. Other pilots cannot select it.";
         FlightAssignmentStatusColor = SuccessBrush;

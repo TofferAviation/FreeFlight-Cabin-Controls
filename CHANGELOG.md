@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.18] - 2026-09-14
+
+### Fixed
+
+- Fleet Management now visibly reports reservation progress, acceptance, and the exact server-side reason if a selected airframe cannot be reserved. This prevents a failed reservation from appearing to do nothing.
+
 ## [0.5.17] - 2026-09-14
 
 ### Fixed
