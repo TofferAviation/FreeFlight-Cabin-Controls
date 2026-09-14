@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.9] - 2026-09-14
+
+### Added
+
+- A proprietary FreeFlightLTD licence is now included in every installation and shown during installer setup.
+- Settings provides a visible copyright notice and a **View Licence** action to open the installed terms.
+
+### Changed
+
+- Application and installer publisher metadata now identifies FreeFlightLTD and records the 2026 all-rights-reserved notice.
+
 ## [0.5.8] - 2026-09-13
 
 ### Added

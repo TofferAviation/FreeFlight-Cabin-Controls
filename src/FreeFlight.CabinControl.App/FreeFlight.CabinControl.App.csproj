@@ -7,7 +7,10 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.5.8</Version>
+    <Version>0.5.9</Version>
+    <Company>FreeFlightLTD</Company>
+    <Copyright>Copyright © 2026 FreeFlightLTD. All rights reserved.</Copyright>
+    <Description>FreeFlight Cabin Control for authorised flight-simulation operations.</Description>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets\Catering\*.png" />
@@ -28,6 +31,11 @@
   <ItemGroup>
     <Content Include="..\..\CHANGELOG.md">
       <Link>CHANGELOG.md</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\LICENSE.txt">
+      <Link>LICENSE.txt</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

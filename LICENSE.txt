@@ -1,0 +1,10 @@
+FreeFlight Cabin Control
+Proprietary Software Licence
+
+Copyright (c) 2026 FreeFlightLTD. All rights reserved.
+
+This software is licensed for authorised installation and use for its intended flight-simulation purpose. No ownership of the software or its intellectual property is transferred to the user.
+
+Except as expressly permitted by this licence, applicable third-party licences or mandatory law, you may not redistribute, re-upload, mirror, sublicense, repackage or publish the software, including modified copies, without prior written permission. You may not remove ownership notices or falsely represent the software as your own creation.
+
+Downloads and updates may be distributed only through official FreeFlightLTD channels or other channels expressly authorised by FreeFlightLTD.

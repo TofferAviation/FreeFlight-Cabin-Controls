@@ -115,7 +115,10 @@
                     <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/BritishAirwaysVirtual.png" Width="70" Height="32" Stretch="Uniform" />
                     <StackPanel Margin="7,0,0,0"><TextBlock Text="BRITISH AIRWAYS VIRTUAL" FontWeight="SemiBold" FontSize="10" /><TextBlock Text="GATE OPERATIONS" FontSize="8" Foreground="#8FA3BA" /></StackPanel>
                 </StackPanel>
-                <TextBlock Text="{Binding DataContext.Settings.Version, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="#8FA3BA" />
+                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="© 2026 FreeFlightLTD. All rights reserved." HorizontalAlignment="Right" Foreground="#8FA3BA" FontSize="9" />
+                    <TextBlock Text="{Binding DataContext.Settings.Version, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Right" Foreground="#8FA3BA" />
+                </StackPanel>
             </Grid>
         </Grid>
     </Grid>

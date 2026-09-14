@@ -78,6 +78,6 @@ Source filenames remain stable. Releases are identified by Git tags and `CHANGEL
 
 Airline recordings, safety videos, music, logos, seat maps, and other third-party media must not be committed unless redistribution rights have been documented. Private development content belongs under `content-packs/private/`, which Git ignores. The repository owner has attested direct British Airways permission for the bundled 2024 safety video and BA 777 horizontal seat maps; see `docs/BRITISH-AIRWAYS-MEDIA-RIGHTS.md`. Bundled boarding recordings retain the separate licences and attribution listed in `content-packs/british-airways/audio/boarding/ATTRIBUTION.md`.
 
-No open-source licence has been selected yet. The repository owner retains all rights until a licence is added.
+This repository is source-visible but is not open source. Use, installation, redistribution and publication are governed by the proprietary [FreeFlightLTD licence](LICENSE.txt).
 
 The BA-first local media input, program filenames, publish paths, and recording-attribution requirements are documented in `docs/BAW-MEDIA.md`.

@@ -6,12 +6,13 @@
 AppId={{B7A4D4EC-79DF-49CD-A11E-8C3C65DB90EE}
 AppName=FreeFlight Cabin Control
 AppVersion={#AppVersion}
-AppPublisher=FreeFlight LLC
+AppPublisher=FreeFlightLTD
 AppPublisherURL=https://github.com/TofferAviation/FreeFlight-Cabin-Controls
 AppSupportURL=https://github.com/TofferAviation/FreeFlight-Cabin-Controls/issues
 AppUpdatesURL=https://github.com/TofferAviation/FreeFlight-Cabin-Controls/releases
 DefaultDirName={localappdata}\Programs\FreeFlight Cabin Control
 DefaultGroupName=FreeFlight Cabin Control
+LicenseFile=..\LICENSE.txt
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts
 OutputBaseFilename=FreeFlight-Cabin-Control-v{#AppVersion}-Setup
