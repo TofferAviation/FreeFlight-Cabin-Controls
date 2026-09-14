@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.16] - 2026-09-14
+
+### Changed
+
+- Ember now opens on a dedicated BAV secure sign-in screen. The navigation, flight header and all operational controls remain hidden until a pilot has authenticated.
+
 ## [0.5.15] - 2026-09-14
 
 ### Fixed

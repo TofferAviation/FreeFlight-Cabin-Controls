@@ -174,6 +174,9 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public FleetViewModel Fleet { get; }
 
+    /// <summary>Controls whether the operational Ember shell may be shown.</summary>
+    public bool IsBavAuthenticated => Account.IsAuthenticated;
+
     public bool IsFlightInProgress =>
         Passengers.PassengerManifest.Count > 0 && !Passengers.IsFlightCompleted;
 
@@ -458,6 +461,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private void HandleBavAccountSessionChanged(object? sender, EventArgs e)
     {
+        OnPropertyChanged(nameof(IsBavAuthenticated));
         if (Account.Session is not null)
         {
             GateLogin.SignInWithBavAccount(Account.Session);

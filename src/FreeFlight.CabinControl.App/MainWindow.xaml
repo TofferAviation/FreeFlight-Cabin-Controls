@@ -33,6 +33,8 @@
 
     <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
         <Grid>
+            <!-- The operational workspace does not exist to an unauthenticated pilot. -->
+            <Grid Visibility="{Binding IsBavAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="260" />
                 <ColumnDefinition Width="*" />
@@ -378,6 +380,41 @@
                                                Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=BoardingPasses}" />
                     <views:FlightLoggerView DataContext="{Binding FlightLogger}"
                                             Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=FlightLogger}" />
+                </Grid>
+            </Grid>
+            </Grid>
+
+            <!-- Dedicated launch screen. Navigation and flight data stay hidden
+                 until a verified BAV account session is available. -->
+            <Grid Visibility="{Binding IsBavAuthenticated, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="54" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Rectangle Fill="{StaticResource AmbientGlowBrush}" IsHitTestVisible="False" />
+                <Border Grid.Row="0" Background="#CE061326" BorderBrush="#263A52" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
+                            <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/BritishAirwaysVirtual.png"
+                                   Width="166" Height="42" Stretch="Uniform" />
+                            <TextBlock Text="EMBER SECURE SIGN-IN" Foreground="#7FA4CC" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="20,0,0,0" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,6,7,0"
+                                    shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                            <Button Style="{StaticResource WindowButtonStyle}" Content="&#xE921;" Click="MinimizeButton_Click" ToolTip="Minimize" />
+                            <Button Style="{StaticResource WindowButtonStyle}" Content="&#xE922;" Click="MaximizeButton_Click" ToolTip="Maximize or restore" />
+                            <Button Style="{StaticResource CloseWindowButtonStyle}" Content="&#xE8BB;" Click="CloseButton_Click" ToolTip="Close" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="1">
+                    <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/BritishAirwaysVirtual.png"
+                           Width="760" Height="470" Opacity="0.045" Stretch="Uniform" IsHitTestVisible="False" />
+                    <views:CabinAccountView DataContext="{Binding Account}" />
                 </Grid>
             </Grid>
         </Grid>
