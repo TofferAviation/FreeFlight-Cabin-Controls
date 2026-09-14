@@ -287,7 +287,7 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
                 return false;
             }
 
-            _log.Information("X-Plane native jetway command sent from FreeFlight Cabin Control.");
+            _log.Information("X-Plane native jetway command sent from Ember.");
             return true;
         }
         catch (Exception exception) when (exception is HttpRequestException or IOException or TaskCanceledException)

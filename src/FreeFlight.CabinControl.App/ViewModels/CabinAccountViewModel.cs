@@ -9,7 +9,7 @@ using FreeFlight.CabinControl.Core.Configuration;
 namespace FreeFlight.CabinControl.App.ViewModels;
 
 /// <summary>
-/// The Cabin Control account is a short-lived session authenticated by the
+    /// The Ember account is a short-lived session authenticated by the
 /// British Airways Virtual website. Only the resulting session token is kept
 /// in memory; the website password is cleared immediately after sign-in.
 /// </summary>
@@ -23,11 +23,11 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private FleetWebsiteFlightAssignmentDto? _websiteFlightAssignment;
     private FleetAcarsSessionDto? _activeAcarsSession;
     private string _flightPlanLinkLabel = "Choose a BAV flight, then import SimBrief to verify the route.";
-    private string _flightPlanLinkDetail = "Cabin Control will prevent an aircraft lifecycle from starting when the two flights disagree.";
+    private string _flightPlanLinkDetail = "Ember will prevent an aircraft lifecycle from starting when the two flights disagree.";
     private bool _hasSimBriefFlightPlan;
     private bool _isFlightPlanLinked;
     private string _acarsSessionLabel = "No active ACARS flight";
-    private string _lastFlightCompletionLabel = "No ACARS flight has been completed in this Cabin Control session.";
+    private string _lastFlightCompletionLabel = "No ACARS flight has been completed in this Ember session.";
     private string _statusMessage = "Sign in with your British Airways Virtual website account to reserve an aircraft for a flight.";
     private bool _isBusy;
     private ImageSource? _profileImageSource;
@@ -201,13 +201,13 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         ActiveAcarsSession = null;
         AcarsSessionLabel = "No active ACARS flight";
         Password = string.Empty;
-        StatusMessage = "Signed out. Your website password is never stored by Cabin Control.";
+        StatusMessage = "Signed out. Your website password is never stored by Ember.";
     }
 
     public FleetFlightAssignmentSubmissionDto GetCurrentFlightContext()
     {
         var assignment = WebsiteFlightAssignment
-            ?? throw new FleetApiException("Choose a flight on the BAV website, then select Refresh website flight in Cabin Control.");
+            ?? throw new FleetApiException("Choose a flight on the BAV website, then select Refresh website flight in Ember.");
         return new FleetFlightAssignmentSubmissionDto(assignment.FlightNumber, assignment.From, assignment.To);
     }
 
@@ -269,7 +269,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         var account = Session ?? throw new FleetApiException("Sign in with your BAV website account before starting a flight.");
         ActiveAcarsSession = await _apiClient.StartAcarsSessionAsync(_settings, account, simulator);
         AcarsSessionLabel = $"ACARS active · {ActiveAcarsSession.FlightNumber} · {ActiveAcarsSession.From} → {ActiveAcarsSession.To}";
-        StatusMessage = $"ACARS is running for {ActiveAcarsSession.FlightNumber}. Cabin Control will record the flight in the background.";
+        StatusMessage = $"ACARS is running for {ActiveAcarsSession.FlightNumber}. Ember will record the flight in the background.";
     }
 
     public async Task SendAcarsTelemetryAsync(FleetAcarsTelemetryDto telemetry)

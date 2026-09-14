@@ -316,7 +316,7 @@ public sealed class VamsysOAuthService : IVamsysOAuthService, IDisposable
         }
 
         using var protocol = Registry.CurrentUser.CreateSubKey(@"Software\Classes\freeflight-cabin-control");
-        protocol?.SetValue(string.Empty, "URL:FreeFlight Cabin Control vAMSYS Callback");
+        protocol?.SetValue(string.Empty, "URL:Ember vAMSYS Callback");
         protocol?.SetValue("URL Protocol", string.Empty);
         using var command = protocol?.CreateSubKey(@"shell\open\command");
         command?.SetValue(string.Empty, $"\"{executablePath}\" \"%1\"");

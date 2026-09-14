@@ -1,4 +1,4 @@
-FreeFlight Cabin Control
+Ember
 Proprietary Software Licence
 
 Copyright (c) 2026 FreeFlightLTD. All rights reserved.

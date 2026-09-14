@@ -102,7 +102,7 @@ public partial class MainWindow
 
         MessageBox.Show(
             viewModel.Updates.Status,
-            "FreeFlight updates",
+            "Ember updates",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }

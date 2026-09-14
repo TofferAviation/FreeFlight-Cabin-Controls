@@ -194,7 +194,7 @@ jobs:
           # Desktop software isn't an always-on cloud service,
           # so don't falsely claim we're monitoring the application itself.
           cabin_text = (
-              "🟢 **VA Cabin Controls**\n"
+              "🟢 **Ember**\n"
               "Current release available"
           )
 

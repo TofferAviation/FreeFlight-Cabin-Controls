@@ -532,7 +532,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             if (await _jetwayControlBridge.OperateJetwaysAsync())
             {
                 JetwayStatus = "Command sent · X-Plane choosing jetway(s)";
-                OperationMessage = "Jetway operation requested from Cabin Controls.";
+                OperationMessage = "Jetway operation requested from Ember.";
             }
             else
             {

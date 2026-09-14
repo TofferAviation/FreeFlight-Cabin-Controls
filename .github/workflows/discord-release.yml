@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PRODUCT_NAME: "VA Cabin Controls"
+      PRODUCT_NAME: "Ember"
       PLATFORM: "X-Plane 12"
 
       # Paste the Discord role ID here

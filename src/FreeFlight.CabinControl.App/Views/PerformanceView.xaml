@@ -3,14 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ScrollViewer VerticalScrollBarVisibility="Hidden">
         <StackPanel>
-            <TextBlock Text="Cabin Control Performance" Style="{StaticResource PageTitleStyle}" />
+            <TextBlock Text="Ember Performance" Style="{StaticResource PageTitleStyle}" />
             <TextBlock Text="Current resource cost created by this application only" Style="{StaticResource PageSubtitleStyle}" />
 
             <UniformGrid Columns="4" Margin="0,18,0,14">
-                <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="APP CPU" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding CpuUsage}" FontSize="27" Foreground="#55AEFF"/><TextBlock Text="Current Cabin Control process" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,8,0"><StackPanel><TextBlock Text="APP CPU" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding CpuUsage}" FontSize="27" Foreground="#55AEFF"/><TextBlock Text="Current Ember process" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
                 <Border Style="{StaticResource CardStyle}" Margin="8,0"><StackPanel><TextBlock Text="APP MEMORY" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding MemoryUsage}" FontSize="27" Foreground="#58E68A"/><TextBlock Text="Working set in RAM" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
                 <Border Style="{StaticResource CardStyle}" Margin="8,0"><StackPanel><TextBlock Text="MANAGED HEAP" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding ManagedHeap}" FontSize="20" Foreground="#B88CFF" TextWrapping="Wrap"/><TextBlock Text=".NET allocations used by the app" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
-                <Border Style="{StaticResource CardStyle}" Margin="8,0,0,0"><StackPanel><TextBlock Text="PROCESS DETAIL" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding ProcessDetail}" FontSize="20" Foreground="#FFCB69" TextWrapping="Wrap"/><TextBlock Text="Cabin Control threads and handles" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
+                <Border Style="{StaticResource CardStyle}" Margin="8,0,0,0"><StackPanel><TextBlock Text="PROCESS DETAIL" Style="{StaticResource MutedTextStyle}"/><TextBlock Text="{Binding ProcessDetail}" FontSize="20" Foreground="#FFCB69" TextWrapping="Wrap"/><TextBlock Text="Ember threads and handles" Style="{StaticResource MutedTextStyle}"/></StackPanel></Border>
             </UniformGrid>
 
             <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">

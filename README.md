@@ -1,6 +1,6 @@
-# FreeFlight Cabin Control
+# Ember
 
-FreeFlight Cabin Control is a Windows desktop application with a live X-Plane 12 bridge for managing a simulated aircraft cabin. Development initially targets the FlightFactor 777 v2 while keeping the core aircraft- and airline-neutral.
+Ember is a Windows desktop operations application with a live X-Plane 12 bridge for managing a simulated aircraft cabin, fleet lifecycle and flight operations. Development initially targets the FlightFactor 777 v2 while keeping the core aircraft- and airline-neutral.
 
 ## Current baseline
 
@@ -50,14 +50,14 @@ The FlightFactor 777 v2 L1/L2 and passenger-sign mappings are verified and imple
 
 1. Run X-Plane 12.1.1 or newer on the same Windows computer.
 2. In X-Plane **Settings → Network**, do not select **Disable Incoming Traffic**.
-3. Start FreeFlight Cabin Control. It probes `127.0.0.1:8086` and reconnects automatically.
+3. Start Ember. It probes `127.0.0.1:8086` and reconnects automatically.
 4. If X-Plane was launched with a custom `--web_server_port`, enter that port under **Settings → X-Plane 12 Live Connection** and choose **Retry Connection**.
 
 The release includes the FreeFlight Cabin Bridge under `xplane-plugin`. Select the X-Plane folder in Settings and choose **Install / Update X-Plane Plugin**, then restart X-Plane once. The plugin converts aircraft outputs into stable FreeFlight datarefs while the loopback-only Web API transports them to the desktop app. Diagnostics shows the active aircraft, flight phase, plugin state, and age of the latest telemetry frame. See the [official X-Plane Data Access API](https://developer.x-plane.com/sdk/XPLMDataAccess/) and [Web API reference](https://developer.x-plane.com/article/x-plane-web-api/).
 
 For native jetways, Gate Desk sends X-Plane's `sim/ground_ops/jetway` command through the Web API. This requires X-Plane 12.1.4 or later. X-Plane selects any eligible bridge(s) and aircraft door(s), so FreeFlight reports the command result rather than claiming a specific bridge is docked. Individual bridge-to-door assignment and multi-bridge control are reserved for a future FreeFlight jetway engine or compatible scenery adapter.
 
-For first-time installation, use `FreeFlight-Cabin-Control-vX.Y.Z-Setup.exe` from GitHub Releases. The portable ZIP remains available for the in-app updater.
+For first-time installation, use `Ember-vX.Y.Z-Setup.exe` from GitHub Releases. The portable ZIP remains available for the in-app updater.
 
 ## Build
 

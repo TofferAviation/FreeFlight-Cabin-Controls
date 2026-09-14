@@ -23,7 +23,7 @@ public partial class App
             "FreeFlight",
             "CabinControl");
         _logService = new FileLogService(Path.Combine(settingsDirectory, "logs"));
-        _logService.Information("FreeFlight Cabin Control starting.");
+        _logService.Information("Ember starting.");
         var (settings, settingsStore, activeSettingsDirectory) = await LoadSettingsAsync(settingsDirectory);
 
         var vamsysService = new VamsysOAuthService(settings, activeSettingsDirectory);
@@ -35,7 +35,7 @@ public partial class App
             {
                 await vamsysService.HandleAuthorizationCallbackAsync(oauthCallback);
                 MessageBox.Show(
-                    "Your vAMSYS account was connected. Return to the open FreeFlight window.",
+                    "Your vAMSYS account was connected. Return to the open Ember window.",
                     "vAMSYS connected",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -78,7 +78,7 @@ public partial class App
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _logService?.Information("FreeFlight Cabin Control stopped.");
+        _logService?.Information("Ember stopped.");
         base.OnExit(e);
     }
 
@@ -86,8 +86,8 @@ public partial class App
     {
         _logService?.Error("Unhandled user-interface exception.", e.Exception);
         MessageBox.Show(
-            $"FreeFlight Cabin Control encountered an unexpected error.\n\n{e.Exception.Message}",
-            "FreeFlight Cabin Control",
+            $"Ember encountered an unexpected error.\n\n{e.Exception.Message}",
+            "Ember",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         e.Handled = true;

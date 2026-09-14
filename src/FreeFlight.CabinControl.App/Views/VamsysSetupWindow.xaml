@@ -21,7 +21,7 @@
 
             <StackPanel>
                 <TextBlock Text="vAMSYS Pilot API" FontSize="24" FontWeight="SemiBold" />
-                <TextBlock Text="Enter the public values from the attested Authorization Code + PKCE client. FreeFlight never needs a client secret or your vAMSYS password."
+                <TextBlock Text="Enter the public values from the attested Authorization Code + PKCE client. Ember never needs a client secret or your vAMSYS password."
                            Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,6,0,0" />
             </StackPanel>
 

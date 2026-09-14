@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.11] - 2026-09-14
+
+### Changed
+
+- Rebranded the desktop application as **Ember**, with the supplied Ember mark used in the app shell and Windows application icon.
+- Installer, Start Menu, desktop shortcut, release assets, product metadata, updater language, documentation and licence now use the Ember name while preserving existing local settings and update compatibility.
+
 ## [0.5.10] - 2026-09-14
 
 ### Added

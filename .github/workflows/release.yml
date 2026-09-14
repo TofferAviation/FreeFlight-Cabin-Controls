@@ -1,4 +1,4 @@
-name: Publish FreeFlight update
+name: Publish Ember update
 
 on:
   push:
@@ -44,8 +44,8 @@ jobs:
           }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
-          "asset=FreeFlight-Cabin-Control-v$version-win-x64.zip" >> $env:GITHUB_OUTPUT
-          "installer=FreeFlight-Cabin-Control-v$version-Setup.exe" >> $env:GITHUB_OUTPUT
+          "asset=Ember-v$version-win-x64.zip" >> $env:GITHUB_OUTPUT
+          "installer=Ember-v$version-Setup.exe" >> $env:GITHUB_OUTPUT
 
       - name: Restore and build
         shell: pwsh
@@ -105,7 +105,7 @@ jobs:
           if (-not $changes) { $changes = "- Release packaging and maintenance updates." }
           $sourceChangelog = Get-Content CHANGELOG.md -Raw
           $notes = @"
-          # FreeFlight Cabin Control $tag
+          # Ember $tag
 
           Published $date from the `main` branch.
 
@@ -151,13 +151,13 @@ jobs:
           if (gh release view $tag 2>$null) {
             gh release upload $tag $asset $checksum $installer $installerChecksum --clobber
             gh release edit $tag `
-              --title "FreeFlight Cabin Control $tag" `
+              --title "Ember $tag" `
               --notes-file artifacts/release-notes.md `
               --latest
           } else {
             gh release create $tag $asset $checksum $installer $installerChecksum `
               --target "${{ github.sha }}" `
-              --title "FreeFlight Cabin Control $tag" `
+              --title "Ember $tag" `
               --notes-file artifacts/release-notes.md `
               --latest
           }

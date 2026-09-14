@@ -886,7 +886,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         var aircraftIcao = ResolveBavAircraftIcao(assignment.Aircraft);
         if (string.IsNullOrWhiteSpace(aircraftIcao))
         {
-            return new BavAircraftLayoutResult(false, $"BAV selected {assignment.Aircraft}, which does not yet have a Cabin Control layout profile.");
+            return new BavAircraftLayoutResult(false, $"BAV selected {assignment.Aircraft}, which does not yet have an Ember layout profile.");
         }
 
         ImportedAircraftIcao = aircraftIcao;

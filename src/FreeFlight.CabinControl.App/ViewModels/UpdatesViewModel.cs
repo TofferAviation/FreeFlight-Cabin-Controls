@@ -30,7 +30,7 @@ public sealed class UpdatesViewModel : PageViewModel
         UpdateService service,
         Action? beforeInstall = null,
         Action? installAborted = null)
-        : base("Updates & Changelog", "Keep FreeFlight Cabin Control current without losing your local profile")
+        : base("Updates & Changelog", "Keep Ember current without losing your local profile")
     {
         _settings = settings;
         _settingsStore = settingsStore;
@@ -164,7 +164,7 @@ public sealed class UpdatesViewModel : PageViewModel
             _beforeInstall?.Invoke();
             await _settingsStore.SaveAsync(_settings);
             await _service.StageAndInstallAsync(_availableUpdate);
-            Status = "Update staged. Cabin Control will restart to finish installation.";
+            Status = "Update staged. Ember will restart to finish installation.";
             Application.Current.Shutdown();
         }
         catch

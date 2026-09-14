@@ -34,7 +34,7 @@ public sealed class UpdateService
     {
         _updatesDirectory = Path.Combine(applicationDataDirectory, "updates");
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"FreeFlight-Cabin-Control/{CurrentVersion.ToString(3)}");
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"Ember/{CurrentVersion.ToString(3)}");
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         _httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
     }

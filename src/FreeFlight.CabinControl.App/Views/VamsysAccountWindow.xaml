@@ -50,7 +50,7 @@
                             <TextBlock Text="{Binding VamsysEmail}" Style="{StaticResource MutedTextStyle}" Margin="0,3,0,0" />
                         </StackPanel>
                         <TextBlock Grid.Column="1"
-                                   Text="Identity, email, privacy and pilot details are managed by vAMSYS. FreeFlight keeps only your local appearance choices."
+                                   Text="Identity, email, privacy and pilot details are managed by vAMSYS. Ember keeps only your local appearance choices."
                                    Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="20,0,0,0" />
                     </Grid>
                 </Border>
@@ -60,7 +60,7 @@
                     <Border Style="{StaticResource CardStyle}" Padding="18">
                         <StackPanel>
                             <TextBlock Text="Profile picture" Style="{StaticResource SectionTitleStyle}" />
-                            <TextBlock Text="Choose a local image used only inside FreeFlight." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,7,0,14" />
+                            <TextBlock Text="Choose a local image used only inside Ember." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" Margin="0,7,0,14" />
                             <Button Content="Choose picture" Command="{Binding ChooseProfileImageCommand}" Style="{StaticResource PrimaryButtonStyle}" Padding="12,6" />
                             <Button Content="Use initials" Command="{Binding RemoveProfileImageCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="12,6" Margin="0,8,0,0" />
                         </StackPanel>

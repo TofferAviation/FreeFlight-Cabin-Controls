@@ -46,7 +46,7 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
         string logDirectory,
         ISimulatorBridge? simulatorBridge = null,
         ISettingsStore? settingsStore = null)
-        : base("Cabin Control Performance", "Current resource cost created by this application only")
+        : base("Ember Performance", "Current resource cost created by this application only")
     {
         _settings = settings;
         _simulatorBridge = simulatorBridge;
@@ -255,17 +255,17 @@ public sealed class PerformanceViewModel : PageViewModel, IDisposable
     {
         if (sample.AppCpuPercent > 12d)
         {
-            Recommendation = $"Cabin Control is currently using {sample.AppCpuPercent:F1}% CPU and {appMemoryMb:F0} MB. Low Impact mode will reduce animation and telemetry refresh work.";
+            Recommendation = $"Ember is currently using {sample.AppCpuPercent:F1}% CPU and {appMemoryMb:F0} MB. Low Impact mode will reduce animation and telemetry refresh work.";
             RecommendationColor = "#FFB55F";
         }
         else if (appMemoryMb > 750d)
         {
-            Recommendation = $"Cabin Control memory is elevated at {appMemoryMb:F0} MB. Finish or unload old flight sessions and review the log if usage continues to rise.";
+            Recommendation = $"Ember memory is elevated at {appMemoryMb:F0} MB. Finish or unload old flight sessions and review the log if usage continues to rise.";
             RecommendationColor = "#FFB55F";
         }
         else
         {
-            Recommendation = $"Cabin Control is using {sample.AppCpuPercent:F1}% CPU and {appMemoryMb:F0} MB. No app-side resource warning is active; Balanced mode is appropriate.";
+            Recommendation = $"Ember is using {sample.AppCpuPercent:F1}% CPU and {appMemoryMb:F0} MB. No app-side resource warning is active; Balanced mode is appropriate.";
             RecommendationColor = "#58E68A";
         }
     }

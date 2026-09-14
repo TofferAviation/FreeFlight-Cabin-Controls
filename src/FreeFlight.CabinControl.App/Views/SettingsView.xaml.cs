@@ -27,7 +27,7 @@ public partial class SettingsView
         if (!File.Exists(licencePath))
         {
             MessageBox.Show(
-                "The installed licence file could not be found. Reinstall FreeFlight Cabin Control from an authorised download channel.",
+                "The installed licence file could not be found. Reinstall Ember from an authorised download channel.",
                 "Licence file unavailable",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);

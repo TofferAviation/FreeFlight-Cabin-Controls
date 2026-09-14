@@ -4,30 +4,30 @@
 
 [Setup]
 AppId={{B7A4D4EC-79DF-49CD-A11E-8C3C65DB90EE}
-AppName=FreeFlight Cabin Control
+AppName=Ember
 AppVersion={#AppVersion}
 AppPublisher=FreeFlightLTD
 AppPublisherURL=https://github.com/TofferAviation/FreeFlight-Cabin-Controls
 AppSupportURL=https://github.com/TofferAviation/FreeFlight-Cabin-Controls/issues
 AppUpdatesURL=https://github.com/TofferAviation/FreeFlight-Cabin-Controls/releases
-DefaultDirName={localappdata}\Programs\FreeFlight Cabin Control
-DefaultGroupName=FreeFlight Cabin Control
+DefaultDirName={localappdata}\Programs\Ember
+DefaultGroupName=Ember
 LicenseFile=..\LICENSE.txt
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts
-OutputBaseFilename=FreeFlight-Cabin-Control-v{#AppVersion}-Setup
+OutputBaseFilename=Ember-v{#AppVersion}-Setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-SetupIconFile=..\src\FreeFlight.CabinControl.App\Assets\FreeFlight.ico
+SetupIconFile=..\src\FreeFlight.CabinControl.App\Assets\Ember.ico
 UninstallDisplayIcon={app}\FreeFlight.CabinControl.exe
 CloseApplications=yes
 RestartApplications=no
 VersionInfoVersion={#AppVersion}.0
-VersionInfoProductName=FreeFlight Cabin Control
+VersionInfoProductName=Ember
 VersionInfoProductVersion={#AppVersion}
 
 [Languages]
@@ -40,11 +40,11 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Source: "..\artifacts\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\FreeFlight Cabin Control"; Filename: "{app}\FreeFlight.CabinControl.exe"; WorkingDir: "{app}"
-Name: "{autodesktop}\FreeFlight Cabin Control"; Filename: "{app}\FreeFlight.CabinControl.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{autoprograms}\Ember"; Filename: "{app}\FreeFlight.CabinControl.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\Ember"; Filename: "{app}\FreeFlight.CabinControl.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\FreeFlight.CabinControl.exe"; Description: "Launch FreeFlight Cabin Control"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\FreeFlight.CabinControl.exe"; Description: "Launch Ember"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\updates"

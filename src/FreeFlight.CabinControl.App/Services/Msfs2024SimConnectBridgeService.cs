@@ -139,7 +139,7 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
 
     private void OpenConnection()
     {
-        var result = SimConnectOpen(out _connection, "FreeFlight Cabin Control", IntPtr.Zero, 0, IntPtr.Zero, 0);
+        var result = SimConnectOpen(out _connection, "Ember", IntPtr.Zero, 0, IntPtr.Zero, 0);
         if (result < 0 || _connection == IntPtr.Zero)
         {
             throw new Win32Exception(result, "Could not open SimConnect.");
