@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.15] - 2026-09-14
+
+### Fixed
+
+- Ember now reasserts the BAV account gateway after the main window loads and whenever an account session clears, preventing an unauthenticated launch from exposing the operational workspace.
+
 ## [0.5.14] - 2026-09-14
 
 ### Fixed

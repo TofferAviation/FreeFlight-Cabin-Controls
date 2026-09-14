@@ -37,7 +37,17 @@ public partial class MainWindow
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        if (_startupUpdateCheckStarted || DataContext is not MainWindowViewModel)
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        // WPF may initialise a navigation RadioButton while the window is
+        // loading. Never let that visual startup event bypass the BAV account
+        // gateway for an unauthenticated pilot.
+        viewModel.EnsureBavAccountGateway();
+
+        if (_startupUpdateCheckStarted)
         {
             return;
         }

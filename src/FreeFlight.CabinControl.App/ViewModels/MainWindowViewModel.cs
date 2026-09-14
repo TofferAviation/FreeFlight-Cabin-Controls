@@ -292,6 +292,23 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         ActivePage = destination;
     }
 
+    /// <summary>
+    /// Keeps the BAV account page as the only entry point to Ember whenever
+    /// there is no verified account session. This is deliberately invoked by
+    /// the window after it has loaded as a defence against startup UI events
+    /// selecting a navigation item before a pilot has authenticated.
+    /// </summary>
+    public void EnsureBavAccountGateway()
+    {
+        if (Account.IsAuthenticated)
+        {
+            return;
+        }
+
+        CurrentPage = Account;
+        ActivePage = "CabinAccount";
+    }
+
     private void HandleGateSignedIn(object? sender, EventArgs e)
     {
         Operations.ApplyGateAccessState();
@@ -448,6 +465,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         else
         {
             GateLogin.SignOutBavAccount();
+            EnsureBavAccountGateway();
         }
 
         Operations.ApplyGateAccessState();
