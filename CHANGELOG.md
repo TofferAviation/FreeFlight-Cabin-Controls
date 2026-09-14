@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.14] - 2026-09-14
+
+### Fixed
+
+- Windows executable and installer now use the established Ember application icon instead of the legacy FreeFlight icon.
+
 ## [0.5.13] - 2026-09-14
 
 ### Added

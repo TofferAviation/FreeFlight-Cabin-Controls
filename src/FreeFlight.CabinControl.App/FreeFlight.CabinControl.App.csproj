@@ -6,8 +6,8 @@
     <RootNamespace>FreeFlight.CabinControl.App</RootNamespace>
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon Condition="Exists('Assets/FreeFlight.ico')">Assets/FreeFlight.ico</ApplicationIcon>
-    <Version>0.5.13</Version>
+    <ApplicationIcon Condition="Exists('Assets/Ember.ico')">Assets/Ember.ico</ApplicationIcon>
+    <Version>0.5.14</Version>
     <Company>FreeFlightLTD</Company>
     <Copyright>Copyright © 2026 FreeFlightLTD. All rights reserved.</Copyright>
     <Description>Ember for authorised flight-simulation operations.</Description>
