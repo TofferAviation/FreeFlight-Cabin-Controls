@@ -209,6 +209,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(IsFlightReserved));
             OnPropertyChanged(nameof(IsFlightOperating));
             OnPropertyChanged(nameof(FlightAssignmentLabel));
+            OnPropertyChanged(nameof(ActiveFlightAircraftId));
         }
     }
 
@@ -331,7 +332,9 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         {
             IsSynchronizing = true;
             var aircraft = await _fleetApiClient.GetAircraftAsync(_settings, RequireAccount());
+            ActiveFlightAssignment = await _fleetApiClient.GetActiveFlightAssignmentAsync(_settings, RequireAccount());
             var selectedRegistration = _selectedFleetRegistration;
+            var activeAircraftId = ActiveFlightAssignment?.AircraftId;
             if (string.IsNullOrWhiteSpace(selectedRegistration))
             {
                 selectedRegistration = SelectedAircraft?.Registration;
@@ -352,6 +355,10 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
 
                 ApplyFilter();
                 SelectedAircraft = Aircraft.FirstOrDefault(item => string.Equals(
+                                       item.Id,
+                                       activeAircraftId,
+                                       StringComparison.Ordinal))
+                                   ?? Aircraft.FirstOrDefault(item => string.Equals(
                                        item.Registration,
                                        selectedRegistration,
                                        StringComparison.OrdinalIgnoreCase))
@@ -371,6 +378,13 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
             ConnectionDetail = $"{Aircraft.Count} aircraft synchronized from the authoritative Fleet API.";
             ConnectionColor = SuccessBrush;
             LastSynchronizedLabel = $"Last synchronized {DateTime.Now:t}";
+            if (ActiveFlightAssignment is not null)
+            {
+                FlightAssignmentStatus = ActiveFlightAssignment.Status == "operating"
+                    ? $"{ActiveFlightAssignment.FlightReference} is operating with {SelectedAircraft?.Registration ?? "your assigned registration"}. Aircraft hours and cycle tracking are live."
+                    : $"{ActiveFlightAssignment.FlightReference} has {SelectedAircraft?.Registration ?? "an aircraft"} reserved. This assignment survives app restarts.";
+                FlightAssignmentStatusColor = SuccessBrush;
+            }
             RefreshSummary();
         }
         catch (Exception exception) when (exception is FleetApiException or HttpRequestException or TaskCanceledException)

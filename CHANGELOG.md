@@ -2,6 +2,16 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.10] - 2026-09-14
+
+### Added
+
+- Cabin Control now restores the pilot's active aircraft reservation or operation from the authoritative BAV Fleet API after sign-in or an app restart.
+
+### Changed
+
+- A reserved registration is selected automatically on Fleet refresh, preventing a locally remembered tail from masking the aircraft actually assigned to the pilot's current flight.
+
 ## [0.5.9] - 2026-09-14
 
 ### Added

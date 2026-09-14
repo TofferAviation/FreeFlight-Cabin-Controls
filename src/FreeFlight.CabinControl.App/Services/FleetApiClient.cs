@@ -223,6 +223,21 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         CancellationToken cancellationToken = default) =>
         await SendFlightAssignmentAsync(settings, account, HttpMethod.Post, $"/api/fleet/v1/aircraft/{Uri.EscapeDataString(aircraftId)}/flight-assignment", assignment, cancellationToken);
 
+    public async Task<FleetFlightAssignmentDto?> GetActiveFlightAssignmentAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetFlightAssignmentEnvelope>(
+            settings,
+            account,
+            HttpMethod.Get,
+            "/api/fleet/v1/flight-assignment",
+            null,
+            cancellationToken);
+        return payload?.Assignment;
+    }
+
     public async Task<FleetFlightAssignmentDto> StartAircraftFlightAsync(
         AppSettings settings,
         FleetAccountSession account,
