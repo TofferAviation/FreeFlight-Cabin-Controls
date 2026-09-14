@@ -42,9 +42,9 @@
 
             <StackPanel Grid.Row="1" Width="490" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Image Width="96" Height="96"
-                       Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/EmberBrand.png"
+                       Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/FreeFlightAppIcon.png"
                        Stretch="Uniform"
-                       Tag="GateLoginEmberBrand" />
+                       Tag="GateLoginAppIcon" />
                 <TextBlock Text="Ember Gate Operations" FontSize="17" Foreground="#A8B7CA" HorizontalAlignment="Center" Margin="0,-3,0,24" />
 
                 <Border Style="{StaticResource CardStyle}" Padding="32,25">

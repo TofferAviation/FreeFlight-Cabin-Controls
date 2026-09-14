@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.12] - 2026-09-14
+
+### Changed
+
+- Restored the British Airways Virtual logo to the application navigation shell.
+- Restored the established FreeFlight app mark for the Windows executable, installer and Gate Operations sign-in view; **Ember** remains the product name.
+
 ## [0.5.11] - 2026-09-14
 
 ### Changed
