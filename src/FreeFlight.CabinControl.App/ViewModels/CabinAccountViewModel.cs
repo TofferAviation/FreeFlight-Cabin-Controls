@@ -17,6 +17,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 {
     private readonly AppSettings _settings;
     private readonly FleetApiClient _apiClient;
+    private readonly BavAccountSessionStore? _sessionStore;
     private string _email = string.Empty;
     private string _password = string.Empty;
     private FleetAccountSession? _session;
@@ -30,15 +31,17 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private string _lastFlightCompletionLabel = "No ACARS flight has been completed in this Ember session.";
     private string _statusMessage = "Sign in with your British Airways Virtual website account to reserve an aircraft for a flight.";
     private bool _isBusy;
+    private bool _rememberSignIn = true;
     private ImageSource? _profileImageSource;
 
-    public CabinAccountViewModel(AppSettings settings, FleetApiClient apiClient)
+    public CabinAccountViewModel(AppSettings settings, FleetApiClient apiClient, BavAccountSessionStore? sessionStore = null)
         : base("BAV Account", "Your British Airways Virtual identity for Fleet operations")
     {
         _settings = settings;
         _apiClient = apiClient;
+        _sessionStore = sessionStore;
         SignInCommand = new AsyncRelayCommand(SignInAsync, exception => StatusMessage = exception.Message);
-        SignOutCommand = new RelayCommand(_ => SignOut());
+        SignOutCommand = new AsyncRelayCommand(SignOutAsync, exception => StatusMessage = exception.Message);
         RefreshWebsiteFlightCommand = new AsyncRelayCommand(RefreshWebsiteFlightAsync, exception => StatusMessage = exception.Message);
     }
 
@@ -80,6 +83,12 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     public string DisplayName => Session?.Name ?? "British Airways Virtual pilot";
     public string PilotLabel => Session is null ? "Not signed in" : $"Pilot {Session.PilotNumber}";
     public string Initials => string.Concat(DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
+
+    public bool RememberSignIn
+    {
+        get => _rememberSignIn;
+        set => SetProperty(ref _rememberSignIn, value);
+    }
 
     public ImageSource? ProfileImageSource
     {
@@ -182,10 +191,21 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         StatusMessage = "Signing in securely…";
         try
         {
-            Session = await _apiClient.SignInAsync(_settings, Email, Password);
+            var signedInSession = await _apiClient.SignInAsync(_settings, Email, Password, RememberSignIn);
+            Session = signedInSession;
+            var wasRemembered = !RememberSignIn ||
+                                (!string.IsNullOrWhiteSpace(signedInSession.DeviceSessionToken) && _sessionStore?.TrySave(signedInSession) == true);
+            if (!RememberSignIn)
+            {
+                _sessionStore?.Clear();
+            }
             Password = string.Empty;
             await RefreshWebsiteFlightAsync();
             await RecoverActiveAcarsSessionAsync();
+            if (!wasRemembered)
+            {
+                StatusMessage = "Signed in, but Ember could not securely remember this account on this Windows profile.";
+            }
         }
         finally
         {
@@ -194,14 +214,76 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         }
     }
 
-    private void SignOut()
+    private async Task SignOutAsync()
     {
+        var signedInSession = Session;
+        _sessionStore?.Clear();
         Session = null;
         WebsiteFlightAssignment = null;
         ActiveAcarsSession = null;
         AcarsSessionLabel = "No active ACARS flight";
         Password = string.Empty;
-        StatusMessage = "Signed out. Your website password is never stored by Ember.";
+        IsBusy = true;
+        try
+        {
+            if (signedInSession is not null)
+            {
+                await _apiClient.RevokeAccountSessionAsync(_settings, signedInSession);
+            }
+            StatusMessage = "Signed out. This device session has been revoked and your website password was never stored by Ember.";
+        }
+        catch (FleetApiException)
+        {
+            StatusMessage = "Signed out on this PC. Ember could not reach BAV to revoke the device session, so sign in and try again when you are online if this device is shared.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Verifies a session saved for this Windows user before allowing Ember to
+    /// enter the operational workspace. Invalid or expired sessions stay on
+    /// the sign-in page and the stored credential is removed.
+    /// </summary>
+    public async Task<bool> RestoreSessionAsync()
+    {
+        var saved = _sessionStore?.Load();
+        if (saved is null)
+        {
+            StatusMessage = "Sign in with your British Airways Virtual website account to begin.";
+            return false;
+        }
+
+        IsBusy = true;
+        StatusMessage = "Restoring your secure BAV sign-in…";
+        try
+        {
+            var refreshedSession = await _apiClient.RefreshAccountSessionAsync(_settings, saved);
+            Session = refreshedSession;
+            _sessionStore?.TrySave(refreshedSession);
+            await RefreshWebsiteFlightAsync();
+            await RecoverActiveAcarsSessionAsync();
+            return true;
+        }
+        catch (FleetApiException exception) when (exception.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        {
+            _sessionStore?.Clear();
+            Session = null;
+            StatusMessage = "Your saved BAV sign-in has expired or was revoked. Sign in again to continue.";
+            return false;
+        }
+        catch (FleetApiException)
+        {
+            Session = null;
+            StatusMessage = "Ember could not verify your saved BAV sign-in. Check the website connection, then sign in to continue.";
+            return false;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     public FleetFlightAssignmentSubmissionDto GetCurrentFlightContext()

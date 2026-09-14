@@ -105,7 +105,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             PrepareFlightForUpdate,
             CancelFlightUpdateShutdown);
         FlightLogger = new FlightLoggerViewModel();
-        Account = new CabinAccountViewModel(settings, new FleetApiClient());
+        Account = new CabinAccountViewModel(
+            settings,
+            new FleetApiClient(),
+            new BavAccountSessionStore(resolvedSettingsDirectory));
         Fleet = new FleetViewModel(
             settings,
             new FleetApiClient(),
@@ -114,7 +117,11 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Account.SessionChanged += HandleBavAccountSessionChanged;
         Account.WebsiteFlightAssignmentRefreshed += HandleWebsiteFlightAssignmentRefreshed;
         Passengers.PropertyChanged += HandlePassengerFlightPropertyChanged;
-        _currentPage = Dashboard;
+        // A BAV account is the front door to Ember. The navigator cannot
+        // enter operational pages until the encrypted local session has been
+        // verified with the live BAV website.
+        _currentPage = Account;
+        _activePage = "CabinAccount";
         NavigateCommand = new RelayCommand(Navigate);
         _sessionSaveTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
@@ -131,6 +138,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             Status.ApplyBridgeStatus(_simulatorBridge.CurrentStatus);
             _simulatorBridge.Start();
         }
+
+        _ = RestoreBavAccountSessionAsync();
     }
 
     public SharedStatusViewModel Status { get; }
@@ -242,7 +251,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (IsGateWorkspacePage(destination) && !Account.IsAuthenticated)
+        if (!Account.IsAuthenticated && destination != "CabinAccount")
         {
             CurrentPage = Account;
             ActivePage = "CabinAccount";
@@ -292,6 +301,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private void HandleGateSignedOut(object? sender, EventArgs e)
     {
         Operations.ApplyGateAccessState();
+        if (!Account.IsAuthenticated)
+        {
+            CurrentPage = Account;
+            ActivePage = "CabinAccount";
+            return;
+        }
+
         CurrentPage = GateLogin;
         ActivePage = "GateLogin";
     }
@@ -413,6 +429,14 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _fleetFlightCompletionInProgress = true;
         _ = CompleteFleetFlightAndUnloadAsync(_fleetAircraftIdForCurrentFlight, _touchdownFpm);
         return true;
+    }
+
+    private async Task RestoreBavAccountSessionAsync()
+    {
+        if (await Account.RestoreSessionAsync())
+        {
+            Navigate("Dashboard");
+        }
     }
 
     private void HandleBavAccountSessionChanged(object? sender, EventArgs e)

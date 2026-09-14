@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -80,6 +81,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         AppSettings settings,
         string email,
         string password,
+        bool rememberDevice,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -90,14 +92,14 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         var baseUri = ResolveBaseUri(settings);
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(baseUri, "/api/acars/v1/auth"))
         {
-            Content = new StringContent(JsonSerializer.Serialize(new { email = email.Trim(), password }, JsonWriteOptions), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(new { email = email.Trim(), password, rememberDevice }, JsonWriteOptions), Encoding.UTF8, "application/json")
         };
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new FleetApiException($"British Airways Virtual sign-in failed: {ExtractError(content)}");
+            throw new FleetApiException($"British Airways Virtual sign-in failed: {ExtractError(content)}", response.StatusCode);
         }
 
         var payload = JsonSerializer.Deserialize<FleetAccountEnvelope>(content, JsonOptions)
@@ -107,7 +109,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             throw new FleetApiException("British Airways Virtual did not return a usable account session.");
         }
 
-        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage);
+        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken);
     }
 
     public async Task<FleetAccountPilotDto> GetAccountProfileAsync(
@@ -125,6 +127,74 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return payload?.Pilot ?? throw new FleetApiException("British Airways Virtual did not return your account profile.");
     }
 
+    /// <summary>
+    /// Rotates a revocable BAV device credential without ever sending or
+    /// storing the pilot's website password again.
+    /// </summary>
+    public async Task<FleetAccountSession> RefreshAccountSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(account.DeviceSessionToken))
+        {
+            throw new FleetApiException("This BAV session is not saved on this Windows PC.");
+        }
+
+        var baseUri = ResolveBaseUri(settings);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(baseUri, "/api/acars/v1/auth/refresh"))
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(new { deviceSessionToken = account.DeviceSessionToken }, JsonWriteOptions),
+                Encoding.UTF8,
+                "application/json")
+        };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new FleetApiException($"British Airways Virtual could not restore your sign-in: {ExtractError(content)}", response.StatusCode);
+        }
+
+        var payload = JsonSerializer.Deserialize<FleetAccountEnvelope>(content, JsonOptions)
+                      ?? throw new FleetApiException("British Airways Virtual returned an empty restored session.");
+        if (string.IsNullOrWhiteSpace(payload.Token) || payload.Pilot is null)
+        {
+            throw new FleetApiException("British Airways Virtual did not return a usable restored session.");
+        }
+
+        if (string.IsNullOrWhiteSpace(payload.DeviceSessionToken))
+        {
+            throw new FleetApiException("British Airways Virtual did not return a usable device session.");
+        }
+
+        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken);
+    }
+
+    public async Task RevokeAccountSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(account.DeviceSessionToken)) return;
+        var baseUri = ResolveBaseUri(settings);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(baseUri, "/api/acars/v1/auth/logout"))
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(new { deviceSessionToken = account.DeviceSessionToken }, JsonWriteOptions),
+                Encoding.UTF8,
+                "application/json")
+        };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new FleetApiException($"British Airways Virtual could not sign this device out: {ExtractError(content)}", response.StatusCode);
+        }
+    }
+
     public async Task<FleetWebsiteFlightAssignmentDto?> GetWebsiteFlightAssignmentAsync(
         AppSettings settings,
         FleetAccountSession account,
@@ -138,7 +208,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new FleetApiException($"Could not load your selected BAV flight: {ExtractError(content)}");
+            throw new FleetApiException($"Could not load your selected BAV flight: {ExtractError(content)}", response.StatusCode);
         }
 
         return JsonSerializer.Deserialize<FleetWebsiteFlightAssignmentEnvelope>(content, JsonOptions)?.Assignment;
@@ -279,7 +349,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new FleetApiException($"Fleet aircraft selection failed: {ExtractError(content)}");
+            throw new FleetApiException($"Fleet aircraft selection failed: {ExtractError(content)}", response.StatusCode);
         }
 
         var payload = JsonSerializer.Deserialize<FleetFlightAssignmentEnvelope>(content, JsonOptions);
@@ -307,7 +377,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new FleetApiException($"British Airways Virtual ACARS request failed: {ExtractError(content)}");
+            throw new FleetApiException($"British Airways Virtual ACARS request failed: {ExtractError(content)}", response.StatusCode);
         }
 
         return JsonSerializer.Deserialize<T>(content, JsonOptions);
@@ -334,17 +404,27 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
     }
 }
 
-public sealed class FleetApiException(string message) : Exception(message);
+public sealed class FleetApiException(string message, HttpStatusCode? statusCode = null) : Exception(message)
+{
+    public HttpStatusCode? StatusCode { get; } = statusCode;
+}
 
 public sealed record FleetAircraftEnvelope(IReadOnlyList<FleetAircraftSummaryDto>? Aircraft);
 public sealed record FleetErrorEnvelope(string? Error);
 public sealed record FleetAircraftRecordEnvelope(FleetAircraftRecordDto? Aircraft);
 public sealed record FleetDefectEnvelope(FleetDefectDto? Defect);
 public sealed record FleetLandingAssessmentEnvelope(FleetLandingAssessmentDto? Assessment);
-public sealed record FleetAccountEnvelope(string? Token, FleetAccountPilotDto? Pilot, long? ExpiresInSeconds);
+public sealed record FleetAccountEnvelope(string? Token, FleetAccountPilotDto? Pilot, long? ExpiresInSeconds, string? DeviceSessionToken = null);
 public sealed record FleetAccountProfileEnvelope(FleetAccountPilotDto? Pilot);
 public sealed record FleetAccountPilotDto(string Id, string PilotNumber, string Name, string Email, string? ProfileImage = null);
-public sealed record FleetAccountSession(string Token, string PilotId, string PilotNumber, string Name, string Email, string? ProfileImage = null);
+public sealed record FleetAccountSession(
+    string Token,
+    string PilotId,
+    string PilotNumber,
+    string Name,
+    string Email,
+    string? ProfileImage = null,
+    string? DeviceSessionToken = null);
 public sealed record FleetWebsiteFlightAssignmentEnvelope(FleetWebsiteFlightAssignmentDto? Assignment);
 public sealed record FleetWebsiteFlightAssignmentDto(
     string Id,

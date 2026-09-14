@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.13] - 2026-09-14
+
+### Added
+
+- Ember now opens at the BAV account gateway and protects every operational page until the pilot has authenticated.
+- Pilots can choose **Remember this BAV account on this Windows PC**. Ember stores a revocable device credential with Windows data protection; it never stores the website password or long-lived bearer token.
+
+### Changed
+
+- A remembered device is verified and its credential rotated by the live BAV website at launch. **Sign out** revokes it server-side and deletes its protected local copy.
+
 ## [0.5.12] - 2026-09-14
 
 ### Changed

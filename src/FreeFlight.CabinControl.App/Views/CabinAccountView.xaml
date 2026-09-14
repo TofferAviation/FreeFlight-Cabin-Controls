@@ -25,6 +25,8 @@
                             <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Height="43" />
                             <TextBlock Text="Password" FontSize="13" Margin="0,16,0,5" />
                             <PasswordBox x:Name="PasswordInput" PasswordChanged="PasswordInput_OnPasswordChanged" Height="43" Padding="12,8" Background="#071426" Foreground="White" BorderBrush="{StaticResource BorderBrush}" CaretBrush="#398EFF" FontSize="14" />
+                            <CheckBox IsChecked="{Binding RememberSignIn}" Content="Remember this BAV account on this Windows PC" Foreground="#D6E0EC" Margin="0,14,0,0" />
+                            <TextBlock Text="Ember stores only an encrypted session for this Windows user — never your website password. Sign out to remove it." TextWrapping="Wrap" Foreground="#7890AC" FontSize="10" Margin="0,5,0,0" />
                             <Button Command="{Binding SignInCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,22,0,0" Height="52" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}">
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="&#xE72A;" FontFamily="Segoe Fluent Icons" FontSize="19" Margin="0,0,11,0" /><TextBlock Text="Sign in with BAV account" FontSize="15" /></StackPanel>
                             </Button>
