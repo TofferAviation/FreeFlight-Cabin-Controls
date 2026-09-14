@@ -25,6 +25,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private bool _hasObservedDeparture;
     private bool _wasAirborne;
     private bool _landingAssessmentReported;
+    private bool _acarsFlightStartRequested;
     private bool _fleetFlightStartRequested;
     private bool _fleetFlightCompletionInProgress;
     private bool _acarsTelemetryInFlight;
@@ -395,7 +396,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private bool TrackAutomaticFlightCompletion(CabinTelemetrySnapshot snapshot)
     {
-        if (!Passengers.HasPassengerManifest && !Fleet.HasActiveFlightAssignment && !Account.IsAcarsOperating)
+        // ACARS is the flight-tracking system; Fleet airframe accounting is a
+        // separate enhancement. A temporary Fleet issue must not leave an
+        // otherwise valid BAV assignment invisible on BA-Radar.
+        if (!Passengers.HasPassengerManifest &&
+            !Fleet.HasActiveFlightAssignment &&
+            !Account.IsAcarsOperating &&
+            !Account.HasWebsiteFlightAssignment)
         {
             ResetFlightCompletionTracking();
             return false;
@@ -404,7 +411,18 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         var enginesRunning = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d;
         var pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d;
         var groundSpeed = snapshot.Signals.GetValueOrDefault("groundspeed_mps");
-        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved && (enginesRunning || pushbackActive))
+        var readyToStart = enginesRunning || pushbackActive;
+
+        if (!_acarsFlightStartRequested &&
+            !Account.IsAcarsOperating &&
+            Account.HasWebsiteFlightAssignment &&
+            readyToStart)
+        {
+            _acarsFlightStartRequested = true;
+            _ = StartAcarsFlightAsync();
+        }
+
+        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved && readyToStart)
         {
             _fleetFlightStartRequested = true;
             _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
@@ -541,12 +559,21 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+    }
+
+    private async Task StartAcarsFlightAsync()
+    {
         try
         {
+            Account.EnsureFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
             await Account.StartAcarsSessionAsync(ResolveAcarsSimulator());
         }
         catch (Exception exception)
         {
+            // Do not prevent a later engine/pushback sample from retrying a
+            // transient website failure. Fleet reservation state remains
+            // independent and is never modified here.
+            _acarsFlightStartRequested = false;
             Account.ReportBackgroundAcarsFailure(exception);
         }
     }
@@ -561,7 +588,21 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
                 _landingAssessmentReported = true;
                 await Fleet.RecordHardLandingAssessmentAsync(aircraftId, touchdownFpm.Value, Passengers.ImportedDestination);
             }
+        }
+        catch (Exception exception)
+        {
+            // A Fleet accounting failure must not leave the independent ACARS
+            // session live after the aircraft has shut down.
+            Account.ReportBackgroundAcarsFailure(exception);
+        }
+
+        try
+        {
             await Account.CompleteAcarsSessionAsync(touchdownFpm);
+        }
+        catch (Exception exception)
+        {
+            Account.ReportBackgroundAcarsFailure(exception);
         }
         finally
         {
@@ -586,6 +627,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _hasObservedDeparture = false;
         _wasAirborne = false;
         _landingAssessmentReported = false;
+        _acarsFlightStartRequested = false;
         _fleetFlightStartRequested = false;
         _fleetFlightCompletionInProgress = false;
         _touchdownFpm = null;

@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.17] - 2026-09-14
+
+### Fixed
+
+- ACARS now starts from a valid BAV assignment at engine start or pushback even if Fleet airframe accounting is temporarily unavailable. This keeps BA-Radar tracking independent from Fleet recovery.
+- End-of-flight ACARS completion is no longer blocked by a Fleet accounting failure.
+
 ## [0.5.16] - 2026-09-14
 
 ### Changed
