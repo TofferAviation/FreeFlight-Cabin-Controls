@@ -42,6 +42,7 @@ Version `0.5.x` is the current application line. GitHub release builds are offer
 - a safe, versioned airline-content-pack model;
 - real process CPU and memory sampling for the desktop application;
 - stable application logging under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\logs`, with a non-fatal temporary-directory fallback if that location is locked or inaccessible;
+- local, redacted crash reports under `%LOCALAPPDATA%\\FreeFlight\\CabinControl\\crash-reports` for unexpected UI, background-task and process-level exceptions; reports are never uploaded automatically and Ember retains the newest 20 for support diagnosis;
 - no bundled photographic CACP page renders; the British Airways safety video, cabin maps, boarding alternatives, and limited identifying wordmarks are distributed under their documented licences or repository-owner rights attestation.
 
 The FlightFactor 777 v2 L1/L2 and passenger-sign mappings are verified and implemented; the evidence and value ranges are recorded in [`docs/FLIGHTFACTOR_777_DATAREFS.md`](docs/FLIGHTFACTOR_777_DATAREFS.md). Embedded/in-aircraft audio-video playback, physical bag-tag printing, and in-aircraft screens are not implemented in this baseline. vAMSYS authentication is implemented but cannot be activated until a VA Owner supplies and attests an airline-scoped Pilot API client registration. Boarding-pass printing uses the selected installed Windows queue, while bag tags remain an explicitly labelled local preview. Standard X-Plane datarefs and manual controls remain safe fallbacks for other aircraft.

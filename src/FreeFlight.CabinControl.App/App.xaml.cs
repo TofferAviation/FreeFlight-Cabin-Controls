@@ -4,6 +4,7 @@ using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.App.ViewModels;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Diagnostics;
 using FreeFlight.CabinControl.Core.Persistence;
 
 namespace FreeFlight.CabinControl.App;
@@ -11,17 +12,25 @@ namespace FreeFlight.CabinControl.App;
 public partial class App
 {
     private FileLogService? _logService;
+    private CrashReportWriter? _crashReportWriter;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
-        base.OnStartup(e);
-
-        DispatcherUnhandledException += HandleDispatcherException;
-
         var settingsDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "FreeFlight",
             "CabinControl");
+        _crashReportWriter = new CrashReportWriter(
+            Path.Combine(settingsDirectory, "crash-reports"),
+            "Ember ACARS Systems",
+            typeof(App).Assembly.GetName().Version?.ToString(3) ?? "unknown");
+
+        DispatcherUnhandledException += HandleDispatcherException;
+        AppDomain.CurrentDomain.UnhandledException += HandleAppDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += HandleUnobservedTaskException;
+
+        base.OnStartup(e);
+
         _logService = new FileLogService(Path.Combine(settingsDirectory, "logs"));
         _logService.Information("Ember starting.");
         var (settings, settingsStore, activeSettingsDirectory) = await LoadSettingsAsync(settingsDirectory);
@@ -79,19 +88,50 @@ public partial class App
     protected override void OnExit(ExitEventArgs e)
     {
         _logService?.Information("Ember stopped.");
+        DispatcherUnhandledException -= HandleDispatcherException;
+        AppDomain.CurrentDomain.UnhandledException -= HandleAppDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException -= HandleUnobservedTaskException;
         base.OnExit(e);
     }
 
     private void HandleDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        _logService?.Error("Unhandled user-interface exception.", e.Exception);
+        var reportPath = WriteCrashReport("Unhandled user-interface exception", e.Exception);
         MessageBox.Show(
-            $"Ember encountered an unexpected error.\n\n{e.Exception.Message}",
+            $"Ember encountered an unexpected error.\n\n{ReportLocationMessage(reportPath)}",
             "Ember",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         e.Handled = true;
     }
+
+    private void HandleAppDomainUnhandledException(object? sender, UnhandledExceptionEventArgs e)
+    {
+        var exception = e.ExceptionObject as Exception ??
+                        new InvalidOperationException("The process ended because of an unknown unhandled exception.");
+        WriteCrashReport("Unhandled process exception", exception);
+    }
+
+    private void HandleUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        WriteCrashReport("Unobserved background task exception", e.Exception);
+        e.SetObserved();
+    }
+
+    private string? WriteCrashReport(string source, Exception exception)
+    {
+        var reportPath = _crashReportWriter?.TryWrite(source, exception);
+        if (reportPath is not null)
+        {
+            _logService?.Information($"A crash report was saved to {reportPath}.");
+        }
+
+        return reportPath;
+    }
+
+    private string ReportLocationMessage(string? reportPath) => reportPath is null
+        ? "Ember could not save a crash report on this computer."
+        : $"A diagnostic report was saved locally:\n{reportPath}\n\nAttach it to a support ticket if you need help.";
 
     private async Task<(AppSettings Settings, ISettingsStore Store, string Directory)> LoadSettingsAsync(string preferredDirectory)
     {

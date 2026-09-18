@@ -1,5 +1,6 @@
 using FreeFlight.CabinControl.Core.Configuration;
 using FreeFlight.CabinControl.Core.Content;
+using FreeFlight.CabinControl.Core.Diagnostics;
 using FreeFlight.CabinControl.Core.Persistence;
 using FreeFlight.CabinControl.Core.Passengers;
 using FreeFlight.CabinControl.Core.Operations;
@@ -8,6 +9,7 @@ using FreeFlight.CabinControl.Core.Integration;
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("Settings round-trip", SettingsRoundTripAsync),
+    ("Crash reports capture safe diagnostic details", CrashReportCapturesSafeDiagnosticDetailsAsync),
     ("Turnaround schedule calculates from departure", TurnaroundScheduleCalculatesFromDepartureAsync),
     ("Turnaround schedule follows the operations clock", TurnaroundScheduleFollowsClockAsync),
     ("Heavy aircraft receive deterministic T5 B or C gates", HeavyAircraftReceiveDeterministicGateAsync),
@@ -53,6 +55,39 @@ var tests = new (string Name, Func<Task> Run)[]
     ,("BA catering selects long-haul route and meal period", BritishAirwaysLongHaulCateringSelectionAsync)
     ,("BA catering selects short-haul service band", BritishAirwaysShortHaulCateringSelectionAsync)
 };
+
+static Task CrashReportCapturesSafeDiagnosticDetailsAsync()
+{
+    var directory = Path.Combine(Path.GetTempPath(), $"freeflight-crash-tests-{Guid.NewGuid():N}");
+
+    try
+    {
+        var writer = new CrashReportWriter(directory, "Ember ACARS Systems", "0.5.19");
+        var exception = new InvalidOperationException(
+            "Connection failed: token=private-token password=not-for-report Authorization: private-header Bearer private-bearer");
+
+        var reportPath = writer.TryWrite("Test crash boundary", exception);
+
+        Assert(reportPath is not null && File.Exists(reportPath), "A crash report was not created.");
+        var report = File.ReadAllText(reportPath!);
+        Assert(report.Contains("Ember ACARS Systems", StringComparison.Ordinal), "The application name was missing from the crash report.");
+        Assert(report.Contains("Test crash boundary", StringComparison.Ordinal), "The crash source was missing from the report.");
+        Assert(report.Contains(nameof(InvalidOperationException), StringComparison.Ordinal), "The exception type was missing from the report.");
+        Assert(report.Contains("[REDACTED]", StringComparison.Ordinal), "Sensitive values were not redacted from the report.");
+        Assert(!report.Contains("private-token", StringComparison.Ordinal), "A token was written to the crash report.");
+        Assert(!report.Contains("not-for-report", StringComparison.Ordinal), "A password was written to the crash report.");
+        Assert(!report.Contains("private-header", StringComparison.Ordinal), "An authorization value was written to the crash report.");
+        Assert(!report.Contains("private-bearer", StringComparison.Ordinal), "A bearer value was written to the crash report.");
+        return Task.CompletedTask;
+    }
+    finally
+    {
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+}
 
 static Task BritishAirwaysLongHaulCateringSelectionAsync()
 {

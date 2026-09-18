@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.19] - 2026-09-18
+
+### Added
+
+- Ember now creates a local crash report for unexpected user-interface exceptions, unobserved background-task errors and fatal process exceptions. Reports record the app version, runtime, operating system, exception and stack trace without uploading anything.
+- Crash reports are kept under `%LOCALAPPDATA%\FreeFlight\CabinControl\crash-reports`; Ember retains the newest 20 reports and tells the pilot where to find a report when it can recover from a user-interface error.
+
+### Security
+
+- Common password, token, authorization, bearer-token, cookie, secret and API-key values are redacted before a crash report is written.
+
 ## [0.5.18] - 2026-09-14
 
 ### Fixed
