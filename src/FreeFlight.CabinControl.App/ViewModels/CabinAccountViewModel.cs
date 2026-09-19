@@ -73,6 +73,15 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(IsAuthenticated));
             OnPropertyChanged(nameof(DisplayName));
             OnPropertyChanged(nameof(PilotLabel));
+            OnPropertyChanged(nameof(PilotRank));
+            OnPropertyChanged(nameof(PilotRankStripeCount));
+            OnPropertyChanged(nameof(HasRankStripeOne));
+            OnPropertyChanged(nameof(HasRankStripeTwo));
+            OnPropertyChanged(nameof(HasRankStripeThree));
+            OnPropertyChanged(nameof(HasRankStripeFour));
+            OnPropertyChanged(nameof(IsFirstOfficer));
+            OnPropertyChanged(nameof(IsSeniorCaptain));
+            OnPropertyChanged(nameof(IsTrainingCaptain));
             OnPropertyChanged(nameof(Initials));
             ProfileImageSource = LoadProfileImage(value?.ProfileImage);
             SessionChanged?.Invoke(this, EventArgs.Empty);
@@ -81,7 +90,23 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
     public bool IsAuthenticated => Session is not null;
     public string DisplayName => Session?.Name ?? "British Airways Virtual pilot";
-    public string PilotLabel => Session is null ? "Not signed in" : $"Pilot {Session.PilotNumber}";
+    public string PilotRank => Session is null ? string.Empty : NormalizePilotRank(Session.Rank);
+    public string PilotLabel => Session is null ? "Not signed in" : $"Pilot {Session.PilotNumber} · {PilotRank}";
+    public int PilotRankStripeCount => PilotRank switch
+    {
+        "Second Officer" => 1,
+        "First Officer" => 2,
+        "Senior First Officer" => 3,
+        "Captain" or "Senior Captain" or "Training Captain" => 4,
+        _ => 0,
+    };
+    public bool HasRankStripeOne => PilotRankStripeCount >= 1;
+    public bool HasRankStripeTwo => PilotRankStripeCount >= 2;
+    public bool HasRankStripeThree => PilotRankStripeCount >= 3;
+    public bool HasRankStripeFour => PilotRankStripeCount >= 4;
+    public bool IsFirstOfficer => PilotRank == "First Officer";
+    public bool IsSeniorCaptain => PilotRank == "Senior Captain";
+    public bool IsTrainingCaptain => PilotRank == "Training Captain";
     public string Initials => string.Concat(DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
 
     public bool RememberSignIn
@@ -408,7 +433,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
                     PilotNumber = latestProfile.PilotNumber,
                     Name = latestProfile.Name,
                     Email = latestProfile.Email,
-                    ProfileImage = latestProfile.ProfileImage
+                    ProfileImage = latestProfile.ProfileImage,
+                    Rank = latestProfile.Rank
                 };
                 account = Session ?? account;
             }
@@ -483,6 +509,17 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             return null;
         }
     }
+
+    private static string NormalizePilotRank(string? rank) => rank?.Trim() switch
+    {
+        "Second Officer" => "Second Officer",
+        "First Officer" => "First Officer",
+        "Senior First Officer" => "Senior First Officer",
+        "Captain" => "Captain",
+        "Senior Captain" => "Senior Captain",
+        "Training Captain" => "Training Captain",
+        _ => "Cadet",
+    };
 
     private static string NormalizeFlightNumber(string? value)
     {

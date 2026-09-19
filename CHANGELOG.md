@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.20] - 2026-09-20
+
+### Added
+
+- Ember now shows each signed-in pilot’s live British Airways Virtual rank in the account header and BAV Account page.
+- The account page includes a compact navy-and-gold shoulder-board insignia that reflects Cadet through Training Captain, including rank stripes and senior/training distinctions.
+
+### Changed
+
+- A BAV profile refresh now updates the pilot’s rank alongside their name, profile picture and pilot number, so an automatic promotion appears in Ember without a reinstall.
+
 ## [0.5.19] - 2026-09-18
 
 ### Added

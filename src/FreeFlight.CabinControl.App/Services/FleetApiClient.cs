@@ -109,7 +109,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             throw new FleetApiException("British Airways Virtual did not return a usable account session.");
         }
 
-        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken);
+        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken, payload.Pilot.Rank);
     }
 
     public async Task<FleetAccountPilotDto> GetAccountProfileAsync(
@@ -169,7 +169,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             throw new FleetApiException("British Airways Virtual did not return a usable device session.");
         }
 
-        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken);
+        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken, payload.Pilot.Rank);
     }
 
     public async Task RevokeAccountSessionAsync(
@@ -416,7 +416,7 @@ public sealed record FleetDefectEnvelope(FleetDefectDto? Defect);
 public sealed record FleetLandingAssessmentEnvelope(FleetLandingAssessmentDto? Assessment);
 public sealed record FleetAccountEnvelope(string? Token, FleetAccountPilotDto? Pilot, long? ExpiresInSeconds, string? DeviceSessionToken = null);
 public sealed record FleetAccountProfileEnvelope(FleetAccountPilotDto? Pilot);
-public sealed record FleetAccountPilotDto(string Id, string PilotNumber, string Name, string Email, string? ProfileImage = null);
+public sealed record FleetAccountPilotDto(string Id, string PilotNumber, string Name, string Email, string? ProfileImage = null, string? Rank = null);
 public sealed record FleetAccountSession(
     string Token,
     string PilotId,
@@ -424,7 +424,8 @@ public sealed record FleetAccountSession(
     string Name,
     string Email,
     string? ProfileImage = null,
-    string? DeviceSessionToken = null);
+    string? DeviceSessionToken = null,
+    string? Rank = null);
 public sealed record FleetWebsiteFlightAssignmentEnvelope(FleetWebsiteFlightAssignmentDto? Assignment);
 public sealed record FleetWebsiteFlightAssignmentDto(
     string Id,
