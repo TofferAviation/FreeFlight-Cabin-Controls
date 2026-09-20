@@ -162,6 +162,9 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         AddDouble("PLANE HEADING DEGREES TRUE", "degrees", 14);
         AddDouble("FUEL TOTAL QUANTITY WEIGHT", "kilograms", 15);
         AddDouble("PARKING BRAKE POSITION", "bool", 16);
+        AddDouble("LIGHT BEACON", "bool", 17);
+        AddDouble("AIRSPEED INDICATED", "knots", 18);
+        AddInt32("TRANSPONDER CODE:1", "BCO16", 19);
         result = SimConnectRequestDataOnSimObject(
             _connection, RequestId, DefinitionId, UserObjectId, SimConnectPeriod.Second, 0, 0, 0, 0);
         if (result < 0)
@@ -174,6 +177,16 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
     {
         var result = SimConnectAddToDataDefinition(
             _connection, DefinitionId, name, units, SimConnectDataType.Float64, 0f, datumId);
+        if (result < 0)
+        {
+            throw new Win32Exception(result, $"Could not subscribe to {name}.");
+        }
+    }
+
+    private void AddInt32(string name, string units, uint datumId)
+    {
+        var result = SimConnectAddToDataDefinition(
+            _connection, DefinitionId, name, units, SimConnectDataType.Int32, 0f, datumId);
         if (result < 0)
         {
             throw new Win32Exception(result, $"Could not subscribe to {name}.");
@@ -228,6 +241,9 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
             ["latitude_deg"] = telemetry.LatitudeDegrees,
             ["longitude_deg"] = telemetry.LongitudeDegrees,
             ["heading_deg"] = telemetry.TrueHeadingDegrees,
+            ["indicated_airspeed_kt"] = telemetry.IndicatedAirspeedKnots,
+            ["beacon_on"] = telemetry.BeaconOn >= 0.5d ? 1d : 0d,
+            ["squawk_bco16"] = telemetry.TransponderCode,
             ["fuel_kg"] = telemetry.FuelKilograms,
             ["parking_brake_set"] = telemetry.ParkingBrakeSet
         };
@@ -296,6 +312,9 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         public double TrueHeadingDegrees;
         public double FuelKilograms;
         public double ParkingBrakeSet;
+        public double BeaconOn;
+        public double IndicatedAirspeedKnots;
+        public int TransponderCode;
     }
 
     [DllImport("SimConnect.dll", EntryPoint = "SimConnect_Open", CharSet = CharSet.Ansi)]

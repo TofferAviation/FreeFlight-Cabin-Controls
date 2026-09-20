@@ -210,6 +210,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(IsFlightOperating));
             OnPropertyChanged(nameof(FlightAssignmentLabel));
             OnPropertyChanged(nameof(ActiveFlightAircraftId));
+            OnPropertyChanged(nameof(ActiveFlightRegistration));
         }
     }
 
@@ -226,6 +227,10 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
             : $"{ActiveFlightAssignment.FlightReference} has an aircraft reserved";
 
     public string? ActiveFlightAircraftId => HasActiveFlightAssignment ? ActiveFlightAssignment?.AircraftId : null;
+
+    public string? ActiveFlightRegistration => ActiveFlightAircraftId is { } aircraftId
+        ? Aircraft.FirstOrDefault(item => string.Equals(item.Id, aircraftId, StringComparison.Ordinal))?.Registration
+        : null;
 
     public string FlightAssignmentStatus
     {

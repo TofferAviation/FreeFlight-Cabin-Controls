@@ -20,6 +20,10 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     private const string Latitude = "sim/flightmodel/position/latitude";
     private const string Longitude = "sim/flightmodel/position/longitude";
     private const string TrueHeading = "sim/flightmodel/position/true_psi";
+    private const string IndicatedAirspeed = "sim/cockpit2/gauges/indicators/airspeed_kts_pilot";
+    // Effective beacon state includes aircraft electrical-system availability.
+    private const string BeaconLightsOn = "sim/cockpit/electrical/beacon_lights_on";
+    private const string TransponderCode = "sim/cockpit/radios/transponder_code";
     private const string FuelTotalKilograms = "sim/flightmodel/weight/m_fuel_total";
     private const string ParkingBrakeRatio = "sim/cockpit2/controls/parking_brake_ratio";
     private const string OnGroundAny = "sim/flightmodel/failures/onground_any";
@@ -59,6 +63,9 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
         Latitude,
         Longitude,
         TrueHeading,
+        IndicatedAirspeed,
+        BeaconLightsOn,
+        TransponderCode,
         FuelTotalKilograms,
         ParkingBrakeRatio,
         OnGroundAny,
@@ -671,6 +678,9 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
             , ["latitude_deg"] = GetScalar(Latitude)
             , ["longitude_deg"] = GetScalar(Longitude)
             , ["heading_deg"] = GetScalar(TrueHeading)
+            , ["indicated_airspeed_kt"] = GetOptionalScalar(IndicatedAirspeed)
+            , ["beacon_on"] = GetOptionalScalar(BeaconLightsOn) >= 0.5d ? 1d : 0d
+            , ["squawk_bco16"] = GetOptionalScalar(TransponderCode)
             , ["fuel_kg"] = GetScalar(FuelTotalKilograms)
             , ["parking_brake_set"] = GetScalar(ParkingBrakeRatio) >= 0.5d ? 1d : 0d
         };
@@ -1213,6 +1223,9 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
 
     private double GetScalar(string name) =>
         _values.TryGetValue(name, out var value) ? value.Scalar : 0d;
+
+    private double GetOptionalScalar(string name) =>
+        _values.TryGetValue(name, out var value) ? value.Scalar : double.NaN;
 
     private double[] GetArray(string name) =>
         _values.TryGetValue(name, out var value) ? value.Array : [];

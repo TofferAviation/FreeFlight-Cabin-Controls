@@ -404,6 +404,13 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         }
 
         await _apiClient.SendAcarsTelemetryAsync(_settings, account, session.Id, telemetry);
+        // Carry the durable departure marker in memory as well.  On a later
+        // app restart it is restored from the active ACARS session so an
+        // aircraft that has genuinely flown can still be finalised safely.
+        if (ReferenceEquals(ActiveAcarsSession, session))
+        {
+            ActiveAcarsSession = session with { LastSnapshot = new FleetAcarsSnapshotDto(telemetry.FlightStarted) };
+        }
     }
 
     public async Task CompleteAcarsSessionAsync(int? landingFpm)

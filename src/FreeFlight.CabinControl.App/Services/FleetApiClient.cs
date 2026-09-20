@@ -472,8 +472,9 @@ public sealed record FleetFlightAssignmentDto(string Id, string AircraftId, stri
 public sealed record FleetAcarsSessionEnvelope(FleetAcarsSessionDto? Session);
 public sealed record FleetAcarsTelemetryEnvelope(bool Ok, string? UpdatedAt, double? DistanceNm);
 public sealed record FleetAcarsCompleteEnvelope(FleetAcarsSessionDto? Session, FleetPirepDto? Pirep);
-public sealed record FleetAcarsSessionDto(string Id, string FlightNumber, string From, string To, string Aircraft, string Simulator, string Status, string StartedAt);
+public sealed record FleetAcarsSessionDto(string Id, string FlightNumber, string From, string To, string Aircraft, string Simulator, string Status, string StartedAt, FleetAcarsSnapshotDto? LastSnapshot = null);
 public sealed record FleetAcarsCompletionDto(FleetAcarsSessionDto Session, FleetPirepDto Pirep);
+public sealed record FleetAcarsSnapshotDto(bool FlightStarted);
 public sealed record FleetPirepDto(string Id, string FlightNumber, string From, string To, string Aircraft, int BlockMinutes, int DistanceNm, int? LandingFpm, int? FuelUsedKg, string Status, string Source, string Simulator);
 public sealed record FleetAcarsTelemetryDto(
     double Latitude,
@@ -481,11 +482,16 @@ public sealed record FleetAcarsTelemetryDto(
     double AltitudeFt,
     double GroundSpeedKt,
     double HeadingDeg,
+    double? IndicatedAirspeedKt,
+    string? Squawk,
+    bool BeaconOn,
     double? FuelKg,
     bool EnginesRunning,
     bool ParkingBrakeSet,
     bool OnGround,
-    double? VerticalSpeedFpm);
+    double? VerticalSpeedFpm,
+    bool FlightStarted,
+    string? Registration);
 public sealed record FleetAircraftSummaryDto(
     string Id,
     string Registration,

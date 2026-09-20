@@ -29,6 +29,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private bool _fleetFlightStartRequested;
     private bool _fleetFlightCompletionInProgress;
     private bool _acarsTelemetryInFlight;
+    private PendingAcarsTelemetry? _pendingAcarsTelemetry;
     private int? _touchdownFpm;
     private string? _fleetAircraftIdForCurrentFlight;
     private bool _preserveFlightForUpdate;
@@ -410,12 +411,14 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         var enginesRunning = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d;
         var pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d;
+        var beaconOn = snapshot.Signals.GetValueOrDefault("beacon_on") >= 0.5d;
         var groundSpeed = snapshot.Signals.GetValueOrDefault("groundspeed_mps");
         // Some simulator aircraft do not expose a reliable engine-running
         // signal until after take-off.  Airborne movement is just as clear an
         // indication that the booked operation has begun, and prevents a
         // valid BAV flight from remaining silently untracked.
-        var readyToStart = enginesRunning || pushbackActive || !snapshot.OnGround;
+        var readyToStart = beaconOn || enginesRunning || pushbackActive || !snapshot.OnGround;
+        var readyToStartFleetOperation = enginesRunning || pushbackActive || !snapshot.OnGround;
 
         if (!_acarsFlightStartRequested &&
             !Account.IsAcarsOperating &&
@@ -426,7 +429,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _ = StartAcarsFlightAsync();
         }
 
-        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved && readyToStart)
+        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved && readyToStartFleetOperation)
         {
             _fleetFlightStartRequested = true;
             _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
@@ -450,7 +453,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         // flight began.  This is important after an Ember restart or a cabin
         // unload: the in-memory engine/departure flags are gone, but the
         // server-side session must still be finalised at engine shutdown.
-        var hasDurableFlightStart = Account.IsAcarsOperating || Fleet.IsFlightOperating;
+        // Beacon arms live tracking, but an aircraft still parked with no
+        // engine, pushback or airborne movement must not produce a PIREP.
+        var hasDurableFlightStart = Account.IsAcarsOperating &&
+                                    Account.ActiveAcarsSession?.LastSnapshot?.FlightStarted == true;
         var completedShutdown = (hasDurableFlightStart ||
                                  (_hasObservedEnginesRunning && _hasObservedDeparture)) &&
                                 snapshot.OnGround &&
@@ -580,9 +586,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             var latestSnapshot = Volatile.Read(ref _latestTelemetry);
             if (latestSnapshot is not null && TryCreateAcarsTelemetry(latestSnapshot, out var telemetry))
             {
-                _lastAcarsTelemetrySentAt = latestSnapshot.Timestamp;
-                _acarsTelemetryInFlight = true;
-                await SendAcarsTelemetryAsync(telemetry);
+                QueueAcarsTelemetry(telemetry, latestSnapshot.Timestamp);
             }
         }
         catch (Exception exception)
@@ -660,16 +664,17 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _engineShutdownCandidateSince = null;
         _lastAcarsTelemetrySentAt = null;
         _acarsTelemetryInFlight = false;
+        _pendingAcarsTelemetry = null;
     }
 
     private void SendAcarsTelemetryWhenDue(CabinTelemetrySnapshot snapshot)
     {
-        if (!Account.IsAcarsOperating || _acarsTelemetryInFlight)
+        if (!Account.IsAcarsOperating)
         {
             return;
         }
 
-        if (_lastAcarsTelemetrySentAt is { } lastSent && snapshot.Timestamp - lastSent < TimeSpan.FromSeconds(10))
+        if (_lastAcarsTelemetrySentAt is { } lastSent && snapshot.Timestamp - lastSent < TimeSpan.FromSeconds(5))
         {
             return;
         }
@@ -679,28 +684,49 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        _lastAcarsTelemetrySentAt = snapshot.Timestamp;
-        _acarsTelemetryInFlight = true;
-        _ = SendAcarsTelemetryAsync(telemetry);
+        QueueAcarsTelemetry(telemetry, snapshot.Timestamp);
     }
 
-    private async Task SendAcarsTelemetryAsync(FleetAcarsTelemetryDto telemetry)
+    private void QueueAcarsTelemetry(FleetAcarsTelemetryDto telemetry, DateTimeOffset timestamp)
     {
-        try
+        // Keep the newest unsent position. This provides a small, bounded
+        // retry buffer across transient website failures without an
+        // unbounded queue or stale movement reports.
+        _pendingAcarsTelemetry = new PendingAcarsTelemetry(telemetry, timestamp);
+        if (!_acarsTelemetryInFlight)
         {
-            await Account.SendAcarsTelemetryAsync(telemetry);
-        }
-        catch (Exception exception)
-        {
-            Account.ReportBackgroundAcarsFailure(exception);
-        }
-        finally
-        {
-            _acarsTelemetryInFlight = false;
+            _ = FlushAcarsTelemetryAsync();
         }
     }
 
-    private static bool TryCreateAcarsTelemetry(CabinTelemetrySnapshot snapshot, out FleetAcarsTelemetryDto telemetry)
+    private async Task FlushAcarsTelemetryAsync()
+    {
+        while (Account.IsAcarsOperating && _pendingAcarsTelemetry is { } pending)
+        {
+            _pendingAcarsTelemetry = null;
+            _acarsTelemetryInFlight = true;
+            try
+            {
+                await Account.SendAcarsTelemetryAsync(pending.Telemetry);
+                _lastAcarsTelemetrySentAt = pending.Timestamp;
+            }
+            catch (Exception exception)
+            {
+                // Retain the last confirmed position for the next simulator
+                // sample to retry; the active server-side ACARS session is
+                // already durable even if this particular update fails.
+                _pendingAcarsTelemetry ??= pending;
+                Account.ReportBackgroundAcarsFailure(exception);
+                return;
+            }
+            finally
+            {
+                _acarsTelemetryInFlight = false;
+            }
+        }
+    }
+
+    private bool TryCreateAcarsTelemetry(CabinTelemetrySnapshot snapshot, out FleetAcarsTelemetryDto telemetry)
     {
         var latitude = snapshot.Signals.GetValueOrDefault("latitude_deg", double.NaN);
         var longitude = snapshot.Signals.GetValueOrDefault("longitude_deg", double.NaN);
@@ -714,19 +740,41 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         var groundSpeedMetresPerSecond = snapshot.Signals.GetValueOrDefault("groundspeed_mps", 0d);
         var fuelKg = snapshot.Signals.GetValueOrDefault("fuel_kg", double.NaN);
         var verticalSpeed = snapshot.Signals.GetValueOrDefault("vertical_speed_fpm", double.NaN);
+        var indicatedAirspeed = snapshot.Signals.GetValueOrDefault("indicated_airspeed_kt", double.NaN);
+        var flightStarted = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d ||
+                            snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d ||
+                            _hasObservedEnginesRunning || _hasObservedDeparture || !snapshot.OnGround ||
+                            Account.ActiveAcarsSession?.LastSnapshot?.FlightStarted == true;
         telemetry = new FleetAcarsTelemetryDto(
             latitude,
             longitude,
             snapshot.AltitudeFeet,
             Math.Max(0d, groundSpeedMetresPerSecond * 1.9438444924406d),
             ((heading % 360d) + 360d) % 360d,
+            double.IsFinite(indicatedAirspeed) ? Math.Max(0d, indicatedAirspeed) : null,
+            FormatSquawk(snapshot.Signals.GetValueOrDefault("squawk_bco16", double.NaN)),
+            snapshot.Signals.GetValueOrDefault("beacon_on") >= 0.5d,
             double.IsFinite(fuelKg) ? Math.Max(0d, fuelKg) : null,
             snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d,
             snapshot.Signals.GetValueOrDefault("parking_brake_set") >= 0.5d,
             snapshot.OnGround,
-            double.IsFinite(verticalSpeed) ? verticalSpeed : null);
+            double.IsFinite(verticalSpeed) ? verticalSpeed : null,
+            flightStarted,
+            Fleet.ActiveFlightRegistration);
         return true;
     }
+
+    private static string? FormatSquawk(double value)
+    {
+        if (!double.IsFinite(value) || value < 0d || value > 65_535d) return null;
+        var rounded = (int)Math.Round(value);
+        var decimalCode = rounded.ToString("D4", System.Globalization.CultureInfo.InvariantCulture);
+        if (decimalCode.Length == 4 && decimalCode.All(character => character is >= '0' and <= '7')) return decimalCode;
+        var bcdCode = rounded.ToString("X4", System.Globalization.CultureInfo.InvariantCulture);
+        return bcdCode.All(character => character is >= '0' and <= '7') ? bcdCode : null;
+    }
+
+    private sealed record PendingAcarsTelemetry(FleetAcarsTelemetryDto Telemetry, DateTimeOffset Timestamp);
 
     private string ResolveAcarsSimulator()
     {
