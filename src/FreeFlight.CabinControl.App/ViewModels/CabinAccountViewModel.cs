@@ -22,6 +22,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private string _password = string.Empty;
     private FleetAccountSession? _session;
     private FleetWebsiteFlightAssignmentDto? _websiteFlightAssignment;
+    private IReadOnlyList<FleetOperationsFlightDto> _operationsFlights = [];
     private FleetAcarsSessionDto? _activeAcarsSession;
     private string _flightPlanLinkLabel = "Choose a BAV flight, then import SimBrief to verify the route.";
     private string _flightPlanLinkDetail = "Ember will prevent an aircraft lifecycle from starting when the two flights disagree.";
@@ -47,6 +48,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
     public event EventHandler? SessionChanged;
     public event EventHandler<WebsiteFlightAssignmentRefreshedEventArgs>? WebsiteFlightAssignmentRefreshed;
+    public event EventHandler? OperationsFlightsRefreshed;
 
     public ICommand SignInCommand { get; }
     public ICommand SignOutCommand { get; }
@@ -143,6 +145,16 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     }
 
     public bool HasWebsiteFlightAssignment => WebsiteFlightAssignment is not null;
+
+    public IReadOnlyList<FleetOperationsFlightDto> OperationsFlights
+    {
+        get => _operationsFlights;
+        private set
+        {
+            _operationsFlights = value;
+            OperationsFlightsRefreshed?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     public string FlightPlanLinkLabel
     {
@@ -247,6 +259,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         _sessionStore?.Clear();
         Session = null;
         WebsiteFlightAssignment = null;
+        OperationsFlights = [];
         ActiveAcarsSession = null;
         AcarsSessionLabel = "No active ACARS flight";
         Password = string.Empty;
@@ -317,7 +330,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     {
         var assignment = WebsiteFlightAssignment
             ?? throw new FleetApiException("Choose a flight on the BAV website, then select Refresh website flight in Ember.");
-        return new FleetFlightAssignmentSubmissionDto(assignment.FlightNumber, assignment.From, assignment.To);
+        return new FleetFlightAssignmentSubmissionDto(assignment.FlightNumber, assignment.OriginIcao ?? assignment.From, assignment.DestinationIcao ?? assignment.To);
     }
 
     public void RefreshFlightPlanLink(string? simBriefFlightNumber, string? simBriefOrigin, string? simBriefDestination)
@@ -344,19 +357,19 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         }
 
         var flightMatches = string.Equals(NormalizeFlightNumber(WebsiteFlightAssignment.FlightNumber), NormalizeFlightNumber(simBriefFlightNumber), StringComparison.Ordinal);
-        var originMatches = string.Equals(NormalizeAirport(WebsiteFlightAssignment.From), NormalizeAirport(simBriefOrigin), StringComparison.Ordinal);
-        var destinationMatches = string.Equals(NormalizeAirport(WebsiteFlightAssignment.To), NormalizeAirport(simBriefDestination), StringComparison.Ordinal);
+        var originMatches = string.Equals(NormalizeAirport(WebsiteFlightAssignment.OriginIcao ?? WebsiteFlightAssignment.From), NormalizeAirport(simBriefOrigin), StringComparison.Ordinal);
+        var destinationMatches = string.Equals(NormalizeAirport(WebsiteFlightAssignment.DestinationIcao ?? WebsiteFlightAssignment.To), NormalizeAirport(simBriefDestination), StringComparison.Ordinal);
         IsFlightPlanLinked = flightMatches && originMatches && destinationMatches;
 
         if (IsFlightPlanLinked)
         {
             FlightPlanLinkLabel = "BAV website flight and SimBrief OFP match";
-            FlightPlanLinkDetail = $"{WebsiteFlightAssignment.FlightNumber} · {NormalizeAirport(WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.To)} is ready for aircraft operations.";
+            FlightPlanLinkDetail = $"{WebsiteFlightAssignment.FlightNumber} · {NormalizeAirport(WebsiteFlightAssignment.OriginIcao ?? WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.DestinationIcao ?? WebsiteFlightAssignment.To)} is ready for aircraft operations.";
             return;
         }
 
         FlightPlanLinkLabel = "BAV website flight and SimBrief OFP do not match";
-        FlightPlanLinkDetail = $"BAV: {WebsiteFlightAssignment.FlightNumber} {NormalizeAirport(WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.To)}. SimBrief: {simBriefFlightNumber?.Trim()} {NormalizeAirport(simBriefOrigin)} → {NormalizeAirport(simBriefDestination)}. Select or import the correct flight before pushback.";
+        FlightPlanLinkDetail = $"BAV: {WebsiteFlightAssignment.FlightNumber} {NormalizeAirport(WebsiteFlightAssignment.OriginIcao ?? WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.DestinationIcao ?? WebsiteFlightAssignment.To)}. SimBrief: {simBriefFlightNumber?.Trim()} {NormalizeAirport(simBriefOrigin)} → {NormalizeAirport(simBriefDestination)}. Select or import the correct flight before pushback.";
     }
 
     public void EnsureFlightPlanLink(string? simBriefFlightNumber, string? simBriefOrigin, string? simBriefDestination)
@@ -448,6 +461,16 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             var previousAssignmentId = WebsiteFlightAssignment?.Id;
             var assignment = await _apiClient.GetWebsiteFlightAssignmentAsync(_settings, account);
             WebsiteFlightAssignment = assignment;
+            try
+            {
+                OperationsFlights = await _apiClient.GetOperationsFlightsAsync(_settings, account);
+            }
+            catch (FleetApiException)
+            {
+                // The operational board supplements the pilot's own assignment;
+                // it must never prevent the active flight from loading.
+                OperationsFlights = [];
+            }
             StatusMessage = WebsiteFlightAssignment is null
                 ? "No active flight is selected on the BAV website. Choose one there, then refresh this page."
                 : $"Loaded {WebsiteFlightAssignment.FlightNumber} from your BAV account. Fleet aircraft selection now uses this flight.";

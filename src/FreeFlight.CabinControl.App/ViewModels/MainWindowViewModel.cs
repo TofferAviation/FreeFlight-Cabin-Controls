@@ -86,7 +86,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             () => GateLogin.IsAuthenticated,
             boardingPassPrinterService,
             simulatorBridge as ISimulatorJetwayControlBridge);
-        IportDcs = new IportDcsViewModel(Operations, GateLogin);
         Dashboard = Operations;
         CabinPanel = new CabinControlPanelViewModel(
             settings,
@@ -110,6 +109,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             settings,
             new FleetApiClient(),
             new BavAccountSessionStore(resolvedSettingsDirectory));
+        IportDcs = new IportDcsViewModel(Operations, GateLogin, Account);
         Fleet = new FleetViewModel(
             settings,
             new FleetApiClient(),
@@ -510,6 +510,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private async void HandleWebsiteFlightAssignmentRefreshed(object? sender, WebsiteFlightAssignmentRefreshedEventArgs e)
     {
+        Operations.ApplyWebsiteFlightAssignment(e.Assignment);
         if (!e.IsNewAssignment)
         {
             return;
@@ -567,6 +568,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         {
             Account.EnsureFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
             await Account.StartAcarsSessionAsync(ResolveAcarsSimulator());
+            var latestSnapshot = Volatile.Read(ref _latestTelemetry);
+            if (latestSnapshot is not null && TryCreateAcarsTelemetry(latestSnapshot, out var telemetry))
+            {
+                _lastAcarsTelemetrySentAt = latestSnapshot.Timestamp;
+                _acarsTelemetryInFlight = true;
+                await SendAcarsTelemetryAsync(telemetry);
+            }
         }
         catch (Exception exception)
         {
@@ -644,7 +652,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (_lastAcarsTelemetrySentAt is { } lastSent && snapshot.Timestamp - lastSent < TimeSpan.FromSeconds(15))
+        if (_lastAcarsTelemetrySentAt is { } lastSent && snapshot.Timestamp - lastSent < TimeSpan.FromSeconds(10))
         {
             return;
         }

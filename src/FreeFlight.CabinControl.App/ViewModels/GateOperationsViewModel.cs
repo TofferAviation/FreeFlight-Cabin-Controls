@@ -40,6 +40,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private bool _pushbackActive;
     private string _jetwayStatus = "X-Plane not connected";
     private bool _jetwayOperationInProgress;
+    private FleetWebsiteFlightAssignmentDto? _websiteFlightAssignment;
 
     public GateOperationsViewModel(
         AppSettings settings,
@@ -225,26 +226,34 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         private set => SetProperty(ref _operationMessage, value);
     }
 
-    public string FlightNumber => string.IsNullOrWhiteSpace(_passengers.ImportedFlightNumber)
-        ? _settings.GateFlightNumber
-        : _passengers.ImportedFlightNumber;
-    public string OriginIata => string.IsNullOrWhiteSpace(_passengers.ImportedOrigin)
-        ? _settings.GateOriginIata
-        : NormalizeAirport(_passengers.ImportedOrigin);
-    public string DestinationIata => string.IsNullOrWhiteSpace(_passengers.ImportedDestination)
-        ? _settings.GateDestinationIata
-        : NormalizeAirport(_passengers.ImportedDestination);
+    public string FlightNumber => !string.IsNullOrWhiteSpace(_passengers.ImportedFlightNumber)
+        ? _passengers.ImportedFlightNumber
+        : !string.IsNullOrWhiteSpace(_websiteFlightAssignment?.FlightNumber)
+            ? _websiteFlightAssignment.FlightNumber
+            : _settings.GateFlightNumber;
+    public string OriginIata => !string.IsNullOrWhiteSpace(_passengers.ImportedOrigin)
+        ? NormalizeAirport(_passengers.ImportedOrigin)
+        : !string.IsNullOrWhiteSpace(_websiteFlightAssignment?.OriginIcao)
+            ? NormalizeAirport(_websiteFlightAssignment.OriginIcao)
+            : _settings.GateOriginIata;
+    public string DestinationIata => !string.IsNullOrWhiteSpace(_passengers.ImportedDestination)
+        ? NormalizeAirport(_passengers.ImportedDestination)
+        : !string.IsNullOrWhiteSpace(_websiteFlightAssignment?.DestinationIcao)
+            ? NormalizeAirport(_websiteFlightAssignment.DestinationIcao)
+            : _settings.GateDestinationIata;
     public string RouteSummary => $"{AirportName(OriginIata)}  →  {AirportName(DestinationIata)}";
-    public string DetectedAircraftIcao => string.IsNullOrWhiteSpace(_passengers.ImportedAircraftIcao)
-        ? _passengers.SelectedCabinLayoutProfile.Layout switch
+    public string DetectedAircraftIcao => !string.IsNullOrWhiteSpace(_passengers.ImportedAircraftIcao)
+        ? _passengers.ImportedAircraftIcao
+        : !string.IsNullOrWhiteSpace(_websiteFlightAssignment?.Aircraft)
+            ? AircraftIcaoFromAssignment(_websiteFlightAssignment.Aircraft)
+            : _passengers.SelectedCabinLayoutProfile.Layout switch
         {
             PassengerCabinLayout.BritishAirways777200Er => "B772",
             PassengerCabinLayout.BritishAirways777300 => "B77W",
             PassengerCabinLayout.BritishAirwaysA320200 => "A320",
             PassengerCabinLayout.BritishAirwaysA320Neo => "A20N",
             _ => "B77W"
-        }
-        : _passengers.ImportedAircraftIcao;
+        };
     public AircraftGateAssignment DepartureGateAssignment => AircraftGateAssignmentService.Assign(
         OriginIata,
         DetectedAircraftIcao,
@@ -316,6 +325,14 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public int ClubWorldCount => PassengerRecords.Count(passenger => passenger.CabinMarketingName == "Club World");
     public int WorldTravellerPlusCount => PassengerRecords.Count(passenger => passenger.CabinMarketingName == "World Traveller Plus");
     public int WorldTravellerCount => PassengerRecords.Count(passenger => passenger.CabinMarketingName == "World Traveller");
+    public bool IsShortHaulCabin => _passengers.IsNarrowBodyCabinLayout;
+    public bool IsLongHaulCabin => !IsShortHaulCabin;
+    public int ClubEuropeCount => IsShortHaulCabin
+        ? PassengerRecords.Count(passenger => passenger.CabinClassName == "Business")
+        : 0;
+    public int EuroTravellerCount => IsShortHaulCabin
+        ? PassengerRecords.Count(passenger => passenger.CabinClassName == "Economy")
+        : 0;
     public string BoardingProgressText => $"{BoardedPassengers} / {TotalPassengers}";
     public string BoardingStatusLabel => _passengers.BoardingState switch
     {
@@ -431,6 +448,13 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(ReadinessGateStatus));
         ApplyNoShowForecast();
         RefreshTimelineEvents();
+    }
+
+    /// <summary>Applies the booked BAV service before a SimBrief OFP is imported.</summary>
+    public void ApplyWebsiteFlightAssignment(FleetWebsiteFlightAssignmentDto? assignment)
+    {
+        _websiteFlightAssignment = assignment;
+        ApplySettings();
     }
 
     public void ApplyCabinTelemetry(CabinTelemetrySnapshot snapshot)
@@ -1011,6 +1035,10 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(ClubWorldCount));
         OnPropertyChanged(nameof(WorldTravellerPlusCount));
         OnPropertyChanged(nameof(WorldTravellerCount));
+        OnPropertyChanged(nameof(IsShortHaulCabin));
+        OnPropertyChanged(nameof(IsLongHaulCabin));
+        OnPropertyChanged(nameof(ClubEuropeCount));
+        OnPropertyChanged(nameof(EuroTravellerCount));
         OnPropertyChanged(nameof(BoardingProgressText));
         OnPropertyChanged(nameof(BoardingStatusLabel));
         OnPropertyChanged(nameof(BoardingStatusColor));
@@ -1038,6 +1066,17 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         if (IsArrivalMode)
         {
             RefreshArrivalTimelineEvents();
+            return;
+        }
+
+        if (_pushbackActive)
+        {
+            TimelineEvents[0].Update(IsSimBriefSynced ? SimBriefImportLabel : "Flight preparation", FlightTimelineEventState.Complete);
+            TimelineEvents[1].Update("Complete", FlightTimelineEventState.Complete);
+            TimelineEvents[2].Update("Complete", FlightTimelineEventState.Complete);
+            TimelineEvents[3].Update("Complete", FlightTimelineEventState.Complete);
+            TimelineEvents[4].Update("Complete", FlightTimelineEventState.Complete);
+            TimelineEvents[5].Update("Pushback", "Live", FlightTimelineEventState.Current);
             return;
         }
 
@@ -1102,6 +1141,20 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
             return importedDeparture;
         }
 
+        if (_websiteFlightAssignment is { } assignment &&
+            DateOnly.TryParse(assignment.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var bookingDate) &&
+            TimeOnly.TryParse(assignment.Departure, CultureInfo.InvariantCulture, DateTimeStyles.None, out var bookingDeparture))
+        {
+            return new DateTimeOffset(
+                bookingDate.Year,
+                bookingDate.Month,
+                bookingDate.Day,
+                bookingDeparture.Hour,
+                bookingDeparture.Minute,
+                0,
+                _operationsClock.Now.Offset);
+        }
+
         var fallback = TimeOnly.TryParse(
             _settings.ScheduledDepartureLocal,
             CultureInfo.InvariantCulture,
@@ -1137,6 +1190,23 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         "KJFK" => "JFK",
         var airport when airport.Length > 3 => airport[^3..],
         var airport => airport
+    };
+
+    private static string AircraftIcaoFromAssignment(string aircraft) => aircraft.Trim() switch
+    {
+        "Airbus A319" => "A319",
+        "Airbus A320" => "A320",
+        "Airbus A320neo" => "A20N",
+        "Airbus A321" => "A321",
+        "Airbus A321neo" => "A21N",
+        "Airbus A350-1000" => "A35K",
+        "Boeing 777-200ER" => "B772",
+        "Boeing 777-300ER" => "B77W",
+        "Boeing 787-8" => "B788",
+        "Boeing 787-9" => "B789",
+        "Boeing 787-10" => "B78X",
+        "Embraer E190" => "E190",
+        _ => "B77W",
     };
 
     private static string AirportName(string iata) => iata switch

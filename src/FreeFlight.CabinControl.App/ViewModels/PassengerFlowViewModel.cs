@@ -1557,69 +1557,24 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 continue;
             }
 
-            if (_preDepartureDrinksActive && index is 2 or 3)
+            var (stationX, stationY, stationLabel) = index switch
             {
-                crew.Update(
-                    CrewX(index == 2 ? 315d : 430d),
-                    index == 2 ? upperAisleY : lowerAisleY,
-                    "Offering Champagne or orange juice before departure",
-                    false,
-                    false);
-                continue;
-            }
-
-            if (_isArrivalPreparation && !secured)
-            {
-                crew.Update(
-                    CrewX(92d + (index * 82d)),
-                    index % 2 == 0 ? upperAisleY : lowerAisleY,
-                    "Preparing the cabin for arrival",
-                    false,
-                    false);
-                continue;
-            }
-
-            if (entranceGreeting && index < 2)
-            {
-                var doorOpen = index == 0 ? L1DoorOpen : L2DoorOpen;
-                crew.Update(CrewX(index == 0 ? l1X : l2X), lowerAisleY, doorOpen ? "Greeting passengers" : "Standing by at entrance", false, false);
-                continue;
-            }
-
-            if (secured)
-            {
-                var stationX = index switch
-                {
-                    0 => l1X,
-                    1 => l2X,
-                    _ => 120d + (((index - 2) % 4) * 285d)
-                };
-                crew.Update(CrewX(stationX), index % 2 == 0 ? upperAisleY : lowerAisleY, "Secured at crew station", true, false);
-                continue;
-            }
-
-            // Move in real time instead of making a large positional jump on every
-            // timer event. A delayed UI tick now covers more distance smoothly on
-            // the following cadence instead of making crew race across the aisle.
-            var activeX = 105d + (((index * 117d) + (_crewServicePhaseSeconds * 45d)) % 825d);
-            var activeY = index % 2 == 0 ? upperAisleY : lowerAisleY;
-            var cruiseService = LiveFlightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase);
-            var activity = (index % 4) switch
-            {
-                0 when cruiseService => "Delivering meal service",
-                1 when cruiseService => "Serving drinks",
-                2 when cruiseService => "Clearing meal trays",
-                3 when cruiseService => "Heating meals in the galley",
-                0 => "Cabin service",
-                1 => "Cabin walk-through",
-                2 => "Passenger assistance",
-                _ => "Galley preparation"
+                0 => (l1X, lowerAisleY, "L1 jumpseat"),
+                1 => (l1X, upperAisleY, "L1 jumpseat"),
+                2 => (l2X, lowerAisleY, "L2 jumpseat"),
+                3 => (l2X, upperAisleY, "L2 jumpseat"),
+                _ => (120d + (((index - 4) % 4) * 285d), index % 2 == 0 ? lowerAisleY : upperAisleY, $"cabin jumpseat {index + 1}")
             };
-            var serviceRotation = index + (int)(_crewServicePhaseSeconds / 2d);
-            var serviceItem = index % 2 == 0
-                ? CabinServiceCatalog.SelectMeal(serviceRotation).Name
-                : CabinServiceCatalog.SelectDrink(serviceRotation).Name;
-            crew.Update(CrewX(activeX), activeY, activity, false, false, cruiseService ? serviceItem : "Service equipment check");
+            var activity = entranceGreeting && index < 2
+                ? (index == 0 && L1DoorOpen ? "Greeting passengers at L1" : "Standing by at L1")
+                : _preDepartureDrinksActive && index is 2 or 3
+                    ? $"Available from {stationLabel} for pre-departure service"
+                    : _isArrivalPreparation
+                        ? $"Seated at {stationLabel} for arrival"
+                        : secured
+                            ? $"Secured at {stationLabel}"
+                            : $"Seated at {stationLabel}";
+            crew.Update(CrewX(stationX), stationY, activity, true, false);
         }
     }
 

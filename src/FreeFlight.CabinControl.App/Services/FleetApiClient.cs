@@ -214,6 +214,21 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return JsonSerializer.Deserialize<FleetWebsiteFlightAssignmentEnvelope>(content, JsonOptions)?.Assignment;
     }
 
+    public async Task<IReadOnlyList<FleetOperationsFlightDto>> GetOperationsFlightsAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetOperationsFlightsEnvelope>(
+            settings,
+            account,
+            HttpMethod.Get,
+            "/api/acars/v1/operations/flights",
+            null,
+            cancellationToken);
+        return payload?.Flights ?? [];
+    }
+
     public async Task<FleetAcarsSessionDto> StartAcarsSessionAsync(
         AppSettings settings,
         FleetAccountSession account,
@@ -436,7 +451,21 @@ public sealed record FleetWebsiteFlightAssignmentDto(
     string Departure,
     string Arrival,
     string Date,
-    string Status);
+    string Status,
+    string? OriginIcao = null,
+    string? DestinationIcao = null);
+public sealed record FleetOperationsFlightsEnvelope(IReadOnlyList<FleetOperationsFlightDto>? Flights);
+public sealed record FleetOperationsFlightDto(
+    string Id,
+    string FlightNumber,
+    string? OriginIcao,
+    string? DestinationIcao,
+    string Aircraft,
+    string Departure,
+    string Arrival,
+    string Date,
+    string Status,
+    bool IsCurrentPilot);
 public sealed record FleetFlightAssignmentEnvelope(FleetFlightAssignmentDto? Assignment);
 public sealed record FleetFlightAssignmentSubmissionDto(string FlightReference, string? DepartureStation, string? ArrivalStation);
 public sealed record FleetFlightAssignmentDto(string Id, string AircraftId, string PilotSubject, string PilotDisplayName, string FlightReference, string? DepartureStation, string? ArrivalStation, string Status, string ReservedAt, string? OffBlockAt, string? OnBlockAt, int? BlockMinutes);

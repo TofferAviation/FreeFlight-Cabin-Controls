@@ -46,6 +46,7 @@ jobs:
           "tag=v$version" >> $env:GITHUB_OUTPUT
           "asset=Ember-v$version-win-x64.zip" >> $env:GITHUB_OUTPUT
           "installer=Ember-v$version-Setup.exe" >> $env:GITHUB_OUTPUT
+          "publicInstaller=Ember_Systems.exe" >> $env:GITHUB_OUTPUT
 
       - name: Restore and build
         shell: pwsh
@@ -137,6 +138,8 @@ jobs:
           $installer = "artifacts/${{ steps.version.outputs.installer }}"
           $installerHash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
           "$installerHash  ${{ steps.version.outputs.installer }}" | Set-Content "$installer.sha256" -Encoding ascii
+          $publicInstaller = "artifacts/${{ steps.version.outputs.publicInstaller }}"
+          Copy-Item $installer $publicInstaller -Force
 
       - name: Publish the GitHub Release
         shell: pwsh
@@ -148,14 +151,15 @@ jobs:
           $checksum = "$asset.sha256"
           $installer = "artifacts/${{ steps.version.outputs.installer }}"
           $installerChecksum = "$installer.sha256"
+          $publicInstaller = "artifacts/${{ steps.version.outputs.publicInstaller }}"
           if (gh release view $tag 2>$null) {
-            gh release upload $tag $asset $checksum $installer $installerChecksum --clobber
+            gh release upload $tag $asset $checksum $installer $installerChecksum $publicInstaller --clobber
             gh release edit $tag `
               --title "Ember $tag" `
               --notes-file artifacts/release-notes.md `
               --latest
           } else {
-            gh release create $tag $asset $checksum $installer $installerChecksum `
+            gh release create $tag $asset $checksum $installer $installerChecksum $publicInstaller `
               --target "${{ github.sha }}" `
               --title "Ember $tag" `
               --notes-file artifacts/release-notes.md `
