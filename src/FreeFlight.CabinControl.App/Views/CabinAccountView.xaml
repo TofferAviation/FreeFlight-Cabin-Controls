@@ -39,22 +39,48 @@
                             </Grid>
                             <TextBlock Text="{Binding DisplayName}" FontSize="27" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,17,0,4" />
                             <TextBlock Text="{Binding PilotLabel}" Foreground="#65E692" FontSize="15" HorizontalAlignment="Center" />
-                            <StackPanel HorizontalAlignment="Center" Margin="0,13,0,0">
+                            <StackPanel HorizontalAlignment="Center" Margin="0,16,0,0" AutomationProperties.Name="Pilot rank">
                                 <TextBlock Text="PILOT RANK" Foreground="#7890AC" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                <Grid Width="46" Height="70" Margin="0,5,0,0">
-                                    <Border Background="#081B33" BorderBrush="#355679" BorderThickness="1" CornerRadius="22,22,4,4" />
-                                    <Border Width="13" Height="13" CornerRadius="7" Background="#D9AA44" BorderBrush="#FFE08A" BorderThickness="1" VerticalAlignment="Top" Margin="0,7,0,0" />
-                                    <StackPanel VerticalAlignment="Bottom" Margin="6,0,6,7">
-                                        <Border Height="4" Background="#D8A83E" BorderBrush="#FFE092" BorderThickness=".5" Visibility="{Binding HasRankStripeOne, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,3" />
-                                        <Border Height="4" Background="#D8A83E" BorderBrush="#FFE092" BorderThickness=".5" Visibility="{Binding HasRankStripeTwo, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,3" />
-                                        <Border Height="4" Background="#D8A83E" BorderBrush="#FFE092" BorderThickness=".5" Visibility="{Binding HasRankStripeThree, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,3" />
-                                        <Border Height="4" Background="#D8A83E" BorderBrush="#FFE092" BorderThickness=".5" Visibility="{Binding HasRankStripeFour, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                    </StackPanel>
-                                    <TextBlock Text="✦" Foreground="#E73C4D" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0" Visibility="{Binding IsFirstOfficer, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                    <TextBlock Text="❋" Foreground="#E5C15A" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-6,0,0" Visibility="{Binding IsSeniorCaptain, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                    <TextBlock Text="★" Foreground="#E5C15A" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-6,0,0" Visibility="{Binding IsTrainingCaptain, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                </Grid>
-                                <TextBlock Text="{Binding PilotRank}" Foreground="#F4D277" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                <!-- This is the same shoulder-board construction used by the BAV website rank system. -->
+                                <Viewbox Width="68" Height="102" Margin="0,7,0,0" Stretch="Uniform" AutomationProperties.Name="{Binding PilotRank}">
+                                    <Canvas Width="72" Height="108">
+                                        <Canvas.Resources>
+                                            <LinearGradientBrush x:Key="RankBoard" StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="#173A63" Offset="0" />
+                                                <GradientStop Color="#071B35" Offset="0.48" />
+                                                <GradientStop Color="#102A4A" Offset="1" />
+                                            </LinearGradientBrush>
+                                            <LinearGradientBrush x:Key="RankGold" StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#FFF0A7" Offset="0" />
+                                                <GradientStop Color="#E5B94B" Offset="0.24" />
+                                                <GradientStop Color="#9D6819" Offset="0.58" />
+                                                <GradientStop Color="#F4D16A" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Canvas.Resources>
+                                        <Path Data="M17,103 V31 L36,8 L55,31 V103 Z" Fill="#020B16" Opacity="0.56" />
+                                        <Path Data="M15,100 V30 L36,6 L57,30 V100 Z" Fill="{StaticResource RankBoard}" Stroke="#315073" StrokeThickness="1.2" />
+                                        <Path Data="M19,98 V32 L36,12 L53,32 V98" Fill="Transparent" Stroke="#6682A2" StrokeThickness="1" StrokeDashArray="1.2,1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.48" />
+                                        <Ellipse Canvas.Left="28.9" Canvas.Top="14.9" Width="14.2" Height="14.2" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
+                                        <Path Data="M31.7,22 C34.5,20.2 37.7,19.9 40.8,21.8 C38,21.3 35.4,22.1 33,24.1 C34.8,21.7 37.2,20.4 40.4,20.1 C37.3,19.4 34.5,20 31.7,22 Z" Fill="#A66B16" Opacity="0.9" />
+                                        <Canvas Visibility="{Binding IsSeniorCaptain, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Path Data="M25,57 C21,55 18.5,51 18.3,46.7 C20.7,49 23,50 25.2,49.8 C22.6,47.2 21.4,44.5 21.6,41.5 C24.7,44.3 27.2,45.5 29.1,45.1 C27.3,42.1 27,39.4 28.2,36.9 C30.6,40.8 33.3,43.2 36.1,44.1 C31.9,46.8 28.2,51.1 25,57 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
+                                            <Path Data="M47,57 C51,55 53.5,51 53.7,46.7 C51.3,49 49,50 46.8,49.8 C49.4,47.2 50.6,44.5 50.4,41.5 C47.3,44.3 44.8,45.5 42.9,45.1 C44.7,42.1 45,39.4 43.8,36.9 C41.4,40.8 38.7,43.2 35.9,44.1 C40.1,46.8 43.8,51.1 47,57 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
+                                        </Canvas>
+                                        <Canvas Visibility="{Binding IsTrainingCaptain, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Path Data="M36,39 L39.3,46.1 L47,46.9 L41.3,51.9 L42.9,59.5 L36,55.6 L29.1,59.5 L30.7,51.9 L25,46.9 L32.7,46.1 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
+                                            <Path Data="M17,47 L30,51 V55 L17,57 L9,52 Z M55,47 L42,51 V55 L55,57 L63,52 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
+                                        </Canvas>
+                                        <Canvas Visibility="{Binding IsFirstOfficer, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Path Data="M27,57 C34.5,53.4 41,53.8 46.3,58.2 C40.1,56.9 34.8,58.5 30.1,63.1 C32,60.4 35.3,58 39.7,56.5 C35.2,56.7 31,56.8 27,57 Z" Fill="#D71736" />
+                                            <Path Data="M41.6,58.2 C44.2,58 46.5,58.9 48.3,60.8 C45.8,60.5 43.6,61 41.6,62.3 Z" Fill="#F4F7FA" />
+                                        </Canvas>
+                                        <Rectangle Canvas.Left="17" Canvas.Top="88" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeOne, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Rectangle Canvas.Left="17" Canvas.Top="77.9" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeTwo, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Rectangle Canvas.Left="17" Canvas.Top="67.8" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeThree, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Rectangle Canvas.Left="17" Canvas.Top="57.7" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeFour, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="{Binding PilotRank}" Foreground="#F4D277" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,3,0,0" />
                             </StackPanel>
                             <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,24,0,0"><StackPanel><TextBlock Text="WEBSITE FLIGHT" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding WebsiteFlightAssignmentLabel}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="16" Margin="0,6,0,0" /><TextBlock Text="{Binding WebsiteFlightAssignmentDetail}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" /><Button Content="Refresh BAV flight and profile" Command="{Binding RefreshWebsiteFlightCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="36" Margin="0,13,0,0" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}" /></StackPanel></Border>
                             <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0"><StackPanel><TextBlock Text="FLIGHT PLAN LINK" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding FlightPlanLinkLabel}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="14" Margin="0,6,0,0" /><TextBlock Text="{Binding FlightPlanLinkDetail}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" /></StackPanel></Border>

@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.21] - 2026-09-20
+
+### Changed
+
+- The BAV Account page now uses the full British Airways Virtual shoulder-board design for pilot ranks. Ember now matches the website’s navy board, stitched detail, gold button and rank-specific stripes, speedmarque, senior-captain laurel and training-captain star.
+
 ## [0.5.20] - 2026-09-20
 
 ### Added
