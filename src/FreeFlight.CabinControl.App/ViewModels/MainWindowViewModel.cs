@@ -411,7 +411,11 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         var enginesRunning = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d;
         var pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d;
         var groundSpeed = snapshot.Signals.GetValueOrDefault("groundspeed_mps");
-        var readyToStart = enginesRunning || pushbackActive;
+        // Some simulator aircraft do not expose a reliable engine-running
+        // signal until after take-off.  Airborne movement is just as clear an
+        // indication that the booked operation has begun, and prevents a
+        // valid BAV flight from remaining silently untracked.
+        var readyToStart = enginesRunning || pushbackActive || !snapshot.OnGround;
 
         if (!_acarsFlightStartRequested &&
             !Account.IsAcarsOperating &&
@@ -429,7 +433,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _ = StartFleetFlightAsync();
         }
         _hasObservedEnginesRunning |= enginesRunning;
-        _hasObservedDeparture |= !snapshot.OnGround || Operations.IsArrivalMode;
+        _hasObservedDeparture |= !snapshot.OnGround || Operations.IsArrivalMode || pushbackActive;
         if (!snapshot.OnGround)
         {
             _wasAirborne = true;
@@ -442,8 +446,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _touchdownFpm = (int)Math.Round(verticalSpeed);
         }
 
-        var completedShutdown = _hasObservedEnginesRunning &&
-                                _hasObservedDeparture &&
+        // A recovered ACARS/fleet operation is itself durable proof that the
+        // flight began.  This is important after an Ember restart or a cabin
+        // unload: the in-memory engine/departure flags are gone, but the
+        // server-side session must still be finalised at engine shutdown.
+        var hasDurableFlightStart = Account.IsAcarsOperating || Fleet.IsFlightOperating;
+        var completedShutdown = (hasDurableFlightStart ||
+                                 (_hasObservedEnginesRunning && _hasObservedDeparture)) &&
                                 snapshot.OnGround &&
                                 !enginesRunning &&
                                 groundSpeed < 0.35d;
@@ -621,6 +630,14 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private void HandleFlightUnloaded()
     {
+        // Do not discard completion evidence while a real ACARS or fleet
+        // operation is live.  Pilots may close the cabin after arrival before
+        // the simulator delivers its final engine-off telemetry sample.
+        if (Account.IsAcarsOperating || Fleet.IsFlightOperating)
+        {
+            return;
+        }
+
         if (Fleet.IsFlightReserved && !_fleetFlightCompletionInProgress)
         {
             _ = Fleet.ReleaseAircraftReservationAsync();
