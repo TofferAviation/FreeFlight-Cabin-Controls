@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.22] - 2026-09-20
+
+### Changed
+
+- Ember and the British Airways Virtual website now use the approved pilot-rank artwork files directly for Cadet, Second Officer, First Officer, Senior First Officer, Captain, Senior Captain and Training Captain. The image assets are preserved unchanged from the supplied rank set.
+
 ## [0.5.21] - 2026-09-20
 
 ### Changed

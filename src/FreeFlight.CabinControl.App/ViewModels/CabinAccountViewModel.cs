@@ -74,6 +74,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(DisplayName));
             OnPropertyChanged(nameof(PilotLabel));
             OnPropertyChanged(nameof(PilotRank));
+            OnPropertyChanged(nameof(PilotRankInsigniaSource));
             OnPropertyChanged(nameof(PilotRankStripeCount));
             OnPropertyChanged(nameof(HasRankStripeOne));
             OnPropertyChanged(nameof(HasRankStripeTwo));
@@ -92,6 +93,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     public string DisplayName => Session?.Name ?? "British Airways Virtual pilot";
     public string PilotRank => Session is null ? string.Empty : NormalizePilotRank(Session.Rank);
     public string PilotLabel => Session is null ? "Not signed in" : $"Pilot {Session.PilotNumber} · {PilotRank}";
+    public ImageSource? PilotRankInsigniaSource => Session is null ? null : LoadPilotRankInsignia(PilotRank);
     public int PilotRankStripeCount => PilotRank switch
     {
         "Second Officer" => 1,
@@ -520,6 +522,22 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         "Training Captain" => "Training Captain",
         _ => "Cadet",
     };
+
+    private static ImageSource LoadPilotRankInsignia(string rank)
+    {
+        var assetName = rank switch
+        {
+            "Second Officer" => "SO",
+            "First Officer" => "FO",
+            "Senior First Officer" => "SFO",
+            "Captain" => "C",
+            "Senior Captain" => "SC",
+            "Training Captain" => "TC",
+            _ => "cadet",
+        };
+
+        return new BitmapImage(new Uri($"pack://application:,,,/FreeFlight.CabinControl;component/Assets/PilotRanks/{assetName}.png", UriKind.Absolute));
+    }
 
     private static string NormalizeFlightNumber(string? value)
     {
