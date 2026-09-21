@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.27] - 2026-09-22
+
+### Added
+
+- Ember now shows a pilot's private BAV Operations updates in the BAV Account page. PIREP submission confirmations, staff PIREP decisions, transfer-credit decisions and career-credit updates use the same secure notification feed as the pilot website.
+- Notices refresh when Ember signs in, restores its secure device session, refreshes the BAV account or completes an ACARS flight. A temporary notice-service interruption can never prevent a confirmed ACARS flight from completing.
+
 ## [0.5.26] - 2026-09-21
 
 ### Fixed

@@ -84,7 +84,28 @@
                                 </Viewbox>
                                 <TextBlock Text="{Binding PilotRank}" Foreground="#F4D277" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,3,0,0" Visibility="Collapsed" />
                             </StackPanel>
-                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,24,0,0"><StackPanel><TextBlock Text="WEBSITE FLIGHT" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding WebsiteFlightAssignmentLabel}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="16" Margin="0,6,0,0" /><TextBlock Text="{Binding WebsiteFlightAssignmentDetail}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" /><Button Content="Refresh BAV flight and profile" Command="{Binding RefreshWebsiteFlightCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="36" Margin="0,13,0,0" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}" /></StackPanel></Border>
+                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,24,0,0"><StackPanel><TextBlock Text="WEBSITE FLIGHT" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding WebsiteFlightAssignmentLabel}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="16" Margin="0,6,0,0" /><TextBlock Text="{Binding WebsiteFlightAssignmentDetail}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" /><Button Content="Refresh BAV account, flight and notices" Command="{Binding RefreshWebsiteFlightCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="36" Margin="0,13,0,0" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}" /></StackPanel></Border>
+                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="BAV OPERATIONS" Foreground="#7890AC" FontSize="10" />
+                                    <TextBlock Text="Notifications" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="16" Margin="0,6,0,0" />
+                                    <TextBlock Text="{Binding NotificationsSummary}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" />
+                                    <TextBlock Text="No new operational notices. PIREP reviews, transfer-credit decisions and career updates appear here and on the BAV website." TextWrapping="Wrap" Foreground="#93A8C1" FontSize="11" Margin="0,12,0,0" Visibility="{Binding HasNotifications, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                    <ItemsControl ItemsSource="{Binding Notifications}" Margin="0,12,0,0" Visibility="{Binding HasNotifications, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="#29435F" BorderThickness="0,1,0,0" Padding="0,10,0,0" Margin="0,8,0,0">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Title}" Foreground="#E6F1FF" FontWeight="SemiBold" FontSize="12" />
+                                                        <TextBlock Text="{Binding Body}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="11" Margin="0,3,0,0" />
+                                                        <TextBlock Text="{Binding CreatedAt, StringFormat={}{0:dd MMM yyyy, HH:mm}}" Foreground="#7890AC" FontSize="10" Margin="0,5,0,0" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
                             <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0"><StackPanel><TextBlock Text="FLIGHT PLAN LINK" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding FlightPlanLinkLabel}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="14" Margin="0,6,0,0" /><TextBlock Text="{Binding FlightPlanLinkDetail}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" /></StackPanel></Border>
                             <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0"><StackPanel><TextBlock Text="ACARS FLIGHT STATUS" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding AcarsSessionLabel}" Foreground="#65E692" FontWeight="SemiBold" FontSize="14" Margin="0,6,0,0" /><TextBlock Text="{Binding LastFlightCompletionLabel}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,7,0,0" /></StackPanel></Border>
                             <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0"><StackPanel><TextBlock Text="FLEET ACCESS" Foreground="#7890AC" FontSize="10" /><TextBlock Text="Your selected BAV flight is the only flight Ember can reserve an aircraft against. Pushback or engine start begins its operating clock; shutdown at the gate completes the record." TextWrapping="Wrap" Foreground="#D6E0EC" FontSize="13" Margin="0,6,0,0" /></StackPanel></Border>

@@ -128,6 +128,26 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
     }
 
     /// <summary>
+    /// Loads the pilot's private BAV Operations notices. This uses the same
+    /// short-lived Ember account token as ACARS telemetry and never exposes
+    /// another pilot's operational information.
+    /// </summary>
+    public async Task<FleetPilotNotificationsEnvelope> GetPilotNotificationsAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetPilotNotificationsEnvelope>(
+            settings,
+            account,
+            HttpMethod.Get,
+            "/api/acars/v1/notifications",
+            null,
+            cancellationToken);
+        return payload ?? new FleetPilotNotificationsEnvelope([], 0);
+    }
+
+    /// <summary>
     /// Rotates a revocable BAV device credential without ever sending or
     /// storing the pilot's website password again.
     /// </summary>
@@ -431,6 +451,16 @@ public sealed record FleetDefectEnvelope(FleetDefectDto? Defect);
 public sealed record FleetLandingAssessmentEnvelope(FleetLandingAssessmentDto? Assessment);
 public sealed record FleetAccountEnvelope(string? Token, FleetAccountPilotDto? Pilot, long? ExpiresInSeconds, string? DeviceSessionToken = null);
 public sealed record FleetAccountProfileEnvelope(FleetAccountPilotDto? Pilot);
+public sealed record FleetPilotNotificationsEnvelope(IReadOnlyList<FleetPilotNotificationDto>? Notifications, int UnreadCount);
+public sealed record FleetPilotNotificationDto(
+    string Id,
+    string Kind,
+    string Level,
+    string Title,
+    string Body,
+    string? Href,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ReadAt);
 public sealed record FleetAccountPilotDto(string Id, string PilotNumber, string Name, string Email, string? ProfileImage = null, string? Rank = null);
 public sealed record FleetAccountSession(
     string Token,

@@ -23,6 +23,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private FleetAccountSession? _session;
     private FleetWebsiteFlightAssignmentDto? _websiteFlightAssignment;
     private IReadOnlyList<FleetOperationsFlightDto> _operationsFlights = [];
+    private IReadOnlyList<FleetPilotNotificationDto> _notifications = [];
+    private int _unreadNotificationCount;
     private FleetAcarsSessionDto? _activeAcarsSession;
     private string _flightPlanLinkLabel = "Choose a BAV flight, then import SimBrief to verify the route.";
     private string _flightPlanLinkDetail = "Ember will prevent an aircraft lifecycle from starting when the two flights disagree.";
@@ -156,6 +158,38 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         }
     }
 
+    /// <summary>Private BAV Operations updates also shown on the pilot website.</summary>
+    public IReadOnlyList<FleetPilotNotificationDto> Notifications
+    {
+        get => _notifications;
+        private set
+        {
+            if (!SetProperty(ref _notifications, value)) return;
+            OnPropertyChanged(nameof(HasNotifications));
+            OnPropertyChanged(nameof(NotificationsSummary));
+        }
+    }
+
+    public int UnreadNotificationCount
+    {
+        get => _unreadNotificationCount;
+        private set
+        {
+            if (!SetProperty(ref _unreadNotificationCount, value)) return;
+            OnPropertyChanged(nameof(NotificationsSummary));
+        }
+    }
+
+    public bool HasNotifications => Notifications.Count > 0;
+
+    public string NotificationsSummary => UnreadNotificationCount switch
+    {
+        0 when HasNotifications => "All recent BAV Operations updates are read.",
+        0 => "No new updates from BAV Operations.",
+        1 => "1 new update from BAV Operations.",
+        _ => $"{UnreadNotificationCount} new updates from BAV Operations.",
+    };
+
     public string FlightPlanLinkLabel
     {
         get => _flightPlanLinkLabel;
@@ -260,6 +294,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         Session = null;
         WebsiteFlightAssignment = null;
         OperationsFlights = [];
+        Notifications = [];
+        UnreadNotificationCount = 0;
         ActiveAcarsSession = null;
         AcarsSessionLabel = "No active ACARS flight";
         Password = string.Empty;
@@ -427,6 +463,15 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         AcarsSessionLabel = "No active ACARS flight";
         LastFlightCompletionLabel = FormatCompletion(completed.Pirep);
         StatusMessage = "ACARS flight completed. Your BAV flight history and PIREP have been updated.";
+        try
+        {
+            await RefreshNotificationsAsync(account);
+        }
+        catch (FleetApiException)
+        {
+            // A connection issue while refreshing an informational notice must
+            // never change the confirmed ACARS completion outcome.
+        }
     }
 
     public void ReportBackgroundAcarsFailure(Exception exception)
@@ -478,6 +523,15 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
                 // it must never prevent the active flight from loading.
                 OperationsFlights = [];
             }
+            try
+            {
+                await RefreshNotificationsAsync(account);
+            }
+            catch (FleetApiException)
+            {
+                // Notices are supplementary. The selected website flight stays
+                // usable when an intermittent notice request cannot complete.
+            }
             StatusMessage = WebsiteFlightAssignment is null
                 ? "No active flight is selected on the BAV website. Choose one there, then refresh this page."
                 : $"Loaded {WebsiteFlightAssignment.FlightNumber} from your BAV account. Fleet aircraft selection now uses this flight.";
@@ -494,6 +548,16 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         {
             IsBusy = false;
         }
+    }
+
+    private async Task RefreshNotificationsAsync(FleetAccountSession account)
+    {
+        var response = await _apiClient.GetPilotNotificationsAsync(_settings, account);
+        Notifications = (response.Notifications ?? [])
+            .OrderByDescending(notification => notification.CreatedAt)
+            .Take(3)
+            .ToArray();
+        UnreadNotificationCount = Math.Max(0, response.UnreadCount);
     }
 
     private async Task RecoverActiveAcarsSessionAsync()
