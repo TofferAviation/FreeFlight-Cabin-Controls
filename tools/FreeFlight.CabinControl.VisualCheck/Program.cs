@@ -382,6 +382,24 @@ internal static class Program
             Render(window, Path.Combine(outputDirectory, "passengers-crew-profile.png"));
             viewModel.Passengers.CloseCrewDetailsCommand.Execute(null);
 
+            // Verify the passenger-facing narrow-body layout uses its visible
+            // door stations for the forward and aft welcome crew positions.
+            viewModel.Passengers.SelectedCabinLayoutProfile = viewModel.Passengers.CabinLayoutProfiles.Single(profile =>
+                profile.Id == "british-airways.a320neo");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+            var a320ForwardDoor = viewModel.Passengers.CabinDoors.Single(door => door.Door == FreeFlight.CabinControl.Core.Passengers.BoardingDoor.L1);
+            var a320AftDoor = viewModel.Passengers.CabinDoors.Single(door => door.Door == FreeFlight.CabinControl.Core.Passengers.BoardingDoor.L2);
+            var forwardCrew = viewModel.Passengers.CabinCrewMarkers[0];
+            var aftCrew = viewModel.Passengers.CabinCrewMarkers[1];
+            if (Math.Abs(forwardCrew.CanvasLeft - (a320ForwardDoor.CanvasLeft + 23d)) > 0.1d ||
+                Math.Abs(aftCrew.CanvasLeft - (a320AftDoor.CanvasLeft + 23d)) > 0.1d ||
+                forwardCrew.CanvasTop > 42d ||
+                aftCrew.CanvasTop < 136d)
+            {
+                throw new InvalidOperationException("The A320neo cabin crew did not remain at the forward entry and aft welcome stations.");
+            }
+            Render(window, Path.Combine(outputDirectory, "passengers-a320neo-door-stations.png"));
+
             var expandedLayoutIds = new[]
             {
                 "british-airways.a319",

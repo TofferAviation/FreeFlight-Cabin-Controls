@@ -2,6 +2,18 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.26] - 2026-09-21
+
+### Fixed
+
+- Live Cabin now projects passenger seats and passenger-entry doors through the same artwork geometry as the drawn aircraft. The correction covers every British Airways narrow- and long-haul cabin map, including the Airbus A320 family, A319, A321, A321neo and Embraer 190.
+- A320 passenger locations now match the supplied cabin artwork row-by-row, and boarding begins from the visible open door instead of an offset virtual point.
+- Cabin crew now remain at the forward entry and aft welcome stations during boarding. Changing between long-haul and short-haul layouts also clears a previous crew-rest rotation immediately.
+
+### Verification
+
+- Added automated geometry checks for every supported cabin layout and a visual A320neo check for the forward and aft crew stations.
+
 ## [0.5.22] - 2026-09-20
 
 ### Changed

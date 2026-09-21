@@ -18,23 +18,50 @@ internal sealed record PassengerCabinLayoutDefinition(
 
 internal static class PassengerCabinLayouts
 {
+    private const double CabinCanvasWidth = 1033d;
+    private const double CabinCanvasHeight = 192d;
+
+    // The live-cabin artwork is not rendered at a common aspect ratio. Keep the
+    // seat/door data in artwork coordinates and project it with the same
+    // Uniform scaling used by the ImageBrush in PassengerFlowView.xaml.
+    private static readonly CabinArtworkGeometry BritishAirwaysA319Artwork = new(
+        2840d, 591d, 640d, 2494d, 419d, 2605d,
+        [488d, 373d, 232d, 120d],
+        [488d, 431d, 373d, 232d, 177d, 120d],
+        297d);
+    private static readonly CabinArtworkGeometry BritishAirwaysA321Artwork = new(
+        2841d, 420d, 404d, 2584d, 233d, 2663d,
+        [353d, 263d, 156d, 68d],
+        [353d, 307d, 263d, 156d, 112d, 68d],
+        208d);
+    private static readonly CabinArtworkGeometry BritishAirwaysA321NeoArtwork = new(
+        2907d, 417d, 468d, 2652d, 302d, 2730d,
+        [350d, 261d, 156d, 67d],
+        [350d, 306d, 261d, 156d, 112d, 67d],
+        205d);
+    private static readonly CabinArtworkGeometry BritishAirwaysEmbraer190Artwork = new(
+        2837d, 341d, 625d, 2532d, 476d, 2609d,
+        [267d, 220d, 115d, 72d],
+        [267d, 220d, 115d, 72d],
+        166d);
+
     public static PassengerCabinLayoutDefinition Create(PassengerCabinLayout layout) => layout switch
     {
         PassengerCabinLayout.BritishAirways777200Er => CreateBritishAirways777200Er(),
         PassengerCabinLayout.BritishAirways777300 => CreateBritishAirways777300(),
         PassengerCabinLayout.BritishAirwaysA320200 => CreateBritishAirwaysA320200(),
         PassengerCabinLayout.BritishAirwaysA320Neo => CreateBritishAirwaysA320Neo(),
-        PassengerCabinLayout.BritishAirwaysA319 => CreateSingleAisle(layout, 24, 10, 0),
-        PassengerCabinLayout.BritishAirwaysA321 => CreateSingleAisle(layout, 35, 12, 0),
-        PassengerCabinLayout.BritishAirwaysA321Neo220M => CreateSingleAisle(layout, 37, 0, 2),
+        PassengerCabinLayout.BritishAirwaysA319 => CreateSingleAisle(layout, 24, 10, 0, BritishAirwaysA319Artwork),
+        PassengerCabinLayout.BritishAirwaysA321 => CreateSingleAisle(layout, 35, 12, 0, BritishAirwaysA321Artwork),
+        PassengerCabinLayout.BritishAirwaysA321Neo220M => CreateSingleAisle(layout, 37, 0, 2, BritishAirwaysA321NeoArtwork),
         PassengerCabinLayout.BritishAirwaysEmbraer190 => CreateEmbraer190(),
-        PassengerCabinLayout.BritishAirwaysA350 => CreateWideBody(layout, 2, 14, 7, 22, 9),
-        PassengerCabinLayout.BritishAirways777200Lgw => CreateWideBody(layout, 0, 8, 7, 25, 0),
-        PassengerCabinLayout.BritishAirways777200First => CreateWideBody(layout, 2, 12, 5, 14, 1),
-        PassengerCabinLayout.BritishAirways7878ClubSuite => CreateWideBody(layout, 0, 8, 5, 14, 8),
-        PassengerCabinLayout.BritishAirways7879 => CreateWideBody(layout, 2, 11, 5, 13, 6),
-        PassengerCabinLayout.BritishAirways7879Alternate => CreateWideBody(layout, 2, 11, 5, 13, 7),
-        PassengerCabinLayout.BritishAirways78710 => CreateWideBody(layout, 2, 12, 5, 17, 10),
+        PassengerCabinLayout.BritishAirwaysA350 => CreateWideBody(layout, 2, 14, 7, 22, 9, CabinArtworkGeometry.Wide(2910d, 425d, 360d, 2700d, 201d, 2771d)),
+        PassengerCabinLayout.BritishAirways777200Lgw => CreateWideBody(layout, 0, 8, 7, 25, 0, CabinArtworkGeometry.Wide(2888d, 418d, 325d, 2566d, 177d, 2649d)),
+        PassengerCabinLayout.BritishAirways777200First => CreateWideBody(layout, 2, 12, 5, 14, 1, CabinArtworkGeometry.Wide(2866d, 499d, 513d, 2620d, 177d, 2653d)),
+        PassengerCabinLayout.BritishAirways7878ClubSuite => CreateWideBody(layout, 0, 8, 5, 14, 8, CabinArtworkGeometry.Wide(2906d, 506d, 360d, 2620d, 233d, 2697d)),
+        PassengerCabinLayout.BritishAirways7879 => CreateWideBody(layout, 2, 11, 5, 13, 6, CabinArtworkGeometry.Wide(2854d, 449d, 360d, 2602d, 193d, 2711d)),
+        PassengerCabinLayout.BritishAirways7879Alternate => CreateWideBody(layout, 2, 11, 5, 13, 7, CabinArtworkGeometry.Wide(2854d, 449d, 360d, 2602d, 193d, 2711d)),
+        PassengerCabinLayout.BritishAirways78710 => CreateWideBody(layout, 2, 12, 5, 17, 10, CabinArtworkGeometry.Wide(2906d, 380d, 360d, 2676d, 173d, 2737d)),
         _ => CreateFlightFactor777V2()
     };
 
@@ -42,25 +69,24 @@ internal static class PassengerCabinLayouts
         PassengerCabinLayout layout,
         int rows,
         int businessRows,
-        int seatsToRemove)
+        int seatsToRemove,
+        CabinArtworkGeometry artwork)
     {
         var seats = new List<CabinSeat>();
-        var rowSpacing = 790d / Math.Max(1, rows - 1);
         for (var row = 1; row <= rows; row++)
         {
-            var x = 125d + ((row - 1) * rowSpacing);
+            var sourceX = Lerp(artwork.FirstSeatSourceX, artwork.LastSeatSourceX, (row - 1d) / Math.Max(1, rows - 1));
+            var x = artwork.MapX(sourceX);
             var letters = row <= businessRows ? new[] { "A", "C", "D", "F" } : new[] { "A", "B", "C", "D", "E", "F" };
-            var yPositions = row <= businessRows
-                ? new[] { 55d, 76d, 112d, 133d }
-                : new[] { 52d, 64d, 76d, 112d, 124d, 136d };
+            var sourceYPositions = row <= businessRows ? artwork.FourAcrossSeatY : artwork.SixAcrossSeatY;
             for (var index = 0; index < letters.Length; index++)
             {
                 seats.Add(new CabinSeat(
                     $"{row}{letters[index]}",
                     row <= businessRows ? PassengerCabinClass.Business : PassengerCabinClass.Economy,
                     x,
-                    yPositions[index],
-                    94d));
+                    artwork.MapY(sourceYPositions[index]),
+                    artwork.MapY(artwork.AisleSourceY)));
             }
         }
 
@@ -72,41 +98,44 @@ internal static class PassengerCabinLayouts
         return new PassengerCabinLayoutDefinition(
             layout,
             seats,
-            72d,
-            960d,
+            artwork.MapX(artwork.ForwardDoorSourceX),
+            artwork.MapX(artwork.AftDoorSourceX),
             210d,
             174d,
-            CreateNarrowBodyDoors(72d, 960d));
+            CreateNarrowBodyDoors(artwork.MapX(artwork.ForwardDoorSourceX), artwork.MapX(artwork.AftDoorSourceX)));
     }
 
     private static PassengerCabinLayoutDefinition CreateEmbraer190()
     {
+        var artwork = BritishAirwaysEmbraer190Artwork;
         var seats = new List<CabinSeat>(98);
         for (var row = 1; row <= 25; row++)
         {
-            var x = 135d + ((row - 1) * (770d / 24d));
+            var x = artwork.MapX(Lerp(artwork.FirstSeatSourceX, artwork.LastSeatSourceX, (row - 1d) / 24d));
             var letters = row == 25 ? new[] { "A", "D" } : new[] { "A", "C", "D", "F" };
-            var yPositions = row == 25 ? new[] { 62d, 128d } : new[] { 57d, 75d, 113d, 131d };
+            var sourceYPositions = row == 25
+                ? new[] { artwork.FourAcrossSeatY[0], artwork.FourAcrossSeatY[2] }
+                : artwork.FourAcrossSeatY;
             for (var index = 0; index < letters.Length; index++)
             {
-                seats.Add(new CabinSeat($"{row}{letters[index]}", row <= 8 ? PassengerCabinClass.Business : PassengerCabinClass.Economy, x, yPositions[index], 94d));
+                seats.Add(new CabinSeat($"{row}{letters[index]}", row <= 8 ? PassengerCabinClass.Business : PassengerCabinClass.Economy, x, artwork.MapY(sourceYPositions[index]), artwork.MapY(artwork.AisleSourceY)));
             }
         }
 
         return new PassengerCabinLayoutDefinition(
             PassengerCabinLayout.BritishAirwaysEmbraer190,
             seats,
-            80d,
-            950d,
+            artwork.MapX(artwork.ForwardDoorSourceX),
+            artwork.MapX(artwork.AftDoorSourceX),
             210d,
             174d,
             [
-                new(BoardingDoor.L1, "L1", 80d, true),
-                new(BoardingDoor.R1, "R1", 80d, false),
-                new(BoardingDoor.OverwingLeft, "OW L", 520d, false, true),
-                new(BoardingDoor.OverwingRight, "OW R", 520d, false, true),
-                new(BoardingDoor.L2, "L2", 950d, true),
-                new(BoardingDoor.R2, "R2", 950d, false)
+                new(BoardingDoor.L1, "L1", artwork.MapX(artwork.ForwardDoorSourceX), true),
+                new(BoardingDoor.R1, "R1", artwork.MapX(artwork.ForwardDoorSourceX), false),
+                new(BoardingDoor.OverwingLeft, "OW L", artwork.MapX(1462d), false, true),
+                new(BoardingDoor.OverwingRight, "OW R", artwork.MapX(1462d), false, true),
+                new(BoardingDoor.L2, "L2", artwork.MapX(artwork.AftDoorSourceX), true),
+                new(BoardingDoor.R2, "R2", artwork.MapX(artwork.AftDoorSourceX), false)
             ]);
     }
 
@@ -116,7 +145,8 @@ internal static class PassengerCabinLayouts
         int businessRows,
         int premiumRows,
         int economyRows,
-        int seatsToRemove)
+        int seatsToRemove,
+        CabinArtworkGeometry artwork)
     {
         var seats = new List<CabinSeat>();
         var totalRows = firstRows + businessRows + premiumRows + economyRows;
@@ -138,17 +168,18 @@ internal static class PassengerCabinLayouts
                     : new[] { "A", "B", "C", "D", "E", "F", "G", "H", "J", "K" };
             for (var sectionRow = 0; sectionRow < count; sectionRow++, row++)
             {
-                var x = 125d + ((row - 1) * (790d / Math.Max(1, totalRows - 1)));
-                var yPositions = letters.Length switch
+                var sourceX = Lerp(artwork.FirstSeatSourceX, artwork.LastSeatSourceX, (row - 1d) / Math.Max(1, totalRows - 1));
+                var x = artwork.MapX(sourceX);
+                var sourceYPositions = letters.Length switch
                 {
-                    4 => new[] { 48d, 76d, 112d, 140d },
-                    8 => new[] { 47d, 61d, 76d, 88d, 102d, 116d, 131d, 145d },
-                    _ => new[] { 45d, 57d, 69d, 82d, 91d, 101d, 113d, 125d, 137d, 149d }
+                    4 => artwork.FourAcrossSeatY,
+                    8 => artwork.EightAcrossSeatY,
+                    _ => artwork.TenAcrossSeatY
                 };
                 for (var index = 0; index < letters.Length; index++)
                 {
-                    var aisleY = index < letters.Length / 2 ? 78d : 112d;
-                    seats.Add(new CabinSeat($"{row}{letters[index]}", cabinClass, x, yPositions[index], aisleY));
+                    var aisleY = index < letters.Length / 2 ? artwork.MapY(artwork.UpperAisleSourceY) : artwork.MapY(artwork.LowerAisleSourceY);
+                    seats.Add(new CabinSeat($"{row}{letters[index]}", cabinClass, x, artwork.MapY(sourceYPositions[index]), aisleY));
                 }
             }
         }
@@ -161,11 +192,16 @@ internal static class PassengerCabinLayouts
         return new PassengerCabinLayoutDefinition(
             layout,
             seats,
-            55d,
-            295d,
+            artwork.MapX(artwork.ForwardDoorSourceX),
+            artwork.MapX(Lerp(artwork.ForwardDoorSourceX, artwork.AftDoorSourceX, 0.33d)),
             208d,
             174d,
-            CreateWideBodyDoors());
+            CreateWideBodyDoors(
+                artwork.MapX(artwork.ForwardDoorSourceX),
+                artwork.MapX(Lerp(artwork.ForwardDoorSourceX, artwork.AftDoorSourceX, 0.33d)),
+                artwork.MapX(Lerp(artwork.ForwardDoorSourceX, artwork.AftDoorSourceX, 0.50d)),
+                artwork.MapX(Lerp(artwork.ForwardDoorSourceX, artwork.AftDoorSourceX, 0.67d)),
+                artwork.MapX(artwork.AftDoorSourceX)));
     }
 
     private static IReadOnlyList<CabinDoorDefinition> CreateNarrowBodyDoors(double l1X = 72d, double l2X = 960d) =>
@@ -178,18 +214,23 @@ internal static class PassengerCabinLayouts
         new(BoardingDoor.R2, "R2", l2X, false)
     ];
 
-    private static IReadOnlyList<CabinDoorDefinition> CreateWideBodyDoors(double l1X = 55d, double l2X = 295d) =>
+    private static IReadOnlyList<CabinDoorDefinition> CreateWideBodyDoors(
+        double l1X = 55d,
+        double l2X = 295d,
+        double l3X = 535d,
+        double l4X = 760d,
+        double l5X = 960d) =>
     [
         new(BoardingDoor.L1, "L1", l1X, true),
         new(BoardingDoor.R1, "R1", l1X, false),
         new(BoardingDoor.L2, "L2", l2X, true),
         new(BoardingDoor.R2, "R2", l2X, false),
-        new(BoardingDoor.L3, "L3", 535d, true),
-        new(BoardingDoor.R3, "R3", 535d, false),
-        new(BoardingDoor.L4, "L4", 760d, true),
-        new(BoardingDoor.R4, "R4", 760d, false),
-        new(BoardingDoor.L5, "L5", 960d, true),
-        new(BoardingDoor.R5, "R5", 960d, false)
+        new(BoardingDoor.L3, "L3", l3X, true),
+        new(BoardingDoor.R3, "R3", l3X, false),
+        new(BoardingDoor.L4, "L4", l4X, true),
+        new(BoardingDoor.R4, "R4", l4X, false),
+        new(BoardingDoor.L5, "L5", l5X, true),
+        new(BoardingDoor.R5, "R5", l5X, false)
     ];
 
     private static PassengerCabinLayoutDefinition CreateFlightFactor777V2()
@@ -347,10 +388,10 @@ internal static class PassengerCabinLayouts
         var seats = new List<CabinSeat>(156);
         var sourceRowXPositions = new[]
         {
-            496d, 563d, 630d, 698d, 766d, 833d, 900d, 967d, 1035d, 1103d,
-            1182d, 1262d, 1328d, 1394d, 1461d, 1529d, 1596d, 1663d, 1730d,
-            1798d, 1865d, 1931d, 1997d, 2065d, 2134d, 2200d, 2268d, 2336d,
-            2403d, 2469d
+            477d, 545d, 610d, 678d, 745d, 813d, 879d, 947d, 1015d, 1083d,
+            1161d, 1243d, 1308d, 1375d, 1442d, 1509d, 1577d, 1643d, 1710d,
+            1778d, 1846d, 1912d, 1977d, 2047d, 2114d, 2180d, 2248d, 2316d,
+            2382d, 2449d
         };
         AddMappedRows(seats, PassengerCabinClass.Business, Enumerable.Range(1, 12).ToArray(),
             sourceRowXPositions[..12], ["A", "C", "D", "F"], [424d, 323d, 201d, 98d],
@@ -362,11 +403,13 @@ internal static class PassengerCabinLayouts
         return new PassengerCabinLayoutDefinition(
             PassengerCabinLayout.BritishAirwaysA320200,
             seats,
-            72d,
-            965d,
+            MapArtworkX(285d, 2770d, 570d),
+            MapArtworkX(2534d, 2770d, 570d),
             210d,
             174d,
-            CreateNarrowBodyDoors(72d, 965d));
+            CreateNarrowBodyDoors(
+                MapArtworkX(285d, 2770d, 570d),
+                MapArtworkX(2534d, 2770d, 570d)));
     }
 
     private static PassengerCabinLayoutDefinition CreateBritishAirwaysA320Neo()
@@ -374,10 +417,10 @@ internal static class PassengerCabinLayouts
         var seats = new List<CabinSeat>(156);
         var sourceRowXPositions = new[]
         {
-            487d, 554d, 620d, 687d, 755d, 822d, 888d, 955d, 1034d, 1101d,
-            1185d, 1266d, 1337d, 1405d, 1475d, 1545d, 1613d, 1680d, 1748d,
-            1818d, 1885d, 1952d, 2020d, 2077d, 2142d, 2210d, 2277d, 2345d,
-            2410d, 2478d
+            467d, 534d, 600d, 667d, 734d, 801d, 867d, 934d, 1003d, 1072d,
+            1154d, 1236d, 1306d, 1373d, 1445d, 1515d, 1582d, 1650d, 1717d,
+            1788d, 1855d, 1921d, 1990d, 2058d, 2123d, 2191d, 2258d, 2324d,
+            2390d, 2457d
         };
         AddMappedRows(seats, PassengerCabinClass.Business, Enumerable.Range(1, 12).ToArray(),
             sourceRowXPositions[..12], ["A", "C", "D", "F"], [465d, 365d, 242d, 142d],
@@ -389,11 +432,13 @@ internal static class PassengerCabinLayouts
         return new PassengerCabinLayoutDefinition(
             PassengerCabinLayout.BritishAirwaysA320Neo,
             seats,
-            70d,
-            965d,
+            MapArtworkX(276d, 2765d, 640d),
+            MapArtworkX(2548d, 2765d, 640d),
             210d,
             174d,
-            CreateNarrowBodyDoors(70d, 965d));
+            CreateNarrowBodyDoors(
+                MapArtworkX(276d, 2765d, 640d),
+                MapArtworkX(2548d, 2765d, 640d)));
     }
 
     private static void AddMappedRows(
@@ -409,16 +454,12 @@ internal static class PassengerCabinLayouts
         double upperAisleY,
         double lowerAisleY)
     {
-        const double canvasWidth = 1033d;
-        const double cabinImageHeight = 192d;
-        var scale = canvasWidth / sourceWidth;
-        var verticalOffset = (cabinImageHeight - (sourceCropHeight * scale)) / 2d;
         for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
         {
             for (var seatIndex = 0; seatIndex < letters.Count; seatIndex++)
             {
-                var x = (sourceRowXPositions[rowIndex] + sourceLetterXOffsets[seatIndex]) * scale;
-                var y = verticalOffset + (sourceYPositions[seatIndex] * scale);
+                var x = MapArtworkX(sourceRowXPositions[rowIndex] + sourceLetterXOffsets[seatIndex], sourceWidth, sourceCropHeight);
+                var y = MapArtworkY(sourceYPositions[seatIndex], sourceWidth, sourceCropHeight);
                 var aisleY = IsLowerCabinSeat(letters[seatIndex]) ? lowerAisleY : upperAisleY;
                 seats.Add(new CabinSeat($"{rows[rowIndex]}{letters[seatIndex]}", cabinClass, x, y, aisleY));
             }
@@ -435,20 +476,74 @@ internal static class PassengerCabinLayouts
         double upperAisleY,
         double lowerAisleY)
     {
-        const double canvasWidth = 1033d;
-        const double cabinImageHeight = 192d;
-        var scale = canvasWidth / sourceWidth;
-        var verticalOffset = (cabinImageHeight - (sourceCropHeight * scale)) / 2d;
         foreach (var sourceSeat in sourceSeats)
         {
             var aisleY = IsLowerCabinSeat(sourceSeat.Letter) ? lowerAisleY : upperAisleY;
             seats.Add(new CabinSeat(
                 $"{row}{sourceSeat.Letter}",
                 cabinClass,
-                sourceSeat.SourceX * scale,
-                verticalOffset + (sourceSeat.SourceY * scale),
+                MapArtworkX(sourceSeat.SourceX, sourceWidth, sourceCropHeight),
+                MapArtworkY(sourceSeat.SourceY, sourceWidth, sourceCropHeight),
                 aisleY));
         }
+    }
+
+    private static double Lerp(double start, double end, double progress) => start + ((end - start) * progress);
+
+    private static double GetArtworkScale(double sourceWidth, double sourceVisibleHeight) =>
+        Math.Min(CabinCanvasWidth / sourceWidth, CabinCanvasHeight / sourceVisibleHeight);
+
+    private static double MapArtworkX(double sourceX, double sourceWidth, double sourceVisibleHeight)
+    {
+        var scale = GetArtworkScale(sourceWidth, sourceVisibleHeight);
+        return ((CabinCanvasWidth - (sourceWidth * scale)) / 2d) + (sourceX * scale);
+    }
+
+    private static double MapArtworkY(double sourceY, double sourceWidth, double sourceVisibleHeight)
+    {
+        var scale = GetArtworkScale(sourceWidth, sourceVisibleHeight);
+        return ((CabinCanvasHeight - (sourceVisibleHeight * scale)) / 2d) + (sourceY * scale);
+    }
+
+    private sealed record CabinArtworkGeometry(
+        double SourceWidth,
+        double SourceHeight,
+        double FirstSeatSourceX,
+        double LastSeatSourceX,
+        double ForwardDoorSourceX,
+        double AftDoorSourceX,
+        IReadOnlyList<double> FourAcrossSeatY,
+        IReadOnlyList<double> SixAcrossSeatY,
+        double AisleSourceY)
+    {
+        public IReadOnlyList<double> EightAcrossSeatY => BuildSeatY(8);
+        public IReadOnlyList<double> TenAcrossSeatY => BuildSeatY(10);
+        public double UpperAisleSourceY => SourceHeight * 0.40d;
+        public double LowerAisleSourceY => SourceHeight * 0.60d;
+
+        public double MapX(double sourceX) => MapArtworkX(sourceX, SourceWidth, SourceHeight);
+        public double MapY(double sourceY) => MapArtworkY(sourceY, SourceWidth, SourceHeight);
+
+        public static CabinArtworkGeometry Wide(
+            double sourceWidth,
+            double sourceHeight,
+            double firstSeatSourceX,
+            double lastSeatSourceX,
+            double forwardDoorSourceX,
+            double aftDoorSourceX) => new(
+                sourceWidth,
+                sourceHeight,
+                firstSeatSourceX,
+                lastSeatSourceX,
+                forwardDoorSourceX,
+                aftDoorSourceX,
+                [sourceHeight * 0.76d, sourceHeight * 0.60d, sourceHeight * 0.40d, sourceHeight * 0.24d],
+                [sourceHeight * 0.78d, sourceHeight * 0.68d, sourceHeight * 0.58d, sourceHeight * 0.48d, sourceHeight * 0.52d, sourceHeight * 0.42d, sourceHeight * 0.32d, sourceHeight * 0.22d],
+                sourceHeight * 0.50d);
+
+        private IReadOnlyList<double> BuildSeatY(int count) => Enumerable.Range(0, count)
+            .Select(index => SourceHeight * (0.78d - ((0.56d * index) / Math.Max(1, count - 1))))
+            .ToArray();
     }
 
     private static bool IsLowerCabinSeat(string letter) => letter is "A" or "B" or "C" or "D" or "E";

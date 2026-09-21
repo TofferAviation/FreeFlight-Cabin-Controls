@@ -1154,6 +1154,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(ManifestSummary));
         OnPropertyChanged(nameof(CabinActivitySummary));
         AddActivity($"Live cabin layout changed to {profile.Name} — {_engine.Capacity} seats mapped");
+        UpdateCabinCrewRest();
         RefreshCrewMarkers();
         RefreshFromEngine();
         if (persist)
@@ -1516,21 +1517,14 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             CabinCrewMarkers.RemoveAt(CabinCrewMarkers.Count - 1);
         }
 
-        var l1X = L1DoorCanvasLeft + 35d;
-        var l2X = L2DoorCanvasLeft + 35d;
-        var (upperAisleY, lowerAisleY) = SelectedCabinLayoutProfile.Layout switch
-        {
-            PassengerCabinLayout.FlightFactor777V2 => (56d, 95d),
-            PassengerCabinLayout.BritishAirways777200Er => (70d, 129d),
-            PassengerCabinLayout.BritishAirwaysA319 or
-            PassengerCabinLayout.BritishAirwaysA320200 or
-            PassengerCabinLayout.BritishAirwaysA320Neo or
-            PassengerCabinLayout.BritishAirwaysA321 or
-            PassengerCabinLayout.BritishAirwaysA321Neo220M or
-            PassengerCabinLayout.BritishAirwaysEmbraer190 => (94d, 94d),
-            _ => (84d, 135d)
-        };
-        static double CrewX(double value) => Math.Clamp(value, 38d, 930d);
+        var leftDoorStations = CabinDoors
+            .Where(door => door.IsBoardingDoor && !door.IsEmergencyExit && !door.IsRightSide)
+            .OrderBy(door => door.CanvasLeft)
+            .Select(door => (X: door.CanvasLeft + 29d, Label: door.Label))
+            .ToArray();
+        (double X, string Label) forwardStation = leftDoorStations.FirstOrDefault((L1DoorCanvasLeft + 35d, "L1"));
+        (double X, string Label) aftStation = leftDoorStations.LastOrDefault((L2DoorCanvasLeft + 35d, "L2"));
+        static double CrewX(double value) => Math.Clamp(value, 24d, 1009d);
         var entranceGreeting = _engine.Operation == PassengerOperation.Boarding &&
                                _engine.State is BoardingRunState.Boarding or BoardingRunState.WaitingForDoor or BoardingRunState.Ready;
         var secured = _isAircraftMoving ||
@@ -1550,23 +1544,26 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 var restX = 820d + (restSlot * 30d);
                 crew.Update(
                     CrewX(restX),
-                    (upperAisleY + lowerAisleY) / 2d,
+                    96d,
                     $"Crew rest group {_crewRestAssignment.RestGroup} · {CrewRestStatus}",
                     true,
                     true);
                 continue;
             }
 
+            // The first two crew stay at the forward entry and aft cabin during
+            // boarding. Remaining crew use actual door stations rather than a
+            // generic aisle grid, so no marker appears to drift through seats.
             var (stationX, stationY, stationLabel) = index switch
             {
-                0 => (l1X, lowerAisleY, "L1 jumpseat"),
-                1 => (l1X, upperAisleY, "L1 jumpseat"),
-                2 => (l2X, lowerAisleY, "L2 jumpseat"),
-                3 => (l2X, upperAisleY, "L2 jumpseat"),
-                _ => (120d + (((index - 4) % 4) * 285d), index % 2 == 0 ? lowerAisleY : upperAisleY, $"cabin jumpseat {index + 1}")
+                0 => (forwardStation.X, 44d, $"forward {forwardStation.Label} entry station"),
+                1 => (aftStation.X, 148d, $"aft {aftStation.Label} welcome station"),
+                _ => GetDoorStation(leftDoorStations, index)
             };
             var activity = entranceGreeting && index < 2
-                ? (index == 0 && L1DoorOpen ? "Greeting passengers at L1" : "Standing by at L1")
+                ? index == 0
+                    ? $"Welcoming passengers at forward {forwardStation.Label} entry"
+                    : $"Welcoming passengers from the aft {aftStation.Label} cabin station"
                 : _preDepartureDrinksActive && index is 2 or 3
                     ? $"Available from {stationLabel} for pre-departure service"
                     : _isArrivalPreparation
@@ -1575,6 +1572,19 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                             ? $"Secured at {stationLabel}"
                             : $"Seated at {stationLabel}";
             crew.Update(CrewX(stationX), stationY, activity, true, false);
+        }
+
+        static (double X, double Y, string Label) GetDoorStation(
+            IReadOnlyList<(double X, string Label)> stations,
+            int crewIndex)
+        {
+            if (stations.Count == 0)
+            {
+                return (516d, crewIndex % 2 == 0 ? 148d : 44d, $"cabin station {crewIndex + 1}");
+            }
+
+            var station = stations[crewIndex % stations.Count];
+            return (station.X, crewIndex % 2 == 0 ? 148d : 44d, $"{station.Label} door station");
         }
     }
 

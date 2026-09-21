@@ -46,6 +46,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("British Airways cabin layouts map official seats", BritishAirwaysCabinLayoutsMapSeatsAsync),
     ("Airbus A320 cabin layouts map usable seats", AirbusA320CabinLayoutsMapSeatsAsync),
     ("Expanded British Airways fleet layouts expose mapped seats and doors", ExpandedBritishAirwaysFleetLayoutsAsync),
+    ("Every live cabin layout stays inside its artwork geometry", CabinArtworkGeometryIsRenderableAsync),
     ("British Airways layouts board and deboard", BritishAirwaysLayoutsOperateAsync),
     ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync),
     ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync),
@@ -1087,6 +1088,28 @@ static Task ExpandedBritishAirwaysFleetLayoutsAsync()
             Assert(engine.Doors.Any(door => door.Door == BoardingDoor.L3),
                 $"{layout} did not expose its additional wide-body doors.");
         }
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task CabinArtworkGeometryIsRenderableAsync()
+{
+    foreach (var layout in Enum.GetValues<PassengerCabinLayout>())
+    {
+        var engine = new PassengerBoardingEngine(int.MaxValue, layout);
+        Assert(engine.Passengers.All(passenger =>
+                passenger.Seat.X is >= 24d and <= 1009d &&
+                passenger.Seat.Y is >= 24d and <= 168d &&
+                passenger.Seat.AisleY is >= 24d and <= 168d),
+            $"{layout} placed a passenger or aisle route outside the visible cabin artwork.");
+
+        var l1 = engine.GetDoorEntryCenter(BoardingDoor.L1);
+        var l2 = engine.GetDoorEntryCenter(BoardingDoor.L2);
+        Assert(l1.X is >= 24d and <= 1009d && l2.X is >= 24d and <= 1009d,
+            $"{layout} placed a boarding door outside the visible aircraft artwork.");
+        Assert(l1.X < l2.X,
+            $"{layout} did not keep the forward L1 and aft/secondary L2 stations in aircraft order.");
     }
 
     return Task.CompletedTask;
