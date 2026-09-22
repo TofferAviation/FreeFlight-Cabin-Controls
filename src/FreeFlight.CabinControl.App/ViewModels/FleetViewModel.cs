@@ -693,6 +693,53 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         await RefreshAsync();
     }
 
+    /// <summary>
+    /// Shows the pilot that an unused reservation is protected by Ember's
+    /// simulator-connection safeguard. The message is repeatedly refreshed
+    /// by the owner while the issue persists, so normal Fleet synchronization
+    /// cannot hide a pending automatic release.
+    /// </summary>
+    public void ReportReservationSimulatorUnavailable(TimeSpan remaining)
+    {
+        if (!IsFlightReserved || ActiveFlightAssignment is null)
+        {
+            return;
+        }
+
+        var minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
+        var unit = minutes == 1 ? "minute" : "minutes";
+        FlightAssignmentStatus = $"{ActiveFlightAssignment.FlightReference} is reserved, but Ember cannot read simulator telemetry. Reconnect the simulator within {minutes} {unit} or this unused registration will be released automatically.";
+        FlightAssignmentStatusColor = WarningBrush;
+    }
+
+    public void ReportReservationSimulatorRecovered()
+    {
+        if (!IsFlightReserved || ActiveFlightAssignment is null)
+        {
+            return;
+        }
+
+        FlightAssignmentStatus = $"Simulator telemetry recovered. {ActiveFlightAssignment.FlightReference} remains reserved with {ActiveFlightRegistration ?? "your assigned registration"}.";
+        FlightAssignmentStatusColor = SuccessBrush;
+    }
+
+    public void ReportAutomaticReservationRelease(string flightReference)
+    {
+        FlightAssignmentStatus = $"{flightReference} reservation was released because Ember could not reconnect to the simulator for 10 minutes before the flight began. The registration is available again.";
+        FlightAssignmentStatusColor = WarningBrush;
+    }
+
+    public void ReportAutomaticReservationReleaseRetry(string detail)
+    {
+        if (!IsFlightReserved || ActiveFlightAssignment is null)
+        {
+            return;
+        }
+
+        FlightAssignmentStatus = $"Ember could not release the unused {ActiveFlightAssignment.FlightReference} reservation yet, so the registration remains protected. It will retry automatically: {detail}";
+        FlightAssignmentStatusColor = WarningBrush;
+    }
+
     private void ShowFlightAssignmentError(Exception exception)
     {
         FlightAssignmentStatus = exception.Message;

@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.28] - 2026-09-22
+
+### Added
+
+- Ember now protects the shared Fleet pool from forgotten unused reservations. If a reserved registration has not begun operating or started ACARS, and Ember cannot receive telemetry or maintain a simulator connection for 10 minutes, it is automatically released for another pilot.
+- A clear countdown is shown in Fleet Management while Ember is waiting for the simulator. Recovering telemetry immediately preserves the reservation; a release that cannot be confirmed by the Fleet service is never assumed and is retried safely.
+
 ## [0.5.27] - 2026-09-22
 
 ### Added
