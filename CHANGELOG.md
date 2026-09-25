@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.31] - 2026-09-25
+
+### Fixed
+
+- Ember now keeps an assigned registration releasable while the simulator is connected but parked. It continues reading telemetry in the background, but starts the ACARS and fleet operation only when the beacon is on, engines are running, pushback begins, or the aircraft takes off.
+- Releasing a pre-flight registration also clears the specific registration from the protected BAV booking, returning that booking to “any available registration” without cancelling the selected flight.
+
 ## [0.5.28] - 2026-09-22
 
 ### Added

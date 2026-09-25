@@ -694,6 +694,22 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     }
 
     /// <summary>
+    /// Keeps a connected, parked reservation clearly distinct from an active
+    /// flight. Ember may inspect simulator telemetry before flight start, but
+    /// the pilot must still be able to release or change the registration.
+    /// </summary>
+    public void ReportReservationAwaitingFlightStart()
+    {
+        if (!IsFlightReserved || ActiveFlightAssignment is null)
+        {
+            return;
+        }
+
+        FlightAssignmentStatus = $"{ActiveFlightAssignment.FlightReference} has {ActiveFlightRegistration ?? "an aircraft"} reserved. Ember is connected; tracking begins with beacon, engines, pushback or take-off. You can still release this reservation.";
+        FlightAssignmentStatusColor = SuccessBrush;
+    }
+
+    /// <summary>
     /// Shows the pilot that an unused reservation is protected by Ember's
     /// simulator-connection safeguard. The message is repeatedly refreshed
     /// by the owner while the issue persists, so normal Fleet synchronization

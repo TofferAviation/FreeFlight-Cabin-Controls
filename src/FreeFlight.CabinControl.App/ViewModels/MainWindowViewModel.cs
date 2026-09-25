@@ -413,7 +413,16 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         var enginesRunning = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d;
 
-        if (!_acarsFlightStartRequested &&
+        var beaconOn = snapshot.Signals.GetValueOrDefault("beacon_on") >= 0.5d;
+        var pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d;
+        // Ember can read the simulator continuously while an aircraft is
+        // reserved. A parked connection must not make a registration
+        // impossible to release: ACARS and fleet time begin only when the
+        // pilot signals an actual operation by switching on the beacon,
+        // starting engines, beginning pushback, or taking off.
+        var trackingActivated = beaconOn || enginesRunning || pushbackActive || !snapshot.OnGround;
+
+        if (trackingActivated && !_acarsFlightStartRequested &&
             !Account.IsAcarsOperating &&
             Account.HasWebsiteFlightAssignment)
         {
@@ -421,11 +430,15 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _ = StartAcarsFlightAsync();
         }
 
-        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved)
+        if (trackingActivated && !_fleetFlightStartRequested && Fleet.IsFlightReserved)
         {
             _fleetFlightStartRequested = true;
             _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
             _ = StartFleetFlightAsync();
+        }
+        else if (!trackingActivated && Fleet.IsFlightReserved)
+        {
+            Fleet.ReportReservationAwaitingFlightStart();
         }
 
         _hasObservedEnginesRunning |= enginesRunning;
