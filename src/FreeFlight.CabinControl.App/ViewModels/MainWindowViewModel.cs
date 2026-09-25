@@ -13,16 +13,12 @@ namespace FreeFlight.CabinControl.App.ViewModels;
 
 public sealed class MainWindowViewModel : ObservableObject, IDisposable
 {
-    private static readonly TimeSpan SimulatorTelemetryStaleAfter = TimeSpan.FromSeconds(45);
-    private static readonly TimeSpan UnstartedReservationReleaseDelay = TimeSpan.FromMinutes(10);
-
     private readonly AppSettings _settings;
     private readonly ISimulatorBridge? _simulatorBridge;
     private readonly ISimulatorCabinControlBridge? _simulatorCabinControlBridge;
     private readonly FlightSessionStore? _flightSessionStore;
     private readonly IOperationsClock _operationsClock;
     private readonly DispatcherTimer _sessionSaveTimer;
-    private readonly DispatcherTimer _reservationSafetyTimer;
     private CabinTelemetrySnapshot? _latestTelemetry;
     private int _telemetryDispatchPending;
     private bool _hasObservedEnginesRunning;
@@ -40,8 +36,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private DateTimeOffset? _engineShutdownCandidateSince;
     private DateTimeOffset? _lastAcarsTelemetrySentAt;
     private DateTimeOffset? _lastSimulatorTelemetryReceivedAt;
-    private DateTimeOffset? _reservationSimulatorUnavailableSince;
-    private bool _reservationAutoReleaseInProgress;
     private PageViewModel _currentPage;
     private string _activePage = "Dashboard";
 
@@ -138,12 +132,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         };
         _sessionSaveTimer.Tick += HandleSessionSaveTick;
         _sessionSaveTimer.Start();
-        _reservationSafetyTimer = new DispatcherTimer(DispatcherPriority.Background)
-        {
-            Interval = TimeSpan.FromSeconds(15)
-        };
-        _reservationSafetyTimer.Tick += HandleReservationSafetyTick;
-        _reservationSafetyTimer.Start();
         GateLogin.SignedIn += HandleGateSignedIn;
         GateLogin.SignedOut += HandleGateSignedOut;
         if (_simulatorBridge is not null)
@@ -213,8 +201,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     {
         _sessionSaveTimer.Stop();
         _sessionSaveTimer.Tick -= HandleSessionSaveTick;
-        _reservationSafetyTimer.Stop();
-        _reservationSafetyTimer.Tick -= HandleReservationSafetyTick;
         if (_preserveFlightForUpdate)
         {
             PersistFlightSession();
@@ -252,83 +238,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     private void HandleSessionSaveTick(object? sender, EventArgs e) => PersistFlightSession();
-
-    private async void HandleReservationSafetyTick(object? sender, EventArgs e)
-    {
-        await ProtectUnusedAircraftReservationAsync();
-    }
-
-    /// <summary>
-    /// Releases a reservation only when Ember has not been able to receive
-    /// simulator telemetry for a sustained period and no flight has begun.
-    /// An operating Fleet assignment or live ACARS session is always left
-    /// untouched: those have their own completion and recovery safeguards.
-    /// </summary>
-    private async Task ProtectUnusedAircraftReservationAsync()
-    {
-        if (!Fleet.IsFlightReserved ||
-            Fleet.IsFlightOperating ||
-            Account.IsAcarsOperating ||
-            _fleetFlightStartRequested ||
-            _fleetFlightCompletionInProgress)
-        {
-            ClearReservationSafetyMonitor();
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow;
-        var hasFreshTelemetry = _lastSimulatorTelemetryReceivedAt is { } lastTelemetryAt &&
-                                now - lastTelemetryAt <= SimulatorTelemetryStaleAfter;
-        if (Status.IsConnected && hasFreshTelemetry)
-        {
-            ClearReservationSafetyMonitor();
-            return;
-        }
-
-        _reservationSimulatorUnavailableSince ??= now;
-        var remaining = UnstartedReservationReleaseDelay - (now - _reservationSimulatorUnavailableSince.Value);
-        if (remaining > TimeSpan.Zero)
-        {
-            Fleet.ReportReservationSimulatorUnavailable(remaining);
-            return;
-        }
-
-        if (_reservationAutoReleaseInProgress)
-        {
-            return;
-        }
-
-        _reservationAutoReleaseInProgress = true;
-        var flightReference = Fleet.ActiveFlightAssignment?.FlightReference ?? "This flight";
-        try
-        {
-            await Fleet.ReleaseAircraftReservationAsync();
-            Fleet.ReportAutomaticReservationRelease(flightReference);
-            _reservationSimulatorUnavailableSince = null;
-        }
-        catch (Exception exception)
-        {
-            // The reservation remains in place whenever the Fleet service
-            // cannot confirm the release. Ember will safely retry while the
-            // unused reservation is still present.
-            Fleet.ReportAutomaticReservationReleaseRetry(exception.Message);
-        }
-        finally
-        {
-            _reservationAutoReleaseInProgress = false;
-        }
-    }
-
-    private void ClearReservationSafetyMonitor()
-    {
-        if (_reservationSimulatorUnavailableSince is null)
-        {
-            return;
-        }
-
-        _reservationSimulatorUnavailableSince = null;
-        Fleet.ReportReservationSimulatorRecovered();
-    }
 
     private void PersistFlightSession()
     {
@@ -459,10 +368,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         _lastSimulatorTelemetryReceivedAt = DateTimeOffset.UtcNow;
         Status.ApplyTelemetry(snapshot);
-        if (Status.IsConnected)
-        {
-            ClearReservationSafetyMonitor();
-        }
         if (_operationsClock is LocalOperationsClock simulatorClock)
         {
             simulatorClock.ApplyTelemetry(snapshot, _simulatorBridge?.CurrentStatus.Simulator ?? string.Empty);

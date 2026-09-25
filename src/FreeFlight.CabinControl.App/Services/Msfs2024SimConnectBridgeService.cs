@@ -22,6 +22,8 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         "No aircraft detected",
         "Waiting for the local SimConnect runtime.");
     private long _lastFrameUtcTicks;
+    private bool _receivedFirstTelemetry;
+    private bool _reportedTelemetryException;
     private bool _disposed;
 
     public Msfs2024SimConnectBridgeService(AppSettings settings, FileLogService log)
@@ -94,10 +96,10 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
                     "Opening a local out-of-process SimConnect connection."));
                 OpenConnection();
                 PublishStatus(new BridgeStatus(
-                    BridgeConnectionState.Connected,
+                    BridgeConnectionState.Connecting,
                     "Microsoft Flight Simulator 2024",
-                    "User aircraft telemetry detected",
-                    "SimConnect · doors, seat-belt sign and flight state live"));
+                    "Waiting for aircraft telemetry",
+                    "SimConnect is open. Ember will confirm the connection after the first live aircraft packet."));
 
                 var callback = new DispatchProc(HandleDispatch);
                 while (!cancellationToken.IsCancellationRequested && _connection != IntPtr.Zero)
@@ -171,6 +173,10 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         {
             throw new Win32Exception(result, "Could not request MSFS telemetry.");
         }
+
+        _receivedFirstTelemetry = false;
+        _reportedTelemetryException = false;
+        _log.Information("MSFS SimConnect opened. Requested core aircraft telemetry for BA-Radar.");
     }
 
     private void AddDouble(string name, string units, uint datumId)
@@ -203,7 +209,20 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         var id = Marshal.ReadInt32(data, 8);
         if (id == (int)ReceiveId.Quit)
         {
+            _log.Information("MSFS SimConnect closed the connection.");
             CloseConnection();
+            return;
+        }
+
+        if (id == (int)ReceiveId.Exception)
+        {
+            if (!_reportedTelemetryException)
+            {
+                _reportedTelemetryException = true;
+                var exceptionCode = Marshal.ReadInt32(data, 12);
+                _log.Warning($"MSFS SimConnect rejected the telemetry request (exception {exceptionCode}). No BA-Radar data has been sent.");
+            }
+
             return;
         }
 
@@ -212,9 +231,24 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
             return;
         }
 
+        // SimConnect's callback byte count is the native receive-structure
+        // size and may omit variable data beyond the first datum. The native
+        // API guarantees the complete payload through the callback pointer,
+        // so do not use that count to reject an otherwise valid data packet.
         var telemetry = Marshal.PtrToStructure<MsfsTelemetry>(IntPtr.Add(data, 40));
         var timestamp = DateTimeOffset.UtcNow;
         Interlocked.Exchange(ref _lastFrameUtcTicks, timestamp.UtcTicks);
+        if (!_receivedFirstTelemetry)
+        {
+            _receivedFirstTelemetry = true;
+            PublishStatus(new BridgeStatus(
+                BridgeConnectionState.Connected,
+                "Microsoft Flight Simulator 2024",
+                "User aircraft telemetry live",
+                "SimConnect · BA-Radar position and flight state are live"));
+            _log.Information("MSFS SimConnect delivered the first live aircraft telemetry packet.");
+        }
+
         var onGround = telemetry.OnGround >= 0.5d;
         var enginesRunning = telemetry.Engine1Running >= 0.5d || telemetry.Engine2Running >= 0.5d;
         var phase = XPlaneFlightPhaseClassifier.Classify(
@@ -268,6 +302,7 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         var connection = Interlocked.Exchange(ref _connection, IntPtr.Zero);
         if (connection == IntPtr.Zero) return;
         try { _ = SimConnectClose(connection); } catch (DllNotFoundException) { }
+        _receivedFirstTelemetry = false;
     }
 
     private void PublishStatus(BridgeStatus status)

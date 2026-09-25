@@ -31,6 +31,8 @@ public sealed class FileLogService
 
     public void Information(string message) => Write("INFO", message, null);
 
+    public void Warning(string message) => Write("WARN", message, null);
+
     public void Error(string message, Exception exception) => Write("ERROR", message, exception);
 
     private void Write(string level, string message, Exception? exception)
