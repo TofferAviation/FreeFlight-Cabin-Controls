@@ -731,18 +731,19 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private void HandleFlightUnloaded()
     {
+        // Unloading the cabin is a local presentation action.  It must never
+        // release the reserved registration: the BAV website flight can still
+        // be valid, and this event is also raised while Ember restores or
+        // changes cabin content.  The dedicated ten-minute safety monitor
+        // remains responsible for releasing genuinely unused reservations.
         // Do not discard completion evidence while a real ACARS or fleet
-        // operation is live.  Pilots may close the cabin after arrival before
+        // operation is live. Pilots may close the cabin after arrival before
         // the simulator delivers its final engine-off telemetry sample.
         if (Account.IsAcarsOperating || Fleet.IsFlightOperating)
         {
             return;
         }
 
-        if (Fleet.IsFlightReserved && !_fleetFlightCompletionInProgress)
-        {
-            _ = Fleet.ReleaseAircraftReservationAsync();
-        }
         _flightSessionStore?.Clear();
         ResetFlightCompletionTracking();
     }
