@@ -33,7 +33,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private int? _touchdownFpm;
     private string? _fleetAircraftIdForCurrentFlight;
     private bool _preserveFlightForUpdate;
-    private DateTimeOffset? _engineShutdownCandidateSince;
     private DateTimeOffset? _lastAcarsTelemetrySentAt;
     private DateTimeOffset? _lastSimulatorTelemetryReceivedAt;
     private PageViewModel _currentPage;
@@ -118,6 +117,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             () => Account.Session,
             Account.GetCurrentFlightContext);
         Account.SessionChanged += HandleBavAccountSessionChanged;
+        Account.ManualFlightCompletionRequested += CompleteFlightManuallyAsync;
         Account.WebsiteFlightAssignmentRefreshed += HandleWebsiteFlightAssignmentRefreshed;
         Passengers.PropertyChanged += HandlePassengerFlightPropertyChanged;
         // A BAV account is the front door to Ember. The navigator cannot
@@ -212,6 +212,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         GateLogin.SignedIn -= HandleGateSignedIn;
         GateLogin.SignedOut -= HandleGateSignedOut;
         Account.SessionChanged -= HandleBavAccountSessionChanged;
+        Account.ManualFlightCompletionRequested -= CompleteFlightManuallyAsync;
         Account.WebsiteFlightAssignmentRefreshed -= HandleWebsiteFlightAssignmentRefreshed;
         Passengers.PropertyChanged -= HandlePassengerFlightPropertyChanged;
         Performance.PropertyChanged -= HandlePerformancePropertyChanged;
@@ -375,10 +376,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers.ApplyCabinTelemetry(snapshot);
         Operations.ApplyCabinTelemetry(snapshot);
         SendAcarsTelemetryWhenDue(snapshot);
-        if (TrackAutomaticFlightCompletion(snapshot))
-        {
-            return;
-        }
+        TrackFlightLifecycle(snapshot);
         CabinPanel.ApplyFlightTelemetry(
             snapshot,
             $"{Operations.DetectedAircraftIcao} {_simulatorBridge?.CurrentStatus.Aircraft}");
@@ -397,48 +395,41 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    private bool TrackAutomaticFlightCompletion(CabinTelemetrySnapshot snapshot)
+    private void TrackFlightLifecycle(CabinTelemetrySnapshot snapshot)
     {
-        // ACARS is the flight-tracking system; Fleet airframe accounting is a
-        // separate enhancement. A temporary Fleet issue must not leave an
-        // otherwise valid BAV assignment invisible on BA-Radar.
+        // The website assignment is the source of truth for the selected
+        // registration. Once simulator telemetry is available, Ember keeps
+        // that assignment live and sends telemetry continuously. Ending a
+        // flight is intentionally a pilot-only action from the Ember account
+        // screen; simulator signals must never complete or release it.
         if (!Passengers.HasPassengerManifest &&
             !Fleet.HasActiveFlightAssignment &&
             !Account.IsAcarsOperating &&
             !Account.HasWebsiteFlightAssignment)
         {
             ResetFlightCompletionTracking();
-            return false;
+            return;
         }
 
         var enginesRunning = snapshot.Signals.GetValueOrDefault("engines_running") >= 0.5d;
-        var pushbackActive = snapshot.Signals.GetValueOrDefault("pushback_active") >= 0.5d;
-        var beaconOn = snapshot.Signals.GetValueOrDefault("beacon_on") >= 0.5d;
-        var groundSpeed = snapshot.Signals.GetValueOrDefault("groundspeed_mps");
-        // Some simulator aircraft do not expose a reliable engine-running
-        // signal until after take-off.  Airborne movement is just as clear an
-        // indication that the booked operation has begun, and prevents a
-        // valid BAV flight from remaining silently untracked.
-        var readyToStart = beaconOn || enginesRunning || pushbackActive || !snapshot.OnGround;
-        var readyToStartFleetOperation = enginesRunning || pushbackActive || !snapshot.OnGround;
 
         if (!_acarsFlightStartRequested &&
             !Account.IsAcarsOperating &&
-            Account.HasWebsiteFlightAssignment &&
-            readyToStart)
+            Account.HasWebsiteFlightAssignment)
         {
             _acarsFlightStartRequested = true;
             _ = StartAcarsFlightAsync();
         }
 
-        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved && readyToStartFleetOperation)
+        if (!_fleetFlightStartRequested && Fleet.IsFlightReserved)
         {
             _fleetFlightStartRequested = true;
             _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
             _ = StartFleetFlightAsync();
         }
+
         _hasObservedEnginesRunning |= enginesRunning;
-        _hasObservedDeparture |= !snapshot.OnGround || Operations.IsArrivalMode || pushbackActive;
+        _hasObservedDeparture |= !snapshot.OnGround;
         if (!snapshot.OnGround)
         {
             _wasAirborne = true;
@@ -450,40 +441,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         {
             _touchdownFpm = (int)Math.Round(verticalSpeed);
         }
-
-        // A recovered ACARS/fleet operation is itself durable proof that the
-        // flight began.  This is important after an Ember restart or a cabin
-        // unload: the in-memory engine/departure flags are gone, but the
-        // server-side session must still be finalised at engine shutdown.
-        // Beacon arms live tracking, but an aircraft still parked with no
-        // engine, pushback or airborne movement must not produce a PIREP.
-        var hasDurableFlightStart = Account.IsAcarsOperating &&
-                                    Account.ActiveAcarsSession?.LastSnapshot?.FlightStarted == true;
-        var completedShutdown = (hasDurableFlightStart ||
-                                 (_hasObservedEnginesRunning && _hasObservedDeparture)) &&
-                                snapshot.OnGround &&
-                                !enginesRunning &&
-                                groundSpeed < 0.35d;
-        if (!completedShutdown)
-        {
-            _engineShutdownCandidateSince = null;
-            return false;
-        }
-
-        _engineShutdownCandidateSince ??= snapshot.Timestamp;
-        if (snapshot.Timestamp - _engineShutdownCandidateSince < TimeSpan.FromSeconds(10))
-        {
-            return false;
-        }
-
-        if (_fleetFlightCompletionInProgress)
-        {
-            return true;
-        }
-
-        _fleetFlightCompletionInProgress = true;
-        _ = CompleteFleetFlightAndUnloadAsync(_fleetAircraftIdForCurrentFlight, _touchdownFpm);
-        return true;
     }
 
     private async Task RestoreBavAccountSessionAsync()
@@ -601,8 +558,16 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    private async Task CompleteFleetFlightAndUnloadAsync(string? aircraftId, int? touchdownFpm)
+    private async Task CompleteFlightManuallyAsync()
     {
+        if (_fleetFlightCompletionInProgress || !Account.IsAcarsOperating)
+        {
+            return;
+        }
+
+        _fleetFlightCompletionInProgress = true;
+        var aircraftId = _fleetAircraftIdForCurrentFlight ?? Fleet.ActiveFlightAircraftId;
+        var touchdownFpm = _touchdownFpm;
         try
         {
             await Fleet.CompleteAssignedFlightAsync();
@@ -629,7 +594,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
         finally
         {
-            Passengers.UnloadFlight("Flight completed · aircraft stopped and engines shut down");
+            Passengers.UnloadFlight("Flight completed manually in Ember");
             _fleetFlightCompletionInProgress = false;
         }
     }
@@ -639,8 +604,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         // Unloading the cabin is a local presentation action.  It must never
         // release the reserved registration: the BAV website flight can still
         // be valid, and this event is also raised while Ember restores or
-        // changes cabin content.  The dedicated ten-minute safety monitor
-        // remains responsible for releasing genuinely unused reservations.
+        // changes cabin content. No background timer is allowed to release
+        // an aircraft reservation.
         // Do not discard completion evidence while a real ACARS or fleet
         // operation is live. Pilots may close the cabin after arrival before
         // the simulator delivers its final engine-off telemetry sample.
@@ -664,7 +629,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _fleetFlightCompletionInProgress = false;
         _touchdownFpm = null;
         _fleetAircraftIdForCurrentFlight = null;
-        _engineShutdownCandidateSince = null;
         _lastAcarsTelemetrySentAt = null;
         _acarsTelemetryInFlight = false;
         _pendingAcarsTelemetry = null;

@@ -35,6 +35,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private string _statusMessage = "Sign in with your British Airways Virtual website account to reserve an aircraft for a flight.";
     private bool _isBusy;
     private bool _rememberSignIn = true;
+    private bool _isManualEndConfirmationPending;
     private ImageSource? _profileImageSource;
 
     public CabinAccountViewModel(AppSettings settings, FleetApiClient apiClient, BavAccountSessionStore? sessionStore = null)
@@ -46,15 +47,18 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         SignInCommand = new AsyncRelayCommand(SignInAsync, exception => StatusMessage = exception.Message);
         SignOutCommand = new AsyncRelayCommand(SignOutAsync, exception => StatusMessage = exception.Message);
         RefreshWebsiteFlightCommand = new AsyncRelayCommand(RefreshWebsiteFlightAsync, exception => StatusMessage = exception.Message);
+        EndFlightCommand = new AsyncRelayCommand(RequestManualFlightCompletionAsync, exception => StatusMessage = exception.Message);
     }
 
     public event EventHandler? SessionChanged;
     public event EventHandler<WebsiteFlightAssignmentRefreshedEventArgs>? WebsiteFlightAssignmentRefreshed;
     public event EventHandler? OperationsFlightsRefreshed;
+    public event Func<Task>? ManualFlightCompletionRequested;
 
     public ICommand SignInCommand { get; }
     public ICommand SignOutCommand { get; }
     public ICommand RefreshWebsiteFlightCommand { get; }
+    public ICommand EndFlightCommand { get; }
 
     public string Email
     {
@@ -221,10 +225,28 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         {
             if (!SetProperty(ref _activeAcarsSession, value)) return;
             OnPropertyChanged(nameof(IsAcarsOperating));
+            if (!IsAcarsOperating)
+            {
+                IsManualEndConfirmationPending = false;
+            }
         }
     }
 
     public bool IsAcarsOperating => ActiveAcarsSession?.Status == "active";
+
+    public bool IsManualEndConfirmationPending
+    {
+        get => _isManualEndConfirmationPending;
+        private set
+        {
+            if (!SetProperty(ref _isManualEndConfirmationPending, value)) return;
+            OnPropertyChanged(nameof(EndFlightButtonLabel));
+        }
+    }
+
+    public string EndFlightButtonLabel => IsManualEndConfirmationPending
+        ? "Confirm end flight and submit PIREP"
+        : "End flight";
 
     public string AcarsSessionLabel
     {
@@ -460,6 +482,10 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
         var completed = await _apiClient.CompleteAcarsSessionAsync(_settings, account, session.Id, landingFpm);
         ActiveAcarsSession = null;
+        // The completed website booking must not remain in memory: otherwise
+        // the next simulator telemetry sample could create a second ACARS
+        // session for a flight the pilot has explicitly ended.
+        WebsiteFlightAssignment = null;
         AcarsSessionLabel = "No active ACARS flight";
         LastFlightCompletionLabel = FormatCompletion(completed.Pirep);
         StatusMessage = "ACARS flight completed. Your BAV flight history and PIREP have been updated.";
@@ -471,6 +497,34 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         {
             // A connection issue while refreshing an informational notice must
             // never change the confirmed ACARS completion outcome.
+        }
+    }
+
+    private async Task RequestManualFlightCompletionAsync()
+    {
+        if (!IsAcarsOperating)
+        {
+            StatusMessage = "No active Ember flight to end.";
+            return;
+        }
+
+        if (!IsManualEndConfirmationPending)
+        {
+            IsManualEndConfirmationPending = true;
+            StatusMessage = "Review the PIREP, then select Confirm end flight and submit PIREP.";
+            return;
+        }
+
+        IsManualEndConfirmationPending = false;
+        var completionRequested = ManualFlightCompletionRequested;
+        if (completionRequested is null)
+        {
+            throw new FleetApiException("Ember could not prepare the flight completion action. Restart Ember and try again.");
+        }
+
+        foreach (Func<Task> handler in completionRequested.GetInvocationList())
+        {
+            await handler();
         }
     }
 
