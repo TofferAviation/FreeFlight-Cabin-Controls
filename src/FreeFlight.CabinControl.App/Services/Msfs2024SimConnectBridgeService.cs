@@ -162,11 +162,19 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         AddDouble("PLANE LATITUDE", "degrees", 12);
         AddDouble("PLANE LONGITUDE", "degrees", 13);
         AddDouble("PLANE HEADING DEGREES TRUE", "degrees", 14);
-        AddDouble("FUEL TOTAL QUANTITY WEIGHT", "kilograms", 15);
+        // MSFS 2024's EX1 fuel value is consistent for both legacy and modern
+        // fuel systems. Request the documented native unit and convert it
+        // ourselves below so an invalid unit conversion cannot silently leave
+        // the ACARS report without fuel data.
+        AddDouble("FUEL TOTAL QUANTITY WEIGHT EX1", "pounds", 15);
         AddDouble("PARKING BRAKE POSITION", "bool", 16);
         AddDouble("LIGHT BEACON", "bool", 17);
         AddDouble("AIRSPEED INDICATED", "knots", 18);
         AddInt32("TRANSPONDER CODE:1", "BCO16", 19);
+        // Unlike wall-clock time, this stops while MSFS is paused and follows
+        // the selected simulation rate. It is the correct source for the
+        // recorded flight duration when a pilot uses time acceleration.
+        AddDouble("SIMULATION TIME", "seconds", 20);
         result = SimConnectRequestDataOnSimObject(
             _connection, RequestId, DefinitionId, UserObjectId, SimConnectPeriod.Second, 0, 0, 0, 0);
         if (result < 0)
@@ -278,7 +286,8 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
             ["indicated_airspeed_kt"] = telemetry.IndicatedAirspeedKnots,
             ["beacon_on"] = telemetry.BeaconOn >= 0.5d ? 1d : 0d,
             ["squawk_bco16"] = telemetry.TransponderCode,
-            ["fuel_kg"] = telemetry.FuelKilograms,
+            ["fuel_kg"] = PoundsToKilograms(telemetry.FuelPounds),
+            ["simulation_time_seconds"] = telemetry.SimulationTimeSeconds,
             ["parking_brake_set"] = telemetry.ParkingBrakeSet
         };
         try
@@ -304,6 +313,11 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         try { _ = SimConnectClose(connection); } catch (DllNotFoundException) { }
         _receivedFirstTelemetry = false;
     }
+
+    private static double PoundsToKilograms(double pounds) =>
+        double.IsFinite(pounds) && pounds >= 0d
+            ? pounds * 0.45359237d
+            : double.NaN;
 
     private void PublishStatus(BridgeStatus status)
     {
@@ -345,11 +359,12 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         public double LatitudeDegrees;
         public double LongitudeDegrees;
         public double TrueHeadingDegrees;
-        public double FuelKilograms;
+        public double FuelPounds;
         public double ParkingBrakeSet;
         public double BeaconOn;
         public double IndicatedAirspeedKnots;
         public int TransponderCode;
+        public double SimulationTimeSeconds;
     }
 
     [DllImport("SimConnect.dll", EntryPoint = "SimConnect_Open", CharSet = CharSet.Ansi)]

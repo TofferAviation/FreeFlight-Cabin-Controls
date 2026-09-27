@@ -471,7 +471,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         }
     }
 
-    public async Task CompleteAcarsSessionAsync(int? landingFpm)
+    public async Task CompleteAcarsSessionAsync(int? landingFpm, int? simulatorBlockMinutes = null)
     {
         var account = Session;
         var session = ActiveAcarsSession;
@@ -480,7 +480,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             return;
         }
 
-        var completed = await _apiClient.CompleteAcarsSessionAsync(_settings, account, session.Id, landingFpm);
+        var completed = await _apiClient.CompleteAcarsSessionAsync(_settings, account, session.Id, landingFpm, simulatorBlockMinutes);
         ActiveAcarsSession = null;
         // The completed website booking must not remain in memory: otherwise
         // the next simulator telemetry sample could create a second ACARS

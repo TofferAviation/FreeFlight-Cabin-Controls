@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.32] - 2026-09-27
+
+### Fixed
+
+- Ember now reads MSFS 2024's corrected total-fuel SimVar and converts its documented pounds value to kilograms before sending ACARS telemetry. Automatic PIREPs can therefore calculate fuel used from the actual first and final simulator fuel readings.
+- Ember now sends elapsed simulator time with a manual PIREP completion. MSFS time acceleration and pauses are reflected in the recorded block time; older clients keep the website's wall-clock fallback.
+
 ## [0.5.31] - 2026-09-25
 
 ### Fixed

@@ -35,6 +35,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private bool _preserveFlightForUpdate;
     private DateTimeOffset? _lastAcarsTelemetrySentAt;
     private DateTimeOffset? _lastSimulatorTelemetryReceivedAt;
+    private double? _firstAcarsSimulatorTimeSeconds;
+    private double? _lastAcarsSimulatorTimeSeconds;
     private PageViewModel _currentPage;
     private string _activePage = "Dashboard";
 
@@ -558,6 +560,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             var latestSnapshot = Volatile.Read(ref _latestTelemetry);
             if (latestSnapshot is not null && TryCreateAcarsTelemetry(latestSnapshot, out var telemetry))
             {
+                ObserveAcarsSimulatorTime(latestSnapshot);
                 QueueAcarsTelemetry(telemetry, latestSnapshot.Timestamp);
             }
         }
@@ -581,6 +584,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _fleetFlightCompletionInProgress = true;
         var aircraftId = _fleetAircraftIdForCurrentFlight ?? Fleet.ActiveFlightAircraftId;
         var touchdownFpm = _touchdownFpm;
+        var simulatorBlockMinutes = GetSimulatorBlockMinutes();
         try
         {
             await Fleet.CompleteAssignedFlightAsync();
@@ -599,7 +603,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
-            await Account.CompleteAcarsSessionAsync(touchdownFpm);
+            await Account.CompleteAcarsSessionAsync(touchdownFpm, simulatorBlockMinutes);
         }
         catch (Exception exception)
         {
@@ -645,6 +649,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _lastAcarsTelemetrySentAt = null;
         _acarsTelemetryInFlight = false;
         _pendingAcarsTelemetry = null;
+        _firstAcarsSimulatorTimeSeconds = null;
+        _lastAcarsSimulatorTimeSeconds = null;
     }
 
     private void SendAcarsTelemetryWhenDue(CabinTelemetrySnapshot snapshot)
@@ -664,6 +670,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+        ObserveAcarsSimulatorTime(snapshot);
         QueueAcarsTelemetry(telemetry, snapshot.Timestamp);
     }
 
@@ -742,6 +749,31 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             flightStarted,
             Fleet.ActiveFlightRegistration);
         return true;
+    }
+
+    private void ObserveAcarsSimulatorTime(CabinTelemetrySnapshot snapshot)
+    {
+        var simulatorTimeSeconds = snapshot.Signals.GetValueOrDefault("simulation_time_seconds", double.NaN);
+        if (!double.IsFinite(simulatorTimeSeconds) || simulatorTimeSeconds < 0d)
+        {
+            return;
+        }
+
+        _firstAcarsSimulatorTimeSeconds ??= simulatorTimeSeconds;
+        _lastAcarsSimulatorTimeSeconds = simulatorTimeSeconds;
+    }
+
+    private int? GetSimulatorBlockMinutes()
+    {
+        if (_firstAcarsSimulatorTimeSeconds is not { } first || _lastAcarsSimulatorTimeSeconds is not { } last)
+        {
+            return null;
+        }
+
+        var elapsedSeconds = last - first;
+        return double.IsFinite(elapsedSeconds) && elapsedSeconds >= 30d && elapsedSeconds <= TimeSpan.FromHours(72).TotalSeconds
+            ? Math.Max(1, (int)Math.Round(elapsedSeconds / 60d))
+            : null;
     }
 
     private static string? FormatSquawk(double value)

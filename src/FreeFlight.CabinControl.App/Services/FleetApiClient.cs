@@ -302,6 +302,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         FleetAccountSession account,
         string sessionId,
         int? landingFpm,
+        int? simulatorBlockMinutes = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
@@ -310,7 +311,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             account,
             HttpMethod.Post,
             $"/api/acars/v1/sessions/{Uri.EscapeDataString(sessionId)}/end",
-            new { landingFpm },
+            new { landingFpm, simulatorBlockMinutes },
             cancellationToken);
         if (payload?.Session is null || payload.Pirep is null)
         {
