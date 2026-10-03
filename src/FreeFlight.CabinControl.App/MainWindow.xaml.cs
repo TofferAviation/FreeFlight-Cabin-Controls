@@ -19,7 +19,10 @@ public partial class MainWindow
         InitializeComponent();
         _updateCheckTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromMinutes(30)
+            // Check at startup and at a modest interval afterwards, so an
+            // important hotfix reaches pilots without making them hunt for a
+            // new installer.
+            Interval = TimeSpan.FromMinutes(10)
         };
         _updateCheckTimer.Tick += async (_, _) => await CheckForAutomaticUpdateAsync();
         Loaded += OnLoaded;

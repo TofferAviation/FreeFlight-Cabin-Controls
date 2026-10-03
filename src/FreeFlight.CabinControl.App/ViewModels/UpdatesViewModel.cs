@@ -55,7 +55,14 @@ public sealed class UpdatesViewModel : PageViewModel
     public bool IsFlightInProgress { get => _isFlightInProgress; private set => SetProperty(ref _isFlightInProgress, value); }
     public bool HasUpdate => _availableUpdate is not null && _availableUpdate.Version > _service.CurrentVersion;
     public string? AvailableUpdateTag => HasUpdate ? _availableUpdate?.Tag : null;
-    public bool CanInstall => !_isPreview && HasUpdate && _availableUpdate?.AssetDownload is not null && !IsBusy;
+    // Never close Ember underneath a pilot who is in the middle of an ACARS
+    // flight. The update is kept ready and can be applied after that flight
+    // has been completed or safely ended.
+    public bool CanInstall => !_isPreview &&
+                              !IsFlightInProgress &&
+                              HasUpdate &&
+                              _availableUpdate?.AssetDownload is not null &&
+                              !IsBusy;
     public bool IsBusy { get => _isBusy; private set { if (SetProperty(ref _isBusy, value)) OnPropertyChanged(nameof(CanInstall)); } }
     public string Status { get => _status; private set => SetProperty(ref _status, value); }
 
@@ -100,8 +107,12 @@ public sealed class UpdatesViewModel : PageViewModel
     {
         IsFlightInProgress = flightInProgress;
         FlightAdvisory = flightInProgress
-            ? "An active flight is in progress. Choose Later to keep flying; the update will not install automatically."
-            : "No active flight was detected. You can install now or choose Later.";
+            ? "An active flight is in progress. The hotfix is ready, but Ember will not close or update until your flight has safely finished."
+            : "No active flight was detected. Ember can download, apply and restart with this update now — no installer is needed.";
+        InstallButtonLabel = flightInProgress
+            ? "Finish flight first"
+            : "Install & restart Ember";
+        OnPropertyChanged(nameof(CanInstall));
     }
 
     public void PreparePreviewNotification(bool flightInProgress)
@@ -117,8 +128,8 @@ public sealed class UpdatesViewModel : PageViewModel
             null,
             null);
         Status = "Preview mode — no update will be downloaded or installed.";
-        InstallButtonLabel = "Preview Only";
         PrepareNotification(flightInProgress);
+        InstallButtonLabel = "Preview only";
         OnPropertyChanged(nameof(AvailableVersion));
         OnPropertyChanged(nameof(ReleaseNotes));
         OnPropertyChanged(nameof(HasUpdate));
@@ -132,12 +143,12 @@ public sealed class UpdatesViewModel : PageViewModel
         try
         {
             _isPreview = false;
-            InstallButtonLabel = "Install & Restart";
+            InstallButtonLabel = "Install & restart Ember";
             var result = await _service.CheckAsync();
             _availableUpdate = result.LatestRelease;
             Changelog = BuildChangelog(_availableUpdate);
             Status = HasUpdate
-                ? $"FreeFlight {_availableUpdate!.Tag} is ready from GitHub."
+                ? $"Ember {_availableUpdate!.Tag} is ready to install in the app — no installer is needed."
                 : _availableUpdate is null
                     ? result.FeedStatus
                     : $"You are running the latest published version. {result.FeedStatus}";
@@ -158,13 +169,13 @@ public sealed class UpdatesViewModel : PageViewModel
     {
         if (_availableUpdate is null || !CanInstall) return;
         IsBusy = true;
-        Status = "Downloading and staging the Windows update package…";
+        Status = "Downloading and verifying the Ember hotfix…";
         try
         {
             _beforeInstall?.Invoke();
             await _settingsStore.SaveAsync(_settings);
             await _service.StageAndInstallAsync(_availableUpdate);
-            Status = "Update staged. Ember will restart to finish installation.";
+            Status = "Update verified. Ember will now restart to finish the update.";
             Application.Current.Shutdown();
         }
         catch

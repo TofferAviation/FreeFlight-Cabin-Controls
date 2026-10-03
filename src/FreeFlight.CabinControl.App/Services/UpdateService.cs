@@ -204,7 +204,19 @@ param(
 $ErrorActionPreference = 'Stop'
 Wait-Process -Id $ApplicationProcessId -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
-Get-ChildItem -LiteralPath $SourceDirectory -Force | Copy-Item -Destination $TargetDirectory -Recurse -Force
+$copied = $false
+for ($attempt = 1; $attempt -le 10; $attempt++) {
+    try {
+        Get-ChildItem -LiteralPath $SourceDirectory -Force | Copy-Item -Destination $TargetDirectory -Recurse -Force
+        $copied = $true
+        break
+    }
+    catch {
+        if ($attempt -eq 10) { throw }
+        Start-Sleep -Seconds 1
+    }
+}
+if (-not $copied) { throw 'The Ember update files could not be applied.' }
 Start-Process -FilePath $ExecutablePath -WorkingDirectory $TargetDirectory -WindowStyle Hidden
 """;
 }

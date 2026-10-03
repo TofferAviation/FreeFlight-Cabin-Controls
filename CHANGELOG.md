@@ -2,6 +2,21 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.37] - 2026-10-03
+
+### Added
+
+- Added a clear **Check for Ember updates** action in Settings. When a published update is found, Ember downloads the Windows package, verifies its SHA-256 integrity value, closes itself, applies the files and restarts — no manual installer is needed for normal hotfixes.
+
+### Changed
+
+- Ember now checks the official release channel at startup and every 10 minutes while it is open (when automatic checks are enabled), so newly published hotfixes are surfaced promptly.
+
+### Fixed
+
+- Protected active ACARS flights from an accidental in-app update. An available hotfix stays ready, but its installation button remains unavailable until the current flight has safely ended.
+- Made the update handoff more resilient by retrying the final file replacement if Windows briefly holds a released Ember file open.
+
 ## [0.5.36] - 2026-10-03
 
 ### Fixed
