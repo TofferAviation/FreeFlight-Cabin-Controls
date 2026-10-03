@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.41] - 2026-10-03
+
+### Fixed
+
+- Passenger controls now follow Ember's Dark appearance immediately: the boarding progress track, closed and open door controls, cabin activity and crew panels, readiness badge, and passenger-list header no longer retain light surfaces.
+- The passenger workspace uses shared live theme materials, so its text, borders, operational states, and table rows remain readable when switching between Light and Dark without restarting Ember.
+
 ## [0.5.40] - 2026-10-03
 
 ### Fixed

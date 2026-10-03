@@ -8,10 +8,10 @@
         </Style>
         <Style x:Key="DoorControl" TargetType="ToggleButton">
             <Setter Property="Padding" Value="14,8" />
-            <Setter Property="Background" Value="#F8FAFD" />
-            <Setter Property="BorderBrush" Value="#C7D6E4" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Foreground" Value="#102A43" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -20,12 +20,43 @@
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="DoorBorder" Property="Background" Value="#EAF8F1" /><Setter TargetName="DoorBorder" Property="BorderBrush" Value="#62BE93" /><Setter Property="Foreground" Value="#0C704C" /></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="DoorBorder" Property="Background" Value="{DynamicResource SuccessSurfaceBrush}" /><Setter TargetName="DoorBorder" Property="BorderBrush" Value="{DynamicResource SuccessBorderBrush}" /><Setter Property="Foreground" Value="{DynamicResource SuccessTextBrush}" /></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="DoorBorder" Property="Opacity" Value="0.55" /></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <Style x:Key="BoardingProgressBar" TargetType="ProgressBar">
+            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="1">
+                            <Grid x:Name="PART_Track" ClipToBounds="True">
+                                <Border x:Name="PART_Indicator"
+                                        Background="{TemplateBinding Foreground}"
+                                        CornerRadius="3"
+                                        HorizontalAlignment="Left" />
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CabinStatusSurface" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSoftBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="13" />
         </Style>
     </UserControl.Resources>
 
@@ -34,12 +65,12 @@
             <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="CABIN" Foreground="{StaticResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="CABIN" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="Passengers" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
                     <TextBlock Text="A live cabin view built from the BAV website flight briefing." Style="{StaticResource PageSubtitleStyle}" />
                 </StackPanel>
-                <Border Grid.Column="1" Background="#EAF5FF" BorderBrush="#B8DDF5" BorderThickness="1" CornerRadius="15" Padding="13,6" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding BoardingStateColor}" Margin="0,0,7,0" VerticalAlignment="Center" /><TextBlock Text="{Binding BoardingStateLabel}" Foreground="{StaticResource PrimaryDeepBrush}" FontSize="10" FontWeight="SemiBold" /></StackPanel>
+                <Border Grid.Column="1" Background="{DynamicResource InfoSurfaceBrush}" BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="1" CornerRadius="15" Padding="13,6" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding BoardingStateColor}" Margin="0,0,7,0" VerticalAlignment="Center" /><TextBlock Text="{Binding BoardingStateLabel}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" /></StackPanel>
                 </Border>
             </Grid>
 
@@ -55,25 +86,25 @@
                 <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0">
                     <StackPanel>
                         <TextBlock Text="BOARDING CONTROL" Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="{Binding BoardingGroupStatus}" Foreground="{StaticResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,0" />
-                        <ProgressBar Value="{Binding BoardingProgress, Mode=OneWay}" Maximum="100" Height="8" Margin="0,18,0,0" />
+                        <TextBlock Text="{Binding BoardingGroupStatus}" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,0" />
+                        <ProgressBar Value="{Binding BoardingProgress, Mode=OneWay}" Maximum="100" Height="8" Margin="0,18,0,0" Style="{StaticResource BoardingProgressBar}" />
                         <Grid Margin="0,7,0,16"><TextBlock Text="{Binding OperationProgressLabel}" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding BoardingProgress, StringFormat={}{0:0}%}" HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" /></Grid>
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <ToggleButton Grid.Column="0" Style="{StaticResource DoorControl}" IsChecked="{Binding L1DoorOpen}" Content="L1 door" Margin="0,0,5,0" />
                             <ToggleButton Grid.Column="1" Style="{StaticResource DoorControl}" IsChecked="{Binding L2DoorOpen}" Content="L2 door" Margin="5,0,0,0" />
                         </Grid>
-                        <TextBlock Text="{Binding ActiveDoorSummary}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,10,0,0" />
-                        <TextBlock Text="{Binding DoorRoutingSummary}" Foreground="{StaticResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0" />
+                        <TextBlock Text="{Binding ActiveDoorSummary}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,10,0,0" />
+                        <TextBlock Text="{Binding DoorRoutingSummary}" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0" />
                         <Grid Margin="0,18,0,0"><Button Content="{Binding PrimaryActionLabel}" Command="{Binding StartPauseCommand}" Style="{StaticResource PrimaryButtonStyle}" /><Button Grid.Column="1" Content="Reset" Command="{Binding ResetCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" /></Grid>
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource CardStyle}">
                     <StackPanel>
                         <TextBlock Text="LIVE CABIN" Style="{StaticResource SectionTitleStyle}" />
-                        <TextBlock Text="{Binding LiveCabinStatus}" Foreground="{StaticResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,13" />
-                        <Border Background="#F6F9FC" BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="1" CornerRadius="8" Padding="13"><StackPanel><TextBlock Text="Cabin activity" FontSize="11" FontWeight="SemiBold" /><TextBlock Text="{Binding CabinActivitySummary}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" /></StackPanel></Border>
-                        <Border Background="#F6F9FC" BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="1" CornerRadius="8" Padding="13" Margin="0,9,0,0"><StackPanel><TextBlock Text="Crew" FontSize="11" FontWeight="SemiBold" /><TextBlock Text="{Binding CrewRestStatus}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" /></StackPanel></Border>
+                        <TextBlock Text="{Binding LiveCabinStatus}" Foreground="{DynamicResource PrimaryBrush}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,13" />
+                        <Border Style="{StaticResource CabinStatusSurface}"><StackPanel><TextBlock Text="Cabin activity" FontSize="11" FontWeight="SemiBold" /><TextBlock Text="{Binding CabinActivitySummary}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" /></StackPanel></Border>
+                        <Border Style="{StaticResource CabinStatusSurface}" Margin="0,9,0,0"><StackPanel><TextBlock Text="Crew" FontSize="11" FontWeight="SemiBold" /><TextBlock Text="{Binding CrewRestStatus}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" /></StackPanel></Border>
                         <Button Content="{Binding SeatbeltSignLabel}" Command="{Binding ToggleSeatbeltSignCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,13,0,0" IsEnabled="{Binding CanManuallyToggleSeatbeltSign}" />
                     </StackPanel>
                 </Border>
@@ -91,9 +122,9 @@
                     </Grid>
                     <Grid Grid.Row="1" Margin="0,17,0,0">
                         <Grid.RowDefinitions><RowDefinition Height="34" /><RowDefinition Height="260" /></Grid.RowDefinitions>
-                        <Grid Background="#F4F8FC"><Grid.ColumnDefinitions><ColumnDefinition Width="1.6*" /><ColumnDefinition Width="90" /><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions><TextBlock Text="PASSENGER" FontSize="10" FontWeight="SemiBold" Margin="10,0" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="SEAT" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="CABIN" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" /><TextBlock Grid.Column="3" Text="STATUS" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" /></Grid>
+                        <Grid Background="{DynamicResource SurfaceRaisedBrush}"><Grid.ColumnDefinitions><ColumnDefinition Width="1.6*" /><ColumnDefinition Width="90" /><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions><TextBlock Text="PASSENGER" FontSize="10" FontWeight="SemiBold" Margin="10,0" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="SEAT" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="CABIN" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" /><TextBlock Grid.Column="3" Text="STATUS" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" /></Grid>
                         <ListBox Grid.Row="1" ItemsSource="{Binding PassengerManifest}" BorderThickness="0" Background="Transparent" ScrollViewer.VerticalScrollBarVisibility="Auto">
-                            <ListBox.ItemTemplate><DataTemplate><Border BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="0,0,0,1" Padding="10,9"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.6*" /><ColumnDefinition Width="90" /><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions><TextBlock Text="{Binding FullName}" FontSize="12" FontWeight="SemiBold" /><TextBlock Grid.Column="1" Text="{Binding SeatNumber}" FontSize="12" /><TextBlock Grid.Column="2" Text="{Binding CabinClassName}" FontSize="12" /><TextBlock Grid.Column="3" Text="{Binding StatusLabel}" Foreground="{Binding StatusColor}" FontSize="11" FontWeight="SemiBold" /></Grid></Border></DataTemplate></ListBox.ItemTemplate>
+                            <ListBox.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderSoftBrush}" BorderThickness="0,0,0,1" Padding="10,9"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.6*" /><ColumnDefinition Width="90" /><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="80" /></Grid.ColumnDefinitions><TextBlock Text="{Binding FullName}" FontSize="12" FontWeight="SemiBold" /><TextBlock Grid.Column="1" Text="{Binding SeatNumber}" FontSize="12" /><TextBlock Grid.Column="2" Text="{Binding CabinClassName}" FontSize="12" /><TextBlock Grid.Column="3" Text="{Binding StatusLabel}" Foreground="{Binding StatusColor}" FontSize="11" FontWeight="SemiBold" /></Grid></Border></DataTemplate></ListBox.ItemTemplate>
                         </ListBox>
                     </Grid>
                 </Grid>

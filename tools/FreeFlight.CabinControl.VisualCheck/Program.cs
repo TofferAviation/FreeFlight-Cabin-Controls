@@ -1902,15 +1902,21 @@ internal static class Program
         themeService.Apply(AppThemeService.Dark);
         var darkSurface = application.TryFindResource("SurfaceBrush") as SolidColorBrush;
         var darkText = application.TryFindResource("TextPrimaryBrush") as SolidColorBrush;
+        var darkInfoSurface = application.TryFindResource("InfoSurfaceBrush") as SolidColorBrush;
+        var darkSuccessSurface = application.TryFindResource("SuccessSurfaceBrush") as SolidColorBrush;
         if (darkSurface?.Color != Color.FromRgb(0x10, 0x20, 0x33) ||
-            darkText?.Color != Color.FromRgb(0xF3, 0xF8, 0xFF))
+            darkText?.Color != Color.FromRgb(0xF3, 0xF8, 0xFF) ||
+            darkInfoSurface?.Color != Color.FromRgb(0x14, 0x2C, 0x47) ||
+            darkSuccessSurface?.Color != Color.FromRgb(0x17, 0x3D, 0x2B))
         {
-            throw new InvalidOperationException("Dark mode did not apply Ember's shared operational palette.");
+            throw new InvalidOperationException("Dark mode did not apply Ember's shared operational and cabin-control palette.");
         }
 
         themeService.Apply(AppThemeService.Light);
         var lightSurface = application.TryFindResource("SurfaceBrush") as SolidColorBrush;
-        if (lightSurface?.Color != Color.FromRgb(0xFF, 0xFF, 0xFF))
+        var lightInfoSurface = application.TryFindResource("InfoSurfaceBrush") as SolidColorBrush;
+        if (lightSurface?.Color != Color.FromRgb(0xFF, 0xFF, 0xFF) ||
+            lightInfoSurface?.Color != Color.FromRgb(0xEA, 0xF5, 0xFF))
         {
             throw new InvalidOperationException("Light mode did not restore Ember's shared operational palette.");
         }

@@ -34,6 +34,11 @@
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}" />
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}" />
     <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMutedColor}" />
+    <SolidColorBrush x:Key="InfoSurfaceBrush" Color="#EAF5FF" />
+    <SolidColorBrush x:Key="InfoBorderBrush" Color="#B8DDF5" />
+    <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#EAF8F1" />
+    <SolidColorBrush x:Key="SuccessBorderBrush" Color="#62BE93" />
+    <SolidColorBrush x:Key="SuccessTextBrush" Color="#0C704C" />
 
     <LinearGradientBrush x:Key="PrimaryGradientBrush" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="#1689CF" Offset="0" />
