@@ -68,6 +68,13 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     public ICommand RefreshWebsiteFlightCommand { get; }
     public ICommand EndFlightCommand { get; }
 
+    /// <summary>
+    /// Lets a downstream operational workspace refresh the authoritative BAV
+    /// selection without asking the pilot to leave that workspace first.
+    /// </summary>
+    public async Task RefreshWebsiteFlightFromWorkspaceAsync() =>
+        await RefreshWebsiteFlightAsync(isAutomatic: false);
+
     public string Email
     {
         get => _email;

@@ -2,6 +2,20 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.38] - 2026-10-03
+
+### Added
+
+- Added a selectable Light / Dark appearance in Settings. Dark mode changes Ember's shared workspace, cards, navigation and operational palette immediately without touching BAV sign-in, ACARS data or active-flight state.
+
+### Changed
+
+- iPort DCS is available whenever the pilot is signed in. If the BAV website is still preparing a briefing, pilots can now open the workspace and use **Refresh BAV flight** rather than being locked out of it.
+
+### Fixed
+
+- iPort's refresh action now requests the selected flight and its briefing from the BAV website, then updates the passenger and operational data as soon as it becomes available.
+
 ## [0.5.37] - 2026-10-03
 
 ### Added

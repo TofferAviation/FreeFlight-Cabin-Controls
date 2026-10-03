@@ -120,7 +120,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         CheckInCommand = new RelayCommand(_ => RunForSelected(_operations.CheckInPassengerCommand, "Passenger checked in."));
         BoardCommand = new RelayCommand(_ => RunForSelected(_operations.BoardPassengerCommand, "Passenger sent to boarding."));
         PrintCommand = new RelayCommand(_ => RunForSelected(_operations.PrintBoardingPassCommand, "Boarding pass sent to the selected Windows printer."));
-        RefreshCommand = new RelayCommand(_ => RefreshAll("Flight and passenger data refreshed."));
+        RefreshCommand = new AsyncRelayCommand(RefreshFromWebsiteAsync, exception => CommandStatus = $"Could not refresh the BAV flight: {exception.Message}");
         ToggleGateCommand = new RelayCommand(_ =>
         {
             _operations.ToggleGateCommand.Execute(null);
@@ -750,6 +750,19 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         RefreshMonitorEvents();
         RefreshDerivedProperties();
         CommandStatus = message;
+    }
+
+    private async Task RefreshFromWebsiteAsync()
+    {
+        if (_account.IsAuthenticated)
+        {
+            CommandStatus = "Refreshing the selected BAV flight and briefing…";
+            await _account.RefreshWebsiteFlightFromWorkspaceAsync();
+        }
+
+        RefreshAll(_operations.IsSimBriefSynced
+            ? "BAV flight and passenger briefing refreshed."
+            : "BAV flight refreshed. Its briefing is still being prepared; iPort remains available while Ember checks again.");
     }
 
     private void FinalizeLoadSheet()

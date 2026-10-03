@@ -33,6 +33,7 @@ internal static class Program
         var application = new CabinControlApplication();
         application.InitializeComponent();
         VerifyWorkspaceNavigationContrast(application);
+        VerifyThemeSwitching(application);
 
         if (UpdateService.ParseReleaseVersion("v0.3.12") != new Version(0, 3, 12) ||
             UpdateService.ParseReleaseVersion("FreeFlight-v1.4.7") != new Version(1, 4, 7) ||
@@ -1888,6 +1889,26 @@ internal static class Program
         if (labelBrush?.Color != expected || glyphBrush?.Color != expected)
         {
             throw new InvalidOperationException("Workspace navigation text and icons did not inherit the required light contrast colour.");
+        }
+    }
+
+    private static void VerifyThemeSwitching(CabinControlApplication application)
+    {
+        var themeService = new AppThemeService();
+        themeService.Apply(AppThemeService.Dark);
+        var darkSurface = application.TryFindResource("SurfaceBrush") as SolidColorBrush;
+        var darkText = application.TryFindResource("TextPrimaryBrush") as SolidColorBrush;
+        if (darkSurface?.Color != Color.FromRgb(0x10, 0x20, 0x33) ||
+            darkText?.Color != Color.FromRgb(0xF3, 0xF8, 0xFF))
+        {
+            throw new InvalidOperationException("Dark mode did not apply Ember's shared operational palette.");
+        }
+
+        themeService.Apply(AppThemeService.Light);
+        var lightSurface = application.TryFindResource("SurfaceBrush") as SolidColorBrush;
+        if (lightSurface?.Color != Color.FromRgb(0xFF, 0xFF, 0xFF))
+        {
+            throw new InvalidOperationException("Light mode did not restore Ember's shared operational palette.");
         }
     }
 

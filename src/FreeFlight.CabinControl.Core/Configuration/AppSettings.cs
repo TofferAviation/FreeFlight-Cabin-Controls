@@ -85,7 +85,7 @@ public sealed class AppSettings
 
     public bool ApplyAccountBackgroundAcrossPages { get; set; } = true;
 
-    public string Theme { get; set; } = "FreeFlight Dark";
+    public string Theme { get; set; } = "Light";
 
     public string AccentColor { get; set; } = "#1476FF";
 

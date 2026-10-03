@@ -34,6 +34,7 @@ public partial class App
         _logService = new FileLogService(Path.Combine(settingsDirectory, "logs"));
         _logService.Information("Ember starting.");
         var (settings, settingsStore, activeSettingsDirectory) = await LoadSettingsAsync(settingsDirectory);
+        new AppThemeService().Apply(settings.Theme);
 
         var vamsysService = new VamsysOAuthService(settings, activeSettingsDirectory);
         var oauthCallback = e.Args.FirstOrDefault(argument =>

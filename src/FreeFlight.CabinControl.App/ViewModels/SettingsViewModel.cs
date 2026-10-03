@@ -19,6 +19,7 @@ public sealed class SettingsViewModel : PageViewModel
     private readonly ISettingsStore _settingsStore;
     private readonly ISimulatorBridge? _simulatorBridge;
     private readonly XPlanePluginInstaller _xPlanePluginInstaller;
+    private readonly AppThemeService _themeService;
     private string _selectedSection = "General";
     private string _saveStatus = "No unsaved changes";
     private string _boardingPassPrinterStatus = "Select an installed Windows queue from Gate Desk";
@@ -31,13 +32,16 @@ public sealed class SettingsViewModel : PageViewModel
         ISettingsStore settingsStore,
         SharedStatusViewModel status,
         ISimulatorBridge? simulatorBridge = null,
-        XPlanePluginInstaller? xPlanePluginInstaller = null)
+        XPlanePluginInstaller? xPlanePluginInstaller = null,
+        AppThemeService? themeService = null)
         : base("Settings", "Application, aircraft, airline, and user preferences")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _simulatorBridge = simulatorBridge;
         _xPlanePluginInstaller = xPlanePluginInstaller ?? new XPlanePluginInstaller();
+        _themeService = themeService ?? new AppThemeService();
+        _settings.Theme = AppThemeService.Normalize(_settings.Theme);
         _xPlanePluginStatus = _xPlanePluginInstaller.GetStatus(settings.XPlaneExecutablePath);
         _selectedCabinLayoutProfile = CabinLayoutProfiles.FirstOrDefault(profile =>
             string.Equals(profile.Id, settings.PassengerCabinLayoutId, StringComparison.OrdinalIgnoreCase)) ??
@@ -88,7 +92,7 @@ public sealed class SettingsViewModel : PageViewModel
 
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
 
-    public IReadOnlyList<string> Themes { get; } = ["FreeFlight Dark"];
+    public IReadOnlyList<string> Themes { get; } = [AppThemeService.Light, AppThemeService.Dark];
 
     public IReadOnlyList<int> BoardingStartOffsets { get; } = [60, 45, 30, 20];
 
@@ -328,7 +332,10 @@ public sealed class SettingsViewModel : PageViewModel
         get => _settings.Theme;
         set
         {
-            _settings.Theme = value;
+            var normalized = AppThemeService.Normalize(value);
+            if (string.Equals(_settings.Theme, normalized, StringComparison.Ordinal)) return;
+            _settings.Theme = normalized;
+            _themeService.Apply(normalized);
             OnPropertyChanged();
             MarkDirty();
         }
