@@ -3,7 +3,11 @@ namespace FreeFlight.CabinControl.Core.Configuration;
 public sealed class AppSettings
 {
     public const string DefaultAirlinePackId = "freeflight.generic";
-    public const string BritishAirwaysVirtualWebsiteUrl = "https://britishairwaysva.co.uk";
+    // This must follow the production website address. Ember signs pilots in,
+    // loads their assignment, and submits ACARS telemetry through this origin.
+    // The former britishairwaysva.co.uk address is no longer a valid HTTPS API
+    // destination, so retaining it would leave every installed client offline.
+    public const string BritishAirwaysVirtualWebsiteUrl = "https://virtualairline.co.uk";
 
     public string UserDisplayName { get; set; } = "FreeFlight User";
 

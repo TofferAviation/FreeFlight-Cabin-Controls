@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.33] - 2026-10-03
+
+### Fixed
+
+- Ember now connects to the live `virtualairline.co.uk` ACARS service for BAV account sign-in, flight assignment, Fleet coordination, live telemetry and automatic PIREP completion. Existing local settings are corrected automatically; no pilot needs to change an address or re-enter a website password.
+
 ## [0.5.32] - 2026-09-27
 
 ### Fixed
