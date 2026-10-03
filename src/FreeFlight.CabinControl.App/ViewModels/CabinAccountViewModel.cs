@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Input;
+using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
@@ -26,8 +27,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private IReadOnlyList<FleetPilotNotificationDto> _notifications = [];
     private int _unreadNotificationCount;
     private FleetAcarsSessionDto? _activeAcarsSession;
-    private string _flightPlanLinkLabel = "Choose a BAV flight, then import SimBrief to verify the route.";
-    private string _flightPlanLinkDetail = "Ember will prevent an aircraft lifecycle from starting when the two flights disagree.";
+    private string _flightPlanLinkLabel = "Choose a BAV website flight to prepare your route.";
+    private string _flightPlanLinkDetail = "Ember waits for the matching website briefing before loading the passenger plan.";
     private bool _hasSimBriefFlightPlan;
     private bool _isFlightPlanLinked;
     private string _acarsSessionLabel = "No active ACARS flight";
@@ -37,6 +38,11 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private bool _rememberSignIn = true;
     private bool _isManualEndConfirmationPending;
     private ImageSource? _profileImageSource;
+    private readonly DispatcherTimer _websiteBriefingPollTimer;
+    private string? _briefingWatchAssignmentId;
+    private int _remainingBriefingRefreshAttempts;
+
+    private const int WebsiteBriefingRefreshAttemptLimit = 6;
 
     public CabinAccountViewModel(AppSettings settings, FleetApiClient apiClient, BavAccountSessionStore? sessionStore = null)
         : base("BAV Account", "Your British Airways Virtual identity for Fleet operations")
@@ -48,6 +54,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         SignOutCommand = new AsyncRelayCommand(SignOutAsync, exception => StatusMessage = exception.Message);
         RefreshWebsiteFlightCommand = new AsyncRelayCommand(RefreshWebsiteFlightAsync, exception => StatusMessage = exception.Message);
         EndFlightCommand = new AsyncRelayCommand(RequestManualFlightCompletionAsync, exception => StatusMessage = exception.Message);
+        _websiteBriefingPollTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+        _websiteBriefingPollTimer.Tick += HandleWebsiteBriefingPollTick;
     }
 
     public event EventHandler? SessionChanged;
@@ -146,6 +154,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(HasWebsiteFlightAssignment));
             OnPropertyChanged(nameof(WebsiteFlightAssignmentLabel));
             OnPropertyChanged(nameof(WebsiteFlightAssignmentDetail));
+            OnPropertyChanged(nameof(WebsiteBriefingStatusLabel));
+            OnPropertyChanged(nameof(WebsiteBriefingStatusDetail));
             SessionChanged?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -267,6 +277,20 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     public string WebsiteFlightAssignmentDetail => WebsiteFlightAssignment is null
         ? "Choose a flight on the BAV website, then refresh it here."
         : $"{WebsiteFlightAssignment.Date} · {WebsiteFlightAssignment.Aircraft} · dep {WebsiteFlightAssignment.Departure}";
+
+    public string WebsiteBriefingStatusLabel => HasReadyWebsiteBriefing
+        ? "Website briefing ready"
+        : WebsiteFlightAssignment is null
+            ? "No website flight selected"
+            : "Website briefing is being prepared";
+
+    public string WebsiteBriefingStatusDetail => HasReadyWebsiteBriefing
+        ? "The matching briefing and passenger data are ready in Ember."
+        : WebsiteFlightAssignment is null
+            ? "Select a flight on the BAV website, then refresh Ember."
+            : _websiteBriefingPollTimer.IsEnabled
+                ? "Ember is checking the BAV website automatically. You can also refresh now."
+                : "Refresh from the BAV website when the flight briefing is ready.";
 
     public bool IsBusy
     {
@@ -540,7 +564,9 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
     public void ReportAutomaticAssignmentImport(string message) => StatusMessage = message;
 
-    private async Task RefreshWebsiteFlightAsync()
+    private async Task RefreshWebsiteFlightAsync() => await RefreshWebsiteFlightAsync(isAutomatic: false);
+
+    private async Task RefreshWebsiteFlightAsync(bool isAutomatic)
     {
         var account = Session ?? throw new FleetApiException("Sign in with your BAV website account first.");
         IsBusy = true;
@@ -568,6 +594,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             var previousBriefingRevision = BuildBriefingRevision(WebsiteFlightAssignment?.Briefing);
             var assignment = await _apiClient.GetWebsiteFlightAssignmentAsync(_settings, account);
             WebsiteFlightAssignment = assignment;
+            UpdateWebsiteBriefingWatch(assignment, reset: !isAutomatic);
             try
             {
                 OperationsFlights = await _apiClient.GetOperationsFlightsAsync(_settings, account);
@@ -589,7 +616,9 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             }
             StatusMessage = WebsiteFlightAssignment is null
                 ? "No active flight is selected on the BAV website. Choose one there, then refresh this page."
-                : $"Loaded {WebsiteFlightAssignment.FlightNumber} from your BAV account. Fleet aircraft selection now uses this flight.";
+                : HasReadyWebsiteBriefing
+                    ? $"Loaded {WebsiteFlightAssignment.FlightNumber} and its website briefing. Your aircraft and passenger plan are ready in Ember."
+                    : $"Loaded {WebsiteFlightAssignment.FlightNumber}. Its BAV website briefing is still being prepared; Ember will check automatically.";
             if (assignment is not null)
             {
                 WebsiteFlightAssignmentRefreshed?.Invoke(
@@ -616,6 +645,64 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         UnreadNotificationCount = Math.Max(0, response.UnreadCount);
     }
 
+    private bool HasReadyWebsiteBriefing =>
+        string.Equals(WebsiteFlightAssignment?.Briefing?.Status, "synced", StringComparison.OrdinalIgnoreCase) &&
+        WebsiteFlightAssignment?.Briefing?.Briefing is not null;
+
+    private void UpdateWebsiteBriefingWatch(FleetWebsiteFlightAssignmentDto? assignment, bool reset)
+    {
+        if (assignment is null || HasReadyWebsiteBriefing)
+        {
+            _websiteBriefingPollTimer.Stop();
+            _briefingWatchAssignmentId = null;
+            _remainingBriefingRefreshAttempts = 0;
+            OnPropertyChanged(nameof(WebsiteBriefingStatusDetail));
+            return;
+        }
+
+        if (reset || !string.Equals(_briefingWatchAssignmentId, assignment.Id, StringComparison.Ordinal))
+        {
+            _briefingWatchAssignmentId = assignment.Id;
+            _remainingBriefingRefreshAttempts = WebsiteBriefingRefreshAttemptLimit;
+        }
+
+        if (_remainingBriefingRefreshAttempts > 0)
+        {
+            _websiteBriefingPollTimer.Start();
+        }
+
+        OnPropertyChanged(nameof(WebsiteBriefingStatusDetail));
+    }
+
+    private async void HandleWebsiteBriefingPollTick(object? sender, EventArgs e)
+    {
+        if (!IsAuthenticated || WebsiteFlightAssignment is null || HasReadyWebsiteBriefing || _remainingBriefingRefreshAttempts <= 0)
+        {
+            _websiteBriefingPollTimer.Stop();
+            OnPropertyChanged(nameof(WebsiteBriefingStatusDetail));
+            return;
+        }
+
+        if (IsBusy)
+        {
+            return;
+        }
+
+        _remainingBriefingRefreshAttempts--;
+        try
+        {
+            await RefreshWebsiteFlightAsync(isAutomatic: true);
+        }
+        catch (FleetApiException)
+        {
+            // Keep the existing flight visible if a short-lived website
+            // request fails. Pilots can still retry manually from My Flight.
+            _websiteBriefingPollTimer.Stop();
+            StatusMessage = "Ember could not refresh the website briefing automatically. Select Refresh flight from website to try again.";
+            OnPropertyChanged(nameof(WebsiteBriefingStatusDetail));
+        }
+    }
+
     private static string BuildBriefingRevision(FleetWebsiteFlightBriefingDto? briefing) =>
         briefing is null
             ? string.Empty
@@ -636,7 +723,12 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         StatusMessage = $"Recovered active ACARS session for {recovered.FlightNumber}. Telemetry will continue in the background.";
     }
 
-    public void Dispose() => _apiClient.Dispose();
+    public void Dispose()
+    {
+        _websiteBriefingPollTimer.Stop();
+        _websiteBriefingPollTimer.Tick -= HandleWebsiteBriefingPollTick;
+        _apiClient.Dispose();
+    }
 
     private static ImageSource? LoadProfileImage(string? dataUrl)
     {

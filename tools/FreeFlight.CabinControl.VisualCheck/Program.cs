@@ -32,6 +32,7 @@ internal static class Program
 
         var application = new CabinControlApplication();
         application.InitializeComponent();
+        VerifyWorkspaceNavigationContrast(application);
 
         if (UpdateService.ParseReleaseVersion("v0.3.12") != new Version(0, 3, 12) ||
             UpdateService.ParseReleaseVersion("FreeFlight-v1.4.7") != new Version(1, 4, 7) ||
@@ -1852,6 +1853,42 @@ internal static class Program
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path);
         encoder.Save(stream);
+    }
+
+    private static void VerifyWorkspaceNavigationContrast(CabinControlApplication application)
+    {
+        var navigation = new RadioButton
+        {
+            Content = "My flight",
+            Tag = "\uE70F",
+            Foreground = new SolidColorBrush(Color.FromRgb(0xED, 0xF6, 0xFF)),
+            Style = (Style)application.FindResource("NavRadioStyle")
+        };
+        var window = new Window
+        {
+            Content = navigation,
+            Width = 220,
+            Height = 80,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -20000,
+            Top = 0,
+            ShowActivated = false,
+            ShowInTaskbar = false
+        };
+        window.Show();
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+
+        var label = FindVisualChild<TextBlock>(navigation, textBlock => textBlock.Text == "My flight");
+        var glyph = FindVisualChild<TextBlock>(navigation, textBlock => textBlock.Text == "\uE70F");
+        var expected = Color.FromRgb(0xED, 0xF6, 0xFF);
+        var labelBrush = label?.Foreground as SolidColorBrush;
+        var glyphBrush = glyph?.Foreground as SolidColorBrush;
+        window.Close();
+
+        if (labelBrush?.Color != expected || glyphBrush?.Color != expected)
+        {
+            throw new InvalidOperationException("Workspace navigation text and icons did not inherit the required light contrast colour.");
+        }
     }
 
     private static void VerifyLocalVideoCanOpen(string path)

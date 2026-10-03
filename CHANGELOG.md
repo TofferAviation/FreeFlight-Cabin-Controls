@@ -2,6 +2,15 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.36] - 2026-10-03
+
+### Fixed
+
+- Restored readable, high-contrast labels and icons throughout Ember's dark navigation rail. The navigation template now carries its intended light foreground correctly, and the visual release check verifies that contrast.
+- Made the website-briefing wait state actionable: Ember now briefly rechecks the selected BAV flight automatically while its website briefing is prepared, and pilots can refresh the briefing directly from the Overview.
+- iPort DCS now remains unavailable until the verified BAV website briefing and passenger plan have arrived, avoiding an empty operational workspace that looked ready when it was not.
+- Clarified My Flight and Overview wording so pilots see the BAV briefing state rather than legacy local-import terminology.
+
 ## [0.5.35] - 2026-10-03
 
 ### Changed

@@ -62,9 +62,9 @@
                         </StackPanel>
                         <Border Grid.Column="1" Background="#2500162B" BorderBrush="#45FFFFFF" BorderThickness="1" CornerRadius="9" Padding="16" VerticalAlignment="Center">
                             <StackPanel>
-                                <TextBlock Text="FLIGHT PLAN" Foreground="#BFE9FF" FontSize="10" FontWeight="SemiBold" />
-                                <TextBlock Text="{Binding FlightPlanLinkLabel}" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0" />
-                                <TextBlock Text="{Binding FlightPlanLinkDetail}" Foreground="#D7F1FF" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                <TextBlock Text="BAV BRIEFING" Foreground="#BFE9FF" FontSize="10" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding WebsiteBriefingStatusLabel}" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                <TextBlock Text="{Binding WebsiteBriefingStatusDetail}" Foreground="#D7F1FF" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
                             </StackPanel>
                         </Border>
                     </Grid>

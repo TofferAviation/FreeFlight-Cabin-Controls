@@ -86,6 +86,7 @@
                                              Command="{Binding NavigateCommand}" CommandParameter="Performance" />
                                 <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="iPort DCS" Tag="&#xE8A5;" GroupName="Navigation"
                                              IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=IportDcs, Mode=OneWay}"
+                                             IsEnabled="{Binding Operations.IsSimBriefSynced}"
                                              Command="{Binding NavigateCommand}" CommandParameter="IportDcs" />
 
                                 <TextBlock Text="PERSONAL" Style="{StaticResource WorkspaceNavLabelStyle}" />

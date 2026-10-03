@@ -125,10 +125,13 @@
                             <TextBlock Text="{TemplateBinding Tag}"
                                        FontFamily="Segoe Fluent Icons"
                                        FontSize="24"
+                                       Foreground="{TemplateBinding Foreground}"
                                        VerticalAlignment="Center" />
-                            <ContentPresenter Grid.Column="1"
-                                              VerticalAlignment="Center"
-                                              Margin="8,0,0,0" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,0,0" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
