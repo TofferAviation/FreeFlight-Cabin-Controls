@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.39] - 2026-10-03
+
+### Fixed
+
+- Fixed the Ember 0.5.38 startup crash caused by Windows marking the theme brushes read-only. Ember now loads the saved Light or Dark appearance safely before it creates the pilot workspace.
+- Clarified the appearance control: choose Light or Dark, save the preference, then restart Ember to apply it. This keeps active ACARS work and BAV sign-in untouched.
+
 ## [0.5.38] - 2026-10-03
 
 ### Added

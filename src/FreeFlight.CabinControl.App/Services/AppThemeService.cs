@@ -4,9 +4,9 @@ using System.Windows.Media;
 namespace FreeFlight.CabinControl.App.Services;
 
 /// <summary>
-/// Applies Ember's shared operational palette without replacing any live
-/// page or ACARS state.  Every common brush is mutated in place so existing
-/// pages update immediately when a pilot changes appearance.
+/// Applies Ember's shared operational palette before the main workspace is
+/// created.  WPF freezes XAML resources, so the palette is safely replaced in
+/// its source dictionary rather than mutating a read-only brush at startup.
 /// </summary>
 public sealed class AppThemeService
 {
@@ -23,44 +23,55 @@ public sealed class AppThemeService
         var isDark = string.Equals(Normalize(theme), Dark, StringComparison.Ordinal);
         var palette = isDark ? Palette.Dark : Palette.Light;
 
-        SetBrush("AppBackgroundBrush", palette.AppBackground);
-        SetBrush("SidebarBrush", palette.Sidebar);
-        SetBrush("SurfaceBrush", palette.Surface);
-        SetBrush("SurfaceRaisedBrush", palette.SurfaceRaised);
-        SetBrush("BorderBrush", palette.Border);
-        SetBrush("BorderSoftBrush", palette.BorderSoft);
-        SetBrush("PrimaryBrush", palette.Primary);
-        SetBrush("PrimaryDeepBrush", palette.PrimaryDeep);
-        SetBrush("CyanBrush", palette.Cyan);
-        SetBrush("SuccessBrush", palette.Success);
-        SetBrush("WarningBrush", palette.Warning);
-        SetBrush("DangerBrush", palette.Danger);
-        SetBrush("TextPrimaryBrush", palette.TextPrimary);
-        SetBrush("TextSecondaryBrush", palette.TextSecondary);
-        SetBrush("TextMutedBrush", palette.TextMuted);
-        SetGradient("PrimaryGradientBrush", palette.PrimaryGradientStart, palette.PrimaryGradientEnd);
-        SetGradient("AmbientGlowBrush", palette.GlowStart, palette.GlowMiddle, "#00000000");
-    }
-
-    private static void SetBrush(string key, string hex)
-    {
-        if (Application.Current?.TryFindResource(key) is SolidColorBrush brush)
-        {
-            brush.Color = (Color)ColorConverter.ConvertFromString(hex)!;
-        }
-    }
-
-    private static void SetGradient(string key, params string[] colors)
-    {
-        if (Application.Current?.TryFindResource(key) is not GradientBrush brush)
+        var resources = FindThemeResources();
+        if (resources is null)
         {
             return;
         }
 
-        for (var index = 0; index < Math.Min(brush.GradientStops.Count, colors.Length); index++)
+        SetBrush(resources, "AppBackgroundBrush", palette.AppBackground);
+        SetBrush(resources, "SidebarBrush", palette.Sidebar);
+        SetBrush(resources, "SurfaceBrush", palette.Surface);
+        SetBrush(resources, "SurfaceRaisedBrush", palette.SurfaceRaised);
+        SetBrush(resources, "BorderBrush", palette.Border);
+        SetBrush(resources, "BorderSoftBrush", palette.BorderSoft);
+        SetBrush(resources, "PrimaryBrush", palette.Primary);
+        SetBrush(resources, "PrimaryDeepBrush", palette.PrimaryDeep);
+        SetBrush(resources, "CyanBrush", palette.Cyan);
+        SetBrush(resources, "SuccessBrush", palette.Success);
+        SetBrush(resources, "WarningBrush", palette.Warning);
+        SetBrush(resources, "DangerBrush", palette.Danger);
+        SetBrush(resources, "TextPrimaryBrush", palette.TextPrimary);
+        SetBrush(resources, "TextSecondaryBrush", palette.TextSecondary);
+        SetBrush(resources, "TextMutedBrush", palette.TextMuted);
+        SetGradient(resources, "PrimaryGradientBrush", palette.PrimaryGradientStart, palette.PrimaryGradientEnd);
+        SetGradient(resources, "AmbientGlowBrush", palette.GlowStart, palette.GlowMiddle, "#00000000");
+    }
+
+    private static ResourceDictionary? FindThemeResources()
+    {
+        var applicationResources = Application.Current?.Resources;
+        return applicationResources?.MergedDictionaries.FirstOrDefault(dictionary =>
+                   dictionary.Contains("AppBackgroundBrush")) ?? applicationResources;
+    }
+
+    private static void SetBrush(ResourceDictionary resources, string key, string hex) =>
+        resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)!);
+
+    private static void SetGradient(ResourceDictionary resources, string key, params string[] colors)
+    {
+        if (resources[key] is not GradientBrush source)
         {
-            brush.GradientStops[index].Color = (Color)ColorConverter.ConvertFromString(colors[index])!;
+            return;
         }
+
+        var replacement = source.Clone();
+        for (var index = 0; index < Math.Min(replacement.GradientStops.Count, colors.Length); index++)
+        {
+            replacement.GradientStops[index].Color = (Color)ColorConverter.ConvertFromString(colors[index])!;
+        }
+
+        resources[key] = replacement;
     }
 
     private sealed record Palette(

@@ -19,7 +19,6 @@ public sealed class SettingsViewModel : PageViewModel
     private readonly ISettingsStore _settingsStore;
     private readonly ISimulatorBridge? _simulatorBridge;
     private readonly XPlanePluginInstaller _xPlanePluginInstaller;
-    private readonly AppThemeService _themeService;
     private string _selectedSection = "General";
     private string _saveStatus = "No unsaved changes";
     private string _boardingPassPrinterStatus = "Select an installed Windows queue from Gate Desk";
@@ -32,15 +31,13 @@ public sealed class SettingsViewModel : PageViewModel
         ISettingsStore settingsStore,
         SharedStatusViewModel status,
         ISimulatorBridge? simulatorBridge = null,
-        XPlanePluginInstaller? xPlanePluginInstaller = null,
-        AppThemeService? themeService = null)
+        XPlanePluginInstaller? xPlanePluginInstaller = null)
         : base("Settings", "Application, aircraft, airline, and user preferences")
     {
         _settings = settings;
         _settingsStore = settingsStore;
         _simulatorBridge = simulatorBridge;
         _xPlanePluginInstaller = xPlanePluginInstaller ?? new XPlanePluginInstaller();
-        _themeService = themeService ?? new AppThemeService();
         _settings.Theme = AppThemeService.Normalize(_settings.Theme);
         _xPlanePluginStatus = _xPlanePluginInstaller.GetStatus(settings.XPlaneExecutablePath);
         _selectedCabinLayoutProfile = CabinLayoutProfiles.FirstOrDefault(profile =>
@@ -335,9 +332,8 @@ public sealed class SettingsViewModel : PageViewModel
             var normalized = AppThemeService.Normalize(value);
             if (string.Equals(_settings.Theme, normalized, StringComparison.Ordinal)) return;
             _settings.Theme = normalized;
-            _themeService.Apply(normalized);
             OnPropertyChanged();
-            MarkDirty();
+            SaveStatus = "Appearance will apply the next time Ember starts";
         }
     }
 
