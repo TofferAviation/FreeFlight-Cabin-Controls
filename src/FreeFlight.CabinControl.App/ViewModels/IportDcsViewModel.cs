@@ -56,7 +56,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     private string _appliedLiveAircraftProfile = string.Empty;
 
     public IportDcsViewModel(GateOperationsViewModel operations, GateLoginViewModel gateLogin, CabinAccountViewModel account)
-        : base("Iport DCS", "Advanced coded departure-control workspace")
+        : base("iGate", "Ember departure, boarding and load-control workspace")
     {
         _operations = operations;
         _gateLogin = gateLogin;
@@ -282,15 +282,15 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
     public bool IsLoadControlPlaceholder => IsLoadControlService && ActiveModule != LoadControlModule;
 
-    public bool IsServicePlaceholder => ActiveModule is GateControlModule or LostAndFoundModule or
+    public bool IsServicePlaceholder => ActiveModule is SeatmapModule or GateControlModule or LostAndFoundModule or
         DatabaseManagementModule or AutomationModule or MyAccountModule or SupportModule or
         Res2SupportModule or MessagesModule;
 
     public string PlaceholderTitle => ActiveModule;
 
     public string PlaceholderDescription => IsLoadControlPlaceholder
-        ? "The genuine iPortflight page is retained in the Load Control workspace and will be completed when its operational reference is supplied."
-        : "This service remains available in the authentic Res2 menu. Its operational screen will be added when the real reference page is supplied.";
+        ? "iGate keeps the flight's live passenger, baggage and weight figures together in one Ember workspace."
+        : "This iGate service is ready to be expanded as its operational workflow is introduced.";
 
     public string PassengerLookup
     {
@@ -322,7 +322,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
             if (value is { IsCurrentPilot: false })
             {
-                CommandStatus = $"{value.FlightNumber} is listed for operational awareness only. Only its assigned BAV pilot can open or change that iPort flight.";
+                CommandStatus = $"{value.FlightNumber} is listed for operational awareness only. Only its assigned BAV pilot can open or change that iGate flight.";
                 return;
             }
 
@@ -479,6 +479,22 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
     }
 
     public int TakeoffWeightKg => ZeroFuelWeightKg + TakeoffFuelKg + AdditionalWeightKg;
+
+    // The take-off mass is the final operational aircraft weight: dry operating
+    // weight, actual passenger/baggage load, take-off fuel and any authorised
+    // additional load.  It remains derived from the live figures, never a
+    // separately editable value.
+    public int FinalAircraftWeightKg => TakeoffWeightKg;
+
+    public int TakeoffWeightMarginKg => Math.Max(0, MaxTakeoffWeightKg - FinalAircraftWeightKg);
+
+    public string FinalAircraftWeightLabel => FinalAircraftWeightKg > MaxTakeoffWeightKg
+        ? $"OVER TAKE-OFF LIMIT BY {FinalAircraftWeightKg - MaxTakeoffWeightKg:N0} kg"
+        : $"{TakeoffWeightMarginKg:N0} kg below take-off limit";
+
+    public string FinalAircraftWeightStatusColor => FinalAircraftWeightKg > MaxTakeoffWeightKg
+        ? "#C61D2F"
+        : IsLoadSheetFinalized ? "#16843D" : "#0B73B9";
 
     public int TaxiFuelKg
     {
@@ -762,7 +778,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
         RefreshAll(_operations.IsSimBriefSynced
             ? "BAV flight and passenger briefing refreshed."
-            : "BAV flight refreshed. Its briefing is still being prepared; iPort remains available while Ember checks again.");
+            : "BAV flight refreshed. Its briefing is still being prepared; iGate remains available while Ember checks again.");
     }
 
     private void FinalizeLoadSheet()
@@ -794,7 +810,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
 
         var dialog = new SaveFileDialog
         {
-            Title = "Export final FreeFlight load sheet",
+            Title = "Export final iGate load sheet",
             Filter = "Operational load sheet (*.txt)|*.txt|All files (*.*)|*.*",
             DefaultExt = ".txt",
             AddExtension = true,
@@ -807,7 +823,7 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         }
 
         var content = new StringBuilder()
-            .AppendLine("FREEFLIGHT CABIN CONTROL — FINAL OPERATIONAL LOAD SHEET")
+            .AppendLine("EMBER iGATE — FINAL OPERATIONAL LOAD SHEET")
             .AppendLine(new string('=', 68))
             .AppendLine($"FLIGHT       {_operations.FlightNumber}")
             .AppendLine($"ROUTE        {_operations.OriginIata} - {_operations.DestinationIata}")
@@ -830,7 +846,8 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
             .AppendLine($"  Taxi fuel        {TaxiFuelKg:N0} kg")
             .AppendLine($"  Trip fuel        {TripFuelKg:N0} kg")
             .AppendLine($"  Ramp weight      {RampWeightKg:N0} kg  (limit {MaxRampWeightKg:N0})")
-            .AppendLine($"  Takeoff weight   {TakeoffWeightKg:N0} kg  (limit {MaxTakeoffWeightKg:N0})")
+            .AppendLine($"  Final aircraft   {FinalAircraftWeightKg:N0} kg  (take-off limit {MaxTakeoffWeightKg:N0})")
+            .AppendLine($"  Takeoff margin   {TakeoffWeightMarginKg:N0} kg")
             .AppendLine($"  Landing weight   {LandingWeightKg:N0} kg  (limit {MaxLandingWeightKg:N0})")
             .AppendLine($"  Underload        {UnderloadKg:N0} kg")
             .AppendLine()
@@ -1036,6 +1053,10 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(TrafficLoadDeltaKg));
         OnPropertyChanged(nameof(ZeroFuelWeightKg));
         OnPropertyChanged(nameof(TakeoffWeightKg));
+        OnPropertyChanged(nameof(FinalAircraftWeightKg));
+        OnPropertyChanged(nameof(TakeoffWeightMarginKg));
+        OnPropertyChanged(nameof(FinalAircraftWeightLabel));
+        OnPropertyChanged(nameof(FinalAircraftWeightStatusColor));
         OnPropertyChanged(nameof(LandingWeightKg));
         OnPropertyChanged(nameof(RampWeightKg));
         OnPropertyChanged(nameof(EstimatedZeroFuelWeightKg));
@@ -1068,6 +1089,10 @@ public sealed class IportDcsViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(TrafficLoadDeltaKg));
         OnPropertyChanged(nameof(ZeroFuelWeightKg));
         OnPropertyChanged(nameof(TakeoffWeightKg));
+        OnPropertyChanged(nameof(FinalAircraftWeightKg));
+        OnPropertyChanged(nameof(TakeoffWeightMarginKg));
+        OnPropertyChanged(nameof(FinalAircraftWeightLabel));
+        OnPropertyChanged(nameof(FinalAircraftWeightStatusColor));
         OnPropertyChanged(nameof(LandingWeightKg));
         OnPropertyChanged(nameof(RampWeightKg));
         OnPropertyChanged(nameof(EstimatedZeroFuelWeightKg));

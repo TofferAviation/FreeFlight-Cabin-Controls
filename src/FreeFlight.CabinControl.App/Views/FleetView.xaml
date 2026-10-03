@@ -4,18 +4,219 @@
     <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
         <StackPanel>
             <Grid Margin="0,0,0,16">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <StackPanel><TextBlock Text="FLEET" Foreground="{StaticResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="Aircraft" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" /><TextBlock Text="Live availability, technical records and the airframe allocated to your flight." Style="{StaticResource PageSubtitleStyle}" /></StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="{Binding LastSynchronizedLabel}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0" /><Button Content="Refresh fleet" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButtonStyle}" IsEnabled="{Binding IsSynchronizing, Converter={StaticResource InverseBooleanConverter}}" /></StackPanel>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="FLEET" Foreground="{StaticResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Aircraft" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
+                    <TextBlock Text="Live availability, technical records and the airframe allocated to your flight."
+                               Style="{StaticResource PageSubtitleStyle}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding LastSynchronizedLabel}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0" />
+                    <Button Content="Refresh fleet"
+                            Command="{Binding RefreshCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            IsEnabled="{Binding IsSynchronizing, Converter={StaticResource InverseBooleanConverter}}" />
+                </StackPanel>
             </Grid>
 
-            <Border CornerRadius="12" Padding="23" Margin="0,0,0,16"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#063A61" Offset="0" /><GradientStop Color="#0E6DA6" Offset="0.64" /><GradientStop Color="#1790C5" Offset="1" /></LinearGradientBrush></Border.Background><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="280" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="FLIGHT ASSIGNMENT" Foreground="#C9EDFF" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="{Binding FlightAssignmentLabel}" Foreground="White" FontSize="24" FontWeight="SemiBold" Margin="0,6,0,0" /><TextBlock Text="{Binding FlightAssignmentStatus}" Foreground="#DDF3FF" FontSize="12" TextWrapping="Wrap" Margin="0,7,0,0" /></StackPanel><Border Grid.Column="1" Background="#2500162B" BorderBrush="#48FFFFFF" BorderThickness="1" CornerRadius="9" Padding="15" VerticalAlignment="Center"><StackPanel><TextBlock Text="FLEET CONNECTION" Foreground="#C9EDFF" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="{Binding ConnectionLabel}" Foreground="White" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,0" /><TextBlock Text="{Binding ConnectionDetail}" Foreground="#DDF3FF" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" /></StackPanel></Border></Grid></Border>
+            <Border CornerRadius="12" Padding="23" Margin="0,0,0,16">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#063A61" Offset="0" />
+                        <GradientStop Color="#0E6DA6" Offset="0.64" />
+                        <GradientStop Color="#1790C5" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="280" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="FLIGHT ASSIGNMENT" Foreground="#C9EDFF" FontSize="10" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding FlightAssignmentLabel}" Foreground="White" FontSize="24" FontWeight="SemiBold" Margin="0,6,0,0" />
+                        <TextBlock Text="{Binding FlightAssignmentStatus}" Foreground="#DDF3FF" FontSize="12" TextWrapping="Wrap" Margin="0,7,0,0" />
+                    </StackPanel>
+                    <Border Grid.Column="1" Background="#2500162B" BorderBrush="#48FFFFFF" BorderThickness="1" CornerRadius="9" Padding="15" VerticalAlignment="Center">
+                        <StackPanel>
+                            <TextBlock Text="FLEET CONNECTION" Foreground="#C9EDFF" FontSize="10" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding ConnectionLabel}" Foreground="White" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,0" />
+                            <TextBlock Text="{Binding ConnectionDetail}" Foreground="#DDF3FF" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
 
-            <UniformGrid Columns="4" Margin="0,0,0,16"><Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0"><StackPanel><TextBlock Text="TOTAL AIRCRAFT" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding FleetCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Border><Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0"><StackPanel><TextBlock Text="IN SERVICE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding InServiceCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Border><Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0"><StackPanel><TextBlock Text="MAINTENANCE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding MaintenanceCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Border><Border Style="{StaticResource CardStyle}" Padding="16"><StackPanel><TextBlock Text="RESTRICTIONS" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding RestrictionCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel></Border></UniformGrid>
+            <UniformGrid Columns="4" Margin="0,0,0,16">
+                <Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0">
+                    <StackPanel><TextBlock Text="TOTAL AIRCRAFT" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding FleetCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0">
+                    <StackPanel><TextBlock Text="IN SERVICE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding InServiceCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0">
+                    <StackPanel><TextBlock Text="MAINTENANCE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding MaintenanceCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                </Border>
+                <Border Style="{StaticResource CardStyle}" Padding="16">
+                    <StackPanel><TextBlock Text="RESTRICTIONS" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding RestrictionCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                </Border>
+            </UniformGrid>
 
-            <Grid Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions><Border Style="{StaticResource CardStyle}" Margin="0,0,10,0"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><Grid><StackPanel><TextBlock Text="AVAILABLE AIRCRAFT" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Select an airframe to review its current record." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,3,0,0" /></StackPanel><TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="180" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Search registration, type or station" /></Grid><ListBox Grid.Row="1" ItemsSource="{Binding VisibleAircraft}" SelectedItem="{Binding SelectedAircraft}" BorderThickness="0" Background="Transparent" Margin="0,16,0,0" Height="330"><ListBox.ItemTemplate><DataTemplate><Border BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="0,0,0,1" Padding="0,10"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.25*" /><ColumnDefinition Width="1.15*" /><ColumnDefinition Width="90" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding Registration}" FontWeight="SemiBold" FontSize="13" /><TextBlock Text="{Binding AircraftType}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,3,0,0" /></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="{Binding Station}" FontSize="11" /><TextBlock Text="{Binding FlightHours}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" Margin="0,3,0,0" /></StackPanel><TextBlock Grid.Column="2" Text="{Binding DispatchStatus}" Foreground="{Binding DispatchStatusBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" /></Grid></Border></DataTemplate></ListBox.ItemTemplate></ListBox></Grid></Border><Border Grid.Column="1" Style="{StaticResource CardStyle}"><Grid><StackPanel Visibility="{Binding HasSelectedAircraft, Converter={StaticResource BooleanToVisibilityConverter}}"><TextBlock Text="SELECTED AIRCRAFT" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding SelectedAircraft.Registration}" Foreground="{StaticResource PrimaryBrush}" FontSize="25" FontWeight="SemiBold" Margin="0,10,0,0" /><TextBlock Text="{Binding SelectedAircraft.AircraftType}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="0,3,0,0" /><Grid Margin="0,20,0,0"><TextBlock Text="Operational status" FontSize="12" /><TextBlock Text="{Binding SelectedAircraft.OperationalStatus}" Foreground="{Binding SelectedAircraft.OperationalStatusBrush}" HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" /></Grid><Grid Margin="0,11,0,0"><TextBlock Text="Technical status" FontSize="12" /><TextBlock Text="{Binding SelectedAircraft.TechnicalStatus}" Foreground="{Binding SelectedAircraft.TechnicalStatusBrush}" HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" /></Grid><Grid Margin="0,11,0,0"><TextBlock Text="Hours / cycles" FontSize="12" /><TextBlock Text="{Binding SelectedAircraft.FlightHours}" HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" /></Grid><TextBlock Text="{Binding DetailStatusLabel}" Foreground="{Binding DetailStatusColor}" FontSize="11" TextWrapping="Wrap" Margin="0,18,0,0" /><StackPanel Orientation="Horizontal" Margin="0,16,0,0"><Button Content="Reserve for my flight" Command="{Binding ReserveAircraftCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0" IsEnabled="{Binding IsFlightReserved, Converter={StaticResource InverseBooleanConverter}}" /><Button Content="Release" Command="{Binding ReleaseAircraftCommand}" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="{Binding IsFlightReserved}" /></StackPanel></StackPanel><StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding HasSelectedAircraft, Converter={StaticResource InverseBooleanToVisibilityConverter}}"><TextBlock Text="Select an aircraft" Style="{StaticResource SectionTitleStyle}" HorizontalAlignment="Center" /><TextBlock Text="Live aircraft will appear here after a BAV fleet refresh." Style="{StaticResource MutedTextStyle}" TextAlignment="Center" TextWrapping="Wrap" Width="250" Margin="0,8,0,0" /></StackPanel></Grid></Border></Grid>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.1*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
 
-            <Border Style="{StaticResource CardStyle}"><Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions><Grid><StackPanel><TextBlock Text="CABIN DEFECT REPORT" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Report only observations from this aircraft to the permanent fleet technical record." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,3,0,0" /></StackPanel><Button Content="Report an issue" Command="{Binding OpenDefectReportCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" /></Grid><Grid Grid.Row="1" Visibility="{Binding IsDefectReportOpen, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,18,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*" /><ColumnDefinition Width="130" /><ColumnDefinition Width="130" /><ColumnDefinition Width="1.8*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ComboBox ItemsSource="{Binding DefectCategories}" SelectedItem="{Binding DefectCategory}" Margin="0,0,8,0" /><ComboBox Grid.Column="1" ItemsSource="{Binding DefectSeverities}" SelectedItem="{Binding DefectSeverity}" Margin="0,0,8,0" /><ComboBox Grid.Column="2" ItemsSource="{Binding DefectDispatchImpacts}" SelectedItem="{Binding DefectDispatchImpact}" Margin="0,0,8,0" /><TextBox Grid.Column="3" Text="{Binding DefectDescription, UpdateSourceTrigger=PropertyChanged}" ToolTip="Describe the observation" /><Button Grid.Column="4" Content="Submit" Command="{Binding SubmitDefectReportCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="8,0,0,0" /></Grid><TextBlock Grid.Row="2" Text="{Binding DefectReportStatus}" Foreground="{Binding DefectReportStatusColor}" FontSize="11" Margin="0,12,0,0" TextWrapping="Wrap" /></Grid></Border>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="AVAILABLE AIRCRAFT" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="Select an airframe to review its current record." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,3,0,0" />
+                            </StackPanel>
+                            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Width="180"
+                                     HorizontalAlignment="Right"
+                                     VerticalAlignment="Center"
+                                     ToolTip="Search registration, type or station" />
+                        </Grid>
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding VisibleAircraft}"
+                                 SelectedItem="{Binding SelectedAircraft}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Margin="0,16,0,0"
+                                 Height="382">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="1.25*" />
+                                                <ColumnDefinition Width="1.15*" />
+                                                <ColumnDefinition Width="90" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Registration}" FontWeight="SemiBold" FontSize="13" />
+                                                <TextBlock Text="{Binding AircraftType}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Station}" FontSize="11" />
+                                                <TextBlock Text="{Binding FlightHours}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" Margin="0,3,0,0" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding DispatchStatus}" Foreground="{Binding DispatchStatusBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                    <Grid>
+                        <StackPanel Visibility="{Binding HasSelectedAircraft, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="SELECTED AIRCRAFT" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="{Binding SelectedAircraft.Registration}" Foreground="{StaticResource PrimaryBrush}" FontSize="25" FontWeight="SemiBold" Margin="0,10,0,0" />
+                            <TextBlock Text="{Binding SelectedAircraft.AircraftType}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="0,3,0,0" />
+
+                            <Border Height="146" Margin="0,16,0,0" CornerRadius="8" ClipToBounds="True" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="1">
+                                <Grid>
+                                    <Image Source="{Binding SelectedAircraft.AircraftImageUri}"
+                                           Stretch="UniformToFill"
+                                           Visibility="{Binding SelectedAircraft.HasAircraftImage, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <Border Background="#70001426"
+                                            VerticalAlignment="Bottom"
+                                            Padding="10,6"
+                                            Visibility="{Binding SelectedAircraft.HasAircraftImage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="{Binding SelectedAircraft.AircraftImageAttribution}" Foreground="White" FontSize="10" TextTrimming="CharacterEllipsis" />
+                                    </Border>
+                                    <StackPanel HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Visibility="{Binding SelectedAircraft.HasAircraftImage, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                        <TextBlock Text="Fleet image pending" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding SelectedAircraft.AircraftImageStatus}" Style="{StaticResource MutedTextStyle}" FontSize="10" TextAlignment="Center" TextWrapping="Wrap" Width="220" Margin="0,5,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <Grid Margin="0,16,0,0">
+                                <TextBlock Text="Operational status" FontSize="12" />
+                                <TextBlock Text="{Binding SelectedAircraft.OperationalStatus}" Foreground="{Binding SelectedAircraft.OperationalStatusBrush}" HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" />
+                            </Grid>
+                            <Grid Margin="0,11,0,0">
+                                <TextBlock Text="Technical status" FontSize="12" />
+                                <TextBlock Text="{Binding SelectedAircraft.TechnicalStatus}" Foreground="{Binding SelectedAircraft.TechnicalStatusBrush}" HorizontalAlignment="Right" FontSize="11" FontWeight="SemiBold" />
+                            </Grid>
+                            <Grid Margin="0,11,0,0">
+                                <TextBlock Text="Hours / cycles" FontSize="12" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <TextBlock Text="{Binding SelectedAircraft.FlightHours}" FontSize="11" FontWeight="SemiBold" />
+                                    <TextBlock Text=" · " FontSize="11" />
+                                    <TextBlock Text="{Binding SelectedAircraft.Cycles}" FontSize="11" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="{Binding DetailStatusLabel}" Foreground="{Binding DetailStatusColor}" FontSize="11" TextWrapping="Wrap" Margin="0,18,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                <Button Content="Reserve for my flight" Command="{Binding ReserveAircraftCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,8,0" IsEnabled="{Binding IsFlightReserved, Converter={StaticResource InverseBooleanConverter}}" />
+                                <Button Content="Release" Command="{Binding ReleaseAircraftCommand}" Style="{StaticResource SecondaryButtonStyle}" IsEnabled="{Binding IsFlightReserved}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="{Binding HasSelectedAircraft, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                            <TextBlock Text="Select an aircraft" Style="{StaticResource SectionTitleStyle}" HorizontalAlignment="Center" />
+                            <TextBlock Text="Live aircraft will appear here after a BAV fleet refresh." Style="{StaticResource MutedTextStyle}" TextAlignment="Center" TextWrapping="Wrap" Width="250" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border Style="{StaticResource CardStyle}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid>
+                        <StackPanel>
+                            <TextBlock Text="CABIN DEFECT REPORT" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="Report only observations from this aircraft to the permanent fleet technical record." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,3,0,0" />
+                        </StackPanel>
+                        <Button Content="Report an issue" Command="{Binding OpenDefectReportCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" />
+                    </Grid>
+                    <Grid Grid.Row="1" Visibility="{Binding IsDefectReportOpen, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,18,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1.1*" />
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="130" />
+                            <ColumnDefinition Width="1.8*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox ItemsSource="{Binding DefectCategories}" SelectedItem="{Binding DefectCategory}" Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding DefectSeverities}" SelectedItem="{Binding DefectSeverity}" Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="2" ItemsSource="{Binding DefectDispatchImpacts}" SelectedItem="{Binding DefectDispatchImpact}" Margin="0,0,8,0" />
+                        <TextBox Grid.Column="3" Text="{Binding DefectDescription, UpdateSourceTrigger=PropertyChanged}" ToolTip="Describe the observation" />
+                        <Button Grid.Column="4" Content="Submit" Command="{Binding SubmitDefectReportCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock Grid.Row="2" Text="{Binding DefectReportStatus}" Foreground="{Binding DefectReportStatusColor}" FontSize="11" Margin="0,12,0,0" TextWrapping="Wrap" />
+                </Grid>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -2,6 +2,22 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.42] - 2026-10-03
+
+### Added
+
+- Rebuilt the former departure-control page as **iGate**, Ember's own aircraft, passenger, boarding and load-control workspace. It retains the live website briefing, passenger actions, baggage reconciliation, fuel inputs, load-sheet finalisation and export without using iPort branding or interface materials.
+- iGate now highlights the **final aircraft weight** as a live operational figure. It combines dry operating weight, actual passenger and baggage load, take-off fuel and authorised additional load, and shows the remaining take-off-weight margin.
+
+### Changed
+
+- Pilots can open iGate from Ember as soon as they are signed in. When the website briefing is still arriving, its workspace remains available and refreshes the live flight data when ready.
+
+### Fixed
+
+- Restored real fleet photos in the selected-aircraft panel, including photo attribution when the Fleet service provides one.
+- Made Fleet detail loading tolerant of older records with missing optional history fields, so an incomplete defect, maintenance or status-history item cannot block an aircraft's current record, photo or reservation controls.
+
 ## [0.5.41] - 2026-10-03
 
 ### Fixed

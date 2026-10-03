@@ -851,7 +851,18 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
                 return;
             }
 
-            foreach (var defect in (record.Defects ?? []).Where(item => item.Status is not ("closed" or "rectified" or "voided")))
+            // The fleet service has a few older aircraft records with optional
+            // technical-history fields.  One incomplete historical row must not
+            // hide the current aircraft record (or its approved fleet photo).
+            if (!string.IsNullOrWhiteSpace(record.Image?.Url))
+            {
+                aircraft.UpdateAircraftImage(record.Image);
+            }
+
+            foreach (var defect in (record.Defects ?? []).OfType<FleetDefectDto>()
+                         .Where(item => !string.Equals(item.Status, "closed", StringComparison.OrdinalIgnoreCase) &&
+                                        !string.Equals(item.Status, "rectified", StringComparison.OrdinalIgnoreCase) &&
+                                        !string.Equals(item.Status, "voided", StringComparison.OrdinalIgnoreCase)))
             {
                 var line = new FleetDefectLine(defect);
                 if (line.IsDeferred)
@@ -866,15 +877,18 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
                 }
             }
             RefreshDefectSummary();
-            foreach (var maintenance in (record.MaintenanceDue ?? []).Where(item => item.DueStatus is "due_soon" or "overdue").Take(3))
+            foreach (var maintenance in (record.MaintenanceDue ?? []).OfType<FleetMaintenanceDueDto>()
+                         .Where(item => string.Equals(item.DueStatus, "due_soon", StringComparison.OrdinalIgnoreCase) ||
+                                        string.Equals(item.DueStatus, "overdue", StringComparison.OrdinalIgnoreCase))
+                         .Take(3))
             {
                 MaintenanceWatch.Add(new FleetMaintenanceLine(maintenance));
             }
-            foreach (var history in (record.StatusHistory ?? []).Take(3))
+            foreach (var history in (record.StatusHistory ?? []).OfType<FleetStatusHistoryDto>().Take(3))
             {
                 RecentActivity.Add(new FleetActivityLine(history));
             }
-            foreach (var log in (record.Logbook ?? []).Take(Math.Max(0, 3 - RecentActivity.Count)))
+            foreach (var log in (record.Logbook ?? []).OfType<FleetLogEntryDto>().Take(Math.Max(0, 3 - RecentActivity.Count)))
             {
                 RecentActivity.Add(new FleetActivityLine(log));
             }
@@ -912,7 +926,7 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         return brush;
     }
 
-    public static Brush ResolveStatusBrush(string status) => status.ToLowerInvariant() switch
+    public static Brush ResolveStatusBrush(string? status) => status?.Trim().ToLowerInvariant() switch
     {
         "available" or "in_service" or "serviceable" or "dispatchable" => SuccessBrush,
         "dispatchable_with_restrictions" or "serviceable_with_deferred_defects" or "inspection_required" or "scheduled_maintenance" or "awaiting_parts" or "awaiting_engineering" => WarningBrush,
@@ -933,6 +947,9 @@ public enum FleetWorkspaceTab
 
 public sealed class FleetAircraftRow : ObservableObject
 {
+    private Uri? _aircraftImageUri;
+    private string _aircraftImageAttribution = string.Empty;
+
     public FleetAircraftRow(FleetAircraftSummaryDto aircraft)
     {
         Id = aircraft.Id;
@@ -956,10 +973,7 @@ public sealed class FleetAircraftRow : ObservableObject
         IsInMaintenance = aircraft.TechnicalStatus is "scheduled_maintenance" or "in_maintenance" or "awaiting_parts" or "awaiting_engineering";
         IsUnavailable = aircraft.DispatchStatus == "not_dispatchable" || aircraft.TechnicalStatus is "grounded" or "aog" or "damage_inspection";
         HasRestrictions = aircraft.DispatchStatus == "dispatchable_with_restrictions" || aircraft.TechnicalStatus is "serviceable_with_deferred_defects" or "inspection_required";
-        AircraftImageUri = Uri.TryCreate(aircraft.Image?.Url, UriKind.Absolute, out var imageUri) && imageUri.Scheme is "https" or "http" ? imageUri : null;
-        AircraftImageAttribution = AircraftImageUri is null ? string.Empty : string.IsNullOrWhiteSpace(aircraft.Image?.Credit)
-            ? aircraft.Image?.Source ?? "Fleet image catalogue"
-            : $"{aircraft.Image.Source} · {aircraft.Image.Credit}";
+        UpdateAircraftImage(aircraft.Image);
     }
 
     public string Id { get; }
@@ -981,9 +995,19 @@ public sealed class FleetAircraftRow : ObservableObject
     public bool IsInMaintenance { get; }
     public bool IsUnavailable { get; }
     public bool HasRestrictions { get; }
-    public Uri? AircraftImageUri { get; }
+    public Uri? AircraftImageUri
+    {
+        get => _aircraftImageUri;
+        private set => SetProperty(ref _aircraftImageUri, value);
+    }
+
     public bool HasAircraftImage => AircraftImageUri is not null;
-    public string AircraftImageAttribution { get; }
+    public string AircraftImageAttribution
+    {
+        get => _aircraftImageAttribution;
+        private set => SetProperty(ref _aircraftImageAttribution, value);
+    }
+
     public string AircraftImageStatus => HasAircraftImage ? AircraftImageAttribution : "No approved fleet photo has been added yet";
 
     public bool Matches(string query) =>
@@ -991,7 +1015,33 @@ public sealed class FleetAircraftRow : ObservableObject
         AircraftType.Contains(query, StringComparison.OrdinalIgnoreCase) ||
         Station.Contains(query, StringComparison.OrdinalIgnoreCase);
 
-    public static string Label(string value) => string.Join(" ", value.Split('_', StringSplitOptions.RemoveEmptyEntries).Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
+    public void UpdateAircraftImage(FleetAircraftImageDto? image)
+    {
+        var imageUri = Uri.TryCreate(image?.Url, UriKind.Absolute, out var candidate) && candidate.Scheme is "https" or "http"
+            ? candidate
+            : null;
+        AircraftImageUri = imageUri;
+        AircraftImageAttribution = imageUri is null
+            ? string.Empty
+            : string.IsNullOrWhiteSpace(image?.Credit)
+                ? string.IsNullOrWhiteSpace(image?.Source) ? "Fleet image catalogue" : image.Source
+                : $"{image!.Source} · {image.Credit}";
+        OnPropertyChanged(nameof(HasAircraftImage));
+        OnPropertyChanged(nameof(AircraftImageStatus));
+    }
+
+    public static string Label(string? value, string fallback = "Not reported")
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback;
+        }
+
+        return string.Join(" ", value.Split('_', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
+    }
+
+    public static string Text(string? value, string fallback) => string.IsNullOrWhiteSpace(value) ? fallback : value;
 
     private static string FormatTimestamp(string? value, string fallback) =>
         DateTimeOffset.TryParse(value, out var timestamp)
@@ -1001,8 +1051,8 @@ public sealed class FleetAircraftRow : ObservableObject
 
 public sealed class FleetDefectLine(FleetDefectDto defect)
 {
-    public string Reference { get; } = defect.Reference;
-    public string Description { get; } = defect.Description;
+    public string Reference { get; } = FleetAircraftRow.Text(defect.Reference, "Defect reference pending");
+    public string Description { get; } = FleetAircraftRow.Text(defect.Description, "No defect description recorded");
     public string Location { get; } = defect.SeatNumber ?? defect.ReportingStation ?? "Location not recorded";
     public string Status { get; } = FleetAircraftRow.Label(defect.Status);
     public Brush StatusBrush { get; } = FleetViewModel.ResolveStatusBrush(defect.DispatchImpact == "blocking" ? "not_dispatchable" : defect.Severity);
@@ -1012,17 +1062,19 @@ public sealed class FleetDefectLine(FleetDefectDto defect)
     public bool IsDeferred { get; } =
         string.Equals(defect.Status, "deferred", StringComparison.OrdinalIgnoreCase) ||
         defect.Deferral is not null;
-    public string Category { get; } = defect.Category;
+    public string Category { get; } = FleetAircraftRow.Text(defect.Category, "Uncategorised");
     public string Severity { get; } = FleetAircraftRow.Label(defect.Severity);
     public string DispatchImpact { get; } = FleetAircraftRow.Label(defect.DispatchImpact);
     public string Restriction { get; } = defect.Deferral?.Restriction ?? string.Empty;
-    public string DeferralReference { get; } = defect.Deferral is null ? string.Empty : $"{defect.Deferral.DeferralKind.ToUpperInvariant()} {defect.Deferral.Reference}";
+    public string DeferralReference { get; } = defect.Deferral is null
+        ? string.Empty
+        : $"{FleetAircraftRow.Text(defect.Deferral.DeferralKind, "MEL/CDL").ToUpperInvariant()} {FleetAircraftRow.Text(defect.Deferral.Reference, "reference pending")}";
 }
 
 public sealed class FleetMaintenanceLine(FleetMaintenanceDueDto maintenance)
 {
-    public string Reference { get; } = maintenance.TaskCode;
-    public string Description { get; } = maintenance.TaskName;
+    public string Reference { get; } = FleetAircraftRow.Text(maintenance.TaskCode, "Task reference pending");
+    public string Description { get; } = FleetAircraftRow.Text(maintenance.TaskName, "Maintenance task not described");
     public string Due { get; } = string.IsNullOrWhiteSpace(maintenance.DueReason) ? "Due information not available" : maintenance.DueReason;
     public string Status { get; } = FleetAircraftRow.Label(maintenance.DueStatus);
     public Brush StatusBrush { get; } = FleetViewModel.ResolveStatusBrush(maintenance.DueStatus == "overdue" ? "not_dispatchable" : "scheduled_maintenance");
@@ -1033,16 +1085,16 @@ public sealed class FleetActivityLine
     public FleetActivityLine(FleetStatusHistoryDto history)
     {
         Timestamp = Format(history.EffectiveAt);
-        Description = history.Reason;
-        Context = string.Join(" · ", new[] { history.Station, FleetAircraftRow.Label(history.TechnicalStatus) }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        Description = FleetAircraftRow.Text(history.Reason, "Aircraft status updated");
+        Context = string.Join(" · ", new[] { history.Station, FleetAircraftRow.Label(history.TechnicalStatus, string.Empty) }.Where(value => !string.IsNullOrWhiteSpace(value)));
         StatusBrush = FleetViewModel.ResolveStatusBrush(history.DispatchStatus);
     }
 
     public FleetActivityLine(FleetLogEntryDto entry)
     {
         Timestamp = Format(entry.OccurredAt);
-        Description = entry.Description;
-        Context = string.Join(" · ", new[] { entry.Station, FleetAircraftRow.Label(entry.Category) }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        Description = FleetAircraftRow.Text(entry.Description, "Fleet log entry");
+        Context = string.Join(" · ", new[] { entry.Station, FleetAircraftRow.Label(entry.Category, string.Empty) }.Where(value => !string.IsNullOrWhiteSpace(value)));
         StatusBrush = FleetViewModel.ResolveStatusBrush(entry.Status);
     }
 
@@ -1051,7 +1103,7 @@ public sealed class FleetActivityLine
     public string Context { get; }
     public Brush StatusBrush { get; }
 
-    private static string Format(string value) => DateTimeOffset.TryParse(value, out var timestamp)
+    private static string Format(string? value) => DateTimeOffset.TryParse(value, out var timestamp)
         ? timestamp.ToLocalTime().ToString("dd MMM · HH:mm")
         : "Time not recorded";
 }

@@ -34,6 +34,7 @@ internal static class Program
         application.InitializeComponent();
         VerifyWorkspaceNavigationContrast(application);
         VerifyThemeSwitching(application);
+        VerifyFleetDetailFallbacks();
 
         if (UpdateService.ParseReleaseVersion("v0.3.12") != new Version(0, 3, 12) ||
             UpdateService.ParseReleaseVersion("FreeFlight-v1.4.7") != new Version(1, 4, 7) ||
@@ -466,7 +467,7 @@ internal static class Program
             : FindVisualChild<Button>(dashboardView, button => Equals(button.CommandParameter, "IportDcs"));
         if (dashboardView is null || overviewGateToggle is not null || iportWorkspaceButton is null)
         {
-            throw new InvalidOperationException("The rebuilt Overview does not expose the expected iPort entry point.");
+            throw new InvalidOperationException("The rebuilt Overview does not expose the expected iGate entry point.");
         }
 
         viewModel.NavigateCommand.Execute("GateDesk");
@@ -482,7 +483,7 @@ internal static class Program
         viewModel.NavigateCommand.Execute("IportDcs");
         if (viewModel.ActivePage != "GateLogin" || viewModel.CurrentPage != viewModel.GateLogin)
         {
-            throw new InvalidOperationException("Iport DCS was accessible without an authenticated gate session.");
+            throw new InvalidOperationException("iGate was accessible without an authenticated gate session.");
         }
 
         window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
@@ -606,7 +607,7 @@ internal static class Program
                     viewModel.IportDcs.ServiceMenuEntries.Count != 15 ||
                     viewModel.IportDcs.ServiceMenuEntries.Count(entry => !entry.IsHeader) != 12)
                 {
-                    throw new InvalidOperationException("Iport DCS was not unlocked as a shared gate-session workspace.");
+                    throw new InvalidOperationException("iGate was not unlocked as a shared gate-session workspace.");
                 }
 
                 viewModel.IportDcs.ToggleServiceMenuCommand.Execute(null);
@@ -618,7 +619,7 @@ internal static class Program
                     viewModel.IportDcs.ActiveServiceLabel != "Load Control" ||
                     !viewModel.IportDcs.IsLoadControlService)
                 {
-                    throw new InvalidOperationException("The grouped Res2 services menu did not switch to Load Control.");
+                    throw new InvalidOperationException("The iGate tools menu did not switch to Load Control.");
                 }
 
                 viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.CheckInModule);
@@ -963,41 +964,29 @@ internal static class Program
                     border => Equals(border.Tag, "IportServiceMenu"));
                 if (servicesMenu?.Visibility != Visibility.Visible)
                 {
-                    throw new InvalidOperationException("The complete Res2 services dropdown was not rendered.");
+                    throw new InvalidOperationException("The complete iGate tools menu was not rendered.");
                 }
 
                 Render(window, Path.Combine(outputDirectory, "iportdcs-service-menu.png"));
                 viewModel.IportDcs.ToggleServiceMenuCommand.Execute(null);
 
-                var iportWorkspace = FindVisualChild<Border>(
+                var iGateWorkspace = FindVisualChild<Border>(
                     window,
                     border => Equals(border.Tag, "IportDcsWorkspace"));
-                if (iportWorkspace is null)
+                if (iGateWorkspace is null)
                 {
-                    throw new InvalidOperationException("The coded Iport DCS workspace was not rendered.");
+                    throw new InvalidOperationException("The iGate workspace was not rendered.");
                 }
 
                 var loadWorkspace = FindVisualChild<Grid>(
                     window,
                     grid => Equals(grid.Tag, "IportLoadControlWorkspace"));
-                var envelopeChart = FindVisualChild<Canvas>(
-                    window,
-                    canvas => Equals(canvas.Tag, "IportEnvelopeChart"));
-                var systemFooter = FindVisualChild<Border>(
-                    window,
-                    border => Equals(border.Tag, "IportSystemFooter"));
-                var printerControl = FindVisualChild<Button>(
-                    window,
-                    button => Equals(button.Tag, "IportPrinterControl"));
-                var powerControl = FindVisualChild<Button>(
-                    window,
-                    button => Equals(button.Tag, "IportPowerControl"));
-                var dispatcherFlights = FindVisualChild<ListBox>(
-                    window,
-                    listBox => Equals(listBox.Tag, "IportDispatcherFlights"));
-                if (loadWorkspace is null || envelopeChart is null || systemFooter is null || printerControl is null || powerControl is null || dispatcherFlights?.Items.Count != 3)
+                if (loadWorkspace is null ||
+                    viewModel.IportDcs.FinalAircraftWeightKg != viewModel.IportDcs.TakeoffWeightKg ||
+                    viewModel.IportDcs.TakeoffWeightMarginKg < 0 ||
+                    string.IsNullOrWhiteSpace(viewModel.IportDcs.FinalAircraftWeightLabel))
                 {
-                    throw new InvalidOperationException("The authentic iPortflight load-control workspace, dispatcher flight list, and system footer were not rendered.");
+                    throw new InvalidOperationException("The iGate final-aircraft-weight workspace was not rendered correctly.");
                 }
             }
             else if (page == "BoardingPasses")
@@ -1858,6 +1847,47 @@ internal static class Program
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path);
         encoder.Save(stream);
+    }
+
+    private static void VerifyFleetDetailFallbacks()
+    {
+        var aircraft = new FleetAircraftRow(new FleetAircraftSummaryDto(
+            "aircraft-1",
+            "G-IGAT",
+            "Airbus A320neo",
+            null,
+            "A20N",
+            null,
+            null,
+            "in_service",
+            "serviceable",
+            "dispatchable",
+            120,
+            1,
+            null,
+            null,
+            1,
+            new FleetAircraftImageDto("https://images.example.test/fleet/G-IGAT.jpg", "Fleet catalogue", null, null)));
+        if (!aircraft.HasAircraftImage || aircraft.AircraftImageUri?.Host != "images.example.test")
+        {
+            throw new InvalidOperationException("A valid Fleet image was not retained for the selected aircraft.");
+        }
+
+        // Older aircraft records can contain empty optional history fields.
+        // The selected-aircraft panel must still remain usable in that case.
+        var defect = new FleetDefectLine(new FleetDefectDto(
+            "defect-1", null!, null, null!, null, null!, null!, null!, null!, 1,
+            new FleetDeferralDto(null!, null!, null!, null, null, null, null, null)));
+        var maintenance = new FleetMaintenanceLine(new FleetMaintenanceDueDto(null!, null!, null, null, null, null!, null));
+        var activity = new FleetActivityLine(new FleetStatusHistoryDto(null!, null!, null!, null!, null, null, null!, null!));
+        var logEntry = new FleetActivityLine(new FleetLogEntryDto(null!, null!, null, null!, null!, null!));
+        if (string.IsNullOrWhiteSpace(defect.Reference) ||
+            string.IsNullOrWhiteSpace(maintenance.Reference) ||
+            string.IsNullOrWhiteSpace(activity.Description) ||
+            string.IsNullOrWhiteSpace(logEntry.Description))
+        {
+            throw new InvalidOperationException("Incomplete Fleet history did not receive safe display fallbacks.");
+        }
     }
 
     private static void VerifyWorkspaceNavigationContrast(CabinControlApplication application)
