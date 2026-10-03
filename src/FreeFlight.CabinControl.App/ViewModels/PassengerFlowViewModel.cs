@@ -34,8 +34,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private CabinCrewMarkerViewModel? _selectedCrew;
     private string _simBriefPilotId;
     private bool _simBriefAutoSync;
-    private string _simBriefStatus = "Enter your numeric SimBrief Pilot ID to import the latest OFP.";
-    private string _simBriefFlightSummary = "No SimBrief flight imported";
+    private string _simBriefStatus = "Select a flight on the BAV website, then refresh it in Ember to load its briefing.";
+    private string _simBriefFlightSummary = "No website flight briefing loaded";
     private bool _isSimBriefSyncing;
     private bool _hasSimBriefFlight;
     private string _importedFlightNumber = string.Empty;
@@ -95,7 +95,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _selectedSpeedOption = SpeedOptions.MinBy(option =>
             Math.Abs(option.Multiplier - settings.PassengerPreviewSpeed)) ?? SpeedOptions[1];
 
-        ActivityLog.Add("No passenger list loaded — import SimBrief or enter a manual passenger count");
+        ActivityLog.Add("No passenger list loaded — select a flight on the BAV website or enter a manual passenger count");
         StartPauseCommand = new RelayCommand(_ => StartPauseOperation());
         ResetCommand = new RelayCommand(_ => ResetPreview());
         SetLoadPresetCommand = new RelayCommand(SetLoadPreset);
@@ -123,10 +123,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         RebuildManifest();
         RefreshFromEngine();
 
-        if (_simBriefAutoSync && !string.IsNullOrWhiteSpace(_simBriefPilotId))
-        {
-            _ = AutoSyncSimBriefAsync();
-        }
+        // Website flight data is the sole automatic import source. Retain the
+        // saved legacy settings for backwards compatibility, but never make a
+        // direct SimBrief request from Ember during startup.
     }
 
     public SharedStatusViewModel Status { get; }
@@ -255,7 +254,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         ? $"SEAT-MAP OVERRIDE · FULL {MappedPassengerCount}/{CabinCapacity}"
         : $"of {CabinCapacity} seats";
     public string ManifestSummary => !HasPassengerManifest
-        ? "No passenger list loaded — import SimBrief or enter a manual passenger count"
+        ? "No passenger list loaded — select a website flight or enter a manual passenger count"
         : HasCapacityOverflow
         ? $"Seat-map override active · SimBrief requested {BookedPassengerCount} · cabin limited to all {MappedPassengerCount} mapped seats"
         : $"{PassengerManifest.Count} passengers · ordered by boarding group";
@@ -779,8 +778,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _bookedPassengerCount = 0;
         _settings.PassengerPreviewBookedCount = 0;
         HasSimBriefFlight = false;
-        SimBriefFlightSummary = "No SimBrief flight imported";
-        SimBriefStatus = "No flight is loaded. Import SimBrief or enter a manual passenger count.";
+        SimBriefFlightSummary = "No website flight briefing loaded";
+        SimBriefStatus = "No flight is loaded. Select a website flight or enter a manual passenger count.";
         ImportedFlightNumber = string.Empty;
         ImportedOrigin = string.Empty;
         ImportedDestination = string.Empty;
@@ -848,9 +847,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     }
 
     /// <summary>
-    /// Safely imports the newest SimBrief passenger list after Cabin Control
-    /// detects a new BAV website assignment. A mismatch is left untouched so
-    /// an old or unrelated OFP can never replace the current cabin flight.
+    /// Imports the active pilot's briefing from the authenticated BAV website.
+    /// Ember must never look up a separate or unrelated SimBrief OFP locally.
     /// </summary>
     public async Task<BavAssignmentImportResult> ImportBavAssignmentAsync(FleetWebsiteFlightAssignmentDto assignment)
     {
@@ -860,14 +858,39 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             return new BavAssignmentImportResult(false, "New BAV assignment detected, but the current boarding operation is in progress and was left unchanged.");
         }
 
-        if (string.IsNullOrWhiteSpace(SimBriefPilotId))
+        var websiteBriefing = assignment.Briefing?.Briefing;
+        if (assignment.Briefing?.Status != "synced" || websiteBriefing is null)
         {
-            SimBriefStatus = $"New BAV assignment {assignment.FlightNumber} detected. Add your SimBrief Pilot ID to import its passenger list automatically.";
-            AddActivity($"BAV assignment detected — {assignment.FlightNumber} {assignment.From} → {assignment.To} — SimBrief Pilot ID required");
+            SimBriefStatus = $"{assignment.FlightNumber} is ready in Ember. Its website briefing is still being prepared, so no passenger load has been changed.";
+            AddActivity($"BAV assignment detected — {assignment.FlightNumber} {assignment.From} → {assignment.To} — website briefing pending");
             return new BavAssignmentImportResult(false, SimBriefStatus);
         }
 
-        return await SyncSimBriefCoreAsync(assignment);
+        var passengerCount = ParsePassengerCount(websiteBriefing.PassengerCount);
+        HasSimBriefFlight = true;
+        ImportedFlightNumber = string.IsNullOrWhiteSpace(websiteBriefing.FlightNumber) ? assignment.FlightNumber : websiteBriefing.FlightNumber;
+        ImportedOrigin = assignment.OriginIcao ?? assignment.From;
+        ImportedDestination = assignment.DestinationIcao ?? assignment.To;
+        ImportedAircraftIcao = string.IsNullOrWhiteSpace(websiteBriefing.AircraftIcao)
+            ? ResolveBavAircraftIcao(assignment.Aircraft)
+            : websiteBriefing.AircraftIcao.Trim().ToUpperInvariant();
+        ApplyImportedAircraftCabinProfile(ImportedAircraftIcao);
+        ImportedScheduledDepartureLocal = ParseWebsiteTime(websiteBriefing.EstimatedOut ?? websiteBriefing.ScheduledOut);
+        ImportedScheduledArrivalLocal = ParseWebsiteTime(websiteBriefing.EstimatedIn ?? websiteBriefing.ScheduledIn);
+        if (ImportedScheduledDepartureLocal is { } scheduledDeparture)
+        {
+            _settings.ScheduledDepartureLocal = scheduledDeparture.ToString("HH:mm", CultureInfo.InvariantCulture);
+        }
+
+        LastSimBriefSyncTime = _operationsClock.Now;
+        ApplyBookedPassengerCount(passengerCount, simBriefPriority: true);
+        SimBriefFlightSummary = BuildWebsiteBriefingSummary(assignment, websiteBriefing);
+        SimBriefStatus = passengerCount > CabinCapacity
+            ? $"Website briefing loaded {passengerCount} planned passengers. The mapped cabin capacity is {CabinCapacity}."
+            : $"Website briefing loaded {passengerCount} planned passengers for {assignment.FlightNumber}.";
+        AddActivity($"Website briefing loaded — {SimBriefFlightSummary} — {passengerCount} passengers");
+        await SaveSettingsQuietlyAsync();
+        return new BavAssignmentImportResult(true, SimBriefStatus);
     }
 
     /// <summary>
@@ -991,6 +1014,23 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         };
     }
 
+    private static int ParsePassengerCount(string? value) =>
+        int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var passengerCount) && passengerCount >= 0
+            ? passengerCount
+            : 0;
+
+    private static DateTimeOffset? ParseWebsiteTime(string? value) =>
+        DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+            ? parsed.ToLocalTime()
+            : null;
+
+    private static string BuildWebsiteBriefingSummary(FleetWebsiteFlightAssignmentDto assignment, FleetWebsiteSimbriefBriefingDto briefing)
+    {
+        var route = $"{assignment.OriginIcao ?? assignment.From} → {assignment.DestinationIcao ?? assignment.To}";
+        var aircraft = string.IsNullOrWhiteSpace(briefing.AircraftIcao) ? assignment.Aircraft : briefing.AircraftIcao;
+        return string.Join(" · ", new[] { assignment.FlightNumber, route, aircraft }.Where(part => !string.IsNullOrWhiteSpace(part)));
+    }
+
     public void Dispose()
     {
         _animationTimer.Stop();
@@ -1059,7 +1099,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     {
         if (!HasPassengerManifest)
         {
-            AddActivity("Boarding cannot start — import SimBrief or enter a manual passenger count first");
+            AddActivity("Boarding cannot start — load the website briefing or enter a manual passenger count first");
             RefreshFromEngine();
             return;
         }

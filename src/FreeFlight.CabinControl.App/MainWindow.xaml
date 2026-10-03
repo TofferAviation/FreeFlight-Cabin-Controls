@@ -45,7 +45,7 @@
             </Grid>
 
             <Border Grid.Column="0"
-                    Background="#D9030C1A"
+                    Background="{StaticResource SidebarBrush}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,1,0">
                 <Grid>
@@ -286,26 +286,26 @@
                         <BlurEffect Radius="{Binding Airliners.AccountBackgroundBlurRadius}" />
                     </Image.Effect>
                 </Image>
-                <Border Grid.Row="1" Background="#A806101F" IsHitTestVisible="False" Panel.ZIndex="1"
+                <Border Grid.Row="1" Background="#18F2F6FA" IsHitTestVisible="False" Panel.ZIndex="1"
                         Visibility="{Binding Airliners.HasActiveBackgroundImage, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                <Border Grid.Row="0" Background="#9A061326" BorderBrush="#263A52" BorderThickness="0,0,0,1" Panel.ZIndex="3">
+                <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Panel.ZIndex="3">
                     <Grid Margin="20,0,145,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="1.6*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="1" /><ColumnDefinition Width="1.05*" /><ColumnDefinition Width="1.15*" /><ColumnDefinition Width="1.2*" /></Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding Operations.FlightNumber}" FontSize="21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Operations.RouteSummary}" Style="{StaticResource MutedTextStyle}" TextTrimming="CharacterEllipsis" /></StackPanel>
-                        <Rectangle Grid.Column="1" Fill="#263A52" Margin="0,14" />
+                        <Rectangle Grid.Column="1" Fill="{StaticResource BorderBrush}" Margin="0,14" />
                         <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="GATE" Tag="GateHeaderLabel" FontSize="9" FontWeight="SemiBold" Foreground="#7F93AA" HorizontalAlignment="Center" />
                             <TextBlock Text="{Binding Operations.GateHeader}" FontSize="13" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" Margin="0,3,0,0" />
                         </StackPanel>
-                        <Rectangle Grid.Column="3" Fill="#263A52" Margin="0,14" />
+                        <Rectangle Grid.Column="3" Fill="{StaticResource BorderBrush}" Margin="0,14" />
                         <TextBlock Grid.Column="4" Text="{Binding Operations.AircraftName}" FontSize="16" VerticalAlignment="Center" Margin="14,0" TextTrimming="CharacterEllipsis" />
                         <StackPanel Grid.Column="5" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding Operations.SimBriefConnectionLabel}" FontSize="15" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Operations.SimBriefImportLabel}" Style="{StaticResource MutedTextStyle}" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis" /></StackPanel>
                         <Button Grid.Column="6"
                                 Command="{Binding NavigateCommand}"
                                 CommandParameter="CabinAccount"
-                                Background="#0F2138"
-                                BorderBrush="#315278"
+                                Background="{StaticResource SurfaceRaisedBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
                                 BorderThickness="1"
                                 Padding="7,5"
                                 Margin="12,13,0,13"
@@ -393,7 +393,7 @@
                 </Grid.RowDefinitions>
 
                 <Rectangle Fill="{StaticResource AmbientGlowBrush}" IsHitTestVisible="False" />
-                <Border Grid.Row="0" Background="#CE061326" BorderBrush="#263A52" BorderThickness="0,0,0,1">
+                <Border Grid.Row="0" Background="{StaticResource SidebarBrush}" BorderBrush="#174C7191" BorderThickness="0,0,0,1">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
                             <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/BritishAirwaysVirtual.png"

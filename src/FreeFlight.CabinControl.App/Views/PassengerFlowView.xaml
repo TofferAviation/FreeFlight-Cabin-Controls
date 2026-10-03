@@ -632,28 +632,21 @@
                     <Grid>
                         <Grid.RowDefinitions><RowDefinition Height="26" /><RowDefinition Height="34" /><RowDefinition /></Grid.RowDefinitions>
                         <Grid>
-                            <TextBlock Text="SimBrief OFP" Style="{StaticResource SectionTitleStyle}" FontSize="16" />
-                            <CheckBox Content="Auto-sync"
-                                      IsChecked="{Binding SimBriefAutoSync}"
-                                      HorizontalAlignment="Right"
-                                      Foreground="#8DA0B8"
-                                      FontSize="11" />
+                            <TextBlock Text="Website flight briefing" Style="{StaticResource SectionTitleStyle}" FontSize="16" />
+                            <TextBlock Text="AUTOMATIC"
+                                       HorizontalAlignment="Right"
+                                       Foreground="#55AEFF"
+                                       FontSize="11"
+                                       FontWeight="SemiBold" />
                         </Grid>
                         <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="48" /><ColumnDefinition /><ColumnDefinition Width="88" /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
-                            <TextBlock Text="Pilot ID" Foreground="#8DA0B8" FontSize="10" VerticalAlignment="Center" />
-                            <TextBox Grid.Column="1" Text="{Binding SimBriefPilotId, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Numeric Pilot ID from SimBrief Account Settings"
-                                     Padding="9,5" />
-                            <Button Grid.Column="2"
-                                    Content="Sync OFP"
-                                    Command="{Binding SyncSimBriefCommand}"
-                                    IsEnabled="{Binding CanEditPassengerLoad}"
-                                    Style="{StaticResource PrimaryButtonStyle}"
-                                    MinHeight="30"
-                                     Padding="8,4"
-                                     Margin="8,0,0,0" />
-                            <Button Grid.Column="3"
+                            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="76" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="Select a flight on the BAV website, then refresh your website flight in Ember. The matching briefing and passenger load arrive here automatically."
+                                       Foreground="#8DA0B8"
+                                       FontSize="10"
+                                       TextWrapping="Wrap"
+                                       VerticalAlignment="Center" />
+                            <Button Grid.Column="1"
                                     Content="Unload"
                                     Command="{Binding UnloadFlightCommand}"
                                     IsEnabled="{Binding HasPassengerManifest}"

@@ -500,7 +500,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private async void HandleWebsiteFlightAssignmentRefreshed(object? sender, WebsiteFlightAssignmentRefreshedEventArgs e)
     {
         Operations.ApplyWebsiteFlightAssignment(e.Assignment);
-        if (!e.IsNewAssignment)
+        if (!e.IsNewAssignment && !e.IsBriefingUpdated)
         {
             return;
         }

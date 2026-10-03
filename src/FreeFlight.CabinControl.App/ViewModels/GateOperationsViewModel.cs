@@ -29,7 +29,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     private string _selectedCabinFilter = "All Passengers";
     private bool _isGateOpen;
     private bool _gateHasClosed;
-    private string _operationMessage = "No passenger list loaded. Import SimBrief or enter a manual passenger count.";
+    private string _operationMessage = "No passenger list loaded. Select a BAV website flight or enter a manual passenger count.";
     private PrinterDestination? _selectedPrinter;
     private string _printerStatusMessage = "Checking Windows printers…";
     private bool _hasDeparted;
@@ -277,7 +277,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string GateAssignmentSummary => DepartureGateAssignment.Summary;
     public string AircraftName => AircraftGateAssignmentService.DescribeAircraft(DetectedAircraftIcao);
     public bool IsSimBriefSynced => _passengers.HasSimBriefFlight;
-    public string SimBriefConnectionLabel => IsSimBriefSynced ? "SimBrief Synced" : "SimBrief Ready";
+    public string SimBriefConnectionLabel => IsSimBriefSynced ? "Website briefing loaded" : "Website briefing pending";
     public string SimBriefImportLabel => _passengers.LastSimBriefSyncLabel;
 
     public int TotalPassengers => PassengerRecords.Count;
@@ -285,7 +285,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public bool IsPassengerListEmpty => !HasPassengerList;
     public string PassengerListStatus => HasPassengerList
         ? $"{TotalPassengers} passenger records loaded"
-        : "No passenger list loaded — import SimBrief or enter a manual passenger count.";
+        : "No passenger list loaded — select a BAV website flight or enter a manual passenger count.";
     public int CheckedInPassengers => PassengerRecords.Count(passenger => passenger.IsCheckedIn);
     public int BoardedPassengers => PassengerRecords.Count(passenger => passenger.IsBoarded);
     public int LatePassengers => PassengerRecords.Count(passenger => passenger.IsLate);
@@ -354,7 +354,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string GateActionGlyph => IsGateOpen ? "\uE77A" : "\uE7C8";
     public bool CanBoardPassengers => _hasGateAccess() && IsGateOpen && (!_gateHasClosed || _settings.ManualGateOverride);
     public string ReadinessGateStatus => !IsSimBriefSynced
-        ? "Awaiting SimBrief flight plan"
+        ? "Awaiting website flight briefing"
         : IsGateOpen
         ? $"DEP {OriginIata} {GateNumber} open · ARR {DestinationIata} {ArrivalGateNumber}"
         : $"DEP {OriginIata} {GateNumber} → ARR {DestinationIata} {ArrivalGateNumber}";
@@ -369,7 +369,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
     public string CurrentClockTime => _operationsClock.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
     public string CurrentClockDate => _operationsClock.Now.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
     public string ClockSourceLabel => _operationsClock.SourceLabel;
-    public string ScheduleSourceLabel => IsSimBriefSynced ? "SIMBRIEF DEPARTURE" : "SETTINGS FALLBACK";
+    public string ScheduleSourceLabel => IsSimBriefSynced ? "WEBSITE BRIEFING" : "SETTINGS FALLBACK";
     public string ScheduledDeparture => FormatTime(TurnaroundSchedule.Departure);
     public string FlightDateShort => TurnaroundSchedule.Departure.ToString("ddMMM", CultureInfo.InvariantCulture).ToUpperInvariant();
     public string FlightDateLong => TurnaroundSchedule.Departure.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
@@ -389,7 +389,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         : IsArrivalMode
         ? _hasLanded ? "ARRIVED" : _liveFlightPhase.ToUpperInvariant()
         : !IsSimBriefSynced
-        ? "FLIGHT LOADED · AWAITING SIMBRIEF"
+        ? "FLIGHT LOADED · AWAITING WEBSITE BRIEFING"
         : TurnaroundSchedule.GetStage(_operationsClock.Now) switch
     {
         TurnaroundStage.AwaitingTurnaround => "AWAITING TURNAROUND",
@@ -450,7 +450,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         RefreshTimelineEvents();
     }
 
-    /// <summary>Applies the booked BAV service before a SimBrief OFP is imported.</summary>
+    /// <summary>Applies the booked BAV service before its website briefing is available.</summary>
     public void ApplyWebsiteFlightAssignment(FleetWebsiteFlightAssignmentDto? assignment)
     {
         _websiteFlightAssignment = assignment;
@@ -1082,7 +1082,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
 
         if (!IsSimBriefSynced)
         {
-            TimelineEvents[0].Update("Awaiting SimBrief plan", FlightTimelineEventState.Current);
+            TimelineEvents[0].Update("Awaiting website briefing", FlightTimelineEventState.Current);
             for (var index = 1; index < TimelineEvents.Count; index++)
             {
                 TimelineEvents[index].Update("—", FlightTimelineEventState.Pending);

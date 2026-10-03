@@ -409,8 +409,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         if (!hasFlightPlan)
         {
             IsFlightPlanLinked = false;
-            FlightPlanLinkLabel = "BAV flight selected · SimBrief validation pending";
-            FlightPlanLinkDetail = "Import the SimBrief OFP when available. The BAV flight can still be reserved before then.";
+            FlightPlanLinkLabel = "BAV flight selected · website briefing pending";
+            FlightPlanLinkDetail = "The website will send the matching briefing to Ember automatically when it is ready. The BAV flight can still be reserved before then.";
             return;
         }
 
@@ -421,13 +421,13 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
         if (IsFlightPlanLinked)
         {
-            FlightPlanLinkLabel = "BAV website flight and SimBrief OFP match";
+            FlightPlanLinkLabel = "BAV website flight and briefing match";
             FlightPlanLinkDetail = $"{WebsiteFlightAssignment.FlightNumber} · {NormalizeAirport(WebsiteFlightAssignment.OriginIcao ?? WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.DestinationIcao ?? WebsiteFlightAssignment.To)} is ready for aircraft operations.";
             return;
         }
 
-        FlightPlanLinkLabel = "BAV website flight and SimBrief OFP do not match";
-        FlightPlanLinkDetail = $"BAV: {WebsiteFlightAssignment.FlightNumber} {NormalizeAirport(WebsiteFlightAssignment.OriginIcao ?? WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.DestinationIcao ?? WebsiteFlightAssignment.To)}. SimBrief: {simBriefFlightNumber?.Trim()} {NormalizeAirport(simBriefOrigin)} → {NormalizeAirport(simBriefDestination)}. Select or import the correct flight before pushback.";
+        FlightPlanLinkLabel = "BAV website briefing does not match the selected flight";
+        FlightPlanLinkDetail = $"BAV: {WebsiteFlightAssignment.FlightNumber} {NormalizeAirport(WebsiteFlightAssignment.OriginIcao ?? WebsiteFlightAssignment.From)} → {NormalizeAirport(WebsiteFlightAssignment.DestinationIcao ?? WebsiteFlightAssignment.To)}. Briefing: {simBriefFlightNumber?.Trim()} {NormalizeAirport(simBriefOrigin)} → {NormalizeAirport(simBriefDestination)}. Refresh the website flight before pushback.";
     }
 
     public void EnsureFlightPlanLink(string? simBriefFlightNumber, string? simBriefOrigin, string? simBriefDestination)
@@ -435,7 +435,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         RefreshFlightPlanLink(simBriefFlightNumber, simBriefOrigin, simBriefDestination);
         if (HasSimBriefFlightPlan && !IsFlightPlanLinked)
         {
-            throw new FleetApiException("The selected BAV flight does not match the loaded SimBrief OFP. Select or import the correct flight before pushback.");
+            throw new FleetApiException("The selected BAV flight does not match its website briefing. Refresh the website flight before pushback.");
         }
     }
 
@@ -565,6 +565,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
                 // their active website flight during a temporary API failure.
             }
             var previousAssignmentId = WebsiteFlightAssignment?.Id;
+            var previousBriefingRevision = BuildBriefingRevision(WebsiteFlightAssignment?.Briefing);
             var assignment = await _apiClient.GetWebsiteFlightAssignmentAsync(_settings, account);
             WebsiteFlightAssignment = assignment;
             try
@@ -595,7 +596,8 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
                     this,
                     new WebsiteFlightAssignmentRefreshedEventArgs(
                         assignment,
-                        !string.Equals(previousAssignmentId, assignment.Id, StringComparison.Ordinal)));
+                        !string.Equals(previousAssignmentId, assignment.Id, StringComparison.Ordinal),
+                        !string.Equals(previousBriefingRevision, BuildBriefingRevision(assignment.Briefing), StringComparison.Ordinal)));
             }
         }
         finally
@@ -613,6 +615,11 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             .ToArray();
         UnreadNotificationCount = Math.Max(0, response.UnreadCount);
     }
+
+    private static string BuildBriefingRevision(FleetWebsiteFlightBriefingDto? briefing) =>
+        briefing is null
+            ? string.Empty
+            : string.Join("|", briefing.Status, briefing.GeneratedAt, briefing.Briefing?.FlightNumber, briefing.Briefing?.PassengerCount);
 
     private async Task RecoverActiveAcarsSessionAsync()
     {
@@ -714,4 +721,5 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
 public sealed record WebsiteFlightAssignmentRefreshedEventArgs(
     FleetWebsiteFlightAssignmentDto Assignment,
-    bool IsNewAssignment);
+    bool IsNewAssignment,
+    bool IsBriefingUpdated);

@@ -484,7 +484,32 @@ public sealed record FleetWebsiteFlightAssignmentDto(
     string Date,
     string Status,
     string? OriginIcao = null,
-    string? DestinationIcao = null);
+    string? DestinationIcao = null,
+    FleetWebsiteFlightBriefingDto? Briefing = null);
+/// <summary>
+/// A pilot-scoped operational briefing supplied by the BAV website. Ember
+/// deliberately consumes this instead of fetching an arbitrary latest OFP
+/// from SimBrief on the pilot's computer.
+/// </summary>
+public sealed record FleetWebsiteFlightBriefingDto(
+    string Status,
+    string? Route = null,
+    string? CruiseAltitude = null,
+    string? Alternate = null,
+    string? GeneratedAt = null,
+    FleetWebsiteSimbriefBriefingDto? Briefing = null);
+public sealed record FleetWebsiteSimbriefBriefingDto(
+    string? FlightNumber = null,
+    string? Callsign = null,
+    string? Aircraft = null,
+    string? AircraftIcao = null,
+    string? ScheduledOut = null,
+    string? ScheduledIn = null,
+    string? EstimatedOut = null,
+    string? EstimatedIn = null,
+    string? BlockTime = null,
+    string? DistanceNm = null,
+    string? PassengerCount = null);
 public sealed record FleetOperationsFlightsEnvelope(IReadOnlyList<FleetOperationsFlightDto>? Flights);
 public sealed record FleetOperationsFlightDto(
     string Id,
