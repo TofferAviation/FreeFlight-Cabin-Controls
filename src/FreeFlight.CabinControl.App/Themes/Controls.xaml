@@ -10,46 +10,46 @@
 
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
         <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
     </Style>
 
     <Style TargetType="TextBlock">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style TargetType="RadioButton">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="PageTitleStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
         <Setter Property="FontSize" Value="38" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="PageSubtitleStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="16" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
 
     <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="18" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="BodyTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="14" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="MutedTextStyle" TargetType="TextBlock">
         <Setter Property="FontSize" Value="13" />
-        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
     </Style>
 
     <Style x:Key="MetricLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
@@ -58,8 +58,8 @@
     </Style>
 
     <Style x:Key="CardStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="10" />
         <Setter Property="Padding" Value="18" />
@@ -68,7 +68,7 @@
     <Style x:Key="WindowButtonStyle" TargetType="Button">
         <Setter Property="Width" Value="44" />
         <Setter Property="Height" Value="34" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="FontFamily" Value="Segoe Fluent Icons" />
@@ -139,7 +139,7 @@
                             <Setter TargetName="NavBorder" Property="Background" Value="#174C7191" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="NavBorder" Property="Background" Value="{StaticResource PrimaryGradientBrush}" />
+                            <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource PrimaryGradientBrush}" />
                             <Setter TargetName="NavBorder" Property="BorderBrush" Value="#398EFF" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -151,7 +151,7 @@
     <Style x:Key="PrimaryButtonStyle" TargetType="Button">
         <Setter Property="MinHeight" Value="46" />
         <Setter Property="Padding" Value="22,8" />
-        <Setter Property="Background" Value="{StaticResource PrimaryGradientBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PrimaryGradientBrush}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="BorderBrush" Value="#398EFF" />
         <Setter Property="BorderThickness" Value="1" />
@@ -183,8 +183,8 @@
     </Style>
 
     <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="Foreground" Value="#63B9FF" />
     </Style>
 
@@ -226,7 +226,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Track" Property="Background" Value="{StaticResource PrimaryBrush}" />
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource PrimaryBrush}" />
                             <Setter TargetName="Track" Property="BorderBrush" Value="#3E9AFF" />
                             <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
                         </Trigger>
@@ -240,7 +240,7 @@
     </Style>
 
     <Style TargetType="Slider">
-        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
@@ -259,7 +259,7 @@
     </Style>
 
     <Style TargetType="ComboBoxItem">
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Padding" Value="12,9" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -281,9 +281,9 @@
     <Style TargetType="ComboBox">
         <Setter Property="MinHeight" Value="40" />
         <Setter Property="Padding" Value="12,0" />
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="FontSize" Value="14" />
         <Setter Property="Template">
             <Setter.Value>
@@ -307,14 +307,14 @@
                                                               Margin="12,0,40,0"
                                                               HorizontalAlignment="Left"
                                                               VerticalAlignment="Center"
-                                                              TextElement.Foreground="{StaticResource TextPrimaryBrush}" />
+                                                              TextElement.Foreground="{DynamicResource TextPrimaryBrush}" />
                                             <TextBlock Text="&#xE70D;"
                                                        FontFamily="Segoe Fluent Icons"
                                                        FontSize="12"
                                                        HorizontalAlignment="Right"
                                                        VerticalAlignment="Center"
                                                        Margin="0,0,13,0"
-                                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
                                         </Grid>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -329,8 +329,8 @@
                                AllowsTransparency="True"
                                Focusable="False"
                                PopupAnimation="Fade">
-                            <Border Background="{StaticResource SurfaceRaisedBrush}"
-                                    BorderBrush="{StaticResource BorderBrush}"
+                            <Border Background="{DynamicResource SurfaceRaisedBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="1"
                                     CornerRadius="6"
                                     MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
@@ -350,10 +350,10 @@
     <Style TargetType="TextBox">
         <Setter Property="MinHeight" Value="40" />
         <Setter Property="Padding" Value="12,7" />
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
-        <Setter Property="CaretBrush" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource PrimaryBrush}" />
         <Setter Property="FontSize" Value="14" />
     </Style>
 </ResourceDictionary>

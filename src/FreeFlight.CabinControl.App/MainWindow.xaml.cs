@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.App.Views;
 using FreeFlight.CabinControl.App.ViewModels;
 
@@ -11,6 +12,7 @@ public partial class MainWindow
 {
     private bool _startupUpdateCheckStarted;
     private bool _automaticUpdateCheckInProgress;
+    private bool _isRebuildingForTheme;
     private string? _notifiedUpdateTag;
     private readonly DispatcherTimer _updateCheckTimer;
 
@@ -37,6 +39,50 @@ public partial class MainWindow
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
+
+    private async void ToggleThemeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isRebuildingForTheme || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (!await viewModel.Settings.ToggleThemeAsync())
+        {
+            return;
+        }
+
+        // WPF resolves many workspace brushes when a view is created.  Build
+        // a fresh shell around the existing view-model instead of trying to
+        // mutate those resources in place. The current page, signed-in BAV
+        // account and any live ACARS work remain in the same view-model.
+        new AppThemeService().Apply(viewModel.Settings.Theme);
+        RebuildForTheme(viewModel);
+    }
+
+    private void RebuildForTheme(MainWindowViewModel viewModel)
+    {
+        var wasMaximized = WindowState == WindowState.Maximized;
+        var replacement = new MainWindow
+        {
+            DataContext = viewModel,
+            Left = Left,
+            Top = Top,
+            Width = ActualWidth > 0 ? ActualWidth : Width,
+            Height = ActualHeight > 0 ? ActualHeight : Height
+        };
+
+        _isRebuildingForTheme = true;
+        Application.Current.MainWindow = replacement;
+        replacement.Show();
+        if (wasMaximized)
+        {
+            replacement.WindowState = WindowState.Maximized;
+        }
+
+        replacement.Activate();
+        Close();
+    }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
@@ -143,6 +189,11 @@ public partial class MainWindow
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         _updateCheckTimer.Stop();
+        if (_isRebuildingForTheme)
+        {
+            return;
+        }
+
         if (DataContext is MainWindowViewModel viewModel)
         {
             viewModel.Dispose();

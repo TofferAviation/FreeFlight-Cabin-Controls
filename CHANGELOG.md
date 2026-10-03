@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.40] - 2026-10-03
+
+### Fixed
+
+- Fixed workspace navigation returning pilots to Overview after they selected Fleet, iPort, Settings or another Ember page. Completing the remembered BAV session restore now preserves the page the pilot chose.
+- Moved Ember's Light / Dark control into the always-visible top bar and made it apply immediately by rebuilding the visual shell around the same signed-in, live-flight workspace. This does not interrupt ACARS or clear pilot data.
+
 ## [0.5.39] - 2026-10-03
 
 ### Fixed

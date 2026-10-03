@@ -443,19 +443,6 @@ internal static class Program
             return 0;
         }
 
-        var dashboardView = FindVisualChild<FreeFlight.CabinControl.App.Views.DashboardView>(window, _ => true);
-        var overviewGateToggle = dashboardView is null
-            ? null
-            : FindVisualChild<Button>(dashboardView, button =>
-                ReferenceEquals(button.Command, viewModel.Operations.ToggleGateCommand));
-        var iportWorkspaceButton = dashboardView is null
-            ? null
-            : FindVisualChild<Button>(dashboardView, button => Equals(button.CommandParameter, "IportDcs"));
-        if (dashboardView is null || overviewGateToggle is not null || iportWorkspaceButton is null)
-        {
-            throw new InvalidOperationException("The rebuilt Overview does not expose the expected iPort entry point.");
-        }
-
         // This visual harness deliberately has no BAV account credentials.
         // The pilot workspace is now correctly locked behind the website
         // account session, so a successful secure launch is the appropriate
@@ -467,6 +454,19 @@ internal static class Program
             application.Shutdown();
             Console.WriteLine($"Rendered secure Ember sign-in check to {outputDirectory}");
             return 0;
+        }
+
+        var dashboardView = FindVisualChild<FreeFlight.CabinControl.App.Views.DashboardView>(window, _ => true);
+        var overviewGateToggle = dashboardView is null
+            ? null
+            : FindVisualChild<Button>(dashboardView, button =>
+                ReferenceEquals(button.Command, viewModel.Operations.ToggleGateCommand));
+        var iportWorkspaceButton = dashboardView is null
+            ? null
+            : FindVisualChild<Button>(dashboardView, button => Equals(button.CommandParameter, "IportDcs"));
+        if (dashboardView is null || overviewGateToggle is not null || iportWorkspaceButton is null)
+        {
+            throw new InvalidOperationException("The rebuilt Overview does not expose the expected iPort entry point.");
         }
 
         viewModel.NavigateCommand.Execute("GateDesk");
@@ -1838,13 +1838,17 @@ internal static class Program
 
     private static void Render(Window window, string path)
     {
-        window.Measure(new Size(window.Width, window.Height));
-        window.Arrange(new Rect(0, 0, window.Width, window.Height));
-        window.UpdateLayout();
+        // A shown top-level WPF window is already measured by Windows.
+        // Measuring it again can trigger a native min/max-window failure on
+        // some Windows sessions, even though Ember itself starts normally.
+        // Render its established layout instead.
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+        var width = Math.Max(1, (int)Math.Ceiling(window.ActualWidth));
+        var height = Math.Max(1, (int)Math.Ceiling(window.ActualHeight));
 
         var bitmap = new RenderTargetBitmap(
-            (int)window.Width,
-            (int)window.Height,
+            width,
+            height,
             96,
             96,
             PixelFormats.Pbgra32);

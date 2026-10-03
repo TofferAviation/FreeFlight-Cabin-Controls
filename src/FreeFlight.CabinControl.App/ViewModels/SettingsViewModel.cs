@@ -89,8 +89,6 @@ public sealed class SettingsViewModel : PageViewModel
 
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
 
-    public IReadOnlyList<string> Themes { get; } = [AppThemeService.Light, AppThemeService.Dark];
-
     public IReadOnlyList<int> BoardingStartOffsets { get; } = [60, 45, 30, 20];
 
     public IReadOnlyList<int> TurnaroundDurations { get; } = [45, 60, 75, 90];
@@ -333,7 +331,36 @@ public sealed class SettingsViewModel : PageViewModel
             if (string.Equals(_settings.Theme, normalized, StringComparison.Ordinal)) return;
             _settings.Theme = normalized;
             OnPropertyChanged();
-            SaveStatus = "Appearance will apply the next time Ember starts";
+            SaveStatus = "Appearance is controlled from the top bar";
+        }
+    }
+
+    /// <summary>
+    /// Saves the top-bar appearance choice before the shell is rebuilt. The
+    /// rebuild uses the same pilot workspace and ACARS session, so changing
+    /// the visual theme never interrupts an active operation.
+    /// </summary>
+    public async Task<bool> ToggleThemeAsync()
+    {
+        var previousTheme = AppThemeService.Normalize(_settings.Theme);
+        var nextTheme = string.Equals(previousTheme, AppThemeService.Dark, StringComparison.Ordinal)
+            ? AppThemeService.Light
+            : AppThemeService.Dark;
+
+        _settings.Theme = nextTheme;
+        OnPropertyChanged(nameof(Theme));
+        try
+        {
+            await _settingsStore.SaveAsync(_settings);
+            SaveStatus = $"{nextTheme} appearance enabled";
+            return true;
+        }
+        catch (Exception exception)
+        {
+            _settings.Theme = previousTheme;
+            OnPropertyChanged(nameof(Theme));
+            ShowSaveError(exception);
+            return false;
         }
     }
 

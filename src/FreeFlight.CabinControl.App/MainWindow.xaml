@@ -138,26 +138,37 @@
                                 <TextBlock Text="{Binding Operations.RouteSummary}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
                                 <TextBlock Text="{Binding Operations.AircraftName}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" />
                             </StackPanel>
-                            <Button Grid.Column="2" Command="{Binding NavigateCommand}" CommandParameter="CabinAccount"
-                                    Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                                    Padding="10,7" HorizontalAlignment="Right" VerticalAlignment="Center" MinWidth="196"
-                                    shell:WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="Open your BAV flight account">
-                                <Grid>
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /></Grid.ColumnDefinitions>
-                                    <Grid Width="31" Height="31">
-                                        <Ellipse Fill="#0A5A96" />
-                                        <TextBlock Text="{Binding Account.Initials}" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                        <Ellipse Visibility="{Binding Account.HasProfileImage, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <Ellipse.Fill><ImageBrush ImageSource="{Binding Account.ProfileImageSource}" Stretch="UniformToFill" /></Ellipse.Fill>
-                                        </Ellipse>
-                                    </Grid>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Account.DisplayName}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding Account.PilotLabel}" Foreground="{StaticResource PrimaryBrush}" FontSize="9" TextTrimming="CharacterEllipsis" />
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Button Click="ToggleThemeButton_Click"
+                                        Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                        Padding="12,7" Margin="0,0,9,0" MinWidth="92"
+                                        shell:WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="Switch between Light and Dark appearance">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE706;" FontFamily="Segoe Fluent Icons" FontSize="13" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding Settings.Theme}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     </StackPanel>
-                                    <TextBlock Grid.Column="2" Text="&#xE70D;" FontFamily="Segoe Fluent Icons" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                                </Grid>
-                            </Button>
+                                </Button>
+                                <Button Command="{Binding NavigateCommand}" CommandParameter="CabinAccount"
+                                        Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                        Padding="10,7" HorizontalAlignment="Right" VerticalAlignment="Center" MinWidth="196"
+                                        shell:WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="Open your BAV flight account">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /></Grid.ColumnDefinitions>
+                                        <Grid Width="31" Height="31">
+                                            <Ellipse Fill="#0A5A96" />
+                                            <TextBlock Text="{Binding Account.Initials}" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            <Ellipse Visibility="{Binding Account.HasProfileImage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <Ellipse.Fill><ImageBrush ImageSource="{Binding Account.ProfileImageSource}" Stretch="UniformToFill" /></Ellipse.Fill>
+                                            </Ellipse>
+                                        </Grid>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Account.DisplayName}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding Account.PilotLabel}" Foreground="{StaticResource PrimaryBrush}" FontSize="9" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="&#xE70D;" FontFamily="Segoe Fluent Icons" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                                    </Grid>
+                                </Button>
+                            </StackPanel>
                         </Grid>
                     </Border>
 

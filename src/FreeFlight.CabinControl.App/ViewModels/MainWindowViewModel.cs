@@ -472,10 +472,12 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private async Task RestoreBavAccountSessionAsync()
     {
-        if (await Account.RestoreSessionAsync())
-        {
-            Navigate("Dashboard");
-        }
+        // Restoring a remembered account continues loading the website
+        // assignment and any active ACARS session after the pilot is allowed
+        // into Ember. Do not navigate when that background work completes:
+        // a pilot may already have opened Fleet, iPort or another workspace,
+        // and forcing Overview here made every selection appear to reset.
+        await Account.RestoreSessionAsync();
     }
 
     private void HandleBavAccountSessionChanged(object? sender, EventArgs e)
