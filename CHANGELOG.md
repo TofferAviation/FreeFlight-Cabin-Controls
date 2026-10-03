@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.34] - 2026-10-03
+
+### Added
+
+- Ember now receives the selected pilot flight and its matching operational briefing from the authenticated BAV website. When the briefing is ready on the website, the aircraft, route, schedule and passenger load arrive in Ember without a local SimBrief Pilot ID or manual client import.
+
+### Changed
+
+- Began the Ember concept refresh with a calm light operational workspace, white data cards, a deep-navy navigation rail, and clearer website-flight guidance across Dashboard, Live Cabin and Settings.
+- Refreshing the same BAV flight now detects a newly available website briefing, rather than only acting when the pilot chooses an entirely new flight.
+
 ## [0.5.33] - 2026-10-03
 
 ### Fixed
