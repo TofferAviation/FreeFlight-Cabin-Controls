@@ -260,6 +260,18 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+        // Legacy deep links resolve to the rebuilt pilot workspace.  Keeping
+        // this compatibility layer prevents a background hand-off or an old
+        // shortcut from navigating to a page which is no longer in the shell.
+        destination = destination switch
+        {
+            "GateLogin" or "GateDesk" or "PassengerManifest" or "BoardingPasses" => "IportDcs",
+            "OnboardMenu" => "Catering",
+            "Airliners" => "CabinAccount",
+            "CabinPanel" or "Audio" => "Settings",
+            _ => destination
+        };
+
         if (!Account.IsAuthenticated && destination != "CabinAccount")
         {
             CurrentPage = Account;
@@ -321,7 +333,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private void HandleGateSignedIn(object? sender, EventArgs e)
     {
         Operations.ApplyGateAccessState();
-        Navigate("GateDesk");
+        Navigate("Dashboard");
     }
 
     private void HandleGateSignedOut(object? sender, EventArgs e)

@@ -1,121 +1,107 @@
 <UserControl x:Class="FreeFlight.CabinControl.App.Views.CabinAccountView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid ClipToBounds="True">
-        <Grid.Background>
-            <RadialGradientBrush Center="0.52,0.25" GradientOrigin="0.52,0.25" RadiusX="0.9" RadiusY="0.95">
-                <GradientStop Color="#173E70" Offset="0" />
-                <GradientStop Color="#071A34" Offset="0.48" />
-                <GradientStop Color="#020B19" Offset="1" />
-            </RadialGradientBrush>
-        </Grid.Background>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="42,34">
-            <StackPanel Width="520" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <Image Width="310" Height="64" Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/AirlineLogos/BAW.png" Stretch="Uniform" />
-                <TextBlock Text="Ember Account" FontSize="18" Foreground="#A8B7CA" HorizontalAlignment="Center" Margin="0,0,0,26" />
-                <Border Style="{StaticResource CardStyle}" Padding="34,28">
+    <Grid>
+        <Grid Visibility="{Binding IsAuthenticated, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#062B4C" Offset="0" />
+                    <GradientStop Color="#0B74B7" Offset="0.58" />
+                    <GradientStop Color="#A7D9F6" Offset="1" />
+                </LinearGradientBrush>
+            </Grid.Background>
+            <Border Width="478" Padding="34" Background="#FDFEFF" BorderBrush="#D8E2EC" BorderThickness="1" CornerRadius="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel>
+                    <Border Width="58" Height="58" CornerRadius="29" Background="#E9F5FF" BorderBrush="#B8DDF5" BorderThickness="1" HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE77B;" FontFamily="Segoe Fluent Icons" FontSize="27" Foreground="#0B73B9" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Welcome to Ember" Style="{StaticResource PageTitleStyle}" FontSize="31" HorizontalAlignment="Center" Margin="0,18,0,0" />
+                    <TextBlock Text="Sign in with your BAV website account to load the flight you selected online." Style="{StaticResource PageSubtitleStyle}" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" Margin="0,7,0,24" />
+                    <TextBlock Text="Website email" FontWeight="SemiBold" FontSize="12" Margin="0,0,0,6" />
+                    <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Height="43" />
+                    <TextBlock Text="Password" FontWeight="SemiBold" FontSize="12" Margin="0,16,0,6" />
+                    <PasswordBox x:Name="PasswordInput" PasswordChanged="PasswordInput_OnPasswordChanged" Height="43" Padding="12,8" Background="White" Foreground="#102A43" BorderBrush="#BFD0DF" CaretBrush="#0B73B9" FontSize="14" />
+                    <CheckBox IsChecked="{Binding RememberSignIn}" Content="Remember this BAV account on this Windows PC" Margin="0,14,0,0" />
+                    <TextBlock Text="Ember stores an encrypted device session only. Your BAV password is never stored." Foreground="{StaticResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,5,0,0" />
+                    <Button Command="{Binding SignInCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,22,0,0" Height="50" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="Sign in to Ember" FontSize="15" /><TextBlock Text="&#xE72A;" FontFamily="Segoe Fluent Icons" FontSize="17" Margin="11,0,0,0" /></StackPanel>
+                    </Button>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" Margin="0,13,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <ScrollViewer Visibility="{Binding IsAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="MY FLIGHT" Foreground="{StaticResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding DisplayName}" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
+                        <TextBlock Text="Your verified BAV account, briefing and live ACARS session." Style="{StaticResource PageSubtitleStyle}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Width="48" Height="48" CornerRadius="24" Background="#E9F5FF" BorderBrush="#B8DDF5" BorderThickness="1" Margin="0,0,11,0">
+                            <TextBlock Text="{Binding Initials}" Foreground="{StaticResource PrimaryDeepBrush}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding PilotLabel}" FontWeight="SemiBold" /><TextBlock Text="Verified BAV pilot" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,2,0,0" /></StackPanel>
+                    </StackPanel>
+                </Grid>
+
+                <Border CornerRadius="12" Padding="24" Margin="0,0,0,16">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#06385E" Offset="0" /><GradientStop Color="#0B76B9" Offset="0.64" /><GradientStop Color="#1690CF" Offset="1" /></LinearGradientBrush>
+                    </Border.Background>
                     <Grid>
-                        <StackPanel Visibility="{Binding IsAuthenticated, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                            <Border Width="70" Height="70" CornerRadius="35" Background="#163B70" HorizontalAlignment="Center">
-                                <TextBlock Text="&#xE77B;" FontFamily="Segoe Fluent Icons" FontSize="35" Foreground="#59A4FF" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <TextBlock Text="Sign in to Ember" FontSize="27" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,17,0,5" />
-                            <TextBlock Text="Use the same email and password as the British Airways Virtual website. Your password is never stored." TextWrapping="Wrap" TextAlignment="Center" Foreground="#9DB0C7" FontSize="12" Margin="0,0,0,22" />
-                            <TextBlock Text="Website email" FontSize="13" Margin="0,0,0,5" />
-                            <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" Height="43" />
-                            <TextBlock Text="Password" FontSize="13" Margin="0,16,0,5" />
-                            <PasswordBox x:Name="PasswordInput" PasswordChanged="PasswordInput_OnPasswordChanged" Height="43" Padding="12,8" Background="#071426" Foreground="White" BorderBrush="{StaticResource BorderBrush}" CaretBrush="#398EFF" FontSize="14" />
-                            <CheckBox IsChecked="{Binding RememberSignIn}" Content="Remember this BAV account on this Windows PC" Foreground="#D6E0EC" Margin="0,14,0,0" />
-                            <TextBlock Text="Ember stores only an encrypted session for this Windows user — never your website password. Sign out to remove it." TextWrapping="Wrap" Foreground="#7890AC" FontSize="10" Margin="0,5,0,0" />
-                            <Button Command="{Binding SignInCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,22,0,0" Height="52" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}">
-                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="&#xE72A;" FontFamily="Segoe Fluent Icons" FontSize="19" Margin="0,0,11,0" /><TextBlock Text="Sign in with BAV account" FontSize="15" /></StackPanel>
-                            </Button>
-                            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" TextAlignment="Center" Foreground="#93A8C1" FontSize="11" Margin="0,13,0,0" />
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="WEBSITE FLIGHT" Foreground="#CBEAFF" FontSize="10" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding WebsiteFlightAssignmentLabel}" Foreground="White" FontSize="26" FontWeight="SemiBold" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding WebsiteFlightAssignmentDetail}" Foreground="#D7F1FF" FontSize="13" Margin="0,7,0,0" />
+                            <Button Content="Refresh flight from website" Command="{Binding RefreshWebsiteFlightCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="38" Margin="0,18,0,0" HorizontalAlignment="Left" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}" />
                         </StackPanel>
-                        <StackPanel Visibility="{Binding IsAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <Grid Width="80" Height="80" HorizontalAlignment="Center">
-                                <Border CornerRadius="40" Background="#164C34"><TextBlock Text="{Binding Initials}" FontSize="26" FontWeight="Bold" Foreground="#65E692" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                                <Ellipse Visibility="{Binding HasProfileImage, Converter={StaticResource BooleanToVisibilityConverter}}"><Ellipse.Fill><ImageBrush ImageSource="{Binding ProfileImageSource}" Stretch="UniformToFill" /></Ellipse.Fill></Ellipse>
-                            </Grid>
-                            <TextBlock Text="{Binding DisplayName}" FontSize="27" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,17,0,4" />
-                            <TextBlock Text="{Binding PilotLabel}" Foreground="#65E692" FontSize="15" HorizontalAlignment="Center" />
-                            <StackPanel HorizontalAlignment="Center" Margin="0,16,0,0" AutomationProperties.Name="Pilot rank">
-                                <TextBlock Text="PILOT RANK" Foreground="#7890AC" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" />
-                                <Image Source="{Binding PilotRankInsigniaSource}" Width="88" Height="292" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" Margin="0,7,0,0" AutomationProperties.Name="{Binding PilotRank}" />
-                                <!-- This is the same shoulder-board construction used by the BAV website rank system. -->
-                                <Viewbox Width="68" Height="102" Margin="0,7,0,0" Stretch="Uniform" AutomationProperties.Name="{Binding PilotRank}" Visibility="Collapsed">
-                                    <Canvas Width="72" Height="108">
-                                        <Canvas.Resources>
-                                            <LinearGradientBrush x:Key="RankBoard" StartPoint="0,0" EndPoint="1,1">
-                                                <GradientStop Color="#173A63" Offset="0" />
-                                                <GradientStop Color="#071B35" Offset="0.48" />
-                                                <GradientStop Color="#102A4A" Offset="1" />
-                                            </LinearGradientBrush>
-                                            <LinearGradientBrush x:Key="RankGold" StartPoint="0,0" EndPoint="0,1">
-                                                <GradientStop Color="#FFF0A7" Offset="0" />
-                                                <GradientStop Color="#E5B94B" Offset="0.24" />
-                                                <GradientStop Color="#9D6819" Offset="0.58" />
-                                                <GradientStop Color="#F4D16A" Offset="1" />
-                                            </LinearGradientBrush>
-                                        </Canvas.Resources>
-                                        <Path Data="M17,103 V31 L36,8 L55,31 V103 Z" Fill="#020B16" Opacity="0.56" />
-                                        <Path Data="M15,100 V30 L36,6 L57,30 V100 Z" Fill="{StaticResource RankBoard}" Stroke="#315073" StrokeThickness="1.2" />
-                                        <Path Data="M19,98 V32 L36,12 L53,32 V98" Fill="Transparent" Stroke="#6682A2" StrokeThickness="1" StrokeDashArray="1.2,1.3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.48" />
-                                        <Ellipse Canvas.Left="28.9" Canvas.Top="14.9" Width="14.2" Height="14.2" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
-                                        <Path Data="M31.7,22 C34.5,20.2 37.7,19.9 40.8,21.8 C38,21.3 35.4,22.1 33,24.1 C34.8,21.7 37.2,20.4 40.4,20.1 C37.3,19.4 34.5,20 31.7,22 Z" Fill="#A66B16" Opacity="0.9" />
-                                        <Canvas Visibility="{Binding IsSeniorCaptain, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <Path Data="M25,57 C21,55 18.5,51 18.3,46.7 C20.7,49 23,50 25.2,49.8 C22.6,47.2 21.4,44.5 21.6,41.5 C24.7,44.3 27.2,45.5 29.1,45.1 C27.3,42.1 27,39.4 28.2,36.9 C30.6,40.8 33.3,43.2 36.1,44.1 C31.9,46.8 28.2,51.1 25,57 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
-                                            <Path Data="M47,57 C51,55 53.5,51 53.7,46.7 C51.3,49 49,50 46.8,49.8 C49.4,47.2 50.6,44.5 50.4,41.5 C47.3,44.3 44.8,45.5 42.9,45.1 C44.7,42.1 45,39.4 43.8,36.9 C41.4,40.8 38.7,43.2 35.9,44.1 C40.1,46.8 43.8,51.1 47,57 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
-                                        </Canvas>
-                                        <Canvas Visibility="{Binding IsTrainingCaptain, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <Path Data="M36,39 L39.3,46.1 L47,46.9 L41.3,51.9 L42.9,59.5 L36,55.6 L29.1,59.5 L30.7,51.9 L25,46.9 L32.7,46.1 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
-                                            <Path Data="M17,47 L30,51 V55 L17,57 L9,52 Z M55,47 L42,51 V55 L55,57 L63,52 Z" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" />
-                                        </Canvas>
-                                        <Canvas Visibility="{Binding IsFirstOfficer, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                            <Path Data="M27,57 C34.5,53.4 41,53.8 46.3,58.2 C40.1,56.9 34.8,58.5 30.1,63.1 C32,60.4 35.3,58 39.7,56.5 C35.2,56.7 31,56.8 27,57 Z" Fill="#D71736" />
-                                            <Path Data="M41.6,58.2 C44.2,58 46.5,58.9 48.3,60.8 C45.8,60.5 43.6,61 41.6,62.3 Z" Fill="#F4F7FA" />
-                                        </Canvas>
-                                        <Rectangle Canvas.Left="17" Canvas.Top="88" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeOne, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                        <Rectangle Canvas.Left="17" Canvas.Top="77.9" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeTwo, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                        <Rectangle Canvas.Left="17" Canvas.Top="67.8" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeThree, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                        <Rectangle Canvas.Left="17" Canvas.Top="57.7" Width="38" Height="6.3" RadiusX="1.1" RadiusY="1.1" Fill="{StaticResource RankGold}" Stroke="#7F5217" StrokeThickness="0.55" Visibility="{Binding HasRankStripeFour, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                    </Canvas>
-                                </Viewbox>
-                                <TextBlock Text="{Binding PilotRank}" Foreground="#F4D277" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,3,0,0" Visibility="Collapsed" />
+                        <Border Grid.Column="1" Background="#2500162B" BorderBrush="#45FFFFFF" BorderThickness="1" CornerRadius="9" Padding="16" VerticalAlignment="Center">
+                            <StackPanel>
+                                <TextBlock Text="FLIGHT PLAN" Foreground="#BFE9FF" FontSize="10" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding FlightPlanLinkLabel}" Foreground="White" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                <TextBlock Text="{Binding FlightPlanLinkDetail}" Foreground="#D7F1FF" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
                             </StackPanel>
-                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,24,0,0"><StackPanel><TextBlock Text="WEBSITE FLIGHT" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding WebsiteFlightAssignmentLabel}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="16" Margin="0,6,0,0" /><TextBlock Text="{Binding WebsiteFlightAssignmentDetail}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" /><Button Content="Refresh BAV account, flight and notices" Command="{Binding RefreshWebsiteFlightCommand}" Style="{StaticResource SecondaryButtonStyle}" Height="36" Margin="0,13,0,0" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}" /></StackPanel></Border>
-                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="BAV OPERATIONS" Foreground="#7890AC" FontSize="10" />
-                                    <TextBlock Text="Notifications" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="16" Margin="0,6,0,0" />
-                                    <TextBlock Text="{Binding NotificationsSummary}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" />
-                                    <TextBlock Text="No new operational notices. PIREP reviews, transfer-credit decisions and career updates appear here and on the BAV website." TextWrapping="Wrap" Foreground="#93A8C1" FontSize="11" Margin="0,12,0,0" Visibility="{Binding HasNotifications, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
-                                    <ItemsControl ItemsSource="{Binding Notifications}" Margin="0,12,0,0" Visibility="{Binding HasNotifications, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border BorderBrush="#29435F" BorderThickness="0,1,0,0" Padding="0,10,0,0" Margin="0,8,0,0">
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Title}" Foreground="#E6F1FF" FontWeight="SemiBold" FontSize="12" />
-                                                        <TextBlock Text="{Binding Body}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="11" Margin="0,3,0,0" />
-                                                        <TextBlock Text="{Binding CreatedAt, StringFormat={}{0:dd MMM yyyy, HH:mm}}" Foreground="#7890AC" FontSize="10" Margin="0,5,0,0" />
-                                                    </StackPanel>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
-                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0"><StackPanel><TextBlock Text="FLIGHT PLAN LINK" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding FlightPlanLinkLabel}" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="14" Margin="0,6,0,0" /><TextBlock Text="{Binding FlightPlanLinkDetail}" TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,4,0,0" /></StackPanel></Border>
-                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0"><StackPanel><TextBlock Text="ACARS FLIGHT STATUS" Foreground="#7890AC" FontSize="10" /><TextBlock Text="{Binding AcarsSessionLabel}" Foreground="#65E692" FontWeight="SemiBold" FontSize="14" Margin="0,6,0,0" /><TextBlock Text="Ember continues recording simulator telemetry until you explicitly end the flight. Engine, beacon and pushback changes cannot complete or release it." TextWrapping="Wrap" Foreground="#B4C6DB" FontSize="12" Margin="0,7,0,0" /><TextBlock Text="{Binding LastFlightCompletionLabel}" TextWrapping="Wrap" Foreground="#7890AC" FontSize="11" Margin="0,7,0,0" /><Button Content="{Binding EndFlightButtonLabel}" Command="{Binding EndFlightCommand}" Style="{StaticResource PrimaryButtonStyle}" Height="40" Margin="0,14,0,0" IsEnabled="{Binding IsAcarsOperating}" /></StackPanel></Border>
-                            <Border Background="#6F071426" BorderBrush="#29435F" BorderThickness="1" CornerRadius="7" Padding="16" Margin="0,12,0,0"><StackPanel><TextBlock Text="FLEET ACCESS" Foreground="#7890AC" FontSize="10" /><TextBlock Text="The registration selected for your BAV flight remains assigned until you explicitly end the flight in Ember. Simulator telemetry is read continuously while the flight is active." TextWrapping="Wrap" Foreground="#D6E0EC" FontSize="13" Margin="0,6,0,0" /></StackPanel></Border>
-                            <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" TextAlignment="Center" Foreground="#93A8C1" FontSize="11" Margin="0,14,0,0" />
-                            <Button Command="{Binding SignOutCommand}" Content="Sign out" Style="{StaticResource SecondaryButtonStyle}" Height="46" Margin="0,20,0,0" />
-                        </StackPanel>
+                        </Border>
                     </Grid>
                 </Border>
+
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0">
+                        <StackPanel>
+                            <TextBlock Text="ACARS SESSION" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="Telemetry begins and ends with your operational flight." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,4,0,16" />
+                            <Border Background="#F4F8FC" BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding AcarsSessionLabel}" Foreground="{StaticResource SuccessBrush}" FontSize="15" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding LastFlightCompletionLabel}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Button Content="{Binding EndFlightButtonLabel}" Command="{Binding EndFlightCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,15,0,0" IsEnabled="{Binding IsAcarsOperating}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="OPERATIONS UPDATES" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="{Binding NotificationsSummary}" Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,4,0,12" />
+                            <ItemsControl ItemsSource="{Binding Notifications}" Visibility="{Binding HasNotifications, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="0,1,0,0" Padding="0,9,0,0" Margin="0,5,0,0"><StackPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" /><TextBlock Text="{Binding Body}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0" /></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="There are no new operational updates." Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Visibility="{Binding HasNotifications, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid Margin="0,16,0,0">
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <Button Content="Sign out of Ember" Command="{Binding SignOutCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" />
+                </Grid>
             </StackPanel>
-        </Grid>
         </ScrollViewer>
     </Grid>
 </UserControl>

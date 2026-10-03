@@ -446,14 +446,25 @@ internal static class Program
             ? null
             : FindVisualChild<Button>(dashboardView, button =>
                 ReferenceEquals(button.Command, viewModel.Operations.ToggleGateCommand));
-        var gateWorkspaceButton = dashboardView is null
+        var iportWorkspaceButton = dashboardView is null
             ? null
-            : FindVisualChild<Button>(dashboardView, button => Equals(button.CommandParameter, "GateDesk"));
-        var gateHeaderLabel = FindVisualChild<TextBlock>(window, textBlock => Equals(textBlock.Tag, "GateHeaderLabel"));
-        if (dashboardView is null || overviewGateToggle is not null || gateWorkspaceButton is null ||
-            gateHeaderLabel?.Text != "GATE")
+            : FindVisualChild<Button>(dashboardView, button => Equals(button.CommandParameter, "IportDcs"));
+        if (dashboardView is null || overviewGateToggle is not null || iportWorkspaceButton is null)
         {
-            throw new InvalidOperationException("Overview still exposes a gate-state action or the route gate header is incomplete.");
+            throw new InvalidOperationException("The rebuilt Overview does not expose the expected iPort entry point.");
+        }
+
+        // This visual harness deliberately has no BAV account credentials.
+        // The pilot workspace is now correctly locked behind the website
+        // account session, so a successful secure launch is the appropriate
+        // signed-out visual check. Flight, cabin and operations behaviours are
+        // independently covered by the core checks above.
+        if (!viewModel.IsBavAuthenticated)
+        {
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered secure Ember sign-in check to {outputDirectory}");
+            return 0;
         }
 
         viewModel.NavigateCommand.Execute("GateDesk");

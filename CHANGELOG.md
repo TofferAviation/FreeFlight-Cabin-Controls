@@ -2,6 +2,20 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.35] - 2026-10-03
+
+### Changed
+
+- Rebuilt Ember's pilot-facing application as one clear workspace: a secure BAV account sign-in, flight overview, My Flight, Service, Passengers, Fleet, Reports, iPort DCS, FlightLogger and Settings now share the same calm navigation and visual language.
+- Replaced the previous mixture of legacy operations screens and refreshed pages. Existing account sign-in, selected-website-flight briefing, live ACARS session, simulator telemetry, fleet coordination and PIREP submission remain connected behind the new interface.
+- A BAV account sign-in now lands on the flight overview instead of automatically opening the former Gate Desk. Older internal destinations route safely into the appropriate current workspace.
+- Simplified the passenger, service, fleet, reports, iPort and settings journeys so operational status, next actions and live data are easier to find without exposing obsolete tools in the pilot navigation.
+
+### Fixed
+
+- Corrected light workspace controls so sign-in and operational fields remain legible and consistent throughout the updated Ember interface.
+- Updated the visual verification harness for the secure, pilot-first workspace while retaining the existing ACARS and cabin-operation regression checks.
+
 ## [0.5.34] - 2026-10-03
 
 ### Added
