@@ -52,7 +52,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="112" />
                             <RowDefinition Height="*" />
-                            <RowDefinition Height="90" />
+                            <RowDefinition Height="112" />
                         </Grid.RowDefinitions>
                         <Ellipse Width="250" Height="250" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-155,-130,0" Fill="#183C9DD2" IsHitTestVisible="False" />
 
@@ -106,6 +106,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse Width="8" Height="8" Margin="0,0,7,0" VerticalAlignment="Center" Fill="{Binding Status.ConnectionColor}" />
@@ -115,6 +116,13 @@
                                     <TextBlock Text="{Binding Status.ConnectionSource}" Foreground="#A3B8CB" FontSize="9" TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{Binding Settings.Version}" HorizontalAlignment="Right" Foreground="#A3B8CB" FontSize="9" />
                                 </Grid>
+                                <TextBlock Grid.Row="2"
+                                           Text="© 2026 British Airways Virtual · Intended for flight simulation use only · Not affiliated with British Airways Plc"
+                                           Foreground="#83A5BF"
+                                           FontSize="8"
+                                           LineHeight="11"
+                                           TextWrapping="Wrap"
+                                           Margin="15,6,2,0" />
                             </Grid>
                         </Border>
                     </Grid>

@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.51] - 2026-10-04
+
+### Changed
+
+- Added Ember's copyright and intended-use notice beneath the live simulator status: © 2026 British Airways Virtual · intended for flight simulation use only · not affiliated with British Airways Plc.
+- Removed the non-functional Appearance live-preview placeholder. The tab now explains the real shared appearance behaviour applied across Ember's live operational workspaces.
+
 ## [0.5.50] - 2026-10-04
 
 ### Added
