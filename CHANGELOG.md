@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.45] - 2026-10-04
+
+### Changed
+
+- Refined Ember's live Overview into a softer, more premium dark workspace: the assigned-flight canvas now has clearer visual depth, and the operational panels use rounded, elevated surfaces, calmer spacing and more legible section hierarchy.
+- Kept every existing live binding and workspace action in place. Service, catering, passenger, fleet, maintenance, logbook and iGate information remains supplied by the same ACARS and website-flight data.
+
 ## [0.5.44] - 2026-10-04
 
 ### Added
