@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.44] - 2026-10-04
+
+### Added
+
+- Rebuilt Ember's Overview into a live operational dashboard: assigned-flight presentation, service progress, catering inventory, passenger preferences, aircraft readiness, maintenance and recent fleet-logbook activity now share one workspace.
+- The dashboard entries open the existing service, passengers, fleet and iGate workspaces, retaining all current ACARS and operational data rather than creating a separate mock-up.
+
 ## [0.5.43] - 2026-10-04
 
 ### Fixed
