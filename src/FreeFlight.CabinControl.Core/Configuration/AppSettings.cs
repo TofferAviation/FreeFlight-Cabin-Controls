@@ -108,7 +108,9 @@ public sealed class AppSettings
 
     public bool UseRoundedCorners { get; set; } = true;
 
-    public bool ReduceMotion { get; set; }
+    public string VisualEffectsProfile { get; set; } = "Signature";
+
+    public bool ShowAmbientBackdrop { get; set; } = true;
 
     public string PerformanceMode { get; set; } = "Balanced";
 

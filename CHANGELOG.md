@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.53] - 2026-10-04
+
+### Changed
+
+- Replaced the appearance option that reduced visual effects. Ember now keeps its rich presentation and offers positive visual-depth choices instead: **Signature** brings stronger card elevation and refined lighting, while **Immersive** adds a more pronounced premium atmosphere.
+- Reworked Appearance controls into direct, colourful interactions: instant accent swatches, segmented theme, scale, density, sidebar and dashboard-style choices, plus live aircraft-artwork and ambient-backdrop toggles. These controls apply to the real workspace rather than a preview-only mock-up.
+
 ## [0.5.52] - 2026-10-04
 
 ### Added

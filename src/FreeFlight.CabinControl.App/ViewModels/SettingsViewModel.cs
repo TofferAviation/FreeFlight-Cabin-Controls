@@ -42,6 +42,7 @@ public sealed class SettingsViewModel : PageViewModel
         _settings.CardDensity = AppThemeService.NormalizeDensity(_settings.CardDensity);
         _settings.SidebarStyle = AppThemeService.NormalizeSidebarStyle(_settings.SidebarStyle);
         _settings.DashboardImageStyle = AppThemeService.NormalizeDashboardImageStyle(_settings.DashboardImageStyle);
+        _settings.VisualEffectsProfile = AppThemeService.NormalizeVisualEffects(_settings.VisualEffectsProfile);
         _xPlanePluginStatus = _xPlanePluginInstaller.GetStatus(settings.XPlaneExecutablePath);
         _selectedCabinLayoutProfile = CabinLayoutProfiles.FirstOrDefault(profile =>
             string.Equals(profile.Id, settings.PassengerCabinLayoutId, StringComparison.OrdinalIgnoreCase)) ??
@@ -107,6 +108,8 @@ public sealed class SettingsViewModel : PageViewModel
     public IReadOnlyList<string> SidebarStyles { get; } = ["Full labels", "Icons only", "Auto (adaptive)"];
 
     public IReadOnlyList<string> DashboardImageStyles { get; } = ["Aircraft & sky", "Subtle aircraft", "Minimal"];
+
+    public IReadOnlyList<string> VisualEffectsProfiles { get; } = ["Signature", "Immersive"];
 
     public IReadOnlyList<int> BoardingStartOffsets { get; } = [60, 45, 30, 20];
 
@@ -402,10 +405,16 @@ public sealed class SettingsViewModel : PageViewModel
         set => SetSetting(value, current => _settings.UseRoundedCorners = current);
     }
 
-    public bool ReduceMotion
+    public string VisualEffectsProfile
     {
-        get => _settings.ReduceMotion;
-        set => SetSetting(value, current => _settings.ReduceMotion = current);
+        get => _settings.VisualEffectsProfile;
+        set => SetSetting(AppThemeService.NormalizeVisualEffects(value), current => _settings.VisualEffectsProfile = current);
+    }
+
+    public bool ShowAmbientBackdrop
+    {
+        get => _settings.ShowAmbientBackdrop;
+        set => SetSetting(value, current => _settings.ShowAmbientBackdrop = current);
     }
 
     /// <summary>
@@ -678,7 +687,8 @@ public sealed class SettingsViewModel : PageViewModel
         ShowBackgroundArtwork = defaults.ShowBackgroundArtwork;
         DashboardImageStyle = defaults.DashboardImageStyle;
         UseRoundedCorners = defaults.UseRoundedCorners;
-        ReduceMotion = defaults.ReduceMotion;
+        VisualEffectsProfile = defaults.VisualEffectsProfile;
+        ShowAmbientBackdrop = defaults.ShowAmbientBackdrop;
         XPlaneAutoConnect = defaults.XPlaneAutoConnect;
         XPlaneWebApiPort = defaults.XPlaneWebApiPort;
         SyncXPlaneDoors = defaults.SyncXPlaneDoors;

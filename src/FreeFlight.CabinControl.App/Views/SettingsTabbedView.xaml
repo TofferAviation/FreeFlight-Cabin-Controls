@@ -52,6 +52,25 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="AccentSwatch" TargetType="RadioButton">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="0,0,9,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Ring" Background="Transparent" BorderBrush="Transparent" BorderThickness="2" CornerRadius="17" Padding="3">
+                            <Ellipse Fill="{TemplateBinding Background}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource TextSecondaryBrush}" /></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource TextPrimaryBrush}" /><Setter TargetName="Ring" Property="Background" Value="{DynamicResource SurfaceBrush}" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
@@ -87,7 +106,7 @@
 
                     <StackPanel Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Appearance}">
                         <TextBlock Text="Appearance" Style="{StaticResource SectionTitleStyle}" FontSize="25" />
-                        <TextBlock Text="Make Ember your own while keeping every operational workspace and ACARS record intact." Style="{StaticResource PageSubtitleStyle}" FontSize="13" Margin="0,3,0,16" />
+                        <TextBlock Text="Tailor Ember around the way you fly — with richer visual depth, clear controls and no impact on your live operation." Style="{StaticResource PageSubtitleStyle}" FontSize="13" Margin="0,3,0,16" />
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition Width="1.08*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
                             <Border Style="{StaticResource SettingsCard}" Margin="0,0,10,0">
@@ -100,23 +119,41 @@
                                         <RadioButton GroupName="ThemeMode" Content="◉  Auto" Tag="Auto" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding Theme, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Auto, Mode=OneWay}" Checked="ThemeModeButton_Click" />
                                     </StackPanel>
                                     <TextBlock Text="Accent colour" Style="{StaticResource FieldLabel}" Margin="0,18,0,6" />
-                                    <Grid>
-                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="112" /></Grid.ColumnDefinitions>
-                                        <ComboBox ItemsSource="{Binding AccentPresets}" SelectedItem="{Binding AccentPreset}" SelectionChanged="AppearanceControlChanged" Margin="0,0,8,0" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton GroupName="AccentPreset" Tag="BAV Blue" Background="#1476FF" ToolTip="BAV Blue" Style="{StaticResource AccentSwatch}" IsChecked="{Binding AccentPreset, Converter={StaticResource StringEqualsConverter}, ConverterParameter=BAV Blue, Mode=OneWay}" Checked="AccentPresetButton_Click" />
+                                        <RadioButton GroupName="AccentPreset" Tag="Crimson" Background="#D93D62" ToolTip="Crimson" Style="{StaticResource AccentSwatch}" IsChecked="{Binding AccentPreset, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Crimson, Mode=OneWay}" Checked="AccentPresetButton_Click" />
+                                        <RadioButton GroupName="AccentPreset" Tag="Violet" Background="#7C63D9" ToolTip="Violet" Style="{StaticResource AccentSwatch}" IsChecked="{Binding AccentPreset, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Violet, Mode=OneWay}" Checked="AccentPresetButton_Click" />
+                                        <RadioButton GroupName="AccentPreset" Tag="Emerald" Background="#168D70" ToolTip="Emerald" Style="{StaticResource AccentSwatch}" IsChecked="{Binding AccentPreset, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Emerald, Mode=OneWay}" Checked="AccentPresetButton_Click" />
+                                        <RadioButton GroupName="AccentPreset" Tag="Amber" Background="#C87813" ToolTip="Amber" Style="{StaticResource AccentSwatch}" IsChecked="{Binding AccentPreset, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Amber, Mode=OneWay}" Checked="AccentPresetButton_Click" />
+                                        <RadioButton GroupName="AccentPreset" Tag="Slate" Background="#60748C" ToolTip="Slate" Style="{StaticResource AccentSwatch}" IsChecked="{Binding AccentPreset, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Slate, Mode=OneWay}" Checked="AccentPresetButton_Click" />
+                                    </StackPanel>
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="112" /><ColumnDefinition Width="*" /><ColumnDefinition Width="128" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="Custom colour" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" />
                                         <TextBox Grid.Column="1" Text="{Binding AccentColor, UpdateSourceTrigger=PropertyChanged}" ToolTip="Custom accent hexadecimal colour, for example #1476FF" />
+                                        <Button Grid.Column="2" Content="Apply custom" Click="ApplyCustomAccentButton_Click" Style="{StaticResource SecondaryButtonStyle}" Margin="8,0,0,0" />
                                     </Grid>
-                                    <Button Content="Apply custom accent" Click="ApplyCustomAccentButton_Click" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" Margin="0,9,0,0" />
-                                    <TextBlock Text="Use Custom to apply a personal hex colour; all other options are Ember-approved presets." Style="{StaticResource FieldHint}" />
+                                    <TextBlock Text="Choose a bright preset instantly, or use a personal hex colour for Ember's live accents and actions." Style="{StaticResource FieldHint}" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Column="1" Style="{StaticResource SettingsCard}">
                                 <StackPanel>
                                     <TextBlock Text="READABILITY &amp; LAYOUT" Style="{StaticResource MetricLabelStyle}" />
-                                    <Grid Margin="0,15,0,0"><TextBlock Text="Text and control scale" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ComboBox ItemsSource="{Binding UiScales}" SelectedItem="{Binding UiScalePercent}" SelectionChanged="AppearanceControlChanged" Width="105" HorizontalAlignment="Right" /></Grid>
-                                    <Grid Margin="0,13,0,0"><TextBlock Text="Card density" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ComboBox ItemsSource="{Binding CardDensities}" SelectedItem="{Binding CardDensity}" SelectionChanged="AppearanceControlChanged" Width="132" HorizontalAlignment="Right" /></Grid>
+                                    <TextBlock Text="Text and control scale" Style="{StaticResource FieldLabel}" Margin="0,15,0,7" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton GroupName="UiScale" Content="90%" Tag="90" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding UiScalePercent, Converter={StaticResource StringEqualsConverter}, ConverterParameter=90, Mode=OneWay}" Checked="UiScaleButton_Click" />
+                                        <RadioButton GroupName="UiScale" Content="100%" Tag="100" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding UiScalePercent, Converter={StaticResource StringEqualsConverter}, ConverterParameter=100, Mode=OneWay}" Checked="UiScaleButton_Click" />
+                                        <RadioButton GroupName="UiScale" Content="110%" Tag="110" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding UiScalePercent, Converter={StaticResource StringEqualsConverter}, ConverterParameter=110, Mode=OneWay}" Checked="UiScaleButton_Click" />
+                                        <RadioButton GroupName="UiScale" Content="125%" Tag="125" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding UiScalePercent, Converter={StaticResource StringEqualsConverter}, ConverterParameter=125, Mode=OneWay}" Checked="UiScaleButton_Click" />
+                                    </StackPanel>
+                                    <TextBlock Text="Card density" Style="{StaticResource FieldLabel}" Margin="0,16,0,7" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton GroupName="CardDensity" Content="Comfortable" Tag="Comfortable" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding CardDensity, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Comfortable, Mode=OneWay}" Checked="CardDensityButton_Click" />
+                                        <RadioButton GroupName="CardDensity" Content="Compact" Tag="Compact" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding CardDensity, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Compact, Mode=OneWay}" Checked="CardDensityButton_Click" />
+                                        <RadioButton GroupName="CardDensity" Content="Spacious" Tag="Spacious" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding CardDensity, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Spacious, Mode=OneWay}" Checked="CardDensityButton_Click" />
+                                    </StackPanel>
                                     <Grid Margin="0,13,0,0"><TextBlock Text="Compact mode" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding CompactMode}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
                                     <Grid Margin="0,13,0,0"><TextBlock Text="Rounded corners" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding UseRoundedCorners}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
-                                    <Grid Margin="0,13,0,0"><TextBlock Text="Reduce motion effects" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding ReduceMotion}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -125,8 +162,12 @@
                             <Border Style="{StaticResource SettingsCard}" Margin="0,0,10,0">
                                 <StackPanel>
                                     <TextBlock Text="NAVIGATION" Style="{StaticResource MetricLabelStyle}" />
-                                    <TextBlock Text="Sidebar style" Style="{StaticResource FieldLabel}" Margin="0,15,0,6" />
-                                    <ComboBox ItemsSource="{Binding SidebarStyles}" SelectedItem="{Binding SidebarStyle}" SelectionChanged="AppearanceControlChanged" />
+                                    <TextBlock Text="Sidebar style" Style="{StaticResource FieldLabel}" Margin="0,15,0,7" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton GroupName="SidebarStyle" Content="Full labels" Tag="Full labels" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding SidebarStyle, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Full labels, Mode=OneWay}" Checked="SidebarStyleButton_Click" />
+                                        <RadioButton GroupName="SidebarStyle" Content="Icons only" Tag="Icons only" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding SidebarStyle, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Icons only, Mode=OneWay}" Checked="SidebarStyleButton_Click" />
+                                        <RadioButton GroupName="SidebarStyle" Content="Auto" Tag="Auto (adaptive)" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding SidebarStyle, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Auto (adaptive), Mode=OneWay}" Checked="SidebarStyleButton_Click" />
+                                    </StackPanel>
                                     <TextBlock Text="Auto adapts the sidebar to compact navigation when the Ember window becomes narrow." Style="{StaticResource FieldHint}" />
                                 </StackPanel>
                             </Border>
@@ -134,10 +175,17 @@
                                 <StackPanel>
                                     <TextBlock Text="OVERVIEW ARTWORK" Style="{StaticResource MetricLabelStyle}" />
                                     <Grid Margin="0,15,0,0"><TextBlock Text="Show aircraft artwork" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding ShowBackgroundArtwork}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
-                                    <Grid Margin="0,13,0,0"><TextBlock Text="Dashboard image style" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ComboBox ItemsSource="{Binding DashboardImageStyles}" SelectedItem="{Binding DashboardImageStyle}" SelectionChanged="AppearanceControlChanged" Width="155" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Margin="0,13,0,0"><TextBlock Text="Ambient backdrop" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding ShowAmbientBackdrop}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                    <TextBlock Text="Dashboard image style" Style="{StaticResource FieldLabel}" Margin="0,13,0,7" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton GroupName="DashboardStyle" Content="Aircraft" Tag="Aircraft &amp; sky" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding DashboardImageStyle, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Aircraft &amp; sky, Mode=OneWay}" Checked="DashboardStyleButton_Click" />
+                                        <RadioButton GroupName="DashboardStyle" Content="Subtle" Tag="Subtle aircraft" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding DashboardImageStyle, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Subtle aircraft, Mode=OneWay}" Checked="DashboardStyleButton_Click" />
+                                        <RadioButton GroupName="DashboardStyle" Content="Minimal" Tag="Minimal" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding DashboardImageStyle, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Minimal, Mode=OneWay}" Checked="DashboardStyleButton_Click" />
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
                         </Grid>
+                        <Border Style="{StaticResource SettingsCard}" Margin="0,10,0,0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="VISUAL DEPTH" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="Choose the level of premium lighting, hover response and card elevation used throughout Ember." Style="{StaticResource FieldHint}" /></StackPanel><StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"><RadioButton GroupName="VisualEffects" Content="Signature" Tag="Signature" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding VisualEffectsProfile, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Signature, Mode=OneWay}" Checked="VisualEffectsButton_Click" /><RadioButton GroupName="VisualEffects" Content="Immersive" Tag="Immersive" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding VisualEffectsProfile, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Immersive, Mode=OneWay}" Checked="VisualEffectsButton_Click" Margin="0" /></StackPanel></Grid></Border>
                         <Border Style="{StaticResource InfoRowStyle}" Margin="0,10,0,0"><StackPanel><TextBlock Text="APPLIES LIVE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="Your selected appearance updates Overview, iGate and the active Ember workspace. It is saved on this PC only and does not restart, alter or submit your current flight." Style="{StaticResource FieldHint}" /></StackPanel></Border>
                     </StackPanel>
 

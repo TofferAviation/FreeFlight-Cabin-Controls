@@ -41,6 +41,10 @@
 
     <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
         <Grid>
+            <Rectangle Fill="{DynamicResource AmbientGlowBrush}"
+                       Opacity="{DynamicResource WorkspaceAmbientOpacity}"
+                       Visibility="{Binding Settings.ShowAmbientBackdrop, Converter={StaticResource BooleanToVisibilityConverter}}"
+                       IsHitTestVisible="False" />
             <!-- A verified BAV session is always required before Ember exposes a flight workspace. -->
             <Grid Visibility="{Binding IsBavAuthenticated, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>

@@ -65,6 +65,7 @@
     <sys:Double x:Key="MutedFontSize">13</sys:Double>
     <sys:Double x:Key="MetricLabelFontSize">11</sys:Double>
     <sys:Double x:Key="ButtonFontSize">14</sys:Double>
+    <sys:Double x:Key="WorkspaceAmbientOpacity">0.30</sys:Double>
 
     <!-- Shared product surfaces. The sidebar remains deep navy in both
          appearances so Ember keeps a recognisable operational spine. -->

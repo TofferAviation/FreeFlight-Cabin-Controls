@@ -112,18 +112,20 @@ public sealed class AppThemeService
         resources["SidebarCaptionVisibility"] = iconNavigation ? Visibility.Collapsed : Visibility.Visible;
         resources["SidebarFooterTextVisibility"] = iconNavigation ? Visibility.Collapsed : Visibility.Visible;
 
+        var immersiveEffects = string.Equals(NormalizeVisualEffects(settings.VisualEffectsProfile), "Immersive", StringComparison.Ordinal);
+        resources["WorkspaceAmbientOpacity"] = immersiveEffects ? 0.46d : 0.30d;
         resources["CardShadowEffect"] = new DropShadowEffect
         {
-            BlurRadius = settings.ReduceMotion ? 8 : 16,
-            ShadowDepth = settings.ReduceMotion ? 1 : 4,
-            Opacity = settings.ReduceMotion ? 0.05 : 0.12,
+            BlurRadius = immersiveEffects ? 27 : 19,
+            ShadowDepth = immersiveEffects ? 8 : 5,
+            Opacity = immersiveEffects ? 0.24 : 0.16,
             Color = (Color)ColorConverter.ConvertFromString(palette.Shadow)!
         };
         resources["HeroShadowEffect"] = new DropShadowEffect
         {
-            BlurRadius = settings.ReduceMotion ? 12 : 25,
-            ShadowDepth = settings.ReduceMotion ? 2 : 8,
-            Opacity = settings.ReduceMotion ? 0.08 : 0.18,
+            BlurRadius = immersiveEffects ? 36 : 28,
+            ShadowDepth = immersiveEffects ? 12 : 8,
+            Opacity = immersiveEffects ? 0.32 : 0.22,
             Color = (Color)ColorConverter.ConvertFromString(palette.HeroShadow)!
         };
     }
@@ -148,6 +150,11 @@ public sealed class AppThemeService
             : string.Equals(style, "Subtle aircraft", StringComparison.OrdinalIgnoreCase)
                 ? "Subtle aircraft"
                 : "Aircraft & sky";
+
+    public static string NormalizeVisualEffects(string? profile) =>
+        string.Equals(profile, "Immersive", StringComparison.OrdinalIgnoreCase)
+            ? "Immersive"
+            : "Signature";
 
     private static bool IsWindowsUsingLightAppearance()
     {

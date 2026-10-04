@@ -50,7 +50,46 @@ public partial class SettingsTabbedView
         }
     }
 
+    private void AccentPresetButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && sender is FrameworkElement { Tag: string preset })
+        {
+            settings.AccentPreset = preset;
+            RaiseAppearanceChanged(e);
+        }
+    }
+
+    private void UiScaleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel settings && sender is FrameworkElement { Tag: string scale } && int.TryParse(scale, out var percentage))
+        {
+            settings.UiScalePercent = percentage;
+            RaiseAppearanceChanged(e);
+        }
+    }
+
+    private void CardDensityButton_Click(object sender, RoutedEventArgs e) =>
+        ApplyTaggedSetting(sender, e, (settings, value) => settings.CardDensity = value);
+
+    private void SidebarStyleButton_Click(object sender, RoutedEventArgs e) =>
+        ApplyTaggedSetting(sender, e, (settings, value) => settings.SidebarStyle = value);
+
+    private void DashboardStyleButton_Click(object sender, RoutedEventArgs e) =>
+        ApplyTaggedSetting(sender, e, (settings, value) => settings.DashboardImageStyle = value);
+
+    private void VisualEffectsButton_Click(object sender, RoutedEventArgs e) =>
+        ApplyTaggedSetting(sender, e, (settings, value) => settings.VisualEffectsProfile = value);
+
     private void AppearanceControlChanged(object sender, RoutedEventArgs e) => RaiseAppearanceChanged(e);
+
+    private void ApplyTaggedSetting(object sender, RoutedEventArgs e, Action<SettingsViewModel, string> apply)
+    {
+        if (DataContext is SettingsViewModel settings && sender is FrameworkElement { Tag: string value })
+        {
+            apply(settings, value);
+            RaiseAppearanceChanged(e);
+        }
+    }
 
     private void RaiseAppearanceChanged(RoutedEventArgs e)
     {
