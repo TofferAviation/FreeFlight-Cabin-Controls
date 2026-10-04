@@ -190,13 +190,22 @@
                     <TextBlock Text="✈" FontSize="244" FontFamily="Segoe UI Symbol" Foreground="#13FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,94,-42" RenderTransformOrigin="0.5,0.5">
                         <TextBlock.RenderTransform><RotateTransform Angle="-12" /></TextBlock.RenderTransform>
                     </TextBlock>
-                    <Border Width="680" Height="282" HorizontalAlignment="Right" VerticalAlignment="Center" ClipToBounds="True">
+                    <Border Width="820" Height="282" HorizontalAlignment="Right" VerticalAlignment="Center" ClipToBounds="True">
                         <Image Source="{Binding Fleet.SelectedAircraft.AircraftImageUri}"
                                Stretch="UniformToFill"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                RenderOptions.BitmapScalingMode="HighQuality"
                                SnapsToDevicePixels="True">
+                            <Image.OpacityMask>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#00FFFFFF" Offset="0" />
+                                    <GradientStop Color="#35FFFFFF" Offset="0.15" />
+                                    <GradientStop Color="#DFFFFFFF" Offset="0.34" />
+                                    <GradientStop Color="#FFFFFFFF" Offset="0.52" />
+                                    <GradientStop Color="#FFFFFFFF" Offset="1" />
+                                </LinearGradientBrush>
+                            </Image.OpacityMask>
                             <Image.Style>
                                 <Style TargetType="Image">
                                     <Setter Property="Opacity" Value="1" />
@@ -212,10 +221,10 @@
                     <Border>
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#F205152A" Offset="0" />
-                                <GradientStop Color="#C4051B33" Offset="0.38" />
-                                <GradientStop Color="#3A051A31" Offset="0.70" />
-                                <GradientStop Color="#08051A31" Offset="1" />
+                                <GradientStop Color="#F405152A" Offset="0" />
+                                <GradientStop Color="#C9051B33" Offset="0.34" />
+                                <GradientStop Color="#64051A31" Offset="0.62" />
+                                <GradientStop Color="#15051A31" Offset="1" />
                             </LinearGradientBrush>
                         </Border.Background>
                     </Border>

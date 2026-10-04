@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.55] - 2026-10-04
+
+### Changed
+
+- Blended the Overview aircraft artwork into the operational-blue hero with a soft right-aligned fade, removing the hard photo edge while retaining a clear view of the selected aircraft.
+
 ## [0.5.54] - 2026-10-04
 
 ### Changed
