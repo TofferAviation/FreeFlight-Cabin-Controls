@@ -24,6 +24,7 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
     private long _lastFrameUtcTicks;
     private bool _receivedFirstTelemetry;
     private bool _reportedTelemetryException;
+    private string? _lastReportedConnectionFailure;
     private bool _disposed;
 
     public Msfs2024SimConnectBridgeService(AppSettings settings, FileLogService log)
@@ -122,8 +123,9 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
                                                BadImageFormatException or Win32Exception)
             {
                 var detail = exception is DllNotFoundException
-                    ? "The SimConnect runtime was not found. Install/repair MSFS 2024 or its SDK runtime; X-Plane and manual controls remain available."
+                    ? "Ember's bundled SimConnect runtime is unavailable. Check for an Ember update or reinstall; your flight and cabin data are unaffected."
                     : "MSFS 2024 is not accepting SimConnect clients yet. Start a flight; connection retries automatically.";
+                LogConnectionFailureOnce(exception, detail);
                 PublishStatus(new BridgeStatus(
                     BridgeConnectionState.Disconnected,
                     "MSFS 2024 not connected",
@@ -184,6 +186,7 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
 
         _receivedFirstTelemetry = false;
         _reportedTelemetryException = false;
+        _lastReportedConnectionFailure = null;
         _log.Information("MSFS SimConnect opened. Requested core aircraft telemetry for BA-Radar.");
     }
 
@@ -325,6 +328,14 @@ public sealed class Msfs2024SimConnectBridgeService : ISimulatorBridge
         _currentStatus = status;
         try { StatusChanged?.Invoke(status); }
         catch (Exception exception) { _log.Error("An MSFS bridge status subscriber failed.", exception); }
+    }
+
+    private void LogConnectionFailureOnce(Exception exception, string detail)
+    {
+        var signature = $"{exception.GetType().FullName}:{exception.Message}";
+        if (string.Equals(signature, _lastReportedConnectionFailure, StringComparison.Ordinal)) return;
+        _lastReportedConnectionFailure = signature;
+        _log.Warning($"MSFS SimConnect connection failed: {detail} ({exception.GetType().Name}: {exception.Message})");
     }
 
     private async Task WaitForRetryAsync(TimeSpan delay, CancellationToken cancellationToken)

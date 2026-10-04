@@ -7,7 +7,7 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/Ember.ico')">Assets/Ember.ico</ApplicationIcon>
-    <Version>0.5.59</Version>
+    <Version>0.5.60</Version>
     <Company>FreeFlightLTD</Company>
     <Copyright>Copyright © 2026 FreeFlightLTD. All rights reserved.</Copyright>
     <Description>Ember for authorised flight-simulation operations.</Description>
@@ -15,6 +15,14 @@
   <ItemGroup>
     <Resource Include="Assets\Catering\*.png" />
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Official native client used by the out-of-process MSFS SimConnect bridge. -->
+    <Content Include="Native\SimConnect.dll">
+      <Link>SimConnect.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\..\content-packs\british-airways\simbrief\*.json">

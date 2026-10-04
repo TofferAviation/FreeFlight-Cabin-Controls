@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.60] - 2026-10-04
+
+### Fixed
+
+- Restored the bundled MSFS SimConnect runtime to every Ember installer and in-app update. MSFS 2024 detection and live telemetry now work without requiring pilots to install an SDK separately.
+- Added a single clear connection diagnostic when the bundled runtime is unavailable, without changing the active flight, ACARS record or pilot account.
+
 ## [0.5.59] - 2026-10-04
 
 ### Fixed
