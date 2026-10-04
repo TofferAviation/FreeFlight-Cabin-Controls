@@ -64,9 +64,9 @@
                 <StackPanel>
                     <TextBlock Text="EMBER OPERATIONS" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0">
-                        <Run Text="{Binding Operations.TimeAwareGreeting}" />
+                        <Run Text="{Binding Operations.TimeAwareGreeting, Mode=OneWay}" />
                         <Run Text=", " />
-                        <Run Text="{Binding Account.DisplayName}" />
+                        <Run Text="{Binding Account.DisplayName, Mode=OneWay}" />
                         <Run Text="." />
                     </TextBlock>
                     <TextBlock Text="Ready for your next journey?" Style="{StaticResource PageSubtitleStyle}" />

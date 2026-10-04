@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.47] - 2026-10-04
+
+### Fixed
+
+- Prevented a 0.5.46 startup crash caused by the new Overview greeting attempting to write back to read-only display values. The greeting and pilot name now use explicit one-way display bindings.
+
 ## [0.5.46] - 2026-10-04
 
 ### Added
