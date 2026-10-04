@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.48] - 2026-10-04
+
+### Changed
+
+- Removed the duplicated flight, route, aircraft, appearance and account strip from Ember's app shell. The Overview is now the single operational home for that information: its personal greeting header contains the Light/Dark control, pilot account shortcut and live local time, while the flight hero remains the sole flight context.
+- Reworked the Overview from a neutral data grid into a more expressive operational experience: layered flight colour, a branded route line, richer status markers, colour-led icon families, live service-state rows and responsive card elevation give real ACARS data more focus without replacing any operational workflow.
+
 ## [0.5.47] - 2026-10-04
 
 ### Fixed

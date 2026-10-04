@@ -331,7 +331,7 @@ public sealed class SettingsViewModel : PageViewModel
             if (string.Equals(_settings.Theme, normalized, StringComparison.Ordinal)) return;
             _settings.Theme = normalized;
             OnPropertyChanged();
-            SaveStatus = "Appearance is controlled from the top bar";
+            SaveStatus = "Appearance is controlled from the Overview header";
         }
     }
 

@@ -60,6 +60,9 @@ public partial class MainWindow
         RebuildForTheme(viewModel);
     }
 
+    private void DashboardThemeToggleRequested(object sender, RoutedEventArgs e) =>
+        ToggleThemeButton_Click(sender, e);
+
     private void RebuildForTheme(MainWindowViewModel viewModel)
     {
         var wasMaximized = WindowState == WindowState.Maximized;
