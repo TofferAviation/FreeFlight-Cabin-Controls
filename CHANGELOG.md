@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.58] - 2026-10-04
+
+### Fixed
+
+- Fixed the iGate More tools panel being constrained by the workspace header. It now opens in a dedicated floating layer above the iGate and Boarding workspaces.
+
 ## [0.5.57] - 2026-10-04
 
 ### Added

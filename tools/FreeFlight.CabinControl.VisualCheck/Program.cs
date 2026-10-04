@@ -959,12 +959,12 @@ internal static class Program
 
                 viewModel.IportDcs.ToggleServiceMenuCommand.Execute(null);
                 window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
-                var servicesMenu = FindVisualChild<Border>(
-                    window,
-                    border => Equals(border.Tag, "IportServiceMenu"));
-                if (servicesMenu?.Visibility != Visibility.Visible)
+                var iGateView = FindVisualChild<IportDcsView>(window, _ => true);
+                var servicesPopup = iGateView?.FindName("ServiceToolsPopup") as System.Windows.Controls.Primitives.Popup;
+                var servicesMenu = servicesPopup?.Child as Border;
+                if (servicesPopup?.IsOpen != true || servicesMenu?.Visibility != Visibility.Visible)
                 {
-                    throw new InvalidOperationException("The complete iGate tools menu was not rendered.");
+                    throw new InvalidOperationException("The complete iGate tools menu did not open in its floating layer.");
                 }
 
                 Render(window, Path.Combine(outputDirectory, "iportdcs-service-menu.png"));

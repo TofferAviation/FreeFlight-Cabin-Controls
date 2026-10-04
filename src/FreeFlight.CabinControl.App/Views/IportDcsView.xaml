@@ -1,4 +1,5 @@
 <UserControl x:Class="FreeFlight.CabinControl.App.Views.IportDcsView"
+             x:Name="IgateWorkspace"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{DynamicResource AppBackgroundBrush}">
@@ -69,7 +70,7 @@
     </UserControl.Resources>
 
     <Border Tag="IportDcsWorkspace" Background="{DynamicResource AppBackgroundBrush}">
-    <Grid ClipToBounds="True">
+    <Grid ClipToBounds="False">
         <Grid.RowDefinitions>
             <RowDefinition Height="76" />
             <RowDefinition Height="56" />
@@ -98,7 +99,7 @@
                     <TextBlock Text="{Binding Operations.RouteSummary}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Content="More tools" Command="{Binding ToggleServiceMenuCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,9,0" />
+                    <Button x:Name="MoreToolsButton" Content="More tools" Command="{Binding ToggleServiceMenuCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,9,0" />
                     <Border Style="{StaticResource SuccessPillStyle}">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
@@ -256,9 +257,35 @@
             <Grid><TextBlock Text="{Binding CommandStatus}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" /><TextBlock Text="iGate · Ember operations workspace" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" /></Grid>
         </Border>
 
-        <Border Tag="IportServiceMenu" Panel.ZIndex="10" Visibility="{Binding IsServiceMenuOpen, Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,65,30,0" Width="255" Style="{StaticResource WorkspaceCard}">
-            <StackPanel><TextBlock Text="iGATE TOOLS" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="Additional operational workspaces" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,10" /><ItemsControl ItemsSource="{Binding ServiceMenuEntries}"><ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding Label}" Command="{Binding DataContext.SelectServiceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,3" HorizontalContentAlignment="Left" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
-        </Border>
+        <Popup x:Name="ServiceToolsPopup"
+               DataContext="{Binding DataContext, ElementName=IgateWorkspace}"
+               IsOpen="{Binding IsServiceMenuOpen}"
+               PlacementTarget="{Binding ElementName=MoreToolsButton}"
+               Placement="Bottom"
+               HorizontalOffset="-142"
+               VerticalOffset="8"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               Panel.ZIndex="50">
+            <Border Tag="IportServiceMenu" Width="255" Style="{StaticResource WorkspaceCard}">
+                <StackPanel>
+                    <TextBlock Text="iGATE TOOLS" Style="{StaticResource WorkspaceLabel}" />
+                    <TextBlock Text="Additional operational workspaces" FontSize="15" FontWeight="SemiBold" Margin="0,5,0,10" />
+                    <ItemsControl ItemsSource="{Binding ServiceMenuEntries}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Label}"
+                                        Command="{Binding DataContext.SelectServiceCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        Margin="0,3"
+                                        HorizontalContentAlignment="Left" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Popup>
     </Grid>
     </Border>
 </UserControl>
