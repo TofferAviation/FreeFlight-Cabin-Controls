@@ -87,9 +87,28 @@ public sealed class AppSettings
 
     public string Theme { get; set; } = "Light";
 
+    // Appearance preferences are intentionally local to this PC. They change
+    // Ember's presentation only and never alter an active flight, ACARS data
+    // or anything held by the BAV website.
+    public string AccentPreset { get; set; } = "BAV Blue";
+
     public string AccentColor { get; set; } = "#1476FF";
 
     public int UiScalePercent { get; set; } = 100;
+
+    public string CardDensity { get; set; } = "Comfortable";
+
+    public bool CompactMode { get; set; }
+
+    public string SidebarStyle { get; set; } = "Full labels";
+
+    public bool ShowBackgroundArtwork { get; set; } = true;
+
+    public string DashboardImageStyle { get; set; } = "Aircraft & sky";
+
+    public bool UseRoundedCorners { get; set; } = true;
+
+    public bool ReduceMotion { get; set; }
 
     public string PerformanceMode { get; set; } = "Balanced";
 

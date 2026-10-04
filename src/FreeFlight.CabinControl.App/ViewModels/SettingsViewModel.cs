@@ -39,6 +39,9 @@ public sealed class SettingsViewModel : PageViewModel
         _simulatorBridge = simulatorBridge;
         _xPlanePluginInstaller = xPlanePluginInstaller ?? new XPlanePluginInstaller();
         _settings.Theme = AppThemeService.Normalize(_settings.Theme);
+        _settings.CardDensity = AppThemeService.NormalizeDensity(_settings.CardDensity);
+        _settings.SidebarStyle = AppThemeService.NormalizeSidebarStyle(_settings.SidebarStyle);
+        _settings.DashboardImageStyle = AppThemeService.NormalizeDashboardImageStyle(_settings.DashboardImageStyle);
         _xPlanePluginStatus = _xPlanePluginInstaller.GetStatus(settings.XPlaneExecutablePath);
         _selectedCabinLayoutProfile = CabinLayoutProfiles.FirstOrDefault(profile =>
             string.Equals(profile.Id, settings.PassengerCabinLayoutId, StringComparison.OrdinalIgnoreCase)) ??
@@ -58,6 +61,12 @@ public sealed class SettingsViewModel : PageViewModel
     }
 
     public SharedStatusViewModel Status { get; }
+
+    /// <summary>
+    /// The visual shell reads this only when applying the local appearance.
+    /// It is the same settings instance persisted by this view-model.
+    /// </summary>
+    public AppSettings AppearanceSettings => _settings;
 
     public ICommand SaveCommand { get; }
 
@@ -88,6 +97,16 @@ public sealed class SettingsViewModel : PageViewModel
     public bool CanInstallXPlanePlugin => _xPlanePluginInstaller.CanInstall(XPlaneExecutablePath);
 
     public IReadOnlyList<int> UiScales { get; } = [90, 100, 110, 125, 150];
+
+    public IReadOnlyList<string> ThemeModes { get; } = [AppThemeService.Light, AppThemeService.Dark, AppThemeService.Auto];
+
+    public IReadOnlyList<string> AccentPresets { get; } = ["BAV Blue", "Crimson", "Violet", "Emerald", "Amber", "Slate", "Custom"];
+
+    public IReadOnlyList<string> CardDensities { get; } = ["Comfortable", "Compact", "Spacious"];
+
+    public IReadOnlyList<string> SidebarStyles { get; } = ["Full labels", "Icons only", "Auto (adaptive)"];
+
+    public IReadOnlyList<string> DashboardImageStyles { get; } = ["Aircraft & sky", "Subtle aircraft", "Minimal"];
 
     public IReadOnlyList<int> BoardingStartOffsets { get; } = [60, 45, 30, 20];
 
@@ -331,8 +350,62 @@ public sealed class SettingsViewModel : PageViewModel
             if (string.Equals(_settings.Theme, normalized, StringComparison.Ordinal)) return;
             _settings.Theme = normalized;
             OnPropertyChanged();
-            SaveStatus = "Appearance is controlled from the Overview header";
+            MarkDirty();
         }
+    }
+
+    public string AccentPreset
+    {
+        get => _settings.AccentPreset;
+        set => SetSetting(AccentPresets.Contains(value, StringComparer.OrdinalIgnoreCase) ? value : "BAV Blue", current => _settings.AccentPreset = current);
+    }
+
+    public string AccentColor
+    {
+        get => _settings.AccentColor;
+        set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.AccentColor = current);
+    }
+
+    public string CardDensity
+    {
+        get => _settings.CardDensity;
+        set => SetSetting(AppThemeService.NormalizeDensity(value), current => _settings.CardDensity = current);
+    }
+
+    public bool CompactMode
+    {
+        get => _settings.CompactMode;
+        set => SetSetting(value, current => _settings.CompactMode = current);
+    }
+
+    public string SidebarStyle
+    {
+        get => _settings.SidebarStyle;
+        set => SetSetting(AppThemeService.NormalizeSidebarStyle(value), current => _settings.SidebarStyle = current);
+    }
+
+    public bool ShowBackgroundArtwork
+    {
+        get => _settings.ShowBackgroundArtwork;
+        set => SetSetting(value, current => _settings.ShowBackgroundArtwork = current);
+    }
+
+    public string DashboardImageStyle
+    {
+        get => _settings.DashboardImageStyle;
+        set => SetSetting(AppThemeService.NormalizeDashboardImageStyle(value), current => _settings.DashboardImageStyle = current);
+    }
+
+    public bool UseRoundedCorners
+    {
+        get => _settings.UseRoundedCorners;
+        set => SetSetting(value, current => _settings.UseRoundedCorners = current);
+    }
+
+    public bool ReduceMotion
+    {
+        get => _settings.ReduceMotion;
+        set => SetSetting(value, current => _settings.ReduceMotion = current);
     }
 
     /// <summary>
@@ -359,6 +432,26 @@ public sealed class SettingsViewModel : PageViewModel
         {
             _settings.Theme = previousTheme;
             OnPropertyChanged(nameof(Theme));
+            ShowSaveError(exception);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Persists visual preferences immediately before Ember rebuilds its shell.
+    /// The active website assignment and ACARS services remain in the same
+    /// view-model, so this is safe during an operation.
+    /// </summary>
+    public async Task<bool> SaveAppearanceAsync()
+    {
+        try
+        {
+            await _settingsStore.SaveAsync(_settings);
+            SaveStatus = "Appearance applied";
+            return true;
+        }
+        catch (Exception exception)
+        {
             ShowSaveError(exception);
             return false;
         }
@@ -576,7 +669,16 @@ public sealed class SettingsViewModel : PageViewModel
         MinimizeToTray = defaults.MinimizeToTray;
         StartCabinImmersionAutomatically = defaults.StartCabinImmersionAutomatically;
         Theme = defaults.Theme;
+        AccentPreset = defaults.AccentPreset;
+        AccentColor = defaults.AccentColor;
         UiScalePercent = defaults.UiScalePercent;
+        CardDensity = defaults.CardDensity;
+        CompactMode = defaults.CompactMode;
+        SidebarStyle = defaults.SidebarStyle;
+        ShowBackgroundArtwork = defaults.ShowBackgroundArtwork;
+        DashboardImageStyle = defaults.DashboardImageStyle;
+        UseRoundedCorners = defaults.UseRoundedCorners;
+        ReduceMotion = defaults.ReduceMotion;
         XPlaneAutoConnect = defaults.XPlaneAutoConnect;
         XPlaneWebApiPort = defaults.XPlaneWebApiPort;
         SyncXPlaneDoors = defaults.SyncXPlaneDoors;

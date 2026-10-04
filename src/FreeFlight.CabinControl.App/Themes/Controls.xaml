@@ -11,6 +11,7 @@
 
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
+        <Setter Property="FontSize" Value="{DynamicResource BaseFontSize}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
         <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
@@ -18,6 +19,7 @@
 
     <Style TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="FontSize" Value="{DynamicResource BaseFontSize}" />
     </Style>
 
     <Style TargetType="RadioButton">
@@ -26,41 +28,41 @@
 
     <Style x:Key="PageTitleStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
-        <Setter Property="FontSize" Value="40" />
+        <Setter Property="FontSize" Value="{DynamicResource PageTitleFontSize}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="PageEyebrowStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontSize" Value="{DynamicResource MetricLabelFontSize}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
     </Style>
 
     <Style x:Key="PageSubtitleStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontSize" Value="{DynamicResource PageSubtitleFontSize}" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="Margin" Value="0,4,0,0" />
     </Style>
 
     <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="18" />
+        <Setter Property="FontSize" Value="{DynamicResource SectionTitleFontSize}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="BodyTextStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontSize" Value="{DynamicResource BodyFontSize}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
     </Style>
 
     <Style x:Key="MutedTextStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontSize" Value="{DynamicResource MutedFontSize}" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
     </Style>
 
     <Style x:Key="MetricLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
-        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontSize" Value="{DynamicResource MetricLabelFontSize}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
@@ -71,27 +73,27 @@
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="16" />
-        <Setter Property="Padding" Value="20" />
+        <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource CardPadding}" />
         <Setter Property="Effect" Value="{StaticResource CardShadowEffect}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="BorderBrush" Value="#8CBEE6" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardHoverBorderBrush}" />
             </Trigger>
         </Style.Triggers>
     </Style>
 
     <Style x:Key="MetricCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
-        <Setter Property="Padding" Value="18" />
-        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="{DynamicResource MetricCardPadding}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource MetricCardCornerRadius}" />
     </Style>
 
     <Style x:Key="HeroPanelStyle" TargetType="Border">
         <Setter Property="Background" Value="{StaticResource PremiumHeroBrush}" />
         <Setter Property="BorderBrush" Value="#459ACB" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="22" />
-        <Setter Property="Padding" Value="26" />
+        <Setter Property="CornerRadius" Value="{DynamicResource HeroCornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource HeroPanelPadding}" />
         <Setter Property="Effect" Value="{StaticResource HeroShadowEffect}" />
     </Style>
 
@@ -166,7 +168,7 @@
                             Background="Transparent"
                             BorderBrush="Transparent"
                             BorderThickness="1"
-                            CornerRadius="12"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
                             Padding="{TemplateBinding Padding}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -182,6 +184,7 @@
                                        Text="{TemplateBinding Content}"
                                        Foreground="{TemplateBinding Foreground}"
                                        VerticalAlignment="Center"
+                                       Visibility="{DynamicResource SidebarLabelVisibility}"
                                        Margin="8,0,0,0" />
                         </Grid>
                     </Border>
@@ -206,7 +209,7 @@
         <Setter Property="Foreground" Value="White" />
         <Setter Property="BorderBrush" Value="#398EFF" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontSize" Value="{DynamicResource ButtonFontSize}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -216,7 +219,7 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="12"
+                            CornerRadius="{DynamicResource ControlCornerRadius}"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>

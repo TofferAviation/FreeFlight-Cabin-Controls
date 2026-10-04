@@ -30,6 +30,28 @@
         <Style x:Key="SettingsCard" TargetType="Border" BasedOn="{StaticResource CardStyle}"><Setter Property="Padding" Value="19" /><Setter Property="CornerRadius" Value="15" /></Style>
         <Style x:Key="FieldLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" /></Style>
         <Style x:Key="FieldHint" TargetType="TextBlock"><Setter Property="FontSize" Value="10" /><Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" /><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Margin" Value="0,3,0,0" /></Style>
+        <Style x:Key="AppearanceChoice" TargetType="RadioButton">
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Padding" Value="13,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Choice" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderSoftBrush}" BorderThickness="1" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Choice" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" /></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Choice" Property="Background" Value="{DynamicResource InfoSurfaceBrush}" /><Setter TargetName="Choice" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}" /><Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
@@ -64,11 +86,59 @@
                     </StackPanel>
 
                     <StackPanel Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Appearance}">
-                        <TextBlock Text="Appearance" Style="{StaticResource SectionTitleStyle}" FontSize="25" /><TextBlock Text="Choose Ember's presentation around the app's live operational data." Style="{StaticResource PageSubtitleStyle}" FontSize="13" Margin="0,3,0,16" />
-                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="1.05*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
-                            <Border Style="{StaticResource SettingsCard}" Margin="0,0,10,0"><StackPanel><TextBlock Text="THEME MODE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding Theme}" Style="{StaticResource SectionTitleStyle}" FontSize="19" Margin="0,5,0,0" /><TextBlock Text="Switch Light and Dark without closing the current operation." Style="{StaticResource FieldHint}" /><Button Content="Switch Light / Dark appearance" Click="ToggleThemeButton_Click" Style="{StaticResource PrimaryButtonStyle}" Margin="0,17,0,0" /><TextBlock Text="INTERFACE SCALE" Style="{StaticResource MetricLabelStyle}" Margin="0,22,0,6" /><Grid><TextBlock Text="Text and card size" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ComboBox ItemsSource="{Binding UiScales}" SelectedItem="{Binding UiScalePercent}" Width="105" HorizontalAlignment="Right" /></Grid></StackPanel></Border>
-                            <Border Grid.Column="1" Style="{StaticResource SettingsCard}"><StackPanel><TextBlock Text="APPEARANCE GUIDE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="A consistent operational workspace" Style="{StaticResource SectionTitleStyle}" FontSize="17" Margin="0,5,0,0" /><TextBlock Text="Ember applies your selected appearance across Overview, iGate and every live workspace. It does not use a separate mock preview." Style="{StaticResource FieldHint}" Margin="0,7,0,0" /><Border Style="{StaticResource InfoRowStyle}" Margin="0,18,0,0"><StackPanel><TextBlock Text="WHAT CHANGES" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="Theme colours, content surfaces, cards, tables, controls and navigation all update together while your active operation remains intact." Style="{StaticResource FieldHint}" /></StackPanel></Border></StackPanel></Border>
+                        <TextBlock Text="Appearance" Style="{StaticResource SectionTitleStyle}" FontSize="25" />
+                        <TextBlock Text="Make Ember your own while keeping every operational workspace and ACARS record intact." Style="{StaticResource PageSubtitleStyle}" FontSize="13" Margin="0,3,0,16" />
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1.08*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource SettingsCard}" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="THEME &amp; ACCENT" Style="{StaticResource MetricLabelStyle}" />
+                                    <TextBlock Text="Theme mode" Style="{StaticResource FieldLabel}" Margin="0,15,0,7" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton GroupName="ThemeMode" Content="☀  Light" Tag="Light" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding Theme, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Light, Mode=OneWay}" Checked="ThemeModeButton_Click" />
+                                        <RadioButton GroupName="ThemeMode" Content="◐  Dark" Tag="Dark" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding Theme, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Dark, Mode=OneWay}" Checked="ThemeModeButton_Click" />
+                                        <RadioButton GroupName="ThemeMode" Content="◉  Auto" Tag="Auto" Style="{StaticResource AppearanceChoice}" IsChecked="{Binding Theme, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Auto, Mode=OneWay}" Checked="ThemeModeButton_Click" />
+                                    </StackPanel>
+                                    <TextBlock Text="Accent colour" Style="{StaticResource FieldLabel}" Margin="0,18,0,6" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="112" /></Grid.ColumnDefinitions>
+                                        <ComboBox ItemsSource="{Binding AccentPresets}" SelectedItem="{Binding AccentPreset}" SelectionChanged="AppearanceControlChanged" Margin="0,0,8,0" />
+                                        <TextBox Grid.Column="1" Text="{Binding AccentColor, UpdateSourceTrigger=PropertyChanged}" ToolTip="Custom accent hexadecimal colour, for example #1476FF" />
+                                    </Grid>
+                                    <Button Content="Apply custom accent" Click="ApplyCustomAccentButton_Click" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" Margin="0,9,0,0" />
+                                    <TextBlock Text="Use Custom to apply a personal hex colour; all other options are Ember-approved presets." Style="{StaticResource FieldHint}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource SettingsCard}">
+                                <StackPanel>
+                                    <TextBlock Text="READABILITY &amp; LAYOUT" Style="{StaticResource MetricLabelStyle}" />
+                                    <Grid Margin="0,15,0,0"><TextBlock Text="Text and control scale" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ComboBox ItemsSource="{Binding UiScales}" SelectedItem="{Binding UiScalePercent}" SelectionChanged="AppearanceControlChanged" Width="105" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Margin="0,13,0,0"><TextBlock Text="Card density" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ComboBox ItemsSource="{Binding CardDensities}" SelectedItem="{Binding CardDensity}" SelectionChanged="AppearanceControlChanged" Width="132" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Margin="0,13,0,0"><TextBlock Text="Compact mode" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding CompactMode}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Margin="0,13,0,0"><TextBlock Text="Rounded corners" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding UseRoundedCorners}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Margin="0,13,0,0"><TextBlock Text="Reduce motion effects" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding ReduceMotion}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                </StackPanel>
+                            </Border>
                         </Grid>
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource SettingsCard}" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="NAVIGATION" Style="{StaticResource MetricLabelStyle}" />
+                                    <TextBlock Text="Sidebar style" Style="{StaticResource FieldLabel}" Margin="0,15,0,6" />
+                                    <ComboBox ItemsSource="{Binding SidebarStyles}" SelectedItem="{Binding SidebarStyle}" SelectionChanged="AppearanceControlChanged" />
+                                    <TextBlock Text="Auto adapts the sidebar to compact navigation when the Ember window becomes narrow." Style="{StaticResource FieldHint}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource SettingsCard}">
+                                <StackPanel>
+                                    <TextBlock Text="OVERVIEW ARTWORK" Style="{StaticResource MetricLabelStyle}" />
+                                    <Grid Margin="0,15,0,0"><TextBlock Text="Show aircraft artwork" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding ShowBackgroundArtwork}" Checked="AppearanceControlChanged" Unchecked="AppearanceControlChanged" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid>
+                                    <Grid Margin="0,13,0,0"><TextBlock Text="Dashboard image style" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ComboBox ItemsSource="{Binding DashboardImageStyles}" SelectedItem="{Binding DashboardImageStyle}" SelectionChanged="AppearanceControlChanged" Width="155" HorizontalAlignment="Right" /></Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Border Style="{StaticResource InfoRowStyle}" Margin="0,10,0,0"><StackPanel><TextBlock Text="APPLIES LIVE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="Your selected appearance updates Overview, iGate and the active Ember workspace. It is saved on this PC only and does not restart, alter or submit your current flight." Style="{StaticResource FieldHint}" /></StackPanel></Border>
                     </StackPanel>
 
                     <StackPanel Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=FlightDefaults}">

@@ -188,7 +188,18 @@
                     <TextBlock Text="✈" FontSize="244" FontFamily="Segoe UI Symbol" Foreground="#13FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,94,-42" RenderTransformOrigin="0.5,0.5">
                         <TextBlock.RenderTransform><RotateTransform Angle="-12" /></TextBlock.RenderTransform>
                     </TextBlock>
-                    <Image Source="{Binding Fleet.SelectedAircraft.AircraftImageUri}" Stretch="UniformToFill" HorizontalAlignment="Right" Opacity="0.98" />
+                    <Image Source="{Binding Fleet.SelectedAircraft.AircraftImageUri}" Stretch="UniformToFill" HorizontalAlignment="Right">
+                        <Image.Style>
+                            <Style TargetType="Image">
+                                <Setter Property="Opacity" Value="0.98" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Settings.ShowBackgroundArtwork}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                    <DataTrigger Binding="{Binding Settings.DashboardImageStyle}" Value="Minimal"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                    <DataTrigger Binding="{Binding Settings.DashboardImageStyle}" Value="Subtle aircraft"><Setter Property="Opacity" Value="0.42" /></DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Image.Style>
+                    </Image>
                     <Border>
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">

@@ -30,6 +30,7 @@ public partial class MainWindow
         Loaded += OnLoaded;
         Closing += OnClosing;
         StateChanged += (_, _) => UpdateMaximizeGlyph();
+        SizeChanged += OnWindowSizeChanged;
         PreviewKeyDown += OnPreviewKeyDown;
     }
 
@@ -56,7 +57,7 @@ public partial class MainWindow
         // a fresh shell around the existing view-model instead of trying to
         // mutate those resources in place. The current page, signed-in BAV
         // account and any live ACARS work remain in the same view-model.
-        new AppThemeService().Apply(viewModel.Settings.Theme);
+        new AppThemeService().Apply(viewModel.Settings.AppearanceSettings, ActualWidth);
         RebuildForTheme(viewModel);
     }
 
@@ -65,6 +66,31 @@ public partial class MainWindow
 
     private void SettingsView_ThemeToggleRequested(object sender, RoutedEventArgs e) =>
         ToggleThemeButton_Click(sender, e);
+
+    private async void SettingsView_AppearanceChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isRebuildingForTheme || DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (!await viewModel.Settings.SaveAppearanceAsync())
+        {
+            return;
+        }
+
+        new AppThemeService().Apply(viewModel.Settings.AppearanceSettings, ActualWidth);
+        RebuildForTheme(viewModel);
+    }
+
+    private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel &&
+            string.Equals(viewModel.Settings.SidebarStyle, "Auto (adaptive)", StringComparison.Ordinal))
+        {
+            new AppThemeService().Apply(viewModel.Settings.AppearanceSettings, ActualWidth);
+        }
+    }
 
     private void RebuildForTheme(MainWindowViewModel viewModel)
     {

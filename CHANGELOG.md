@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.52] - 2026-10-04
+
+### Added
+
+- Rebuilt Appearance into a fully functional local preference system. Pilots can now choose Light, Dark or Windows-following Auto appearance; apply approved accent presets or a custom hexadecimal accent; set type and control scale; choose comfortable, compact or spacious information density; toggle compact mode, rounded corners and reduced visual effects; select full, icon-only or adaptive navigation; and control Overview aircraft artwork and its presentation style.
+- The active workspace now refreshes around each saved appearance choice without resetting the signed-in BAV session, website flight briefing, simulator connection, passenger manifest, cabin workflow or ACARS data.
+
+### Changed
+
+- The shared Ember presentation resources now drive cards, shared typography, buttons, visual depth and navigation consistently, so choices made in Appearance visibly carry across Overview, iGate and the live workspaces instead of existing only as saved settings.
+
 ## [0.5.51] - 2026-10-04
 
 ### Changed
