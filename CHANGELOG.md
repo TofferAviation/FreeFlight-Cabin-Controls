@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.54] - 2026-10-04
+
+### Changed
+
+- Refined the Overview greeting into a calmer, more proportional heading with clean, continuous punctuation around the pilot name.
+- Reframed the selected aircraft photo in the Overview hero at high quality and reduced the image veil, so the aircraft assigned to the flight remains crisp and recognisable.
+
 ## [0.5.53] - 2026-10-04
 
 ### Changed

@@ -109,13 +109,15 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="EMBER OPERATIONS" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
-                    <TextBlock Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0">
-                        <Run Text="{Binding Operations.TimeAwareGreeting, Mode=OneWay}" />
-                        <Run Text=", " />
-                        <Run Text="{Binding Account.DisplayName, Mode=OneWay}" />
-                        <Run Text="." />
+                    <TextBlock FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="32" FontWeight="SemiBold" Margin="0,4,0,0">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0}, {1}.">
+                                <Binding Path="Operations.TimeAwareGreeting" Mode="OneWay" />
+                                <Binding Path="Account.DisplayName" Mode="OneWay" />
+                            </MultiBinding>
+                        </TextBlock.Text>
                     </TextBlock>
-                    <TextBlock Text="Ready for your next journey?" Style="{StaticResource PageSubtitleStyle}" />
+                    <TextBlock Text="Ready for your next journey?" Style="{StaticResource PageSubtitleStyle}" FontSize="15" Margin="0,2,0,0" />
                 </StackPanel>
                 <Grid Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -188,24 +190,32 @@
                     <TextBlock Text="✈" FontSize="244" FontFamily="Segoe UI Symbol" Foreground="#13FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,94,-42" RenderTransformOrigin="0.5,0.5">
                         <TextBlock.RenderTransform><RotateTransform Angle="-12" /></TextBlock.RenderTransform>
                     </TextBlock>
-                    <Image Source="{Binding Fleet.SelectedAircraft.AircraftImageUri}" Stretch="UniformToFill" HorizontalAlignment="Right">
-                        <Image.Style>
-                            <Style TargetType="Image">
-                                <Setter Property="Opacity" Value="0.98" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Settings.ShowBackgroundArtwork}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
-                                    <DataTrigger Binding="{Binding Settings.DashboardImageStyle}" Value="Minimal"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
-                                    <DataTrigger Binding="{Binding Settings.DashboardImageStyle}" Value="Subtle aircraft"><Setter Property="Opacity" Value="0.42" /></DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Image.Style>
-                    </Image>
+                    <Border Width="680" Height="282" HorizontalAlignment="Right" VerticalAlignment="Center" ClipToBounds="True">
+                        <Image Source="{Binding Fleet.SelectedAircraft.AircraftImageUri}"
+                               Stretch="UniformToFill"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               SnapsToDevicePixels="True">
+                            <Image.Style>
+                                <Style TargetType="Image">
+                                    <Setter Property="Opacity" Value="1" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Settings.ShowBackgroundArtwork}" Value="False"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                        <DataTrigger Binding="{Binding Settings.DashboardImageStyle}" Value="Minimal"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                        <DataTrigger Binding="{Binding Settings.DashboardImageStyle}" Value="Subtle aircraft"><Setter Property="Opacity" Value="0.62" /></DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Image.Style>
+                        </Image>
+                    </Border>
                     <Border>
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#ED04182D" Offset="0" />
-                                <GradientStop Color="#A8051B33" Offset="0.46" />
-                                <GradientStop Color="#16051A31" Offset="1" />
+                                <GradientStop Color="#F205152A" Offset="0" />
+                                <GradientStop Color="#C4051B33" Offset="0.38" />
+                                <GradientStop Color="#3A051A31" Offset="0.70" />
+                                <GradientStop Color="#08051A31" Offset="1" />
                             </LinearGradientBrush>
                         </Border.Background>
                     </Border>
