@@ -29,14 +29,7 @@
                 </StackPanel>
             </Grid>
 
-            <Border CornerRadius="12" Padding="23" Margin="0,0,0,16">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#063A61" Offset="0" />
-                        <GradientStop Color="#0E6DA6" Offset="0.64" />
-                        <GradientStop Color="#1790C5" Offset="1" />
-                    </LinearGradientBrush>
-                </Border.Background>
+            <Border Style="{StaticResource HeroPanelStyle}" Padding="23" Margin="0,0,0,16">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -58,16 +51,16 @@
             </Border>
 
             <UniformGrid Columns="4" Margin="0,0,0,16">
-                <Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0">
+                <Border Style="{StaticResource MetricCardStyle}" Padding="16" Margin="0,0,10,0">
                     <StackPanel><TextBlock Text="TOTAL AIRCRAFT" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding FleetCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0">
+                <Border Style="{StaticResource MetricCardStyle}" Padding="16" Margin="0,0,10,0">
                     <StackPanel><TextBlock Text="IN SERVICE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding InServiceCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Padding="16" Margin="0,0,10,0">
+                <Border Style="{StaticResource MetricCardStyle}" Padding="16" Margin="0,0,10,0">
                     <StackPanel><TextBlock Text="MAINTENANCE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding MaintenanceCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
                 </Border>
-                <Border Style="{StaticResource CardStyle}" Padding="16">
+                <Border Style="{StaticResource MetricCardStyle}" Padding="16">
                     <StackPanel><TextBlock Text="RESTRICTIONS" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding RestrictionCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
                 </Border>
             </UniformGrid>

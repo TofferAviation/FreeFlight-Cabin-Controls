@@ -26,9 +26,15 @@
 
     <Style x:Key="PageTitleStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="Segoe UI Variable Display, Segoe UI" />
-        <Setter Property="FontSize" Value="38" />
+        <Setter Property="FontSize" Value="40" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="PageEyebrowStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}" />
     </Style>
 
     <Style x:Key="PageSubtitleStyle" TargetType="TextBlock">
@@ -58,12 +64,56 @@
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
 
+    <DropShadowEffect x:Key="CardShadowEffect" BlurRadius="16" ShadowDepth="4" Opacity="0.12" Color="#16324F" />
+    <DropShadowEffect x:Key="HeroShadowEffect" BlurRadius="25" ShadowDepth="8" Opacity="0.18" Color="#07213B" />
+
     <Style x:Key="CardStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="20" />
+        <Setter Property="Effect" Value="{StaticResource CardShadowEffect}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="#8CBEE6" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="MetricCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
         <Setter Property="Padding" Value="18" />
+        <Setter Property="CornerRadius" Value="14" />
+    </Style>
+
+    <Style x:Key="HeroPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource PremiumHeroBrush}" />
+        <Setter Property="BorderBrush" Value="#459ACB" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="22" />
+        <Setter Property="Padding" Value="26" />
+        <Setter Property="Effect" Value="{StaticResource HeroShadowEffect}" />
+    </Style>
+
+    <Style x:Key="StatusPillStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource InfoSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource InfoBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="12,6" />
+    </Style>
+
+    <Style x:Key="SuccessPillStyle" TargetType="Border" BasedOn="{StaticResource StatusPillStyle}">
+        <Setter Property="Background" Value="{DynamicResource SuccessSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SuccessBorderBrush}" />
+    </Style>
+
+    <Style x:Key="InfoRowStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSoftBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="14,11" />
     </Style>
 
     <Style x:Key="WindowButtonStyle" TargetType="Button">
@@ -116,7 +166,7 @@
                             Background="Transparent"
                             BorderBrush="Transparent"
                             BorderThickness="1"
-                            CornerRadius="10"
+                            CornerRadius="12"
                             Padding="{TemplateBinding Padding}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -137,11 +187,11 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="NavBorder" Property="Background" Value="#174C7191" />
+                            <Setter TargetName="NavBorder" Property="Background" Value="#2454829B" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="NavBorder" Property="Background" Value="{DynamicResource PrimaryGradientBrush}" />
-                            <Setter TargetName="NavBorder" Property="BorderBrush" Value="#398EFF" />
+                            <Setter TargetName="NavBorder" Property="BorderBrush" Value="#73C6F8" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -166,13 +216,14 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="7"
+                            CornerRadius="12"
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Border" Property="Opacity" Value="0.9" />
+                            <Setter TargetName="Border" Property="BorderBrush" Value="#8ED4FF" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Border" Property="Opacity" Value="0.45" />
@@ -187,6 +238,18 @@
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
         <Setter Property="Foreground" Value="#63B9FF" />
+    </Style>
+
+    <Style x:Key="SubtleButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="Padding" Value="16,6" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+        <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+        <Setter Property="BorderBrush" Value="#EC7891" />
     </Style>
 
     <Style x:Key="CircleButtonStyle" TargetType="Button" BasedOn="{StaticResource SecondaryButtonStyle}">

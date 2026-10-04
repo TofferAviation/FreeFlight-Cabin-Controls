@@ -3,19 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{DynamicResource AppBackgroundBrush}">
     <UserControl.Resources>
-        <DropShadowEffect x:Key="WorkspaceShadow" BlurRadius="20" ShadowDepth="4" Opacity="0.12" Color="#081426" />
-        <LinearGradientBrush x:Key="iGateHeroBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#062B4C" Offset="0" />
-            <GradientStop Color="#0767A5" Offset="0.58" />
-            <GradientStop Color="#173D61" Offset="1" />
-        </LinearGradientBrush>
-        <Style x:Key="WorkspaceCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
+        <Style x:Key="WorkspaceCard" TargetType="Border" BasedOn="{StaticResource CardStyle}">
+            <Setter Property="CornerRadius" Value="18" />
             <Setter Property="Padding" Value="20" />
-            <Setter Property="Effect" Value="{StaticResource WorkspaceShadow}" />
         </Style>
         <Style x:Key="WorkspaceLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10" />
@@ -109,7 +99,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Content="More tools" Command="{Binding ToggleServiceMenuCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,9,0" />
-                    <Border Background="{DynamicResource SuccessSurfaceBrush}" BorderBrush="{DynamicResource SuccessBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,7">
+                    <Border Style="{StaticResource SuccessPillStyle}">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessBrush}" Margin="0,0,8,0" VerticalAlignment="Center" />
                             <StackPanel>
@@ -136,7 +126,7 @@
             <Grid Margin="26,22,26,26">
                 <Grid Visibility="{Binding ActiveModule, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Check-In}">
                     <Grid.RowDefinitions><RowDefinition Height="132" /><RowDefinition Height="18" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                    <Border Background="{StaticResource iGateHeroBrush}" CornerRadius="14" Padding="24" Effect="{StaticResource WorkspaceShadow}">
+                    <Border Style="{StaticResource HeroPanelStyle}" Padding="24">
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
@@ -173,7 +163,7 @@
 
                 <Grid Visibility="{Binding ActiveModule, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Boarding}">
                     <Grid.RowDefinitions><RowDefinition Height="132" /><RowDefinition Height="18" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                    <Border Background="{StaticResource iGateHeroBrush}" CornerRadius="14" Padding="24" Effect="{StaticResource WorkspaceShadow}"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="BOARDING CONTROL" Foreground="#B9DBF1" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="Bring the cabin on board" Foreground="White" FontFamily="Georgia" FontSize="28" Margin="0,5,0,0" /><TextBlock Text="Boarding state stays synchronised with Ember's live cabin engine." Foreground="#D2E7F5" FontSize="12" Margin="0,7,0,0" /></StackPanel><Button Grid.Column="1" Content="{Binding Operations.GateActionLabel}" Command="{Binding ToggleGateCommand}" Style="{StaticResource PrimaryButtonStyle}" VerticalAlignment="Center" /></Grid></Border>
+                    <Border Style="{StaticResource HeroPanelStyle}" Padding="24"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="BOARDING CONTROL" Foreground="#B9DBF1" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="Bring the cabin on board" Foreground="White" FontFamily="Georgia" FontSize="28" Margin="0,5,0,0" /><TextBlock Text="Boarding state stays synchronised with Ember's live cabin engine." Foreground="#D2E7F5" FontSize="12" Margin="0,7,0,0" /></StackPanel><Button Grid.Column="1" Content="{Binding Operations.GateActionLabel}" Command="{Binding ToggleGateCommand}" Style="{StaticResource PrimaryButtonStyle}" VerticalAlignment="Center" /></Grid></Border>
                     <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="16" /><ColumnDefinition /><ColumnDefinition Width="16" /><ColumnDefinition /></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource WorkspaceCard}"><StackPanel><TextBlock Text="READY TO BOARD" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="{Binding NotBoardedPassengers}" Style="{StaticResource WorkspaceValue}" Margin="0,5,0,0" /><TextBlock Text="Passengers still at the gate" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" /></StackPanel></Border>
                         <Border Grid.Column="2" Style="{StaticResource WorkspaceCard}"><StackPanel><TextBlock Text="ON BOARD" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="{Binding Operations.BoardedPassengers}" Style="{StaticResource WorkspaceValue}" Margin="0,5,0,0" /><TextBlock Text="Awaiting cabin completion" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" /></StackPanel></Border>
@@ -184,7 +174,7 @@
 
                 <Grid Tag="IportLoadControlWorkspace" Visibility="{Binding ActiveModule, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Load Control}">
                     <Grid.RowDefinitions><RowDefinition Height="150" /><RowDefinition Height="18" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                    <Border Background="{StaticResource iGateHeroBrush}" CornerRadius="14" Padding="24" Effect="{StaticResource WorkspaceShadow}">
+                    <Border Style="{StaticResource HeroPanelStyle}" Padding="24">
                         <Grid>
                             <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="270" /></Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
@@ -231,7 +221,7 @@
 
                 <Grid Visibility="{Binding ActiveModule, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Flight Monitor}">
                     <Grid.RowDefinitions><RowDefinition Height="132" /><RowDefinition Height="18" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                    <Border Background="{StaticResource iGateHeroBrush}" CornerRadius="14" Padding="24" Effect="{StaticResource WorkspaceShadow}"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="FLIGHT MONITOR" Foreground="#B9DBF1" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="A single operational picture" Foreground="White" FontFamily="Georgia" FontSize="28" Margin="0,5,0,0" /><TextBlock Text="Monitor the service selected on the pilot website through the active ACARS session." Foreground="#D2E7F5" FontSize="12" Margin="0,7,0,0" /></StackPanel><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding CurrentClock}" Foreground="White" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Right" /><TextBlock Text="LOCAL OPERATIONS TIME" Foreground="#B9DBF1" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" /></StackPanel></Grid></Border>
+                    <Border Style="{StaticResource HeroPanelStyle}" Padding="24"><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="FLIGHT MONITOR" Foreground="#B9DBF1" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="A single operational picture" Foreground="White" FontFamily="Georgia" FontSize="28" Margin="0,5,0,0" /><TextBlock Text="Monitor the service selected on the pilot website through the active ACARS session." Foreground="#D2E7F5" FontSize="12" Margin="0,7,0,0" /></StackPanel><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding CurrentClock}" Foreground="White" FontSize="26" FontWeight="SemiBold" HorizontalAlignment="Right" /><TextBlock Text="LOCAL OPERATIONS TIME" Foreground="#B9DBF1" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" /></StackPanel></Grid></Border>
                     <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="1.1*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
                         <Border Style="{StaticResource WorkspaceCard}"><StackPanel><TextBlock Text="FLIGHT STATUS" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="{Binding Operations.FlightNumber}" FontFamily="Georgia" FontSize="25" Margin="0,5,0,4" /><TextBlock Text="{Binding Operations.RouteSummary}" Foreground="{DynamicResource TextSecondaryBrush}" /><Grid Margin="0,24,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="GATE" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="{Binding Operations.GateNumber}" Style="{StaticResource WorkspaceValue}" /></StackPanel><StackPanel Grid.Column="1"><TextBlock Text="SCHEDULED" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="{Binding Operations.ScheduledDeparture}" Style="{StaticResource WorkspaceValue}" /></StackPanel><StackPanel Grid.Column="2"><TextBlock Text="AIRCRAFT" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="{Binding Operations.DetectedAircraftIcao}" FontSize="22" FontWeight="SemiBold" /></StackPanel></Grid></StackPanel></Border>
                         <Border Grid.Column="2" Style="{StaticResource WorkspaceCard}"><StackPanel><TextBlock Text="OPERATIONS TIMELINE" Style="{StaticResource WorkspaceLabel}" /><TextBlock Text="{Binding Operations.TimelinePhaseLabel}" Foreground="{Binding Operations.TimelinePhaseColor}" FontSize="18" FontWeight="SemiBold" Margin="0,7,0,12" /><ItemsControl ItemsSource="{Binding MonitorEvents}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,7"><Grid.ColumnDefinitions><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Ellipse Width="8" Height="8" Fill="{Binding Color}" VerticalAlignment="Top" Margin="0,4,0,0" /><StackPanel Grid.Column="1"><TextBlock Text="{Binding Title}" FontWeight="SemiBold" /><TextBlock Text="{Binding Detail}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" /></StackPanel></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>

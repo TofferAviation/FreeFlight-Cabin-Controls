@@ -10,9 +10,9 @@
                     <GradientStop Color="#A7D9F6" Offset="1" />
                 </LinearGradientBrush>
             </Grid.Background>
-            <Border Width="478" Padding="34" Background="#FDFEFF" BorderBrush="#D8E2EC" BorderThickness="1" CornerRadius="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border Width="478" Padding="34" Style="{StaticResource CardStyle}" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
-                    <Border Width="58" Height="58" CornerRadius="29" Background="#E9F5FF" BorderBrush="#B8DDF5" BorderThickness="1" HorizontalAlignment="Center">
+                    <Border Width="58" Height="58" CornerRadius="29" Background="{DynamicResource InfoSurfaceBrush}" BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="1" HorizontalAlignment="Center">
                         <TextBlock Text="&#xE77B;" FontFamily="Segoe Fluent Icons" FontSize="27" Foreground="#0B73B9" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <TextBlock Text="Welcome to Ember" Style="{StaticResource PageTitleStyle}" FontSize="31" HorizontalAlignment="Center" Margin="0,18,0,0" />
@@ -41,17 +41,14 @@
                         <TextBlock Text="Your verified BAV account, briefing and live ACARS session." Style="{StaticResource PageSubtitleStyle}" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="48" Height="48" CornerRadius="24" Background="#E9F5FF" BorderBrush="#B8DDF5" BorderThickness="1" Margin="0,0,11,0">
+                        <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource InfoSurfaceBrush}" BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="1" Margin="0,0,11,0">
                             <TextBlock Text="{Binding Initials}" Foreground="{StaticResource PrimaryDeepBrush}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding PilotLabel}" FontWeight="SemiBold" /><TextBlock Text="Verified BAV pilot" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,2,0,0" /></StackPanel>
                     </StackPanel>
                 </Grid>
 
-                <Border CornerRadius="12" Padding="24" Margin="0,0,0,16">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#06385E" Offset="0" /><GradientStop Color="#0B76B9" Offset="0.64" /><GradientStop Color="#1690CF" Offset="1" /></LinearGradientBrush>
-                    </Border.Background>
+                <Border Style="{StaticResource HeroPanelStyle}" Margin="0,0,0,16">
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
                         <StackPanel>
@@ -76,7 +73,7 @@
                         <StackPanel>
                             <TextBlock Text="ACARS SESSION" Style="{StaticResource SectionTitleStyle}" />
                             <TextBlock Text="Telemetry begins and ends with your operational flight." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,4,0,16" />
-                            <Border Background="#F4F8FC" BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <Border Style="{StaticResource InfoRowStyle}">
                                 <StackPanel>
                                     <TextBlock Text="{Binding AcarsSessionLabel}" Foreground="{StaticResource SuccessBrush}" FontSize="15" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding LastFlightCompletionLabel}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />

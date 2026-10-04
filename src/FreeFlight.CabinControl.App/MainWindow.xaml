@@ -34,7 +34,7 @@
             <Setter Property="Foreground" Value="#8FAECD" />
             <Setter Property="FontSize" Value="9" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="24,17,0,5" />
+            <Setter Property="Margin" Value="24,20,0,6" />
         </Style>
     </Window.Resources>
 
@@ -47,18 +47,21 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Background="{StaticResource SidebarBrush}" BorderBrush="#174C7191" BorderThickness="0,0,1,0">
+                <Border Grid.Column="0" Background="{StaticResource SidebarGradientBrush}" BorderBrush="#174C7191" BorderThickness="0,0,1,0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="112" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="90" />
                         </Grid.RowDefinitions>
+                        <Ellipse Width="250" Height="250" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-155,-130,0" Fill="#183C9DD2" IsHitTestVisible="False" />
 
-                        <StackPanel Margin="22,19,18,0">
+                        <StackPanel Margin="23,19,18,0">
                             <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/BritishAirwaysVirtual.png"
                                    Width="158" Height="50" Stretch="Uniform" HorizontalAlignment="Left" />
-                            <TextBlock Text="EMBER · FLIGHT COMPANION" Foreground="#9BC5E6" FontSize="9" FontWeight="SemiBold" Margin="3,10,0,0" />
+                            <Border Background="#1FFFFFFF" BorderBrush="#2EAFE2FF" BorderThickness="1" CornerRadius="10" Padding="8,4" HorizontalAlignment="Left" Margin="2,10,0,0">
+                                <TextBlock Text="EMBER · FLIGHT COMPANION" Foreground="#D6F0FF" FontSize="9" FontWeight="SemiBold" />
+                            </Border>
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
@@ -98,7 +101,7 @@
                             </StackPanel>
                         </ScrollViewer>
 
-                        <Border Grid.Row="2" BorderBrush="#174C7191" BorderThickness="0,1,0,0" Padding="19,13" ToolTip="{Binding Status.ConnectionDetail}">
+                        <Border Grid.Row="2" Background="#22000C1C" BorderBrush="#275A8CB0" BorderThickness="0,1,0,0" Padding="19,13" ToolTip="{Binding Status.ConnectionDetail}">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />

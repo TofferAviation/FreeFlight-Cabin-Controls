@@ -2,6 +2,15 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.49] - 2026-10-04
+
+### Changed
+
+- Introduced Ember's shared premium presentation system: elevated rounded operational cards, intentional information hierarchy, consistent status pills, richer primary/secondary/destructive actions, calmer data surfaces and an aviation-blue hero treatment.
+- Refined the navigation rail into a branded operations spine with a stronger Ember identity, clearer workspace grouping, a more deliberate active state and a live connection footer.
+- Applied the shared UI language to the existing My Flight, Service, Passengers, Fleet, Reports, iGate, FlightLogger and Settings workspaces. Existing ACARS telemetry, website-flight, fleet, passenger, catering, maintenance, load-control, logbook, simulator and update flows are unchanged.
+- Improved theme resilience throughout the touched workspaces by replacing light-only utility surfaces with shared live theme resources. Dark mode now carries the same card, badge and hierarchy system rather than reverting to pale fragments.
+
 ## [0.5.48] - 2026-10-04
 
 ### Changed

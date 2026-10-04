@@ -40,6 +40,19 @@
     <SolidColorBrush x:Key="SuccessBorderBrush" Color="#62BE93" />
     <SolidColorBrush x:Key="SuccessTextBrush" Color="#0C704C" />
 
+    <!-- Shared product surfaces. The sidebar remains deep navy in both
+         appearances so Ember keeps a recognisable operational spine. -->
+    <LinearGradientBrush x:Key="SidebarGradientBrush" StartPoint="0,0" EndPoint="0.85,1">
+        <GradientStop Color="#041E38" Offset="0" />
+        <GradientStop Color="#062B4C" Offset="0.48" />
+        <GradientStop Color="#0A426C" Offset="1" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="PremiumHeroBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#082E50" Offset="0" />
+        <GradientStop Color="#0A659E" Offset="0.62" />
+        <GradientStop Color="#1D93C9" Offset="1" />
+    </LinearGradientBrush>
+
     <LinearGradientBrush x:Key="PrimaryGradientBrush" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="#1689CF" Offset="0" />
         <GradientStop Color="#07518C" Offset="1" />
