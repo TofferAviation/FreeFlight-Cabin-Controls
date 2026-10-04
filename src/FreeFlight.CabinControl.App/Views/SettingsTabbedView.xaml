@@ -203,6 +203,20 @@
                             <Border Style="{StaticResource SettingsCard}" Margin="0,0,10,0"><StackPanel><TextBlock Text="FLEET DATA" Style="{StaticResource MetricLabelStyle}" /><Grid Margin="0,15,0,0"><TextBlock Text="Synchronise automatically" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding FleetAutoSync}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid><TextBlock Text="Refresh interval (seconds)" Style="{StaticResource FieldLabel}" Margin="0,15,0,6" /><TextBox Text="{Binding FleetSyncIntervalSeconds, UpdateSourceTrigger=PropertyChanged}" /><TextBlock Text="Preferred registration" Style="{StaticResource FieldLabel}" Margin="0,15,0,6" /><TextBox Text="{Binding SelectedFleetRegistration, UpdateSourceTrigger=PropertyChanged}" /><TextBlock Text="{Binding FleetApiBaseUrl}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,12,0,0" /></StackPanel></Border>
                             <Border Grid.Column="1" Style="{StaticResource SettingsCard}"><StackPanel><TextBlock Text="UPDATES" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="Built-in updater" Style="{StaticResource SectionTitleStyle}" FontSize="17" Margin="0,5,0,0" /><TextBlock Text="Ember delivers hotfixes through the in-app updater." Style="{StaticResource FieldHint}" /><Grid Margin="0,18,0,0"><TextBlock Text="Check automatically" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" /><ToggleButton IsChecked="{Binding AutomaticallyCheckForUpdates}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" /></Grid><Button Content="Check for Ember updates" Click="CheckForUpdatesButton_Click" Style="{StaticResource PrimaryButtonStyle}" Margin="0,18,0,0" /><Button Content="Preview updater status" Click="PreviewUpdateButton_Click" Style="{StaticResource SecondaryButtonStyle}" Margin="0,9,0,0" /></StackPanel></Border>
                         </Grid>
+                        <Border Style="{StaticResource SettingsCard}" Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="SAYINTENTIONS CABIN EVENTS" Style="{StaticResource MetricLabelStyle}" />
+                                    <TextBlock Text="File clear cabin-equipment faults from the active local SayIntentions flight against the aircraft reserved for this BAV website flight." Style="{StaticResource FieldHint}" TextWrapping="Wrap" Margin="0,7,36,0" />
+                                    <TextBlock Text="Your personal SayIntentions key is read only in memory from the local active-flight session. Ember never saves, logs or sends it to BAV." Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,8,36,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Width="178">
+                                    <ToggleButton IsChecked="{Binding SayIntentionsCabinEventSync}" Style="{StaticResource PillToggleStyle}" HorizontalAlignment="Right" />
+                                    <TextBlock Text="Auto-file clear technical events" Style="{StaticResource FieldLabel}" FontSize="10" TextAlignment="Right" TextWrapping="Wrap" Margin="0,7,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
                     </StackPanel>
 
                     <StackPanel Visibility="{Binding SelectedSection, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Devices}">

@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
+using FreeFlight.CabinControl.Core.Operations;
 
 namespace FreeFlight.CabinControl.App.ViewModels;
 
@@ -45,6 +46,8 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     private string _defectDispatchImpact = "none";
     private string _defectReportStatus = string.Empty;
     private Brush _defectReportStatusColor = MutedBrush;
+    private string _sayIntentionsEventStatus = "SayIntentions cabin-event sync is off.";
+    private Brush _sayIntentionsEventStatusColor = MutedBrush;
     private FleetFlightAssignmentDto? _activeFlightAssignment;
     private string _flightAssignmentStatus = "Sign in with your BAV account to reserve an aircraft for a flight.";
     private Brush _flightAssignmentStatusColor = MutedBrush;
@@ -290,6 +293,18 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     {
         get => _defectReportStatusColor;
         private set => SetProperty(ref _defectReportStatusColor, value);
+    }
+
+    public string SayIntentionsEventStatus
+    {
+        get => _sayIntentionsEventStatus;
+        private set => SetProperty(ref _sayIntentionsEventStatus, value);
+    }
+
+    public Brush SayIntentionsEventStatusColor
+    {
+        get => _sayIntentionsEventStatusColor;
+        private set => SetProperty(ref _sayIntentionsEventStatusColor, value);
     }
 
     public int FleetCount => Aircraft.Count;
@@ -836,6 +851,78 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
         DefectReportStatusColor = SuccessBrush;
         await RefreshAsync();
         IsDefectReportOpen = false;
+    }
+
+    /// <summary>
+    /// Files a high-confidence SayIntentions cabin fault only against the
+    /// aircraft reserved to the current BAV website flight. This intentionally
+    /// never falls back to a manually selected aircraft.
+    /// </summary>
+    public async Task<bool> SubmitSayIntentionsDefectAsync(SayIntentionsFleetDefectProposal proposal)
+    {
+        if (!_settings.SayIntentionsCabinEventSync)
+        {
+            SayIntentionsEventStatus = "SayIntentions cabin-event sync is off.";
+            SayIntentionsEventStatusColor = MutedBrush;
+            return false;
+        }
+
+        if (!HasActiveFlightAssignment || string.IsNullOrWhiteSpace(ActiveFlightAircraftId))
+        {
+            SayIntentionsEventStatus = "A SayIntentions technical event was held: reserve the aircraft for this website flight before it can enter Fleet.";
+            SayIntentionsEventStatusColor = WarningBrush;
+            return false;
+        }
+
+        var aircraft = Aircraft.FirstOrDefault(item => string.Equals(item.Id, ActiveFlightAircraftId, StringComparison.Ordinal));
+        if (aircraft is null)
+        {
+            SayIntentionsEventStatus = "A SayIntentions technical event was held while Ember refreshes the reserved aircraft record.";
+            SayIntentionsEventStatusColor = WarningBrush;
+            return false;
+        }
+
+        try
+        {
+            SayIntentionsEventStatus = "Filing verified SayIntentions cabin event against the reserved aircraft…";
+            SayIntentionsEventStatusColor = InfoBrush;
+            var defect = await _fleetApiClient.ReportDefectAsync(
+                _settings,
+                RequireAccount(),
+                aircraft.Id,
+                new FleetDefectSubmissionDto(
+                    proposal.Category,
+                    proposal.Description,
+                    proposal.Severity,
+                    proposal.DispatchImpact,
+                    aircraft.Station,
+                    proposal.Location));
+            SayIntentionsEventStatus = $"{defect.Reference} was filed from a SayIntentions cabin event for {aircraft.Registration}.";
+            SayIntentionsEventStatusColor = SuccessBrush;
+            await RefreshAsync();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            SayIntentionsEventStatus = $"SayIntentions event was not filed: {exception.Message}";
+            SayIntentionsEventStatusColor = WarningBrush;
+            return false;
+        }
+    }
+
+    public void UpdateSayIntentionsEventStatus(string status)
+    {
+        if (status.Contains("filed", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+        SayIntentionsEventStatus = status;
+        SayIntentionsEventStatusColor = status.Contains("not available", StringComparison.OrdinalIgnoreCase) ||
+                                         status.Contains("unreadable", StringComparison.OrdinalIgnoreCase)
+            ? WarningBrush
+            : status.Contains("Monitoring", StringComparison.OrdinalIgnoreCase)
+                ? SuccessBrush
+                : MutedBrush;
     }
 
     private async Task LoadDetailAsync(FleetAircraftRow aircraft, CancellationToken cancellationToken)

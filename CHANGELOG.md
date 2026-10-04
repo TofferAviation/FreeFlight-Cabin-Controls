@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.56] - 2026-10-04
+
+### Added
+
+- Added optional SayIntentions cabin-event sync. Ember reads the pilot's active local SayIntentions session without saving its personal API key, identifies only clear technical cabin faults, and files each confirmed event once against the aircraft reserved for the matching BAV website flight.
+- Added live fleet feedback for SayIntentions event monitoring, held reports and accepted fleet defects.
+
+### Safety
+
+- Passenger service, medical and ambiguous dialogue never create fleet defects. Events are held when no BAV account or flight reservation is available, and no technical record is attached to a manually selected aircraft.
+
 ## [0.5.55] - 2026-10-04
 
 ### Changed

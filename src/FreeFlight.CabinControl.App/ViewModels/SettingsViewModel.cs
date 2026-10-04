@@ -201,6 +201,12 @@ public sealed class SettingsViewModel : PageViewModel
         set => SetSetting(value.Trim().ToUpperInvariant(), current => _settings.SelectedFleetRegistration = current);
     }
 
+    public bool SayIntentionsCabinEventSync
+    {
+        get => _settings.SayIntentionsCabinEventSync;
+        set => SetSetting(value, current => _settings.SayIntentionsCabinEventSync = current);
+    }
+
     public bool AutomaticallyCheckForUpdates
     {
         get => _settings.AutomaticallyCheckForUpdates;
@@ -698,6 +704,7 @@ public sealed class SettingsViewModel : PageViewModel
         RefreshXPlanePluginStatus();
         Msfs2024AutoConnect = defaults.Msfs2024AutoConnect;
         AutomaticallyCheckForUpdates = defaults.AutomaticallyCheckForUpdates;
+        SayIntentionsCabinEventSync = defaults.SayIntentionsCabinEventSync;
         SelectedCabinLayoutProfile = CabinLayoutProfiles.Single(profile =>
             profile.Id == defaults.PassengerCabinLayoutId);
         SimBriefPilotId = defaults.SimBriefPilotId;

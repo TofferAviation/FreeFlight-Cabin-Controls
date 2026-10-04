@@ -18,6 +18,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private readonly ISimulatorCabinControlBridge? _simulatorCabinControlBridge;
     private readonly FlightSessionStore? _flightSessionStore;
     private readonly IOperationsClock _operationsClock;
+    private readonly SayIntentionsCabinEventMonitor _sayIntentionsCabinEventMonitor;
     private readonly DispatcherTimer _sessionSaveTimer;
     private CabinTelemetrySnapshot? _latestTelemetry;
     private int _telemetryDispatchPending;
@@ -118,6 +119,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             new FleetApiClient(),
             () => Account.Session,
             Account.GetCurrentFlightContext);
+        _sayIntentionsCabinEventMonitor = new SayIntentionsCabinEventMonitor(settings, settingsStore);
+        _sayIntentionsCabinEventMonitor.TechnicalDefectDetected += HandleSayIntentionsTechnicalDefectAsync;
+        _sayIntentionsCabinEventMonitor.StatusChanged += HandleSayIntentionsStatusChanged;
+        _sayIntentionsCabinEventMonitor.Start();
         Account.SessionChanged += HandleBavAccountSessionChanged;
         Account.ManualFlightCompletionRequested += CompleteFlightManuallyAsync;
         Account.WebsiteFlightAssignmentRefreshed += HandleWebsiteFlightAssignmentRefreshed;
@@ -221,6 +226,9 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Passengers.DoorControlRequested -= HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested -= HandleSeatbeltControlRequested;
         Passengers.FlightUnloaded -= HandleFlightUnloaded;
+        _sayIntentionsCabinEventMonitor.TechnicalDefectDetected -= HandleSayIntentionsTechnicalDefectAsync;
+        _sayIntentionsCabinEventMonitor.StatusChanged -= HandleSayIntentionsStatusChanged;
+        _sayIntentionsCabinEventMonitor.Dispose();
         if (_simulatorBridge is not null)
         {
             _simulatorBridge.StatusChanged -= HandleBridgeStatusChanged;
@@ -239,6 +247,12 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Fleet.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    private Task<bool> HandleSayIntentionsTechnicalDefectAsync(SayIntentionsFleetDefectProposal proposal) =>
+        Fleet.SubmitSayIntentionsDefectAsync(proposal);
+
+    private void HandleSayIntentionsStatusChanged(object? sender, string status) =>
+        Fleet.UpdateSayIntentionsEventStatus(status);
 
     private void HandleSessionSaveTick(object? sender, EventArgs e) => PersistFlightSession();
 

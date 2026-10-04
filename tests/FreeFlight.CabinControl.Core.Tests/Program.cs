@@ -52,10 +52,40 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Gate desk boarding updates the cabin engine", GateDeskBoardingUpdatesCabinAsync),
     ("No-show passengers are excluded from boarding", NoShowPassengersAreExcludedAsync),
     ("Route-aware no-show forecasts use configured profiles", RouteAwareNoShowForecastsAsync),
+    ("SayIntentions technical cabin events map to fleet defects", SayIntentionsTechnicalCabinEventsMapToFleetDefectsAsync),
     ("X-Plane telemetry classifies flight phases", XPlaneTelemetryClassifiesFlightPhasesAsync)
     ,("BA catering selects long-haul route and meal period", BritishAirwaysLongHaulCateringSelectionAsync)
     ,("BA catering selects short-haul service band", BritishAirwaysShortHaulCateringSelectionAsync)
 };
+
+static Task SayIntentionsTechnicalCabinEventsMapToFleetDefectsAsync()
+{
+    var created = SayIntentionsCabinEventClassifier.TryCreateProposal(
+        "evt-galley-1",
+        new DateTimeOffset(2026, 10, 4, 12, 15, 0, TimeSpan.Zero),
+        "Cabin crew reports that the aft galley coffee maker is inoperative.",
+        out var galleyProposal);
+    Assert(created && galleyProposal is not null, "A clear galley fault was not identified.");
+    AssertEqual("Galley", galleyProposal!.Category, "The galley fault used the wrong fleet category.");
+    AssertEqual("normal", galleyProposal.Severity, "A standard galley fault was assigned the wrong severity.");
+
+    created = SayIntentionsCabinEventClassifier.TryCreateProposal(
+        "evt-door-1",
+        new DateTimeOffset(2026, 10, 4, 12, 16, 0, TimeSpan.Zero),
+        "The cabin door seal is leaking and requires inspection.",
+        out var doorProposal);
+    Assert(created && doorProposal is not null, "A clear cabin-door defect was not identified.");
+    AssertEqual("Cabin door", doorProposal!.Category, "The cabin-door defect used the wrong fleet category.");
+    AssertEqual("high", doorProposal.Severity, "A leak was not given the expected high severity.");
+
+    created = SayIntentionsCabinEventClassifier.TryCreateProposal(
+        "evt-service-1",
+        new DateTimeOffset(2026, 10, 4, 12, 17, 0, TimeSpan.Zero),
+        "A passenger has requested a second cup of tea.",
+        out _);
+    Assert(!created, "A passenger-service request must not become a technical fleet defect.");
+    return Task.CompletedTask;
+}
 
 static Task CrashReportCapturesSafeDiagnosticDetailsAsync()
 {

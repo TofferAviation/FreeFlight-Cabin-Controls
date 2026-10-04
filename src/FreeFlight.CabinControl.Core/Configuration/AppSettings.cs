@@ -140,6 +140,14 @@ public sealed class AppSettings
 
     public string SelectedFleetRegistration { get; set; } = string.Empty;
 
+    // SayIntentions stays opt-in. Ember reads the active local flight session
+    // only; its per-pilot API key is never saved in these settings.
+    public bool SayIntentionsCabinEventSync { get; set; }
+
+    // Event identifiers are retained locally so a SayIntentions event can be
+    // submitted to the fleet record at most once, including after a restart.
+    public List<string> ProcessedSayIntentionsCabinEventIds { get; set; } = [];
+
     public string PreferredSimulator { get; set; } = "Auto";
 
     public bool AutomaticallyCheckForUpdates { get; set; } = true;
