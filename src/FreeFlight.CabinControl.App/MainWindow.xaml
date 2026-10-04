@@ -14,7 +14,12 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResize"
-        Background="{StaticResource AppBackgroundBrush}">
+         UseLayoutRounding="True"
+         SnapsToDevicePixels="True"
+         TextOptions.TextFormattingMode="Display"
+         TextOptions.TextRenderingMode="ClearType"
+         TextOptions.TextHintingMode="Fixed"
+         Background="{DynamicResource AppBackgroundBrush}">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="44"
                             ResizeBorderThickness="7"
@@ -39,7 +44,7 @@
         </Style>
     </Window.Resources>
 
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
         <Grid>
             <Rectangle Fill="{DynamicResource AmbientGlowBrush}"
                        Opacity="{DynamicResource WorkspaceAmbientOpacity}"
@@ -52,7 +57,7 @@
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Background="{StaticResource SidebarGradientBrush}" BorderBrush="#174C7191" BorderThickness="0,0,1,0">
+                <Border Grid.Column="0" Background="{DynamicResource SidebarGradientBrush}" BorderBrush="#174C7191" BorderThickness="0,0,1,0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="112" />
@@ -171,8 +176,8 @@
                     <RowDefinition Height="54" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Rectangle Fill="{StaticResource AmbientGlowBrush}" IsHitTestVisible="False" />
-                <Border Grid.Row="0" Background="{StaticResource SidebarBrush}" BorderBrush="#174C7191" BorderThickness="0,0,0,1">
+                <Rectangle Fill="{DynamicResource AmbientGlowBrush}" IsHitTestVisible="False" />
+                <Border Grid.Row="0" Background="{DynamicResource SidebarBrush}" BorderBrush="#174C7191" BorderThickness="0,0,0,1">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
                             <Image Source="pack://application:,,,/FreeFlight.CabinControl;component/Assets/BritishAirwaysVirtual.png" Width="166" Height="42" Stretch="Uniform" />

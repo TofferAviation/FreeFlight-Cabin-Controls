@@ -9,8 +9,8 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         ShowInTaskbar="False"
-        Background="{StaticResource AppBackgroundBrush}">
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="24">
+        Background="{DynamicResource AppBackgroundBrush}">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="24">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

@@ -74,7 +74,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="Output Device" Style="{StaticResource MutedTextStyle}" />
-                                <TextBlock Text="{Binding OutputDeviceStatus}" Foreground="{StaticResource TextMutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding OutputDeviceStatus}" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                             <ComboBox Grid.Column="1"
                                       ItemsSource="{Binding OutputDevices}"
@@ -136,7 +136,7 @@
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{Binding NowPlaying}" Foreground="#42A8FF" FontSize="16" />
                                 <Viewbox Height="62" Stretch="Fill" Margin="0,8,22,0">
-                                    <Path Stroke="{StaticResource PrimaryBrush}" StrokeThickness="2" Data="M0,35 L5,35 L9,20 L13,52 L18,29 L23,42 L28,15 L34,56 L40,25 L46,46 L52,12 L58,58 L64,29 L70,43 L76,20 L82,51 L88,35 L96,35 L102,27 L109,44 L116,35" />
+                                    <Path Stroke="{DynamicResource PrimaryBrush}" StrokeThickness="2" Data="M0,35 L5,35 L9,20 L13,52 L18,29 L23,42 L28,15 L34,56 L40,25 L46,46 L52,12 L58,58 L64,29 L70,43 L76,20 L82,51 L88,35 L96,35 L102,27 L109,44 L116,35" />
                                 </Viewbox>
                             </StackPanel>
                             <Button Grid.Column="1"

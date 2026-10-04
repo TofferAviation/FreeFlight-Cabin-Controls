@@ -12,7 +12,6 @@ public partial class MainWindow
 {
     private bool _startupUpdateCheckStarted;
     private bool _automaticUpdateCheckInProgress;
-    private bool _isRebuildingForTheme;
     private string? _notifiedUpdateTag;
     private readonly DispatcherTimer _updateCheckTimer;
 
@@ -43,7 +42,7 @@ public partial class MainWindow
 
     private async void ToggleThemeButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_isRebuildingForTheme || DataContext is not MainWindowViewModel viewModel)
+        if (DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
@@ -53,12 +52,7 @@ public partial class MainWindow
             return;
         }
 
-        // WPF resolves many workspace brushes when a view is created.  Build
-        // a fresh shell around the existing view-model instead of trying to
-        // mutate those resources in place. The current page, signed-in BAV
-        // account and any live ACARS work remain in the same view-model.
-        new AppThemeService().Apply(viewModel.Settings.AppearanceSettings, ActualWidth);
-        RebuildForTheme(viewModel);
+        ApplyAppearance(viewModel);
     }
 
     private void DashboardThemeToggleRequested(object sender, RoutedEventArgs e) =>
@@ -69,7 +63,7 @@ public partial class MainWindow
 
     private async void SettingsView_AppearanceChanged(object sender, RoutedEventArgs e)
     {
-        if (_isRebuildingForTheme || DataContext is not MainWindowViewModel viewModel)
+        if (DataContext is not MainWindowViewModel viewModel)
         {
             return;
         }
@@ -79,8 +73,7 @@ public partial class MainWindow
             return;
         }
 
-        new AppThemeService().Apply(viewModel.Settings.AppearanceSettings, ActualWidth);
-        RebuildForTheme(viewModel);
+        ApplyAppearance(viewModel);
     }
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
@@ -88,32 +81,21 @@ public partial class MainWindow
         if (DataContext is MainWindowViewModel viewModel &&
             string.Equals(viewModel.Settings.SidebarStyle, "Auto (adaptive)", StringComparison.Ordinal))
         {
-            new AppThemeService().Apply(viewModel.Settings.AppearanceSettings, ActualWidth);
+            ApplyAppearance(viewModel);
         }
     }
 
-    private void RebuildForTheme(MainWindowViewModel viewModel)
+    /// <summary>
+    /// Applies appearance choices to the existing window. Theme brushes are
+    /// updated in place so a pilot never loses their active ACARS workspace,
+    /// selected website flight, or a running cabin operation while changing
+    /// a visual preference.
+    /// </summary>
+    private void ApplyAppearance(MainWindowViewModel viewModel)
     {
-        var wasMaximized = WindowState == WindowState.Maximized;
-        var replacement = new MainWindow
-        {
-            DataContext = viewModel,
-            Left = Left,
-            Top = Top,
-            Width = ActualWidth > 0 ? ActualWidth : Width,
-            Height = ActualHeight > 0 ? ActualHeight : Height
-        };
-
-        _isRebuildingForTheme = true;
-        Application.Current.MainWindow = replacement;
-        replacement.Show();
-        if (wasMaximized)
-        {
-            replacement.WindowState = WindowState.Maximized;
-        }
-
-        replacement.Activate();
-        Close();
+        new AppThemeService().Apply(viewModel.Settings.AppearanceSettings, ActualWidth);
+        InvalidateVisual();
+        UpdateLayout();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -221,11 +203,6 @@ public partial class MainWindow
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         _updateCheckTimer.Stop();
-        if (_isRebuildingForTheme)
-        {
-            return;
-        }
-
         if (DataContext is MainWindowViewModel viewModel)
         {
             viewModel.Dispose();

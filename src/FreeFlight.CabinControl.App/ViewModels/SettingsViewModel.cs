@@ -424,9 +424,9 @@ public sealed class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// Saves the top-bar appearance choice before the shell is rebuilt. The
-    /// rebuild uses the same pilot workspace and ACARS session, so changing
-    /// the visual theme never interrupts an active operation.
+    /// Saves the top-bar appearance choice before it is applied in place. The
+    /// active pilot workspace and ACARS session stay untouched while a visual
+    /// preference changes.
     /// </summary>
     public async Task<bool> ToggleThemeAsync()
     {
@@ -453,9 +453,9 @@ public sealed class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// Persists visual preferences immediately before Ember rebuilds its shell.
-    /// The active website assignment and ACARS services remain in the same
-    /// view-model, so this is safe during an operation.
+    /// Persists visual preferences before Ember refreshes its existing shell.
+    /// The active website assignment and ACARS services remain untouched, so
+    /// this is safe during an operation.
     /// </summary>
     public async Task<bool> SaveAppearanceAsync()
     {

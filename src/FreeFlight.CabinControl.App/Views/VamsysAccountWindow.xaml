@@ -7,8 +7,8 @@
         MinWidth="680"
         MinHeight="620"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource AppBackgroundBrush}">
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
+        Background="{DynamicResource AppBackgroundBrush}">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10" ClipToBounds="True">
         <Grid>
             <Image Source="{Binding AccountBackgroundImageUri}" Stretch="UniformToFill" Opacity="{Binding AccountBackgroundOpacity}" IsHitTestVisible="False">
                 <Image.Effect><BlurEffect Radius="{Binding AccountBackgroundBlurRadius}" /></Image.Effect>

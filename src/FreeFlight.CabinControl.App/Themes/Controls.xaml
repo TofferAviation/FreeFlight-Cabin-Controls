@@ -13,13 +13,27 @@
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
         <Setter Property="FontSize" Value="{DynamicResource BaseFontSize}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
         <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        <Setter Property="TextOptions.TextHintingMode" Value="Fixed" />
     </Style>
 
     <Style TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="FontSize" Value="{DynamicResource BaseFontSize}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        <Setter Property="TextOptions.TextHintingMode" Value="Fixed" />
+    </Style>
+
+    <Style TargetType="Control">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="TextOptions.TextRenderingMode" Value="ClearType" />
+        <Setter Property="TextOptions.TextHintingMode" Value="Fixed" />
     </Style>
 
     <Style TargetType="RadioButton">
@@ -75,7 +89,6 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource CardCornerRadius}" />
         <Setter Property="Padding" Value="{DynamicResource CardPadding}" />
-        <Setter Property="Effect" Value="{StaticResource CardShadowEffect}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="BorderBrush" Value="{DynamicResource CardHoverBorderBrush}" />
@@ -89,12 +102,11 @@
     </Style>
 
     <Style x:Key="HeroPanelStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource PremiumHeroBrush}" />
+        <Setter Property="Background" Value="{DynamicResource PremiumHeroBrush}" />
         <Setter Property="BorderBrush" Value="#459ACB" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource HeroCornerRadius}" />
         <Setter Property="Padding" Value="{DynamicResource HeroPanelPadding}" />
-        <Setter Property="Effect" Value="{StaticResource HeroShadowEffect}" />
     </Style>
 
     <Style x:Key="StatusPillStyle" TargetType="Border">

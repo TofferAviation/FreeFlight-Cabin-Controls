@@ -1934,13 +1934,20 @@ internal static class Program
         var darkText = application.TryFindResource("TextPrimaryBrush") as SolidColorBrush;
         var darkInfoSurface = application.TryFindResource("InfoSurfaceBrush") as SolidColorBrush;
         var darkSuccessSurface = application.TryFindResource("SuccessSurfaceBrush") as SolidColorBrush;
+        var darkPrimaryBrush = application.TryFindResource("PrimaryBrush") as SolidColorBrush;
         if (darkSurface?.Color != Color.FromRgb(0x10, 0x20, 0x33) ||
             darkText?.Color != Color.FromRgb(0xF3, 0xF8, 0xFF) ||
             darkInfoSurface?.Color != Color.FromRgb(0x14, 0x2C, 0x47) ||
-            darkSuccessSurface?.Color != Color.FromRgb(0x17, 0x3D, 0x2B))
+            darkSuccessSurface?.Color != Color.FromRgb(0x17, 0x3D, 0x2B) ||
+            darkPrimaryBrush?.Color != Color.FromRgb(0x31, 0x8E, 0xDB))
         {
-            throw new InvalidOperationException("Dark mode did not apply Ember's shared operational and cabin-control palette.");
+            throw new InvalidOperationException("Dark mode did not safely update Ember's shared operational and cabin-control palette in place.");
         }
+
+        // A fresh shell must be constructible with the dark resource palette.
+        // This protects the actual user path from a missing static theme key.
+        var darkShell = new CabinControlWindow();
+        darkShell.Close();
 
         themeService.Apply(AppThemeService.Light);
         var lightSurface = application.TryFindResource("SurfaceBrush") as SolidColorBrush;

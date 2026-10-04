@@ -65,7 +65,7 @@
                                              PasswordChanged="PasswordInput_OnPasswordChanged"
                                              Height="43" Padding="12,8"
                                              Background="#071426" Foreground="White"
-                                             BorderBrush="{StaticResource BorderBrush}"
+                                             BorderBrush="{DynamicResource BorderBrush}"
                                              CaretBrush="#398EFF" FontSize="14" />
 
                                 <TextBlock Text="Station" FontSize="13" Margin="0,16,0,5" />

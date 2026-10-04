@@ -6,8 +6,8 @@
         Height="425"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
-        Background="{StaticResource AppBackgroundBrush}">
-    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" Padding="26">
+        Background="{DynamicResource AppBackgroundBrush}">
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="26">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -42,7 +42,7 @@
 
             <TextBlock Grid.Row="5"
                        Text="This creates the profile only. Audio media is added later through the content-pack tools."
-                       Foreground="{StaticResource WarningBrush}"
+                       Foreground="{DynamicResource WarningBrush}"
                        FontSize="12"
                        TextWrapping="Wrap"
                        VerticalAlignment="Center" />

@@ -43,11 +43,11 @@ public sealed class AppThemeService
             return;
         }
 
-        ApplyPalette(resources, palette, ResolveAccent(settings, palette));
+        ApplyPalette(resources, palette, ResolveAccent(settings, palette), isDark);
         ApplyLayout(resources, settings, windowWidth, palette);
     }
 
-    private static void ApplyPalette(ResourceDictionary resources, Palette palette, AccentPalette accent)
+    private static void ApplyPalette(ResourceDictionary resources, Palette palette, AccentPalette accent, bool isDark)
     {
         SetBrush(resources, "AppBackgroundBrush", palette.AppBackground);
         SetBrush(resources, "SidebarBrush", palette.Sidebar);
@@ -71,6 +71,18 @@ public sealed class AppThemeService
         SetBrush(resources, "SuccessTextBrush", palette.SuccessText);
         SetBrush(resources, "CardHoverBorderBrush", accent.Cyan);
         SetGradient(resources, "PrimaryGradientBrush", accent.GradientStart, accent.GradientEnd);
+        SetGradient(
+            resources,
+            "SidebarGradientBrush",
+            isDark ? "#04101F" : "#041E38",
+            palette.Sidebar,
+            isDark ? "#0B385B" : "#0A426C");
+        SetGradient(
+            resources,
+            "PremiumHeroBrush",
+            isDark ? "#061B30" : "#082E50",
+            accent.Deep,
+            accent.Cyan);
         SetGradient(resources, "AmbientGlowBrush", palette.GlowStart, palette.GlowMiddle, "#00000000");
     }
 
@@ -94,14 +106,14 @@ public sealed class AppThemeService
         resources["ControlCornerRadius"] = new CornerRadius(rounded ? 12 : 5);
 
         var scale = Math.Clamp(settings.UiScalePercent, 90, 150) / 100d;
-        resources["BaseFontSize"] = 14d * scale;
-        resources["PageTitleFontSize"] = 40d * scale;
-        resources["PageSubtitleFontSize"] = 16d * scale;
-        resources["SectionTitleFontSize"] = 18d * scale;
-        resources["BodyFontSize"] = 14d * scale;
-        resources["MutedFontSize"] = 13d * scale;
-        resources["MetricLabelFontSize"] = 11d * scale;
-        resources["ButtonFontSize"] = 14d * scale;
+        resources["BaseFontSize"] = ScaleFont(14d, scale);
+        resources["PageTitleFontSize"] = ScaleFont(40d, scale);
+        resources["PageSubtitleFontSize"] = ScaleFont(16d, scale);
+        resources["SectionTitleFontSize"] = ScaleFont(18d, scale);
+        resources["BodyFontSize"] = ScaleFont(14d, scale);
+        resources["MutedFontSize"] = ScaleFont(13d, scale);
+        resources["MetricLabelFontSize"] = ScaleFont(11d, scale);
+        resources["ButtonFontSize"] = ScaleFont(14d, scale);
 
         var sidebarMode = NormalizeSidebarStyle(settings.SidebarStyle);
         var iconNavigation = sidebarMode == "Icons only" ||
@@ -219,13 +231,37 @@ public sealed class AppThemeService
                    dictionary.Contains("AppBackgroundBrush")) ?? applicationResources;
     }
 
-    private static void SetBrush(ResourceDictionary resources, string key, string hex) =>
-        resources[key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)!);
+    private static double ScaleFont(double size, double scale) =>
+        Math.Round(size * scale, MidpointRounding.AwayFromZero);
+
+    private static void SetBrush(ResourceDictionary resources, string key, string hex)
+    {
+        var color = (Color)ColorConverter.ConvertFromString(hex)!;
+        if (resources[key] is SolidColorBrush brush && !brush.IsFrozen)
+        {
+            // Update the existing Freezable so both DynamicResource and the
+            // established view styles that reference this brush redraw safely.
+            brush.Color = color;
+            return;
+        }
+
+        resources[key] = new SolidColorBrush(color);
+    }
 
     private static void SetGradient(ResourceDictionary resources, string key, params string[] colors)
     {
         if (resources[key] is not GradientBrush source)
         {
+            return;
+        }
+
+        if (!source.IsFrozen)
+        {
+            for (var index = 0; index < Math.Min(source.GradientStops.Count, colors.Length); index++)
+            {
+                source.GradientStops[index].Color = (Color)ColorConverter.ConvertFromString(colors[index])!;
+            }
+
             return;
         }
 

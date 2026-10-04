@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.59] - 2026-10-04
+
+### Fixed
+
+- Fixed appearance changes—including Dark mode, accent colours, layout density and scaling—causing Ember to close unexpectedly. Preferences now update safely in the active window without interrupting a live operation.
+- Improved text and number clarity throughout Ember with pixel-aligned layout and display-focused ClearType rendering. Removed card and hero shadow compositing that could soften operational text.
+
 ## [0.5.58] - 2026-10-04
 
 ### Fixed

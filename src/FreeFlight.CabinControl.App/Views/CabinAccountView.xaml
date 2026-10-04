@@ -22,11 +22,11 @@
                     <TextBlock Text="Password" FontWeight="SemiBold" FontSize="12" Margin="0,16,0,6" />
                     <PasswordBox x:Name="PasswordInput" PasswordChanged="PasswordInput_OnPasswordChanged" Height="43" Padding="12,8" Background="White" Foreground="#102A43" BorderBrush="#BFD0DF" CaretBrush="#0B73B9" FontSize="14" />
                     <CheckBox IsChecked="{Binding RememberSignIn}" Content="Remember this BAV account on this Windows PC" Margin="0,14,0,0" />
-                    <TextBlock Text="Ember stores an encrypted device session only. Your BAV password is never stored." Foreground="{StaticResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,5,0,0" />
+                    <TextBlock Text="Ember stores an encrypted device session only. Your BAV password is never stored." Foreground="{DynamicResource TextMutedBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,5,0,0" />
                     <Button Command="{Binding SignInCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,22,0,0" Height="50" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBooleanConverter}}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"><TextBlock Text="Sign in to Ember" FontSize="15" /><TextBlock Text="&#xE72A;" FontFamily="Segoe Fluent Icons" FontSize="17" Margin="11,0,0,0" /></StackPanel>
                     </Button>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" Margin="0,13,0,0" />
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" TextAlignment="Center" FontSize="11" Margin="0,13,0,0" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -36,15 +36,15 @@
                 <Grid Margin="0,0,0,16">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="MY FLIGHT" Foreground="{StaticResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
+                        <TextBlock Text="MY FLIGHT" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
                         <TextBlock Text="{Binding DisplayName}" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
                         <TextBlock Text="Your verified BAV account, briefing and live ACARS session." Style="{StaticResource PageSubtitleStyle}" />
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource InfoSurfaceBrush}" BorderBrush="{DynamicResource InfoBorderBrush}" BorderThickness="1" Margin="0,0,11,0">
-                            <TextBlock Text="{Binding Initials}" Foreground="{StaticResource PrimaryDeepBrush}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Initials}" Foreground="{DynamicResource PrimaryDeepBrush}" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                        <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding PilotLabel}" FontWeight="SemiBold" /><TextBlock Text="Verified BAV pilot" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,2,0,0" /></StackPanel>
+                        <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding PilotLabel}" FontWeight="SemiBold" /><TextBlock Text="Verified BAV pilot" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,2,0,0" /></StackPanel>
                     </StackPanel>
                 </Grid>
 
@@ -75,8 +75,8 @@
                             <TextBlock Text="Telemetry begins and ends with your operational flight." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,4,0,16" />
                             <Border Style="{StaticResource InfoRowStyle}">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding AcarsSessionLabel}" Foreground="{StaticResource SuccessBrush}" FontSize="15" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding LastFlightCompletionLabel}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                    <TextBlock Text="{Binding AcarsSessionLabel}" Foreground="{DynamicResource SuccessBrush}" FontSize="15" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding LastFlightCompletionLabel}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,5,0,0" />
                                 </StackPanel>
                             </Border>
                             <Button Content="{Binding EndFlightButtonLabel}" Command="{Binding EndFlightCommand}" Style="{StaticResource PrimaryButtonStyle}" Margin="0,15,0,0" IsEnabled="{Binding IsAcarsOperating}" />
@@ -87,15 +87,15 @@
                             <TextBlock Text="OPERATIONS UPDATES" Style="{StaticResource SectionTitleStyle}" />
                             <TextBlock Text="{Binding NotificationsSummary}" Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,4,0,12" />
                             <ItemsControl ItemsSource="{Binding Notifications}" Visibility="{Binding HasNotifications, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="0,1,0,0" Padding="0,9,0,0" Margin="0,5,0,0"><StackPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" /><TextBlock Text="{Binding Body}" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0" /></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
+                                <ItemsControl.ItemTemplate><DataTemplate><Border BorderBrush="{DynamicResource BorderSoftBrush}" BorderThickness="0,1,0,0" Padding="0,9,0,0" Margin="0,5,0,0"><StackPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" /><TextBlock Text="{Binding Body}" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" FontSize="11" Margin="0,3,0,0" /></StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="There are no new operational updates." Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Visibility="{Binding HasNotifications, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                            <TextBlock Text="There are no new operational updates." Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Visibility="{Binding HasNotifications, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
                         </StackPanel>
                     </Border>
                 </Grid>
 
                 <Grid Margin="0,16,0,0">
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                     <Button Content="Sign out of Ember" Command="{Binding SignOutCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" />
                 </Grid>
             </StackPanel>

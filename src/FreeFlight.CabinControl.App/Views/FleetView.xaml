@@ -10,7 +10,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel>
-                    <TextBlock Text="FLEET" Foreground="{StaticResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="FLEET" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
                     <TextBlock Text="Aircraft" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
                     <TextBlock Text="Live availability, technical records and the airframe allocated to your flight."
                                Style="{StaticResource PageSubtitleStyle}" />
@@ -18,7 +18,7 @@
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding LastSynchronizedLabel}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
                                FontSize="11"
                                VerticalAlignment="Center"
                                Margin="0,0,12,0" />
@@ -97,7 +97,7 @@
                                  Height="382">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                    <Border BorderBrush="{DynamicResource BorderSoftBrush}" BorderThickness="0,0,0,1" Padding="0,10">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="1.25*" />
@@ -106,11 +106,11 @@
                                             </Grid.ColumnDefinitions>
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Registration}" FontWeight="SemiBold" FontSize="13" />
-                                                <TextBlock Text="{Binding AircraftType}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" Margin="0,3,0,0" />
+                                                <TextBlock Text="{Binding AircraftType}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,3,0,0" />
                                             </StackPanel>
                                             <StackPanel Grid.Column="1">
                                                 <TextBlock Text="{Binding Station}" FontSize="11" />
-                                                <TextBlock Text="{Binding FlightHours}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="10" Margin="0,3,0,0" />
+                                                <TextBlock Text="{Binding FlightHours}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="10" Margin="0,3,0,0" />
                                             </StackPanel>
                                             <TextBlock Grid.Column="2" Text="{Binding DispatchStatus}" Foreground="{Binding DispatchStatusBrush}" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" />
                                         </Grid>
@@ -125,10 +125,10 @@
                     <Grid>
                         <StackPanel Visibility="{Binding HasSelectedAircraft, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <TextBlock Text="SELECTED AIRCRAFT" Style="{StaticResource SectionTitleStyle}" />
-                            <TextBlock Text="{Binding SelectedAircraft.Registration}" Foreground="{StaticResource PrimaryBrush}" FontSize="25" FontWeight="SemiBold" Margin="0,10,0,0" />
-                            <TextBlock Text="{Binding SelectedAircraft.AircraftType}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="13" Margin="0,3,0,0" />
+                            <TextBlock Text="{Binding SelectedAircraft.Registration}" Foreground="{DynamicResource PrimaryBrush}" FontSize="25" FontWeight="SemiBold" Margin="0,10,0,0" />
+                            <TextBlock Text="{Binding SelectedAircraft.AircraftType}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13" Margin="0,3,0,0" />
 
-                            <Border Height="146" Margin="0,16,0,0" CornerRadius="8" ClipToBounds="True" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="1">
+                            <Border Height="146" Margin="0,16,0,0" CornerRadius="8" ClipToBounds="True" Background="{DynamicResource SurfaceRaisedBrush}" BorderBrush="{DynamicResource BorderSoftBrush}" BorderThickness="1">
                                 <Grid>
                                     <Image Source="{Binding SelectedAircraft.AircraftImageUri}"
                                            Stretch="Uniform"
