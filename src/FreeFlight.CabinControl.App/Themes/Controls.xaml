@@ -7,6 +7,7 @@
     <infra:StringEqualsToVisibilityConverter x:Key="StringEqualsToVisibilityConverter" />
     <infra:StringEqualsConverter x:Key="StringEqualsConverter" />
     <infra:PercentageToPositionConverter x:Key="PercentageToPositionConverter" />
+    <infra:ProgressArcGeometryConverter x:Key="ProgressArcGeometryConverter" />
 
     <Style TargetType="Window">
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />

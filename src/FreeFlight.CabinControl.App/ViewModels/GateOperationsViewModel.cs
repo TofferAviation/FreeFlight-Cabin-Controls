@@ -368,6 +368,12 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         _settings.GateCloseMinutesBeforeDeparture);
     public string CurrentClockTime => _operationsClock.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
     public string CurrentClockDate => _operationsClock.Now.ToString("dd MMM yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
+    public string TimeAwareGreeting => _operationsClock.Now.Hour switch
+    {
+        < 12 => "Good morning",
+        < 18 => "Good afternoon",
+        _ => "Good evening"
+    };
     public string ClockSourceLabel => _operationsClock.SourceLabel;
     public string ScheduleSourceLabel => IsSimBriefSynced ? "WEBSITE BRIEFING" : "SETTINGS FALLBACK";
     public string ScheduledDeparture => FormatTime(TurnaroundSchedule.Departure);
@@ -1053,6 +1059,7 @@ public sealed class GateOperationsViewModel : PageViewModel, IDisposable
         UpdateLatePassengerStates();
         OnPropertyChanged(nameof(CurrentClockTime));
         OnPropertyChanged(nameof(CurrentClockDate));
+        OnPropertyChanged(nameof(TimeAwareGreeting));
         OnPropertyChanged(nameof(ClockSourceLabel));
         OnPropertyChanged(nameof(TimelinePhaseLabel));
         OnPropertyChanged(nameof(TimelinePhaseColor));

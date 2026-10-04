@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.46] - 2026-10-04
+
+### Added
+
+- Overview now greets the signed-in pilot with **Good morning**, **Good afternoon** or **Good evening** based on Ember's live local operations time, followed by “Ready for your next journey?”.
+- Added a live service-progress ring. It is drawn from the existing catering progress value and updates with the operation rather than using a decorative placeholder.
+
+### Changed
+
+- Expanded the Overview presentation with a more deliberate flight route visual, aircraft-status treatment, aviation accents, panel dividers and clearer live-status hierarchy. No ACARS, cabin, fleet or website-flight data path changed.
+
 ## [0.5.45] - 2026-10-04
 
 ### Changed
