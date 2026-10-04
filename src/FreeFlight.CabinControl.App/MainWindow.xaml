@@ -146,7 +146,7 @@
                         <views:PerformanceView DataContext="{Binding Performance}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Performance}" />
                         <views:IportDcsView DataContext="{Binding IportDcs}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=IportDcs}" />
                         <views:FlightLoggerView DataContext="{Binding FlightLogger}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=FlightLogger}" />
-                        <views:SettingsView DataContext="{Binding Settings}" PreviewUpdateRequested="SettingsView_PreviewUpdateRequested" CheckForUpdatesRequested="SettingsView_CheckForUpdatesRequested" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Settings}" />
+                        <views:SettingsTabbedView DataContext="{Binding Settings}" PreviewUpdateRequested="SettingsView_PreviewUpdateRequested" CheckForUpdatesRequested="SettingsView_CheckForUpdatesRequested" ThemeToggleRequested="SettingsView_ThemeToggleRequested" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Settings}" />
                     </Grid>
                 </Grid>
             </Grid>

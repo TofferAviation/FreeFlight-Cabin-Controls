@@ -2,6 +2,17 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.50] - 2026-10-04
+
+### Added
+
+- Rebuilt Settings as a dedicated tabbed workspace inspired by the supplied Ember concepts: General, Appearance, Flight defaults, Data & sync, Device integration, Notifications, Privacy & security, and About Ember are now clear, focused sections.
+- The new settings tabs expose existing live preferences rather than placeholders, including appearance and scaling, gate defaults, cabin profile, fleet sync, updater checks, simulator and X-Plane integration, alerts, printers, local retention, and account-security guidance.
+
+### Fixed
+
+- iGate's passenger search row now grows to the full Find-button height. The passenger list starts beneath it instead of covering the action.
+
 ## [0.5.49] - 2026-10-04
 
 ### Changed
