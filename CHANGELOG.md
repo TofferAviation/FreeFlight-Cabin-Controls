@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.62] - 2026-10-04
+
+### Fixed
+
+- Fixed the new Cabin Wi-Fi workspace closing Ember on load. Connectivity gauges are now explicitly display-only and cannot write back into the live cabin model.
+
 ## [0.5.61] - 2026-10-04
 
 ### Added

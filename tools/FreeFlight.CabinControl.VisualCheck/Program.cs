@@ -32,6 +32,10 @@ internal static class Program
 
         var application = new CabinControlApplication();
         application.InitializeComponent();
+        // Individual contrast and page checks create short-lived windows before
+        // the main test shell. Keep the WPF resource application alive until
+        // this harness explicitly shuts it down.
+        application.ShutdownMode = ShutdownMode.OnExplicitShutdown;
         VerifyWorkspaceNavigationContrast(application);
         VerifyThemeSwitching(application);
         VerifyFleetDetailFallbacks();
@@ -450,6 +454,7 @@ internal static class Program
         // signed-out visual check. Flight, cabin and operations behaviours are
         // independently covered by the core checks above.
         VerifyCabinWifiWorkspace(viewModel.Wifi, viewModel.Passengers, false, viewModel);
+        VerifyCabinWifiViewLoads(viewModel.Wifi);
         if (!viewModel.IsBavAuthenticated)
         {
             window.Close();
@@ -1923,6 +1928,26 @@ internal static class Program
         }
 
         wifi.ToggleCabinWifiCommand.Execute(null);
+    }
+
+    private static void VerifyCabinWifiViewLoads(WifiViewModel wifi)
+    {
+        var window = new Window
+        {
+            Content = new WifiView { DataContext = wifi },
+            Width = 1280,
+            Height = 760,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = -20000,
+            Top = 0,
+            ShowActivated = false,
+            ShowInTaskbar = false
+        };
+
+        window.Show();
+        window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+        window.UpdateLayout();
+        window.Close();
     }
 
     private static void VerifyWorkspaceNavigationContrast(CabinControlApplication application)

@@ -56,7 +56,7 @@
                                 <TextBlock Text="SATELLITE LINK" Foreground="#BCE7FF" FontSize="10" FontWeight="SemiBold" />
                                 <TextBlock Text="{Binding SatelliteLinkLabel}" Foreground="White" FontSize="15" FontWeight="SemiBold" Margin="0,7,0,0" />
                                 <TextBlock Text="{Binding SatelliteBeamLabel}" Foreground="#DCEFFF" FontSize="11" Margin="0,5,0,12" />
-                                <ProgressBar Value="{Binding LinkQuality}" Maximum="100" Height="7" Foreground="#75DAFF" Background="#30446787" />
+                                <ProgressBar Value="{Binding LinkQuality, Mode=OneWay}" Maximum="100" Height="7" Foreground="#75DAFF" Background="#30446787" />
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -80,8 +80,8 @@
                             <StackPanel><TextBlock Text="ROUND-TRIP LATENCY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding LatencyMs, StringFormat={}{0} ms}" FontSize="25" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
                             <StackPanel Grid.Column="1"><TextBlock Text="AVAILABLE DOWNLINK" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding AvailableDownlinkMbps, StringFormat={}{0:0} Mb/s}" FontSize="25" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
                         </Grid>
-                        <TextBlock Text="DOWNLINK CAPACITY" Style="{StaticResource MetricLabelStyle}" Margin="0,19,0,5" /><ProgressBar Value="{Binding DownlinkLoadPercent}" Maximum="100" Height="8" Foreground="{DynamicResource PrimaryBrush}" /><Grid Margin="0,6,0,0"><TextBlock Text="Passenger traffic in use" Style="{StaticResource MutedTextStyle}" FontSize="11" /><TextBlock Text="{Binding DownlinkLoadPercent, StringFormat={}{0:0}%}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="11" /></Grid>
-                        <TextBlock Text="UPLINK CAPACITY" Style="{StaticResource MetricLabelStyle}" Margin="0,15,0,5" /><ProgressBar Value="{Binding UplinkLoadPercent}" Maximum="100" Height="8" Foreground="#7B9BFF" /><Grid Margin="0,6,0,0"><TextBlock Text="Passenger traffic leaving the aircraft" Style="{StaticResource MutedTextStyle}" FontSize="11" /><TextBlock Text="{Binding UplinkLoadPercent, StringFormat={}{0:0}%}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="11" /></Grid>
+                        <TextBlock Text="DOWNLINK CAPACITY" Style="{StaticResource MetricLabelStyle}" Margin="0,19,0,5" /><ProgressBar Value="{Binding DownlinkLoadPercent, Mode=OneWay}" Maximum="100" Height="8" Foreground="{DynamicResource PrimaryBrush}" /><Grid Margin="0,6,0,0"><TextBlock Text="Passenger traffic in use" Style="{StaticResource MutedTextStyle}" FontSize="11" /><TextBlock Text="{Binding DownlinkLoadPercent, StringFormat={}{0:0}%}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="11" /></Grid>
+                        <TextBlock Text="UPLINK CAPACITY" Style="{StaticResource MetricLabelStyle}" Margin="0,15,0,5" /><ProgressBar Value="{Binding UplinkLoadPercent, Mode=OneWay}" Maximum="100" Height="8" Foreground="#7B9BFF" /><Grid Margin="0,6,0,0"><TextBlock Text="Passenger traffic leaving the aircraft" Style="{StaticResource MutedTextStyle}" FontSize="11" /><TextBlock Text="{Binding UplinkLoadPercent, StringFormat={}{0:0}%}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="11" /></Grid>
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource CardStyle}">
