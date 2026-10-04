@@ -138,7 +138,10 @@
                             <Border Height="146" Margin="0,16,0,0" CornerRadius="8" ClipToBounds="True" Background="{StaticResource SurfaceRaisedBrush}" BorderBrush="{StaticResource BorderSoftBrush}" BorderThickness="1">
                                 <Grid>
                                     <Image Source="{Binding SelectedAircraft.AircraftImageUri}"
-                                           Stretch="UniformToFill"
+                                           Stretch="Uniform"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           RenderOptions.BitmapScalingMode="HighQuality"
                                            Visibility="{Binding SelectedAircraft.HasAircraftImage, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     <Border Background="#70001426"
                                             VerticalAlignment="Bottom"

@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
+## [0.5.43] - 2026-10-04
+
+### Fixed
+
+- Fleet: preserve each approved aircraft photograph's full framing in the selected-aircraft card instead of cropping it to fill a banner.
+
 ## [0.5.42] - 2026-10-03
 
 ### Added
