@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.61] - 2026-10-04
+
+### Added
+
+- Added the Cabin Wi-Fi workspace. Every currently supported BAV airframe is provisioned with a Starlink Aviation cabin profile, with a clear foundation for airframe-specific providers later.
+- Added live cabin-demand modelling from boarding state and flight phase: online passengers, connected devices, streaming, browsing, messaging, aggregate downlink and uplink traffic, available capacity, latency and link quality.
+- Added local cabin-network controls and a link-check action. Ember clearly identifies these as an operational simulation; it does not access a Starlink account, satellite feed or passenger device.
+
 ## [0.5.60] - 2026-10-04
 
 ### Fixed

@@ -1,0 +1,108 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.WifiView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="WifiMetricCard" TargetType="Border" BasedOn="{StaticResource MetricCardStyle}">
+            <Setter Property="Padding" Value="17" />
+            <Setter Property="Margin" Value="0,0,11,0" />
+        </Style>
+        <Style x:Key="WifiUsageRow" TargetType="Border" BasedOn="{StaticResource InfoRowStyle}">
+            <Setter Property="Padding" Value="12,10" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="CABIN CONNECTIVITY" Style="{StaticResource PageEyebrowStyle}" />
+                    <TextBlock Text="Cabin Wi-Fi" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
+                    <TextBlock Text="Live Starlink link health and passenger internet demand for the selected airframe." Style="{StaticResource PageSubtitleStyle}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Run link check" Command="{Binding RunLinkCheckCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="36" Padding="15,6" Margin="0,0,9,0" />
+                    <Border Style="{StaticResource SuccessPillStyle}" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessTextBrush}" Margin="0,0,7,0" VerticalAlignment="Center" /><TextBlock Text="{Binding NetworkStatusLabel}" Foreground="{DynamicResource SuccessTextBrush}" FontSize="10" FontWeight="SemiBold" /></StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <Border Style="{StaticResource HeroPanelStyle}" Margin="0,0,0,16" Padding="0" ClipToBounds="True">
+                <Grid MinHeight="165">
+                    <Grid.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="#103B68" Offset="0" />
+                            <GradientStop Color="#107CB7" Offset="0.55" />
+                            <GradientStop Color="#123C6F" Offset="1" />
+                        </LinearGradientBrush>
+                    </Grid.Background>
+                    <Ellipse Width="255" Height="255" Fill="#2566C8F2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-130,-70,0" />
+                    <Ellipse Width="175" Height="175" Fill="#2047D6C5" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,190,-100" />
+                    <Grid Margin="27,22">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="STARLINK AVIATION" Foreground="#BDE6FF" FontSize="10" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding NetworkStatusLabel}" Foreground="White" FontSize="29" FontFamily="Segoe UI Variable Display, Segoe UI" FontWeight="SemiBold" Margin="0,5,0,0" />
+                            <TextBlock Text="{Binding NetworkStatusDetail}" Foreground="#E5F4FF" FontSize="12" Margin="0,5,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,17,0,0">
+                                <Border Background="#27102741" BorderBrush="#4DCAEDFF" BorderThickness="1" CornerRadius="12" Padding="11,6" Margin="0,0,8,0"><TextBlock Text="{Binding AircraftLabel}" Foreground="White" FontSize="10" FontWeight="SemiBold" /></Border>
+                                <Border Background="#27102741" BorderBrush="#4DCAEDFF" BorderThickness="1" CornerRadius="12" Padding="11,6"><TextBlock Text="{Binding FlightLabel}" Foreground="White" FontSize="10" FontWeight="SemiBold" /></Border>
+                            </StackPanel>
+                        </StackPanel>
+                        <Border Grid.Column="1" Width="274" Background="#21132D4D" BorderBrush="#79BDE2" BorderThickness="1" CornerRadius="16" Padding="17" VerticalAlignment="Center">
+                            <StackPanel>
+                                <TextBlock Text="SATELLITE LINK" Foreground="#BCE7FF" FontSize="10" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SatelliteLinkLabel}" Foreground="White" FontSize="15" FontWeight="SemiBold" Margin="0,7,0,0" />
+                                <TextBlock Text="{Binding SatelliteBeamLabel}" Foreground="#DCEFFF" FontSize="11" Margin="0,5,0,12" />
+                                <ProgressBar Value="{Binding LinkQuality}" Maximum="100" Height="7" Foreground="#75DAFF" Background="#30446787" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <UniformGrid Columns="4" Margin="0,0,0,16">
+                <Border Style="{StaticResource WifiMetricCard}"><StackPanel><TextBlock Text="PASSENGERS ONLINE" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding OnlinePassengerCount}" FontSize="28" FontWeight="SemiBold" Margin="0,4,0,0" /><TextBlock Text="{Binding OnboardPassengerCount, StringFormat={}{0} currently on board}" Style="{StaticResource MutedTextStyle}" FontSize="11" /></StackPanel></Border>
+                <Border Style="{StaticResource WifiMetricCard}"><StackPanel><TextBlock Text="CONNECTED DEVICES" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding ConnectedDeviceCount}" FontSize="28" FontWeight="SemiBold" Margin="0,4,0,0" /><TextBlock Text="Personal devices in session" Style="{StaticResource MutedTextStyle}" FontSize="11" /></StackPanel></Border>
+                <Border Style="{StaticResource WifiMetricCard}"><StackPanel><TextBlock Text="CABIN DOWNLINK" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding DownlinkMbps, StringFormat={}{0:0.0} Mb/s}" FontSize="23" FontWeight="SemiBold" Margin="0,7,0,0" /><TextBlock Text="Incoming cabin traffic" Style="{StaticResource MutedTextStyle}" FontSize="11" /></StackPanel></Border>
+                <Border Style="{StaticResource WifiMetricCard}" Margin="0"><StackPanel><TextBlock Text="CABIN UPLINK" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding UplinkMbps, StringFormat={}{0:0.0} Mb/s}" FontSize="23" FontWeight="SemiBold" Margin="0,7,0,0" /><TextBlock Text="Outgoing cabin traffic" Style="{StaticResource MutedTextStyle}" FontSize="11" /></StackPanel></Border>
+            </UniformGrid>
+
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.08*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,11,0">
+                    <StackPanel>
+                        <Grid><StackPanel><TextBlock Text="LIVE SATELLITE LINK" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Starlink connectivity profile provisioned for the selected aircraft." Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,4,0,0" /></StackPanel><TextBlock Text="{Binding FlightPhaseLabel}" HorizontalAlignment="Right" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Top" /></Grid>
+                        <Grid Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="ROUND-TRIP LATENCY" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding LatencyMs, StringFormat={}{0} ms}" FontSize="25" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                            <StackPanel Grid.Column="1"><TextBlock Text="AVAILABLE DOWNLINK" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding AvailableDownlinkMbps, StringFormat={}{0:0} Mb/s}" FontSize="25" FontWeight="SemiBold" Margin="0,5,0,0" /></StackPanel>
+                        </Grid>
+                        <TextBlock Text="DOWNLINK CAPACITY" Style="{StaticResource MetricLabelStyle}" Margin="0,19,0,5" /><ProgressBar Value="{Binding DownlinkLoadPercent}" Maximum="100" Height="8" Foreground="{DynamicResource PrimaryBrush}" /><Grid Margin="0,6,0,0"><TextBlock Text="Passenger traffic in use" Style="{StaticResource MutedTextStyle}" FontSize="11" /><TextBlock Text="{Binding DownlinkLoadPercent, StringFormat={}{0:0}%}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="11" /></Grid>
+                        <TextBlock Text="UPLINK CAPACITY" Style="{StaticResource MetricLabelStyle}" Margin="0,15,0,5" /><ProgressBar Value="{Binding UplinkLoadPercent}" Maximum="100" Height="8" Foreground="#7B9BFF" /><Grid Margin="0,6,0,0"><TextBlock Text="Passenger traffic leaving the aircraft" Style="{StaticResource MutedTextStyle}" FontSize="11" /><TextBlock Text="{Binding UplinkLoadPercent, StringFormat={}{0:0}%}" HorizontalAlignment="Right" FontWeight="SemiBold" FontSize="11" /></Grid>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="PASSENGER INTERNET USAGE" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="{Binding PassengerUsageStatus}" Style="{StaticResource MutedTextStyle}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,15" />
+                        <Border Style="{StaticResource WifiUsageRow}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE714;" FontFamily="Segoe Fluent Icons" Foreground="#77C8FF" Margin="0,0,9,0" /><TextBlock Text="Streaming" FontWeight="SemiBold" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding StreamingDeviceCount, StringFormat={}{0} devices}" Foreground="{DynamicResource PrimaryBrush}" FontSize="11" FontWeight="SemiBold" /></Grid></Border>
+                        <Border Style="{StaticResource WifiUsageRow}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE71D;" FontFamily="Segoe Fluent Icons" Foreground="#9D8BFF" Margin="0,0,9,0" /><TextBlock Text="Browsing &amp; work" FontWeight="SemiBold" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding BrowsingDeviceCount, StringFormat={}{0} devices}" Foreground="{DynamicResource PrimaryBrush}" FontSize="11" FontWeight="SemiBold" /></Grid></Border>
+                        <Border Style="{StaticResource WifiUsageRow}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8BD;" FontFamily="Segoe Fluent Icons" Foreground="#56D6B2" Margin="0,0,9,0" /><TextBlock Text="Messaging" FontWeight="SemiBold" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding MessagingDeviceCount, StringFormat={}{0} devices}" Foreground="{DynamicResource PrimaryBrush}" FontSize="11" FontWeight="SemiBold" /></Grid></Border>
+                        <Border Style="{StaticResource WifiUsageRow}" Margin="0"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE823;" FontFamily="Segoe Fluent Icons" Foreground="#A5B5C7" Margin="0,0,9,0" /><TextBlock Text="Idle connections" FontWeight="SemiBold" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding IdleDeviceCount, StringFormat={}{0} devices}" Foreground="{DynamicResource PrimaryBrush}" FontSize="11" FontWeight="SemiBold" /></Grid></Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.08*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,11,0">
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="44" Height="44" CornerRadius="14" Background="{DynamicResource InfoSurfaceBrush}" VerticalAlignment="Top"><TextBlock Text="&#xE774;" FontFamily="Segoe Fluent Icons" FontSize="20" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Margin="14,0,0,0"><TextBlock Text="AIRFRAME NETWORK PROFILE" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding AircraftLabel}" Foreground="{DynamicResource PrimaryBrush}" FontSize="13" FontWeight="SemiBold" Margin="0,5,0,0" /><TextBlock Text="{Binding ProviderDescription}" Style="{StaticResource MutedTextStyle}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" /></StackPanel></Grid>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><Grid><TextBlock Text="NETWORK CONTROL" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding LinkCheckLabel}" HorizontalAlignment="Right" Foreground="{DynamicResource TextMutedBrush}" FontSize="10" /></Grid><TextBlock Text="{Binding OperationsNotice}" Style="{StaticResource MutedTextStyle}" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,12" /><Button Content="{Binding WifiToggleLabel}" Command="{Binding ToggleCabinWifiCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinHeight="34" Padding="14,5" /></StackPanel></Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -75,6 +75,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             resolvedSettingsDirectory);
         Passengers = new PassengerFlowViewModel(settings, Status, settingsStore, simBriefClient, resolvedOperationsClock);
         Catering = new CateringViewModel(Passengers, resolvedSettingsDirectory);
+        Wifi = new WifiViewModel(Passengers);
         Passengers.DoorControlRequested += HandleDoorControlRequested;
         Passengers.SeatbeltControlRequested += HandleSeatbeltControlRequested;
         Passengers.FlightUnloaded += HandleFlightUnloaded;
@@ -168,6 +169,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public CateringViewModel Catering { get; }
 
+    public WifiViewModel Wifi { get; }
+
     public CabinControlPanelViewModel CabinPanel { get; }
 
     public AudioViewModel Audio { get; }
@@ -242,6 +245,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Operations.Dispose();
         Passengers.Dispose();
         Catering.Dispose();
+        Wifi.Dispose();
         Performance.Dispose();
         Account.Dispose();
         Fleet.Dispose();
@@ -313,6 +317,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "IportDcs" => IportDcs,
             "Airliners" => Airliners,
             "Passengers" => Passengers,
+            "Wifi" => Wifi,
             "Catering" => Catering,
             "OnboardMenu" => Catering,
             "CabinPanel" => CabinPanel,

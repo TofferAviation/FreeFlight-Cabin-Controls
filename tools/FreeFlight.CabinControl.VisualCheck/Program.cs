@@ -449,6 +449,7 @@ internal static class Program
         // account session, so a successful secure launch is the appropriate
         // signed-out visual check. Flight, cabin and operations behaviours are
         // independently covered by the core checks above.
+        VerifyCabinWifiWorkspace(viewModel.Wifi, viewModel.Passengers, false, viewModel);
         if (!viewModel.IsBavAuthenticated)
         {
             window.Close();
@@ -538,7 +539,7 @@ internal static class Program
 
         foreach (var page in new[]
                  {
-                      "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Fleet", "Passengers", "Catering", "OnboardMenu", "CabinPanel",
+                      "GateDesk", "IportDcs", "PassengerManifest", "BoardingPasses", "Airliners", "Fleet", "Passengers", "Wifi", "Catering", "OnboardMenu", "CabinPanel",
                       "Audio", "Performance", "Settings", "FlightLogger"
                  })
         {
@@ -624,6 +625,10 @@ internal static class Program
 
                 viewModel.IportDcs.SelectModuleCommand.Execute(IportDcsViewModel.CheckInModule);
                 viewModel.IportDcs.SelectPassengerCommand.Execute(viewModel.Operations.PassengerRecords.Skip(2).First());
+            }
+            else if (page == "Wifi")
+            {
+                VerifyCabinWifiWorkspace(viewModel.Wifi, viewModel.Passengers, true, viewModel);
             }
             else if (page == "PassengerManifest")
             {
@@ -1888,6 +1893,36 @@ internal static class Program
         {
             throw new InvalidOperationException("Incomplete Fleet history did not receive safe display fallbacks.");
         }
+    }
+
+    private static void VerifyCabinWifiWorkspace(
+        WifiViewModel wifi,
+        PassengerFlowViewModel passengers,
+        bool requireActivePage,
+        MainWindowViewModel viewModel)
+    {
+        if ((requireActivePage && viewModel.CurrentPage != wifi) ||
+            wifi.ProviderName != "Starlink Aviation" ||
+            !wifi.IsCabinWifiEnabled ||
+            wifi.OnboardPassengerCount != passengers.BoardedPassengerCount ||
+            string.IsNullOrWhiteSpace(wifi.OperationsNotice))
+        {
+            throw new InvalidOperationException("The Cabin Wi-Fi workspace did not retain its live passenger or Starlink connectivity model.");
+        }
+
+        wifi.RunLinkCheckCommand.Execute(null);
+        if (!wifi.LinkCheckLabel.Contains("nominal", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("The Cabin Wi-Fi link check did not report a safe operational status.");
+        }
+
+        wifi.ToggleCabinWifiCommand.Execute(null);
+        if (wifi.IsCabinWifiEnabled || wifi.ConnectedDeviceCount != 0)
+        {
+            throw new InvalidOperationException("Pausing Cabin Wi-Fi did not remove simulated passenger connectivity.");
+        }
+
+        wifi.ToggleCabinWifiCommand.Execute(null);
     }
 
     private static void VerifyWorkspaceNavigationContrast(CabinControlApplication application)
