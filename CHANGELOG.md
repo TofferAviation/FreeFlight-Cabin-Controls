@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.57] - 2026-10-04
+
+### Added
+
+- Restored Ember's Live Cabin around the licensed British Airways aircraft-specific cabin layouts. The airframe selected with a BAV website flight now presents its matching seat, door and crew geometry directly in the modern Ember workspace.
+- Added live passenger and cabin-crew overlays on the selected British Airways layout, alongside active door status, boarding controls and the cabin event feed.
+
+### Changed
+
+- Added dark-theme presentation copies of every bundled British Airways cabin map, removing the flat white canvas while keeping the original licensed layouts unchanged for reference and settings previews.
+
 All notable changes are recorded here. User settings and unfinished-flight state are stored outside the installation directory and remain intact across updates.
 
 ## [0.5.56] - 2026-10-04

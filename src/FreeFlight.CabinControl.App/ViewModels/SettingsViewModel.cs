@@ -766,6 +766,19 @@ public sealed record CabinLayoutProfileOption(
 {
     public bool UsesFallbackLivePreview => LivePreviewUri.Contains("Ff777CabinLayout", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Uses the untouched licensed source map for all reference previews, but
+    /// a presentation-only transparent version inside the dark Live Cabin
+    /// workspace. The aircraft geometry and mapped seat positions are the
+    /// same in both files.
+    /// </summary>
+    public string LiveCabinArtworkUri => UsesFallbackLivePreview
+        ? LivePreviewUri
+        : LivePreviewUri.Replace(
+            "/Assets/CabinLayouts/",
+            "/Assets/CabinLayouts/Presentation/",
+            StringComparison.OrdinalIgnoreCase);
+
     public Rect LivePreviewViewbox => UsesFallbackLivePreview
         ? new Rect(0d, 62d, 1033d, 192d)
         : Layout switch

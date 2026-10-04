@@ -7,7 +7,7 @@
     <AssemblyName>FreeFlight.CabinControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('Assets/Ember.ico')">Assets/Ember.ico</ApplicationIcon>
-    <Version>0.5.56</Version>
+    <Version>0.5.57</Version>
     <Company>FreeFlightLTD</Company>
     <Copyright>Copyright © 2026 FreeFlightLTD. All rights reserved.</Copyright>
     <Description>Ember for authorised flight-simulation operations.</Description>
@@ -59,6 +59,7 @@
     <Resource Include="Assets\PilotRanks\*.png" />
     <Resource Include="Assets\FlightLoggerPromo.png" />
     <Resource Include="Assets\AirlineLogos\*.png" />
+    <Resource Include="Assets\CabinLayouts\Presentation\*.png" />
     <EmbeddedResource Include="Assets\Operators\real-world-operators.json"
                       LogicalName="FreeFlight.CabinControl.Operators.RealWorld.json" />
     <EmbeddedResource Include="Assets\Operators\bundled-logo-codes.json"

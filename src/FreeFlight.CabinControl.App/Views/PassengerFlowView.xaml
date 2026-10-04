@@ -58,6 +58,17 @@
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="13" />
         </Style>
+        <Style x:Key="PassengerCanvasItem" TargetType="ContentPresenter">
+            <Setter Property="Canvas.Left" Value="{Binding CanvasLeft}" />
+            <Setter Property="Canvas.Top" Value="{Binding CanvasTop}" />
+            <Setter Property="Panel.ZIndex" Value="4" />
+        </Style>
+        <Style x:Key="CrewCanvasItem" TargetType="ContentPresenter">
+            <Setter Property="Canvas.Left" Value="{Binding CanvasLeft}" />
+            <Setter Property="Canvas.Top" Value="{Binding CanvasTop}" />
+            <Setter Property="Panel.ZIndex" Value="5" />
+        </Style>
+        <BooleanToVisibilityConverter x:Key="VisibleWhenTrue" />
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
@@ -65,9 +76,9 @@
             <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <StackPanel>
-                    <TextBlock Text="CABIN" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
-                    <TextBlock Text="Passengers" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
-                    <TextBlock Text="A live cabin view built from the BAV website flight briefing." Style="{StaticResource PageSubtitleStyle}" />
+                    <TextBlock Text="CABIN OPERATIONS" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" />
+                    <TextBlock Text="Live Cabin" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
+                    <TextBlock Text="The real British Airways layout for the aircraft selected with your BAV website flight." Style="{StaticResource PageSubtitleStyle}" />
                 </StackPanel>
                 <Border Grid.Column="1" Style="{StaticResource StatusPillStyle}" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{Binding BoardingStateColor}" Margin="0,0,7,0" VerticalAlignment="Center" /><TextBlock Text="{Binding BoardingStateLabel}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" /></StackPanel>
@@ -80,6 +91,76 @@
                 <Border Style="{StaticResource PassengerMetricCard}"><StackPanel><TextBlock Text="IN CABIN" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding InCabinPassengerCount}" FontSize="27" FontWeight="SemiBold" Margin="0,5,0,0" /><TextBlock Text="{Binding InCabinSummary}" Style="{StaticResource MutedTextStyle}" FontSize="11" /></StackPanel></Border>
                 <Border Style="{StaticResource PassengerMetricCard}" Margin="0"><StackPanel><TextBlock Text="SEAT BELTS" Style="{StaticResource MetricLabelStyle}" /><TextBlock Text="{Binding SeatbeltSignLabel}" FontSize="17" FontWeight="SemiBold" Margin="0,9,0,0" /><TextBlock Text="{Binding SeatbeltResponseStatus}" Style="{StaticResource MutedTextStyle}" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel></Border>
             </UniformGrid>
+
+            <Border Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,0,16" ClipToBounds="True">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <Grid Margin="20,17,20,13">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="BRITISH AIRWAYS CABIN LAYOUT" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Text="{Binding SelectedCabinLayoutProfile.Name}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Style="{StaticResource StatusPillStyle}" Padding="10,5" Margin="0,0,8,0"><TextBlock Text="WEBSITE-SELECTED AIRFRAME" Foreground="{DynamicResource PrimaryBrush}" FontSize="9" FontWeight="SemiBold" /></Border>
+                            <Border Style="{StaticResource StatusPillStyle}" Padding="10,5"><TextBlock Text="{Binding ActiveDoorSummary}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="9" FontWeight="SemiBold" /></Border>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1" Margin="20,0" Padding="14" BorderBrush="{DynamicResource BorderSoftBrush}" BorderThickness="1" CornerRadius="13">
+                        <Border.Background>
+                            <RadialGradientBrush Center="0.5,0.5" RadiusX="0.75" RadiusY="0.9">
+                                <GradientStop Color="#244A6D" Offset="0" />
+                                <GradientStop Color="#102B45" Offset="0.48" />
+                                <GradientStop Color="#0A1C30" Offset="1" />
+                            </RadialGradientBrush>
+                        </Border.Background>
+                        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Canvas Width="1033" Height="192" ClipToBounds="False">
+                                <Border Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" Panel.ZIndex="0">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LiveCabinArtworkUri}"
+                                                    Viewbox="{Binding SelectedCabinLayoutProfile.LivePreviewViewbox}"
+                                                    ViewboxUnits="{Binding SelectedCabinLayoutProfile.LivePreviewViewboxUnits}"
+                                                    Stretch="{Binding SelectedCabinLayoutProfile.LivePreviewStretch}" />
+                                    </Border.Background>
+                                </Border>
+                                <ItemsControl Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" ItemsSource="{Binding PassengerMarkers}" ItemContainerStyle="{StaticResource PassengerCanvasItem}" Panel.ZIndex="4">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" ToolTip="{Binding ToolTip}">
+                                                <Ellipse Fill="{Binding MarkerColor}" Stroke="{Binding MarkerBorderColor}" StrokeThickness="1" Opacity="0.93" />
+                                                <Ellipse Stroke="White" StrokeThickness="1.2" Visibility="{Binding IsWalking, Converter={StaticResource VisibleWhenTrue}}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <ItemsControl Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" ItemsSource="{Binding CabinCrewMarkers}" ItemContainerStyle="{StaticResource CrewCanvasItem}" Panel.ZIndex="5">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Width="13" Height="13" Padding="0" ToolTip="{Binding ToolTip}" Command="{Binding DataContext.SelectCrewCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
+                                                <Button.Template><ControlTemplate TargetType="Button"><Ellipse Fill="#F7C85B" Stroke="#FFF4D0" StrokeThickness="1.2" /></ControlTemplate></Button.Template>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Canvas>
+                        </Viewbox>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="20,13,20,17">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0"><Ellipse Width="8" Height="8" Fill="#2E90FF" Margin="0,0,5,0" /><TextBlock Text="Passenger" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0"><Ellipse Width="8" Height="8" Fill="#F7C85B" Margin="0,0,5,0" /><TextBlock Text="Cabin crew" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessTextBrush}" Margin="0,0,5,0" /><TextBlock Text="Live state overlays" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="{Binding LiveCabinStatus}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
 
             <Grid Margin="0,0,0,16">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="1.2*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
