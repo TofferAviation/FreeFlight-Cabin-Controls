@@ -120,7 +120,11 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             new FleetApiClient(),
             () => Account.Session,
             Account.GetCurrentFlightContext);
-        CrewLink = new CrewLinkViewModel(settings, new FleetApiClient(), () => Account.Session);
+        CrewLink = new CrewLinkViewModel(
+            settings,
+            new FleetApiClient(),
+            () => Account.Session,
+            simulatorBridge as ISharedFlightProfileDiagnostics);
         _sayIntentionsCabinEventMonitor = new SayIntentionsCabinEventMonitor(settings, settingsStore);
         _sayIntentionsCabinEventMonitor.TechnicalDefectDetected += HandleSayIntentionsTechnicalDefectAsync;
         _sayIntentionsCabinEventMonitor.StatusChanged += HandleSayIntentionsStatusChanged;

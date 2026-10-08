@@ -76,3 +76,13 @@ public interface ISimulatorJetwayControlBridge
 {
     Task<bool> OperateJetwaysAsync(CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Provides a deliberately read-only compatibility report for a simulator
+/// aircraft. Ember uses it before enabling any future shared-flight mapping;
+/// a profile that cannot be identified or checked stays out of the sync path.
+/// </summary>
+public interface ISharedFlightProfileDiagnostics
+{
+    SharedFlightProfileReport GetSharedFlightProfileReport();
+}

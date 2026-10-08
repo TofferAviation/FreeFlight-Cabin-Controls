@@ -10,7 +10,7 @@ using FreeFlight.CabinControl.Core.Integration;
 
 namespace FreeFlight.CabinControl.App.Services;
 
-public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge, ISimulatorJetwayControlBridge
+public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge, ISimulatorJetwayControlBridge, ISharedFlightProfileDiagnostics
 {
     private const double MetresToFeet = 3.280839895d;
     private const string AltitudeMsl = "sim/flightmodel/position/elevation";
@@ -175,6 +175,24 @@ public sealed class XPlaneWebApiBridgeService : ISimulatorBridge, ISimulatorCabi
     public event Action<BridgeStatus>? StatusChanged;
 
     public event Action<CabinTelemetrySnapshot>? TelemetryReceived;
+
+    public SharedFlightProfileReport GetSharedFlightProfileReport()
+    {
+        lock (_valuesLock)
+        {
+            var aircraftIcao = _values.TryGetValue(AircraftIcao, out var icao) ? icao.Text : string.Empty;
+            var aircraftDescription = _values.TryGetValue(AircraftDescription, out var description) ? description.Text : string.Empty;
+            var aircraftRelativePath = _values.TryGetValue(AircraftRelativePath, out var relativePath) ? relativePath.Text : string.Empty;
+            return SharedFlightProfileCatalog.EvaluateXPlane(
+                _currentStatus.State == BridgeConnectionState.Connected,
+                _simulatorVersion,
+                aircraftIcao,
+                aircraftDescription,
+                aircraftRelativePath,
+                _datarefsByName.Keys.ToArray(),
+                _nativeJetwayCommand is not null);
+        }
+    }
 
     public void Start()
     {

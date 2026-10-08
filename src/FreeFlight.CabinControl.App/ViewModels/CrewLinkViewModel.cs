@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Text.Json;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
@@ -18,6 +20,7 @@ public sealed class CrewLinkViewModel : PageViewModel, IDisposable
     private readonly AppSettings _settings;
     private readonly FleetApiClient _apiClient;
     private readonly Func<FleetAccountSession?> _account;
+    private readonly ISharedFlightProfileDiagnostics? _sharedFlightProfileDiagnostics;
     private readonly DispatcherTimer _pollTimer;
     private FleetCrewLinkSessionDto? _session;
     private string _inviteCodeInput = string.Empty;
@@ -27,19 +30,26 @@ public sealed class CrewLinkViewModel : PageViewModel, IDisposable
     private bool _isBusy;
     private bool _refreshPending;
 
-    public CrewLinkViewModel(AppSettings settings, FleetApiClient apiClient, Func<FleetAccountSession?> account)
+    public CrewLinkViewModel(
+        AppSettings settings,
+        FleetApiClient apiClient,
+        Func<FleetAccountSession?> account,
+        ISharedFlightProfileDiagnostics? sharedFlightProfileDiagnostics = null)
         : base("CrewLink", "Coordinate a shared BAV operation from Ember—without another cockpit application.")
     {
         _settings = settings;
         _apiClient = apiClient;
         _account = account;
+        _sharedFlightProfileDiagnostics = sharedFlightProfileDiagnostics;
         CreateCommand = new AsyncRelayCommand(CreateAsync, exception => StatusMessage = exception.Message);
         JoinCommand = new AsyncRelayCommand(JoinAsync, exception => StatusMessage = exception.Message);
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, exception => StatusMessage = exception.Message);
         LeaveCommand = new AsyncRelayCommand(LeaveAsync, exception => StatusMessage = exception.Message);
         HandoverCommand = new AsyncRelayCommand(HandoverAsync, exception => StatusMessage = exception.Message);
+        SaveXPlaneProfileReportCommand = new AsyncRelayCommand(SaveXPlaneProfileReportAsync, exception => StatusMessage = exception.Message);
         _pollTimer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(8) };
         _pollTimer.Tick += HandlePollTimerTick;
+        RefreshXPlaneProfile();
     }
 
     public ICommand CreateCommand { get; }
@@ -47,7 +57,9 @@ public sealed class CrewLinkViewModel : PageViewModel, IDisposable
     public ICommand RefreshCommand { get; }
     public ICommand LeaveCommand { get; }
     public ICommand HandoverCommand { get; }
+    public ICommand SaveXPlaneProfileReportCommand { get; }
     public ObservableCollection<FleetCrewLinkMemberDto> Members { get; } = [];
+    public ObservableCollection<string> XPlaneProfileChecks { get; } = [];
 
     public string InviteCodeInput
     {
@@ -86,6 +98,22 @@ public sealed class CrewLinkViewModel : PageViewModel, IDisposable
         : "Connect your simulator when ready; pairing can safely begin before then.";
     public string HandoverLabel => IsControlOwner && HasFirstOfficer ? "Hand Ember control to First Officer" : "Captain handover available when First Officer joins";
     public string SafeSyncDetail => "CrewLink never shares passwords, SayIntentions keys, flight-plan files or another pilot’s PIREP. Aircraft switch and FMS syncing are intentionally not enabled in this first protected release.";
+    public SharedFlightProfileReport XPlaneProfileReport => _sharedFlightProfileDiagnostics?.GetSharedFlightProfileReport() ?? SharedFlightProfileReport.Offline;
+    public string XPlaneProfileName => XPlaneProfileReport.ProfileName;
+    public string XPlaneProfileStatus => XPlaneProfileReport.State switch
+    {
+        SharedFlightProfileState.ReadyForGuidedValidation => "READY FOR GUIDED VALIDATION",
+        SharedFlightProfileState.NeedsGuidedValidation => "SIGNALS NEED REVIEW",
+        SharedFlightProfileState.UnrecognisedAircraft => "NOT IN THIS TEST GROUP",
+        _ => "WAITING FOR X-PLANE"
+    };
+    public string XPlaneProfileSummary => XPlaneProfileReport.Summary;
+    public string XPlaneProfileAircraft => string.IsNullOrWhiteSpace(XPlaneProfileReport.AircraftDescription)
+        ? "Load an X-Plane aircraft to begin the local check."
+        : string.IsNullOrWhiteSpace(XPlaneProfileReport.AircraftIcao)
+            ? XPlaneProfileReport.AircraftDescription
+            : $"{XPlaneProfileReport.AircraftIcao} · {XPlaneProfileReport.AircraftDescription}";
+    public bool CanSaveXPlaneProfileReport => XPlaneProfileReport.State is not SharedFlightProfileState.SimulatorNotConnected;
 
     public void AccountChanged()
     {
@@ -103,6 +131,7 @@ public sealed class CrewLinkViewModel : PageViewModel, IDisposable
         _simulator = _simulatorConnected ? status.Simulator : "No simulator connected";
         OnPropertyChanged(nameof(SimulatorLabel));
         OnPropertyChanged(nameof(SimulatorDetail));
+        RefreshXPlaneProfile();
         if (HasSession) _ = PublishPresenceAsync();
     }
 
@@ -194,6 +223,28 @@ public sealed class CrewLinkViewModel : PageViewModel, IDisposable
         finally { IsBusy = false; }
     }
 
+    private async Task SaveXPlaneProfileReportAsync()
+    {
+        var report = XPlaneProfileReport;
+        if (report.State == SharedFlightProfileState.SimulatorNotConnected)
+        {
+            throw new InvalidOperationException("Connect X-Plane and load an aircraft before saving a profile report.");
+        }
+
+        var directory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "FreeFlight",
+            "CabinControl",
+            "crewlink-xplane-reports");
+        Directory.CreateDirectory(directory);
+        var safeProfile = string.IsNullOrWhiteSpace(report.ProfileId) ? "unrecognised-aircraft" : report.ProfileId;
+        var fileName = $"crewlink-{safeProfile}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}-utc.json";
+        var path = Path.Combine(directory, fileName);
+        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(path, json).ConfigureAwait(true);
+        StatusMessage = $"X-Plane profile report saved locally: {path}";
+    }
+
     private FleetAccountSession RequireAccount() => _account() ?? throw new InvalidOperationException("Sign in to your BAV account to use CrewLink.");
 
     private string? SimulatorKey() => !_simulatorConnected ? null
@@ -231,6 +282,23 @@ public sealed class CrewLinkViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(CrewRoomStatusLabel));
         OnPropertyChanged(nameof(ControlOwnerLabel));
         OnPropertyChanged(nameof(HandoverLabel));
+    }
+
+    private void RefreshXPlaneProfile()
+    {
+        var report = XPlaneProfileReport;
+        XPlaneProfileChecks.Clear();
+        foreach (var check in report.Checks)
+        {
+            var marker = check.Passed ? "✓" : check.Required ? "!" : "–";
+            XPlaneProfileChecks.Add($"{marker} {check.Name}: {check.Detail}");
+        }
+        OnPropertyChanged(nameof(XPlaneProfileReport));
+        OnPropertyChanged(nameof(XPlaneProfileName));
+        OnPropertyChanged(nameof(XPlaneProfileStatus));
+        OnPropertyChanged(nameof(XPlaneProfileSummary));
+        OnPropertyChanged(nameof(XPlaneProfileAircraft));
+        OnPropertyChanged(nameof(CanSaveXPlaneProfileReport));
     }
 
     private void HandlePollTimerTick(object? sender, EventArgs e) => _ = PublishPresenceAsync();

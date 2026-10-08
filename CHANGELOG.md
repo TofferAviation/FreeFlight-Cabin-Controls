@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.66] - 2026-10-08
+
+### Added
+
+- Added the first **CrewLink X-Plane shared-flight profile gate** for the controlled tester group: ToLiss A320 family, ToLiss A330neo, FlightFactor 777 v2, X-Crafts E-Jets, FlightFactor A350, Zibo / LevelUp 737 and FlightFactor A320.
+- Ember now identifies the locally loaded X-Plane aircraft and checks its real baseline telemetry, cabin-sign and door signals before a pilot is asked to validate a profile.
+- Added a one-click local X-Plane tester report containing only simulator, aircraft identity and safe signal availability, so testers can return an exact compatibility result without exposing account, flight-plan, invite or aircraft-control data.
+
+### Safety
+
+- Profiles fail closed: an unrecognised aircraft or missing required signal remains outside the shared-aircraft path. This release does not claim generic cockpit, FMS or flight-control synchronisation.
+
 ## [0.5.65] - 2026-10-08
 
 ### Added

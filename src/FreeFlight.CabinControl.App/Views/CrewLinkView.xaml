@@ -45,6 +45,30 @@
                 <Border Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="OPERATIONAL HANDOVER" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding ControlOwnerLabel}" Foreground="{DynamicResource PrimaryBrush}" FontSize="13" FontWeight="SemiBold" Margin="0,8,0,0" /><TextBlock Text="Captain can hand Ember’s shared operation status to the assigned First Officer. This does not take over the other pilot’s aircraft, account or PIREP." Style="{StaticResource MutedTextStyle}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,17" /><Button Content="{Binding HandoverLabel}" Command="{Binding HandoverCommand}" Style="{StaticResource PrimaryButtonStyle}" MinHeight="40" /><Button Content="Leave CrewLink" Command="{Binding LeaveCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="36" Margin="0,10,0,0" /></StackPanel></Border>
             </Grid>
 
+            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,16" BorderBrush="#3B6385" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="1.25*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,18,0">
+                        <TextBlock Text="X-PLANE SHARED-FLIGHT PROFILES" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="The first controlled tester group checks each add-on locally before any shared aircraft mapping can be approved." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" FontSize="11" Margin="0,5,0,13" />
+                        <Border Background="{DynamicResource InfoSurfaceBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="13,11">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False"><TextBlock Text="{Binding XPlaneProfileName}" FontWeight="SemiBold" FontSize="14" /><Border DockPanel.Dock="Right" Background="#242B8DCC" BorderBrush="#5CC2F1" BorderThickness="1" CornerRadius="10" Padding="8,3"><TextBlock Text="{Binding XPlaneProfileStatus}" Foreground="#BDE6FF" FontSize="9" FontWeight="SemiBold" /></Border></DockPanel>
+                                <TextBlock Text="{Binding XPlaneProfileAircraft}" Style="{StaticResource MutedTextStyle}" FontSize="10" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                <TextBlock Text="{Binding XPlaneProfileSummary}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Text="Included first: ToLiss A320 family, ToLiss A330neo, FlightFactor 777 v2, X-Crafts E-Jets, FlightFactor A350, Zibo / LevelUp 737 and FlightFactor A320." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" FontSize="10" Margin="0,12,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="LOCAL COMPATIBILITY CHECK" Style="{StaticResource SectionTitleStyle}" />
+                        <ItemsControl ItemsSource="{Binding XPlaneProfileChecks}" Margin="0,8,0,8"><ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Style="{StaticResource MutedTextStyle}" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,5" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        <TextBlock Text="The saved report contains only simulator, aircraft and safe dataref availability. It never includes your account, invite, flight plan or aircraft controls." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" FontSize="10" Margin="0,0,0,12" />
+                        <Button Content="Save X-Plane test report" Command="{Binding SaveXPlaneProfileReportCommand}" IsEnabled="{Binding CanSaveXPlaneProfileReport}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="38" HorizontalAlignment="Left" Padding="17,5" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <Border Style="{StaticResource CardStyle}" BorderBrush="#3B6385" BorderThickness="1"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource InfoSurfaceBrush}"><TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Margin="12,0,0,0"><TextBlock Text="PRIVATE BY DESIGN" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding SafeSyncDetail}" Style="{StaticResource MutedTextStyle}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" /><TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,0" /></StackPanel></Grid></Border>
         </StackPanel>
     </ScrollViewer>

@@ -53,10 +53,68 @@ var tests = new (string Name, Func<Task> Run)[]
     ("No-show passengers are excluded from boarding", NoShowPassengersAreExcludedAsync),
     ("Route-aware no-show forecasts use configured profiles", RouteAwareNoShowForecastsAsync),
     ("SayIntentions technical cabin events map to fleet defects", SayIntentionsTechnicalCabinEventsMapToFleetDefectsAsync),
-    ("X-Plane telemetry classifies flight phases", XPlaneTelemetryClassifiesFlightPhasesAsync)
+    ("X-Plane telemetry classifies flight phases", XPlaneTelemetryClassifiesFlightPhasesAsync),
+    ("X-Plane shared-flight profiles recognise the controlled test group", XPlaneSharedFlightProfilesRecogniseTestGroupAsync),
+    ("X-Plane shared-flight profiles fail closed when safe signals are absent", XPlaneSharedFlightProfilesFailClosedAsync)
     ,("BA catering selects long-haul route and meal period", BritishAirwaysLongHaulCateringSelectionAsync)
     ,("BA catering selects short-haul service band", BritishAirwaysShortHaulCateringSelectionAsync)
 };
+
+static Task XPlaneSharedFlightProfilesRecogniseTestGroupAsync()
+{
+    var safeDatarefs = new[]
+    {
+        "sim/flightmodel/position/groundspeed",
+        "sim/flightmodel/failures/onground_any",
+        "sim/cockpit2/switches/fasten_seat_belts",
+        "sim/flightmodel2/misc/door_open_ratio"
+    };
+
+    var expectedProfiles = new (string Description, string RelativePath, string ProfileId)[]
+    {
+        ("Airbus A321neo by ToLiss", "Aircraft/ToLiss/A321Neo/a321.acf", "toliss-a320-family"),
+        ("ToLiss A330-900neo", "Aircraft/ToLiss/A339/a339.acf", "toliss-a330neo"),
+        ("FlightFactor 777 v2", "Aircraft/FlightFactor/B777v2/b777.acf", "flightfactor-777v2"),
+        ("X-Crafts E195", "Aircraft/X-Crafts/E195/e195.acf", "xcrafts-ejet-family"),
+        ("FlightFactor A350", "Aircraft/FlightFactor/A350/a350.acf", "flightfactor-a350"),
+        ("Zibo 737-800", "Aircraft/ZiboMod/B738/b738.acf", "zibo-levelup-737"),
+        ("FlightFactor A320 Ultimate", "Aircraft/FlightFactor/A320/a320.acf", "flightfactor-a320")
+    };
+
+    foreach (var item in expectedProfiles)
+    {
+        var report = SharedFlightProfileCatalog.EvaluateXPlane(
+            true,
+            "12.1.2",
+            "TEST",
+            item.Description,
+            item.RelativePath,
+            safeDatarefs,
+            true);
+        AssertEqual(item.ProfileId, report.ProfileId, $"The test group did not recognise {item.Description}.");
+        AssertEqual(SharedFlightProfileState.ReadyForGuidedValidation, report.State,
+            $"A complete local profile check did not pass for {item.Description}.");
+    }
+
+    return Task.CompletedTask;
+}
+
+static Task XPlaneSharedFlightProfilesFailClosedAsync()
+{
+    var report = SharedFlightProfileCatalog.EvaluateXPlane(
+        true,
+        "12.1.2",
+        "A20N",
+        "Airbus A320neo by ToLiss",
+        "Aircraft/ToLiss/A320/a320.acf",
+        ["sim/flightmodel/position/groundspeed"],
+        false);
+    AssertEqual(SharedFlightProfileState.NeedsGuidedValidation, report.State,
+        "A profile with missing safe signals must remain blocked from the test path.");
+    Assert(report.Checks.Any(check => check.Required && !check.Passed),
+        "The missing safe signals were not reported to the tester.");
+    return Task.CompletedTask;
+}
 
 static Task SayIntentionsTechnicalCabinEventsMapToFleetDefectsAsync()
 {

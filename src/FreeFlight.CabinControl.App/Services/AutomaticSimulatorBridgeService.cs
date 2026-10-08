@@ -3,7 +3,7 @@ using FreeFlight.CabinControl.Core.Integration;
 
 namespace FreeFlight.CabinControl.App.Services;
 
-public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge, ISimulatorJetwayControlBridge
+public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge, ISimulatorCabinControlBridge, ISimulatorJetwayControlBridge, ISharedFlightProfileDiagnostics
 {
     private readonly AppSettings _settings;
     private readonly ISimulatorBridge _xPlane;
@@ -36,6 +36,11 @@ public sealed class AutomaticSimulatorBridgeService : ISimulatorBridge, ISimulat
 
     public event Action<BridgeStatus>? StatusChanged;
     public event Action<CabinTelemetrySnapshot>? TelemetryReceived;
+
+    public SharedFlightProfileReport GetSharedFlightProfileReport() =>
+        _activeSimulator == "X-Plane" && _xPlane is ISharedFlightProfileDiagnostics diagnostics
+            ? diagnostics.GetSharedFlightProfileReport()
+            : SharedFlightProfileReport.Offline;
 
     public void Start()
     {
