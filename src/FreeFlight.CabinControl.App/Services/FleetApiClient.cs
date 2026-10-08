@@ -532,6 +532,24 @@ public sealed record FleetAcarsSessionDto(string Id, string FlightNumber, string
 public sealed record FleetAcarsCompletionDto(FleetAcarsSessionDto Session, FleetPirepDto Pirep);
 public sealed record FleetAcarsSnapshotDto(bool FlightStarted);
 public sealed record FleetPirepDto(string Id, string FlightNumber, string From, string To, string Aircraft, int BlockMinutes, int DistanceNm, int? LandingFpm, int? FuelUsedKg, string Status, string Source, string Simulator);
+// These values are Ember's own operational cabin model. They deliberately do
+// not contain passenger identities, SayIntentions transcripts, or credentials.
+public sealed record FleetCabinTelemetryDto(
+    string FlightPhase,
+    bool SeatbeltSignOn,
+    int BoardedPassengerCount,
+    string ServiceState,
+    string TechnicalEventState);
+public sealed record FleetConnectivityTelemetryDto(
+    string Provider,
+    bool Enabled,
+    int OnlinePassengerCount,
+    int ConnectedDeviceCount,
+    double DownlinkMbps,
+    double UplinkMbps,
+    int LatencyMs,
+    double LinkQualityPercent,
+    bool IsModelled);
 public sealed record FleetAcarsTelemetryDto(
     double Latitude,
     double Longitude,
@@ -547,7 +565,9 @@ public sealed record FleetAcarsTelemetryDto(
     bool OnGround,
     double? VerticalSpeedFpm,
     bool FlightStarted,
-    string? Registration);
+    string? Registration,
+    FleetCabinTelemetryDto? Cabin = null,
+    FleetConnectivityTelemetryDto? Connectivity = null);
 public sealed record FleetAircraftSummaryDto(
     string Id,
     string Registration,

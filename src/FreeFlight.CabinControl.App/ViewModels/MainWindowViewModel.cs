@@ -780,8 +780,45 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             snapshot.OnGround,
             double.IsFinite(verticalSpeed) ? verticalSpeed : null,
             flightStarted,
-            Fleet.ActiveFlightRegistration);
+            Fleet.ActiveFlightRegistration,
+            new FleetCabinTelemetryDto(
+                Passengers.LiveFlightPhase,
+                Passengers.SeatbeltSignOn,
+                Math.Clamp(Passengers.BoardedPassengerCount, 0, 900),
+                ResolveCabinServiceState(Passengers.LiveFlightPhase),
+                ResolveSayIntentionsEventState()),
+            new FleetConnectivityTelemetryDto(
+                Wifi.ProviderName,
+                Wifi.IsCabinWifiEnabled,
+                Math.Clamp(Wifi.OnlinePassengerCount, 0, 900),
+                Math.Clamp(Wifi.ConnectedDeviceCount, 0, 1_800),
+                Math.Round(Math.Max(0d, Wifi.DownlinkMbps), 1),
+                Math.Round(Math.Max(0d, Wifi.UplinkMbps), 1),
+                Math.Clamp(Wifi.LatencyMs, 0, 5_000),
+                Math.Round(Math.Clamp(Wifi.LinkQuality, 0d, 100d), 1),
+                IsModelled: true));
         return true;
+    }
+
+    private static string ResolveCabinServiceState(string flightPhase)
+    {
+        if (flightPhase.Contains("Board", StringComparison.OrdinalIgnoreCase)) return "boarding";
+        if (flightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase)) return "in_service";
+        if (flightPhase.Contains("Climb", StringComparison.OrdinalIgnoreCase) || flightPhase.Contains("Descent", StringComparison.OrdinalIgnoreCase)) return "in_service";
+        if (flightPhase.Contains("Arrival", StringComparison.OrdinalIgnoreCase) || flightPhase.Contains("Approach", StringComparison.OrdinalIgnoreCase)) return "arrival_preparation";
+        if (flightPhase.Contains("Taxi", StringComparison.OrdinalIgnoreCase)) return "ground_operations";
+        return "preparing";
+    }
+
+    private string ResolveSayIntentionsEventState()
+    {
+        if (!_settings.SayIntentionsCabinEventSync) return "disabled";
+        var status = Fleet.SayIntentionsEventStatus;
+        if (status.Contains("filed", StringComparison.OrdinalIgnoreCase)) return "event_filed";
+        if (status.Contains("held", StringComparison.OrdinalIgnoreCase)) return "held";
+        if (status.Contains("not available", StringComparison.OrdinalIgnoreCase) ||
+            status.Contains("unreadable", StringComparison.OrdinalIgnoreCase)) return "unavailable";
+        return "monitoring";
     }
 
     private void ObserveAcarsSimulatorTime(CabinTelemetrySnapshot snapshot)

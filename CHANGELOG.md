@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.63] - 2026-10-08
+
+### Added
+
+- Added a private **Cabin & connectivity pulse** to BA-Radar for a pilot’s own active Ember flight. It shows live cabin phase, seat-belt state, boarded count, service state, safe SayIntentions/Fleet status, and the local cabin-network demand model.
+- Ember now attaches this compact operational summary to its existing ACARS sample without changing the flight assignment, flight-plan, position-report or PIREP flows.
+
+### Privacy and data use
+
+- The new Radar view is account-private. It never exposes passenger identities, bookings, cabin transcripts, coordinates, API keys or SayIntentions credentials.
+- Connectivity values remain explicitly modelled from Ember’s passenger and flight state. They do not query Starlink, satellites or passenger devices.
+
 ## [0.5.62] - 2026-10-04
 
 ### Fixed
