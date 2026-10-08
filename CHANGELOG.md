@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.65] - 2026-10-08
+
+### Added
+
+- Added **CrewLink**, Ember’s built-in shared-crew workspace. A Captain can open a private BAV flight room, share a short-lived invite code, and pair an assigned First Officer or observer without either pilot downloading a separate cockpit application.
+- Added live crew roster and simulator-readiness indicators, together with a clear Captain-controlled Ember handover for the shared operational workspace.
+
+### Privacy and operational safeguards
+
+- CrewLink uses each pilot’s existing BAV sign-in. It does not share website passwords, device credentials, SayIntentions keys, flight-plan files, passenger data or either pilot’s PIREP.
+- This protected first release deliberately coordinates Ember’s shared operational state only. It does not claim to mirror aircraft switches, FMS entries or flight controls between simulators.
+
 ## [0.5.64] - 2026-10-08
 
 ### Added

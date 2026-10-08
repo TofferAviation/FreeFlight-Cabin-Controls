@@ -280,6 +280,79 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return payload?.Session;
     }
 
+    public async Task<FleetCrewLinkSessionDto?> GetCrewLinkSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetCrewLinkSessionEnvelope>(
+            settings, account, HttpMethod.Get, "/api/acars/v1/crew-link", null, cancellationToken);
+        return payload?.Session;
+    }
+
+    public async Task<FleetCrewLinkSessionDto> CreateCrewLinkSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string? simulator,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetCrewLinkSessionEnvelope>(
+            settings, account, HttpMethod.Post, "/api/acars/v1/crew-link", new { simulator }, cancellationToken);
+        return payload?.Session ?? throw new FleetApiException("British Airways Virtual did not confirm the CrewLink session.");
+    }
+
+    public async Task<FleetCrewLinkSessionDto> JoinCrewLinkSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string inviteCode,
+        string? simulator,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetCrewLinkSessionEnvelope>(
+            settings, account, HttpMethod.Post, "/api/acars/v1/crew-link/join", new { inviteCode, simulator }, cancellationToken);
+        return payload?.Session ?? throw new FleetApiException("British Airways Virtual did not confirm the CrewLink session.");
+    }
+
+    public async Task<FleetCrewLinkSessionDto?> UpdateCrewLinkPresenceAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string sessionId,
+        string? simulator,
+        bool simulatorConnected,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetCrewLinkSessionEnvelope>(
+            settings, account, HttpMethod.Patch,
+            $"/api/acars/v1/crew-link/{Uri.EscapeDataString(sessionId)}/presence",
+            new { simulator, simulatorConnected }, cancellationToken);
+        return payload?.Session;
+    }
+
+    public async Task<FleetCrewLinkSessionDto> TransferCrewLinkControlAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string sessionId,
+        string targetPilotId,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetCrewLinkSessionEnvelope>(
+            settings, account, HttpMethod.Post,
+            $"/api/acars/v1/crew-link/{Uri.EscapeDataString(sessionId)}/control",
+            new { targetPilotId }, cancellationToken);
+        return payload?.Session ?? throw new FleetApiException("British Airways Virtual did not confirm the CrewLink handover.");
+    }
+
+    public async Task LeaveCrewLinkSessionAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        _ = await SendBavAsync<FleetCrewLinkLeaveEnvelope>(
+            settings, account, HttpMethod.Delete,
+            $"/api/acars/v1/crew-link/{Uri.EscapeDataString(sessionId)}", null, cancellationToken);
+    }
+
     public async Task SendAcarsTelemetryAsync(
         AppSettings settings,
         FleetAccountSession account,
@@ -526,11 +599,36 @@ public sealed record FleetFlightAssignmentEnvelope(FleetFlightAssignmentDto? Ass
 public sealed record FleetFlightAssignmentSubmissionDto(string FlightReference, string? DepartureStation, string? ArrivalStation);
 public sealed record FleetFlightAssignmentDto(string Id, string AircraftId, string PilotSubject, string PilotDisplayName, string FlightReference, string? DepartureStation, string? ArrivalStation, string Status, string ReservedAt, string? OffBlockAt, string? OnBlockAt, int? BlockMinutes);
 public sealed record FleetAcarsSessionEnvelope(FleetAcarsSessionDto? Session);
+public sealed record FleetCrewLinkSessionEnvelope(FleetCrewLinkSessionDto? Session);
+public sealed record FleetCrewLinkLeaveEnvelope(bool Ok);
 public sealed record FleetAcarsTelemetryEnvelope(bool Ok, string? UpdatedAt, double? DistanceNm);
 public sealed record FleetAcarsCompleteEnvelope(FleetAcarsSessionDto? Session, FleetPirepDto? Pirep);
 public sealed record FleetAcarsSessionDto(string Id, string FlightNumber, string From, string To, string Aircraft, string Simulator, string Status, string StartedAt, FleetAcarsSnapshotDto? LastSnapshot = null);
 public sealed record FleetAcarsCompletionDto(FleetAcarsSessionDto Session, FleetPirepDto Pirep);
 public sealed record FleetAcarsSnapshotDto(bool FlightStarted);
+public sealed record FleetCrewLinkMemberDto(
+    string PilotId,
+    string PilotNumber,
+    string PilotName,
+    string Role,
+    string? Simulator,
+    bool SimulatorConnected,
+    string JoinedAt,
+    string LastSeenAt);
+public sealed record FleetCrewLinkSessionDto(
+    string Id,
+    string? InviteCode,
+    string HostPilotId,
+    string FlightNumber,
+    string From,
+    string To,
+    string Aircraft,
+    string Status,
+    string ControlOwnerPilotId,
+    string ExpiresAt,
+    string CreatedAt,
+    string UpdatedAt,
+    IReadOnlyList<FleetCrewLinkMemberDto>? Members);
 public sealed record FleetPirepDto(string Id, string FlightNumber, string From, string To, string Aircraft, int BlockMinutes, int DistanceNm, int? LandingFpm, int? FuelUsedKg, string Status, string Source, string Simulator);
 // These values are Ember's own operational cabin model. They deliberately do
 // not contain passenger identities, SayIntentions transcripts, or credentials.

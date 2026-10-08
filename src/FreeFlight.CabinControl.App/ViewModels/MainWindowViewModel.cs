@@ -120,6 +120,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             new FleetApiClient(),
             () => Account.Session,
             Account.GetCurrentFlightContext);
+        CrewLink = new CrewLinkViewModel(settings, new FleetApiClient(), () => Account.Session);
         _sayIntentionsCabinEventMonitor = new SayIntentionsCabinEventMonitor(settings, settingsStore);
         _sayIntentionsCabinEventMonitor.TechnicalDefectDetected += HandleSayIntentionsTechnicalDefectAsync;
         _sayIntentionsCabinEventMonitor.StatusChanged += HandleSayIntentionsStatusChanged;
@@ -147,6 +148,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _simulatorBridge.StatusChanged += HandleBridgeStatusChanged;
             _simulatorBridge.TelemetryReceived += HandleTelemetryReceived;
             Status.ApplyBridgeStatus(_simulatorBridge.CurrentStatus);
+            CrewLink.UpdateSimulatorStatus(_simulatorBridge.CurrentStatus);
             _simulatorBridge.Start();
         }
 
@@ -186,6 +188,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public CabinAccountViewModel Account { get; }
 
     public FleetViewModel Fleet { get; }
+
+    public CrewLinkViewModel CrewLink { get; }
 
     /// <summary>Controls whether the operational Ember shell may be shown.</summary>
     public bool IsBavAuthenticated => Account.IsAuthenticated;
@@ -249,6 +253,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Performance.Dispose();
         Account.Dispose();
         Fleet.Dispose();
+        CrewLink.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -318,6 +323,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "Airliners" => Airliners,
             "Passengers" => Passengers,
             "Wifi" => Wifi,
+            "CrewLink" => CrewLink,
             "Catering" => Catering,
             "OnboardMenu" => Catering,
             "CabinPanel" => CabinPanel,
@@ -378,7 +384,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     private void HandleBridgeStatusChanged(BridgeStatus status) => DispatchToUi(() =>
-        Status.ApplyBridgeStatus(status));
+    {
+        Status.ApplyBridgeStatus(status);
+        CrewLink.UpdateSimulatorStatus(status);
+    });
 
     private void HandleTelemetryReceived(CabinTelemetrySnapshot snapshot)
     {
@@ -514,6 +523,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         Operations.ApplyGateAccessState();
         Account.RefreshFlightPlanLink(Passengers.ImportedFlightNumber, Passengers.ImportedOrigin, Passengers.ImportedDestination);
+        CrewLink.AccountChanged();
         // Fleet data is authorized by the same short-lived BAV account
         // session. Refresh immediately after sign-in instead of making pilots
         // discover that they must press Refresh a second time.

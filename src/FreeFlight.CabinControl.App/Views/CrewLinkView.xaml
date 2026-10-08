@@ -1,0 +1,51 @@
+<UserControl x:Class="FreeFlight.CabinControl.App.Views.CrewLinkView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+            <Grid Margin="0,0,0,16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="SHARED CREW OPERATIONS" Style="{StaticResource PageEyebrowStyle}" />
+                    <TextBlock Text="CrewLink" Style="{StaticResource PageTitleStyle}" Margin="0,4,0,0" />
+                    <TextBlock Text="Pair two BAV pilots in Ember—roles, readiness and a clear operational handover, with no extra cockpit application." Style="{StaticResource PageSubtitleStyle}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Border Grid.Column="1" Style="{StaticResource SuccessPillStyle}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessTextBrush}" Margin="0,0,7,0" VerticalAlignment="Center" /><TextBlock Text="{Binding SimulatorLabel}" Foreground="{DynamicResource SuccessTextBrush}" FontSize="10" FontWeight="SemiBold" /></StackPanel>
+                </Border>
+            </Grid>
+
+            <Border Style="{StaticResource HeroPanelStyle}" Margin="0,0,0,16" Padding="0" ClipToBounds="True">
+                <Grid MinHeight="174">
+                    <Grid.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#082F5B" Offset="0" /><GradientStop Color="#087EBC" Offset="0.55" /><GradientStop Color="#211C65" Offset="1" /></LinearGradientBrush></Grid.Background>
+                    <Ellipse Width="310" Height="310" Fill="#274FC8EE" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-195,-92,0" />
+                    <Ellipse Width="170" Height="170" Fill="#27F43D6B" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,210,-100" />
+                    <Grid Margin="28,23"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="330" /></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="EMBER CREWLINK" Foreground="#BDE6FF" FontSize="10" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding SessionFlightLabel}" Foreground="White" FontSize="27" FontFamily="Segoe UI Variable Display, Segoe UI" FontWeight="SemiBold" Margin="0,5,0,0" />
+                            <TextBlock Text="{Binding SessionAircraftLabel}" Foreground="#E4F3FF" FontSize="12" Margin="0,5,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,17,0,0"><Border Background="#26112744" BorderBrush="#5CC2F1" BorderThickness="1" CornerRadius="12" Padding="11,6"><TextBlock Text="{Binding CrewRoomStatusLabel}" Foreground="White" FontSize="10" FontWeight="SemiBold" /></Border><TextBlock Text="{Binding ControlOwnerLabel}" Foreground="#DDEFFF" FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0" /></StackPanel>
+                        </StackPanel>
+                        <Border Grid.Column="1" Background="#24112E52" BorderBrush="#75BDE2" BorderThickness="1" CornerRadius="16" Padding="17" VerticalAlignment="Center">
+                            <StackPanel><TextBlock Text="SIMULATOR PRESENCE" Foreground="#BDE6FF" FontSize="10" FontWeight="SemiBold" /><TextBlock Text="{Binding SimulatorLabel}" Foreground="White" FontSize="16" FontWeight="SemiBold" Margin="0,7,0,0" /><TextBlock Text="{Binding SimulatorDetail}" Foreground="#DCEFFF" FontSize="10" TextWrapping="Wrap" Margin="0,5,0,0" /></StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Grid Margin="0,0,0,16" Visibility="{Binding HasSession, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0"><StackPanel><TextBlock Text="OPEN A PRIVATE CREW ROOM" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Captain only · linked to your current BAV flight. The invite expires after two hours and is never public." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" FontSize="11" Margin="0,5,0,17" /><Button Content="Open CrewLink for my flight" Command="{Binding CreateCommand}" Style="{StaticResource PrimaryButtonStyle}" MinHeight="40" /></StackPanel></Border>
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="JOIN YOUR CAPTAIN" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Enter the private code supplied by your Captain. Your own BAV login, flight plan and ACARS record stay private." Style="{StaticResource MutedTextStyle}" TextWrapping="Wrap" FontSize="11" Margin="0,5,0,12" /><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox Text="{Binding InviteCodeInput, UpdateSourceTrigger=PropertyChanged}" MaxLength="8" CharacterCasing="Upper" VerticalContentAlignment="Center" Height="40" /><Button Grid.Column="1" Content="Join CrewLink" Command="{Binding JoinCommand}" Style="{StaticResource SecondaryButtonStyle}" Margin="10,0,0,0" Padding="16,5" MinHeight="40" /></Grid></StackPanel></Border>
+            </Grid>
+
+            <Grid Visibility="{Binding HasSession, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="1.15*" /><ColumnDefinition Width="1*" /></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource CardStyle}" Margin="0,0,10,0"><StackPanel><Grid><StackPanel><TextBlock Text="FLIGHT CREW" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="Private BAV operational presence" Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,3,0,0" /></StackPanel><Button Content="Refresh" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButtonStyle}" Padding="13,5" MinHeight="32" HorizontalAlignment="Right" /></Grid><ItemsControl ItemsSource="{Binding Members}" Margin="0,16,0,0"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource InfoRowStyle}" Padding="12,10" Margin="0,0,0,8"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="36" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><Border Width="32" Height="32" CornerRadius="16" Background="{DynamicResource InfoSurfaceBrush}"><TextBlock Text="&#xE77B;" FontFamily="Segoe Fluent Icons" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Margin="10,0,0,0"><TextBlock Text="{Binding PilotName}" FontWeight="SemiBold" /><TextBlock Text="{Binding PilotNumber, StringFormat=Pilot {0}}" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel><StackPanel Grid.Column="2" HorizontalAlignment="Right"><TextBlock Text="{Binding Role}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" /><TextBlock Text="{Binding SimulatorConnected, StringFormat=Simulator connected: {0}}" Style="{StaticResource MutedTextStyle}" FontSize="9" HorizontalAlignment="Right" /></StackPanel></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+                <Border Grid.Column="1" Style="{StaticResource CardStyle}"><StackPanel><TextBlock Text="OPERATIONAL HANDOVER" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding ControlOwnerLabel}" Foreground="{DynamicResource PrimaryBrush}" FontSize="13" FontWeight="SemiBold" Margin="0,8,0,0" /><TextBlock Text="Captain can hand Ember’s shared operation status to the assigned First Officer. This does not take over the other pilot’s aircraft, account or PIREP." Style="{StaticResource MutedTextStyle}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,17" /><Button Content="{Binding HandoverLabel}" Command="{Binding HandoverCommand}" Style="{StaticResource PrimaryButtonStyle}" MinHeight="40" /><Button Content="Leave CrewLink" Command="{Binding LeaveCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="36" Margin="0,10,0,0" /></StackPanel></Border>
+            </Grid>
+
+            <Border Style="{StaticResource CardStyle}" BorderBrush="#3B6385" BorderThickness="1"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="42" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="36" Height="36" CornerRadius="18" Background="{DynamicResource InfoSurfaceBrush}"><TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource PrimaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border><StackPanel Grid.Column="1" Margin="12,0,0,0"><TextBlock Text="PRIVATE BY DESIGN" Style="{StaticResource SectionTitleStyle}" /><TextBlock Text="{Binding SafeSyncDetail}" Style="{StaticResource MutedTextStyle}" FontSize="10" TextWrapping="Wrap" Margin="0,4,0,0" /><TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,0" /></StackPanel></Grid></Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

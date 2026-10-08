@@ -92,6 +92,9 @@
                                 <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="Cabin Wi-Fi" Tag="&#xE701;" GroupName="Navigation"
                                              IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Wifi, Mode=OneWay}"
                                              Command="{Binding NavigateCommand}" CommandParameter="Wifi" />
+                                <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="CrewLink" Tag="&#xE902;" GroupName="Navigation"
+                                             IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=CrewLink, Mode=OneWay}"
+                                             Command="{Binding NavigateCommand}" CommandParameter="CrewLink" />
 
                                 <TextBlock Text="OPERATIONS" Style="{StaticResource WorkspaceNavLabelStyle}" />
                                 <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="Fleet" Tag="&#xE709;" GroupName="Navigation"
@@ -164,6 +167,7 @@
                         <views:DashboardView DataContext="{Binding}" ThemeToggleRequested="DashboardThemeToggleRequested" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Dashboard}" />
                         <views:PassengerFlowView DataContext="{Binding Passengers}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passengers}" />
                         <views:WifiView DataContext="{Binding Wifi}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Wifi}" />
+                        <views:CrewLinkView DataContext="{Binding CrewLink}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=CrewLink}" />
                         <views:CateringView DataContext="{Binding Catering}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Catering}" />
                         <views:FleetView DataContext="{Binding Fleet}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Fleet}" />
                         <views:PerformanceView DataContext="{Binding Performance}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Performance}" />
