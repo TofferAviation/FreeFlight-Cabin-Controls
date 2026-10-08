@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.64] - 2026-10-08
+
+### Added
+
+- Rebuilt Ember's in-app update notification as a clear release briefing with a visual version comparison, update safeguards, and grouped **New**, **Improvements**, **Fixes**, and **Reliability & privacy** cards.
+- Added the same release briefing to the Updates workspace, so pilots receive a consistent update experience whether Ember notifies them automatically or they check manually.
+
+### Changed
+
+- Reworked the complete release history into a readable, structured view with real headings, sections and bullet points instead of a single dense changelog text block.
+- Kept Ember's existing verified download, active-flight protection, local-preference retention and automatic restart behaviour unchanged behind the new presentation.
+
 ## [0.5.63] - 2026-10-08
 
 ### Added

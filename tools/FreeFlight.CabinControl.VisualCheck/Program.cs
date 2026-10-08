@@ -457,6 +457,7 @@ internal static class Program
         VerifyCabinWifiViewLoads(viewModel.Wifi);
         if (!viewModel.IsBavAuthenticated)
         {
+            RenderUpdateBriefing(window, outputDirectory);
             window.Close();
             application.Shutdown();
             Console.WriteLine($"Rendered secure Ember sign-in check to {outputDirectory}");
@@ -1792,14 +1793,40 @@ internal static class Program
         window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
         Render(window, Path.Combine(outputDirectory, "dashboard-arrival-welcome.png"));
 
+        RenderUpdateBriefing(window, outputDirectory);
+
+        window.Close();
+        application.Shutdown();
+        var renderedChecks = Directory.EnumerateFiles(outputDirectory, "*.png", SearchOption.TopDirectoryOnly).Count();
+        Console.WriteLine($"Rendered {renderedChecks} visual checks to {outputDirectory}");
+        return 0;
+    }
+
+    private static void RenderUpdateBriefing(Window owner, string outputDirectory)
+    {
         var updateNotification = new UpdateNotificationWindow
         {
-            Owner = window,
+            Owner = owner,
             DataContext = new
             {
                 CurrentVersion = "v0.3.0",
                 AvailableVersion = "v0.3.1 available",
+                AvailableVersionNumber = "v0.3.1",
+                ReleaseBriefing = "A verified Ember release is ready with the improvements and fixes below.",
                 ReleaseNotes = "• Improved simulator connectivity\n• Cabin-state reliability updates\n• Performance and usability improvements",
+                HasReleaseSections = true,
+                ReleaseSections = new[]
+                {
+                    UpdateReleaseSection.Create("New in this release", new[]
+                    {
+                        new UpdateReleaseItem("Improved simulator connectivity", "A clearer connection experience for every operation."),
+                        new UpdateReleaseItem("Cabin-state reliability", "Live cabin data remains steady throughout the flight.")
+                    }),
+                    UpdateReleaseSection.Create("Fixes", new[]
+                    {
+                        new UpdateReleaseItem("Performance and usability improvements", "A smoother daily Ember experience.")
+                    })
+                },
                 FlightAdvisory = "An active flight is in progress. Choose Later to keep flying; the update will not install automatically.",
                 Status = "Update ready when you are.",
                 InstallButtonLabel = "Install & Restart",
@@ -1817,7 +1844,7 @@ internal static class Program
 
         var changelogWindow = new ChangelogWindow("# GitHub Release v0.3.1\n\n- Example live release notes.\n\n---\n\n# Installed Changelog\n\n## [0.3.0]")
         {
-            Owner = window,
+            Owner = owner,
             WindowStartupLocation = WindowStartupLocation.Manual,
             Left = -20000,
             Top = 0,
@@ -1827,12 +1854,6 @@ internal static class Program
         changelogWindow.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
         Render(changelogWindow, Path.Combine(outputDirectory, "changelog-window.png"));
         changelogWindow.Close();
-
-        window.Close();
-        application.Shutdown();
-        var renderedChecks = Directory.EnumerateFiles(outputDirectory, "*.png", SearchOption.TopDirectoryOnly).Count();
-        Console.WriteLine($"Rendered {renderedChecks} visual checks to {outputDirectory}");
-        return 0;
     }
 
     private static void Render(Window window, string path)
