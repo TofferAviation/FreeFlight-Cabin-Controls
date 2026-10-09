@@ -561,9 +561,7 @@ public sealed class PassengerBoardingEngine
 
             if (seatbeltSignOn)
             {
-                if (passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
-                    PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or
-                    PassengerCabinActivity.ReturningToSeat)
+                if (IsAwayFromSeat(passenger.CabinActivity))
                 {
                     passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
                     EnsureReturnToSeatRoute(passenger);
@@ -640,6 +638,18 @@ public sealed class PassengerBoardingEngine
                     {
                         passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
                         passenger.ActivityWaypoints.Clear();
+                    }
+                    continue;
+                case PassengerCabinActivity.CheckingOverheadBin:
+                    EnsureOverheadBinRoute(passenger);
+                    if (MoveAlongActivityRoute(passenger, Math.Min(5d, seconds * 24d)))
+                    {
+                        passenger.SecondsUntilActivityChange -= seconds;
+                        if (passenger.SecondsUntilActivityChange <= 0d)
+                        {
+                            passenger.CabinActivity = PassengerCabinActivity.ReturningToSeat;
+                            passenger.ActivityWaypoints.Clear();
+                        }
                     }
                     continue;
                 case PassengerCabinActivity.ReturningToSeat:
@@ -759,6 +769,21 @@ public sealed class PassengerBoardingEngine
         ]);
     }
 
+    private static void EnsureOverheadBinRoute(BoardingPassenger passenger)
+    {
+        if (passenger.ActivityWaypoints.Count > 0)
+        {
+            return;
+        }
+
+        // A passenger checking a personal item stands only at their own row;
+        // they do not make an unrealistic trip through the whole cabin.
+        passenger.ActivityWaypoints = new Queue<CabinPoint>(
+        [
+            new CabinPoint(passenger.Seat.X, passenger.Seat.AisleY)
+        ]);
+    }
+
     private static bool MoveAlongActivityRoute(BoardingPassenger passenger, double distance)
     {
         while (distance > 0d && passenger.ActivityWaypoints.Count > 0)
@@ -806,28 +831,53 @@ public sealed class PassengerBoardingEngine
             ? 0
             : StringComparer.OrdinalIgnoreCase.GetHashCode(flightPhase);
         var selector = Math.Abs((passenger.Id * 31) + (passenger.ActivitySequence * 17) + phaseSeed);
-        passenger.CabinActivity = (selector % 20) switch
+        var inCruise = flightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase);
+        var routineMovement = inCruise && HasCapacityForRoutineMovement() ? selector % 120 : -1;
+        passenger.CabinActivity = routineMovement switch
         {
-            0 or 1 when !string.Equals(flightPhase, "TAXI", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.WalkingToLavatory,
-            2 or 3 when flightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.ReceivingMeal,
-            4 when flightPhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase) => PassengerCabinActivity.ReceivingDrink,
-            1 or 2 => PassengerCabinActivity.Sleeping,
-            3 or 4 or 5 => PassengerCabinActivity.WatchingMovie,
-            6 or 7 => PassengerCabinActivity.UsingPhone,
-            8 or 9 => PassengerCabinActivity.Reading,
-            10 => PassengerCabinActivity.Gaming,
-            11 => PassengerCabinActivity.Working,
-            _ => PassengerCabinActivity.Talking
+            // Routine aisle movement is deliberately exceptional: no more
+            // than two per cent of a live cabin may be away from a seat, and
+            // only when the aircraft is established in cruise.
+            0 => PassengerCabinActivity.WalkingToLavatory,
+            1 => PassengerCabinActivity.CheckingOverheadBin,
+            _ => (selector % 20) switch
+            {
+                2 or 3 when inCruise => PassengerCabinActivity.ReceivingMeal,
+                4 when inCruise => PassengerCabinActivity.ReceivingDrink,
+                1 or 2 => PassengerCabinActivity.Sleeping,
+                3 or 4 or 5 => PassengerCabinActivity.WatchingMovie,
+                6 or 7 => PassengerCabinActivity.UsingPhone,
+                8 or 9 => PassengerCabinActivity.Reading,
+                10 => PassengerCabinActivity.Gaming,
+                11 => PassengerCabinActivity.Working,
+                _ => PassengerCabinActivity.Talking
+            }
         };
         passenger.SecondsUntilActivityChange = passenger.CabinActivity switch
         {
             PassengerCabinActivity.WalkingToLavatory => 0d,
+            PassengerCabinActivity.CheckingOverheadBin => 20d + (selector % 35),
             PassengerCabinActivity.ReceivingMeal => 10d + (selector % 20),
             PassengerCabinActivity.ReceivingDrink => 6d + (selector % 12),
             _ => 75d + (selector % 240)
         };
         passenger.ActivityWaypoints.Clear();
     }
+
+    private bool HasCapacityForRoutineMovement()
+    {
+        var maximumAwayFromSeat = Math.Max(1, (int)Math.Ceiling(_passengers.Count * 0.02d));
+        return _passengers.Count(passenger =>
+            passenger.MovementState == PassengerMovementState.Seated &&
+            IsAwayFromSeat(passenger.CabinActivity)) < maximumAwayFromSeat;
+    }
+
+    private static bool IsAwayFromSeat(PassengerCabinActivity activity) => activity is
+        PassengerCabinActivity.WalkingToLavatory or
+        PassengerCabinActivity.QueuedForLavatory or
+        PassengerCabinActivity.UsingLavatory or
+        PassengerCabinActivity.CheckingOverheadBin or
+        PassengerCabinActivity.ReturningToSeat;
 
     private bool IsLavatoryAvailable(BoardingPassenger passenger) => !_passengers.Any(other =>
         other.Id != passenger.Id &&

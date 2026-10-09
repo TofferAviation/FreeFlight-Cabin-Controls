@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.67] - 2026-10-09
+
+### Improved
+
+- Reworked Live Cabin cruise behaviour so the overwhelming majority of passengers stay seated. Routine aisle activity is now limited to a maximum of two per cent of the cabin and is available only once the aircraft is established in cruise.
+- Added a short, seat-row overhead-bin activity alongside lavatory visits. Both follow the actual cabin geometry and immediately return passengers to their seats when the seat-belt sign comes on.
+- Made occupied seats calm and readable on the 2D cabin map: seated passengers now use smaller, muted markers, while the occasional passenger away from their seat remains clearly highlighted.
+
+### Integration
+
+- Preserved the existing opt-in SayIntentions technical-event link. Clear cabin-equipment events continue to file against the reserved fleet aircraft; routine passenger movement remains driven by the live aircraft phase and seat-belt status rather than guessing from conversation text.
+
 ## [0.5.66] - 2026-10-08
 
 ### Added

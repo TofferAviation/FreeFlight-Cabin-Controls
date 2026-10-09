@@ -88,6 +88,7 @@ public enum PassengerCabinActivity
     WalkingToLavatory,
     QueuedForLavatory,
     UsingLavatory,
+    CheckingOverheadBin,
     ReturningToSeat,
     WaitingForCabinService,
     ReceivingMeal,

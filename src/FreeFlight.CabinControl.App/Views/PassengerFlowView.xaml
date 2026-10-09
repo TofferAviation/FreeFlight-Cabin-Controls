@@ -130,7 +130,7 @@
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
                                             <Grid Width="{Binding MarkerSize}" Height="{Binding MarkerSize}" ToolTip="{Binding ToolTip}">
-                                                <Ellipse Fill="{Binding MarkerColor}" Stroke="{Binding MarkerBorderColor}" StrokeThickness="1" Opacity="0.93" />
+                                                <Ellipse Fill="{Binding MarkerColor}" Stroke="{Binding MarkerBorderColor}" StrokeThickness="1" Opacity="{Binding MarkerOpacity}" />
                                                 <Ellipse Stroke="White" StrokeThickness="1.2" Visibility="{Binding IsWalking, Converter={StaticResource VisibleWhenTrue}}" />
                                             </Grid>
                                         </DataTemplate>
@@ -153,9 +153,9 @@
                     <Grid Grid.Row="2" Margin="20,13,20,17">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0"><Ellipse Width="8" Height="8" Fill="#2E90FF" Margin="0,0,5,0" /><TextBlock Text="Passenger" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,15,0"><Ellipse Width="8" Height="8" Fill="#5D7890" Margin="0,0,5,0" /><TextBlock Text="Seated passenger" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,15,0"><Ellipse Width="8" Height="8" Fill="#F7C85B" Margin="0,0,5,0" /><TextBlock Text="Cabin crew" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
-                            <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="{DynamicResource SuccessTextBrush}" Margin="0,0,5,0" /><TextBlock Text="Live state overlays" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
+                            <StackPanel Orientation="Horizontal"><Ellipse Width="8" Height="8" Fill="#20D7D1" Margin="0,0,5,0" /><TextBlock Text="Passenger away from seat" Style="{StaticResource MutedTextStyle}" FontSize="10" /></StackPanel>
                         </StackPanel>
                         <TextBlock Grid.Column="1" Text="{Binding LiveCabinStatus}" Foreground="{DynamicResource PrimaryBrush}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </Grid>

@@ -211,9 +211,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             var passengers = _engine.Passengers.Where(passenger => passenger.MovementState == PassengerMovementState.Seated).ToArray();
             var entertainment = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WatchingMovie or PassengerCabinActivity.Gaming or PassengerCabinActivity.UsingPhone);
             var resting = passengers.Count(passenger => passenger.CabinActivity == PassengerCabinActivity.Sleeping);
-            var moving = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat);
+            var moving = passengers.Count(passenger => passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.CheckingOverheadBin or PassengerCabinActivity.ReturningToSeat);
             var activeCrew = CabinCrewMarkers.Count(marker => !marker.IsSecured && !marker.IsResting);
-            return $"{entertainment} entertainment · {resting} resting · {moving} moving · {activeCrew} crew active · {RestingCrewCount} crew resting";
+            return $"{entertainment} entertainment · {resting} resting · {moving} away from seat · {activeCrew} crew active · {RestingCrewCount} crew resting";
         }
     }
     public decimal TotalOnboardSpendGbp => _engine.Passengers.Sum(passenger => passenger.OnboardSpendGbp);
@@ -1497,7 +1497,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             if (passenger.MovementState is not PassengerMovementState.Seated ||
                 marker.MovementState != passenger.MovementState ||
                 passenger.CabinActivity is PassengerCabinActivity.WalkingToLavatory or
-                    PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.ReturningToSeat or
+                    PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.CheckingOverheadBin or PassengerCabinActivity.ReturningToSeat or
                     PassengerCabinActivity.Deboarding)
             {
                 marker.Update(passenger, _engine.Operation);
@@ -1999,6 +1999,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
             OnPropertyChanged(nameof(IsOccupyingSeat));
             OnPropertyChanged(nameof(IsSecured));
             OnPropertyChanged(nameof(MarkerSize));
+            OnPropertyChanged(nameof(MarkerOpacity));
             OnPropertyChanged(nameof(CanvasLeft));
             OnPropertyChanged(nameof(CanvasTop));
             OnPropertyChanged(nameof(ToolTip));
@@ -2007,12 +2008,13 @@ public sealed class PassengerMarkerViewModel : ObservableObject
 
     public bool IsWalking => MovementState == PassengerMovementState.Walking ||
         _cabinActivity is PassengerCabinActivity.WalkingToLavatory or
-            PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.ReturningToSeat;
+            PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.CheckingOverheadBin or PassengerCabinActivity.ReturningToSeat;
     public bool IsOccupyingSeat => MovementState == PassengerMovementState.OccupyingSeat;
     public bool IsSecured => MovementState == PassengerMovementState.Seated && !IsWalking;
+    public double MarkerOpacity => IsWalking ? 1d : IsSecured ? 0.56d : 0.82d;
     public string MarkerColor { get => _markerColor; private set => SetProperty(ref _markerColor, value); }
     public string MarkerBorderColor { get => _markerBorderColor; private set => SetProperty(ref _markerBorderColor, value); }
-    public double MarkerSize => IsWalking ? 12d : 10d;
+    public double MarkerSize => IsWalking ? 12d : IsSecured ? 6.5d : 10d;
     public string ToolTip => $"{FullName} • Seat {SeatNumber} • Group {BoardingGroup} • {CabinClassName} • {DoorLabel} • {_activityLabel}";
 
     public void Update(BoardingPassenger passenger, PassengerOperation operation)
@@ -2027,6 +2029,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
             OnPropertyChanged(nameof(IsWalking));
             OnPropertyChanged(nameof(IsSecured));
             OnPropertyChanged(nameof(MarkerSize));
+            OnPropertyChanged(nameof(MarkerOpacity));
             OnPropertyChanged(nameof(CanvasLeft));
             OnPropertyChanged(nameof(CanvasTop));
         }
@@ -2049,8 +2052,21 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         }
     }
 
-    private static (string Fill, string Border) GetActivityColors(BoardingPassenger passenger) => passenger.CabinActivity switch
+    private static (string Fill, string Border) GetActivityColors(BoardingPassenger passenger)
     {
+        if (passenger.MovementState == PassengerMovementState.Seated && passenger.CabinActivity is not (
+            PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or
+            PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.CheckingOverheadBin or PassengerCabinActivity.ReturningToSeat))
+        {
+            // A quiet, low-contrast marker says "occupied seat" without
+            // turning normal seated activity into visual cabin traffic.
+            return passenger.SeatbeltFastened
+                ? ("#477B70", "#79A89C")
+                : ("#5D7890", "#91AABD");
+        }
+
+        return passenger.CabinActivity switch
+        {
         PassengerCabinActivity.SeatbeltFastened => ("#58E68A", "#D9FFE6"),
         PassengerCabinActivity.SettlingIn => ("#FF9D45", "#FFE0BE"),
         PassengerCabinActivity.SelectingWelcomeDrink => ("#F0C64E", "#FFF0AA"),
@@ -2062,7 +2078,7 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         PassengerCabinActivity.Reading => ("#E8AE4A", "#FFF0C2"),
         PassengerCabinActivity.Working => ("#46C8C2", "#D5FFFC"),
         PassengerCabinActivity.Talking => ("#E06CCB", "#FFDDF8"),
-        PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.ReturningToSeat => ("#20D7D1", "#D6FFFD"),
+        PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.CheckingOverheadBin or PassengerCabinActivity.ReturningToSeat => ("#20D7D1", "#D6FFFD"),
         PassengerCabinActivity.ReceivingMeal or PassengerCabinActivity.EatingMeal => ("#FFB04A", "#FFF0D0"),
         PassengerCabinActivity.ReceivingDrink or PassengerCabinActivity.Drinking => ("#4AB8FF", "#DCF3FF"),
         PassengerCabinActivity.WalkingToSeat or PassengerCabinActivity.Deboarding => ("#33B8E8", "#D9F6FF"),
@@ -2073,7 +2089,8 @@ public sealed class PassengerMarkerViewModel : ObservableObject
             PassengerCabinClass.PremiumEconomy => ("#F0C64E", "#FFF0AA"),
             _ => ("#21CED8", "#D6FCFF")
         }
-    };
+        };
+    }
 
     private static string FormatCabinClass(PassengerCabinClass cabinClass) => cabinClass switch
     {
@@ -2217,6 +2234,7 @@ public sealed class PassengerManifestEntryViewModel : ObservableObject
         PassengerCabinActivity.WalkingToLavatory => "Walking to the lavatory",
         PassengerCabinActivity.QueuedForLavatory => "Waiting in the lavatory queue",
         PassengerCabinActivity.UsingLavatory => "Using the lavatory",
+        PassengerCabinActivity.CheckingOverheadBin => "Checking an overhead-bin item",
         PassengerCabinActivity.ReturningToSeat => "Returning to seat",
         PassengerCabinActivity.WaitingForCabinService => "Waiting for cabin service",
         PassengerCabinActivity.ReceivingMeal => "Receiving a meal",

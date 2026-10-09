@@ -31,6 +31,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Passenger profiles are complete and unique", PassengerProfilesAreCompleteAndUniqueAsync),
     ("Seat-belt sign controls cabin activities", SeatbeltSignControlsCabinActivitiesAsync),
     ("Seat-belt responses are delayed and staggered", SeatbeltResponsesAreStaggeredAsync),
+    ("Cruise cabin movement stays realistic", CruiseCabinMovementStaysRealisticAsync),
     ("Cabin movement follows stable activity routes", CabinMovementFollowsStableRoutesAsync),
     ("Complimentary cabin service never creates revenue", ComplimentaryCabinServiceCreatesNoRevenueAsync),
     ("High Life Cafe revenue accepts only eligible purchases", HighLifeCafeRevenueEligibilityAsync),
@@ -729,6 +730,31 @@ static Task SeatbeltResponsesAreStaggeredAsync()
         "One or more passengers did not finish responding to the seat-belt sign.");
     Assert(engine.Passengers.All(passenger => passenger.SeatbeltFastened),
         "Not every seated passenger secured their seat belt after the response window.");
+    return Task.CompletedTask;
+}
+
+static Task CruiseCabinMovementStaysRealisticAsync()
+{
+    var engine = new PassengerBoardingEngine(200);
+    foreach (var passenger in engine.Passengers)
+    {
+        Assert(engine.TryBoardPassenger(passenger.Id), "A passenger could not be seated for the cruise-activity check.");
+    }
+
+    var mostAwayFromSeat = 0;
+    for (var index = 0; index < 180; index++)
+    {
+        engine.UpdateCabinActivities(TimeSpan.FromSeconds(5), false, "Cruise");
+        var awayFromSeat = engine.Passengers.Count(passenger => passenger.CabinActivity is
+            PassengerCabinActivity.WalkingToLavatory or PassengerCabinActivity.QueuedForLavatory or
+            PassengerCabinActivity.UsingLavatory or PassengerCabinActivity.CheckingOverheadBin or
+            PassengerCabinActivity.ReturningToSeat);
+        mostAwayFromSeat = Math.Max(mostAwayFromSeat, awayFromSeat);
+    }
+
+    Assert(mostAwayFromSeat <= 4, "More than two per cent of the cabin was away from seats during cruise.");
+    Assert(engine.Passengers.All(passenger => passenger.MovementState == PassengerMovementState.Seated),
+        "Routine cruise activity changed a passenger out of the seated state.");
     return Task.CompletedTask;
 }
 
