@@ -114,6 +114,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             settings,
             new FleetApiClient(),
             new BavAccountSessionStore(resolvedSettingsDirectory));
+        CrewRoom = new CommunityHubViewModel(Account, resolvedSettingsDirectory);
         IportDcs = new IportDcsViewModel(Operations, GateLogin, Account);
         Fleet = new FleetViewModel(
             settings,
@@ -189,6 +190,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public FlightLoggerViewModel FlightLogger { get; }
 
+    public CommunityHubViewModel CrewRoom { get; }
+
     public CabinAccountViewModel Account { get; }
 
     public FleetViewModel Fleet { get; }
@@ -255,6 +258,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         Catering.Dispose();
         Wifi.Dispose();
         Performance.Dispose();
+        CrewRoom.Dispose();
         Account.Dispose();
         Fleet.Dispose();
         CrewLink.Dispose();
@@ -335,6 +339,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "Performance" => Performance,
             "Settings" => Settings,
             "FlightLogger" => FlightLogger,
+            "CrewRoom" => CrewRoom,
             "CabinAccount" => Account,
             "Fleet" => Fleet,
             _ => Dashboard

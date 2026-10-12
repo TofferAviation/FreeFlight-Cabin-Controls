@@ -257,6 +257,42 @@ internal static class Program
         }
 
         if (string.Equals(
+                Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_CREW_ROOM_ONLY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            // The production account session is deliberately verified by BAV.
+            // The visual harness supplies only a harmless in-memory identity so
+            // it can inspect the authenticated Crew Room without web access.
+            typeof(CabinAccountViewModel)
+                .GetProperty(nameof(CabinAccountViewModel.Session))!
+                .SetValue(viewModel.Account, new FleetAccountSession(
+                    "visual-check-token",
+                    "pilot-visual-check",
+                    "BAW0001",
+                    "Kristoffer Eriksen",
+                    "visual-check@example.invalid",
+                    Rank: "Captain"));
+            viewModel.NavigateCommand.Execute("CrewRoom");
+            viewModel.CrewRoom.ToggleEventFollowCommand.Execute(viewModel.CrewRoom.Events[0]);
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            if (viewModel.ActivePage != "CrewRoom" ||
+                viewModel.CurrentPage != viewModel.CrewRoom ||
+                viewModel.CrewRoom.Events.Count != 2 ||
+                !viewModel.CrewRoom.Events[0].IsFollowed ||
+                viewModel.CrewRoom.PilotName != "Kristoffer Eriksen")
+            {
+                throw new InvalidOperationException("The authenticated Crew Room did not load its event and pilot context.");
+            }
+
+            Render(window, Path.Combine(outputDirectory, "crew-room.png"));
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered focused Crew Room checks to {outputDirectory}");
+            return 0;
+        }
+
+        if (string.Equals(
                 Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_ONBOARD_MENU_ONLY"),
                 "1",
                 StringComparison.Ordinal))

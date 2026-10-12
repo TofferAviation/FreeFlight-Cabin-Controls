@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.68] - 2026-10-12
+
+### Added
+
+- Added **Crew Room**, Ember's authenticated British Airways Virtual community workspace. It pairs the signed-in pilot identity with the live BAV Operations board and private BAV notices, without exposing another pilot's private data.
+- Crew Room includes a clear published-calendar snapshot for upcoming BAV events. Pilots can follow events locally on their Windows profile, while official registration remains on the BAV event calendar so Ember never misrepresents a local preference as a shared booking.
+- The workspace explains where each item comes from and keeps empty live feeds empty rather than inventing community activity when the BAV service is unavailable.
+
 ## [0.5.67] - 2026-10-09
 
 ### Improved

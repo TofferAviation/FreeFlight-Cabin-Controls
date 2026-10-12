@@ -83,6 +83,14 @@
                                 <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="My flight" Tag="&#xE70F;" GroupName="Navigation"
                                              IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=CabinAccount, Mode=OneWay}"
                                              Command="{Binding NavigateCommand}" CommandParameter="CabinAccount" />
+
+                                <TextBlock Text="COMMUNITY" Style="{StaticResource WorkspaceNavLabelStyle}" />
+                                <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="Crew Room" Tag="&#xE902;" GroupName="Navigation"
+                                             IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=CrewRoom, Mode=OneWay}"
+                                             Command="{Binding NavigateCommand}" CommandParameter="CrewRoom"
+                                             ToolTip="Open your British Airways Virtual community hub" />
+
+                                <TextBlock Text="CABIN" Style="{StaticResource WorkspaceNavLabelStyle}" />
                                 <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="Service" Tag="&#xED56;" GroupName="Navigation"
                                              IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Catering, Mode=OneWay}"
                                              Command="{Binding NavigateCommand}" CommandParameter="Catering" />
@@ -173,6 +181,7 @@
                         <views:PerformanceView DataContext="{Binding Performance}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Performance}" />
                         <views:IportDcsView DataContext="{Binding IportDcs}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=IportDcs}" />
                         <views:FlightLoggerView DataContext="{Binding FlightLogger}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=FlightLogger}" />
+                        <views:CommunityHubView DataContext="{Binding CrewRoom}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=CrewRoom}" />
                         <views:SettingsTabbedView DataContext="{Binding Settings}" PreviewUpdateRequested="SettingsView_PreviewUpdateRequested" CheckForUpdatesRequested="SettingsView_CheckForUpdatesRequested" ThemeToggleRequested="SettingsView_ThemeToggleRequested" AppearanceChanged="SettingsView_AppearanceChanged" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Settings}" />
                     </Grid>
                 </Grid>
