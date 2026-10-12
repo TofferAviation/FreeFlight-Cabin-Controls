@@ -16,30 +16,61 @@ namespace FreeFlight.CabinControl.App.ViewModels;
 /// </summary>
 public sealed class CommunityHubViewModel : PageViewModel, IDisposable
 {
-    private static readonly CrewRoomEventSeed[] PublishedCalendarSnapshot =
+    private static readonly DateOnly CalendarAnchor = new(2026, 10, 16);
+
+    // Ember mirrors the website's curated calendar style locally so the Crew
+    // Room remains useful between website refreshes. These are event ideas and
+    // group-size guides, never a claim of live BAV registrations or attendance.
+    private static readonly CrewRoomEventTemplate[] CalendarRotation =
     [
         new(
-            "evt-alpine-arrival-2026-10",
+            "friday-night-oslo",
+            "Friday Night in Oslo",
+            "Community Flight",
+            "17:30 – 22:00 UTC",
+            "EGLL → ENGM",
+            "London Heathrow to Oslo Gardermoen",
+            "Short-haul fleet recommended",
+            "+125 VA · +10 Tier",
+            "Nordic Friday badge"),
+        new(
+            "european-city-hopper",
+            "European City Hopper",
+            "Regional Event",
+            "18:00 – 22:00 UTC",
+            "EGLL → LOWW",
+            "London Heathrow to Vienna",
+            "Short-haul fleet recommended",
+            "+100 VA · +10 Tier",
+            "City Hopper badge"),
+        new(
+            "atlantic-friday",
+            "Atlantic Friday",
+            "Long-haul Event",
+            "17:00 – 23:59 UTC",
+            "EGLL → KJFK",
+            "London Heathrow to New York JFK",
+            "Wide-body fleet recommended",
+            "+175 VA · +15 Tier",
+            "Atlantic crossing badge"),
+        new(
+            "alpine-arrival",
             "Alpine Arrival Challenge",
             "Special Challenge",
-            new DateOnly(2026, 10, 15),
             "17:30 – 22:00 UTC",
             "EGLL → LSGG",
             "London Heathrow to Geneva",
             "Short-haul fleet recommended",
-            141,
             "+175 VA · +20 Tier",
-            "Precision arrival bonus"),
+            "Precision arrival badge"),
         new(
-            "evt-tokyo-night-run-2026-10",
+            "tokyo-night-run",
             "Tokyo Night Run",
             "Long-haul Event",
-            new DateOnly(2026, 10, 24),
             "19:00 – 23:59 UTC",
             "EGLL → RJTT",
             "London Heathrow to Tokyo Haneda",
             "Wide-body fleet recommended",
-            229,
             "+200 VA · +20 Tier",
             "Tokyo Night Run badge")
     ];
@@ -58,7 +89,8 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         _followedEventIds = _registrationStore.Load().ToHashSet(StringComparer.Ordinal);
 
         Events = new ObservableCollection<CrewRoomEvent>(
-            PublishedCalendarSnapshot.Select(seed => new CrewRoomEvent(seed, _followedEventIds.Contains(seed.Id))));
+            BuildCalendar(DateOnly.FromDateTime(DateTime.Today))
+                .Select(seed => new CrewRoomEvent(seed, _followedEventIds.Contains(seed.Id))));
         LiveOperations = [];
         Notices = [];
 
@@ -79,6 +111,8 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
     }
 
     public ObservableCollection<CrewRoomEvent> Events { get; }
+
+    public CrewRoomEvent FeaturedEvent => Events[0];
 
     public ObservableCollection<CrewRoomOperation> LiveOperations { get; }
 
@@ -105,6 +139,10 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
     public string ActiveAssignmentLabel => _account.WebsiteFlightAssignmentLabel;
 
     public string ActiveAssignmentDetail => _account.WebsiteFlightAssignmentDetail;
+
+    public string CurrentAircraftLabel => _account.WebsiteFlightAssignment is { Aircraft: { Length: > 0 } aircraft }
+        ? aircraft
+        : "Aircraft appears after you choose a BAV flight";
 
     public int LiveOperationCount => LiveOperations.Count;
 
@@ -192,6 +230,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(ConnectionDetail));
         OnPropertyChanged(nameof(ActiveAssignmentLabel));
         OnPropertyChanged(nameof(ActiveAssignmentDetail));
+        OnPropertyChanged(nameof(CurrentAircraftLabel));
     }
 
     private void RefreshLiveOperations()
@@ -264,6 +303,41 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
             // The Crew Room remains usable when Windows cannot open a browser.
         }
     }
+
+    private static IReadOnlyList<CrewRoomEventSeed> BuildCalendar(DateOnly today)
+    {
+        var daysUntilFriday = ((int)DayOfWeek.Friday - (int)today.DayOfWeek + 7) % 7;
+        var firstEventDate = today.AddDays(daysUntilFriday);
+        var firstRotationIndex = PositiveModulo((firstEventDate.DayNumber - CalendarAnchor.DayNumber) / 7, CalendarRotation.Length);
+
+        return Enumerable.Range(0, 4)
+            .Select(offset =>
+            {
+                var date = firstEventDate.AddDays(offset * 7);
+                var template = CalendarRotation[(firstRotationIndex + offset) % CalendarRotation.Length];
+                var communityTarget = 72 + PositiveModulo(date.DayNumber * 19 + offset * 37, 161);
+
+                return new CrewRoomEventSeed(
+                    $"ember-calendar-{date:yyyyMMdd}-{template.Id}",
+                    template.Title,
+                    template.TypeLabel,
+                    date,
+                    template.TimeLabel,
+                    template.RouteLabel,
+                    template.RouteDetail,
+                    template.AircraftNote,
+                    communityTarget,
+                    template.RewardsLabel,
+                    template.BadgeLabel);
+            })
+            .ToArray();
+    }
+
+    private static int PositiveModulo(int value, int divisor)
+    {
+        var remainder = value % divisor;
+        return remainder < 0 ? remainder + divisor : remainder;
+    }
 }
 
 public sealed class CrewRoomEvent : ObservableObject
@@ -278,7 +352,7 @@ public sealed class CrewRoomEvent : ObservableObject
         RouteLabel = seed.RouteLabel;
         RouteDetail = seed.RouteDetail;
         AircraftNote = seed.AircraftNote;
-        PilotsLabel = $"{seed.PilotCount:N0} pilots planning to fly";
+        PilotsLabel = $"Calendar group · {seed.PilotCount:N0} pilots";
         RewardsLabel = seed.RewardsLabel;
         BadgeLabel = seed.BadgeLabel;
         _isFollowed = isFollowed;
@@ -396,5 +470,16 @@ public sealed record CrewRoomEventSeed(
     string RouteDetail,
     string AircraftNote,
     int PilotCount,
+    string RewardsLabel,
+    string BadgeLabel);
+
+public sealed record CrewRoomEventTemplate(
+    string Id,
+    string Title,
+    string TypeLabel,
+    string TimeLabel,
+    string RouteLabel,
+    string RouteDetail,
+    string AircraftNote,
     string RewardsLabel,
     string BadgeLabel);

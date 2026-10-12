@@ -278,7 +278,7 @@ internal static class Program
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             if (viewModel.ActivePage != "CrewRoom" ||
                 viewModel.CurrentPage != viewModel.CrewRoom ||
-                viewModel.CrewRoom.Events.Count != 2 ||
+                viewModel.CrewRoom.Events.Count != 4 ||
                 !viewModel.CrewRoom.Events[0].IsFollowed ||
                 viewModel.CrewRoom.PilotName != "Kristoffer Eriksen")
             {

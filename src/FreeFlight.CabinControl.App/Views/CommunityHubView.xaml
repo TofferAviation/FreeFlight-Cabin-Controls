@@ -44,13 +44,26 @@
                     </Grid.ColumnDefinitions>
                     <Ellipse Width="360" Height="360" Fill="#143C714A" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-210,-140,0" IsHitTestVisible="False" />
                     <Ellipse Width="240" Height="240" Fill="#1879C11F" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-145,0,0,-170" IsHitTestVisible="False" />
-                    <StackPanel VerticalAlignment="Center" Margin="0,4,26,4">
-                        <TextBlock Text="THE BAV COMMUNITY, INSIDE EMBER" Foreground="#83C8FA" FontSize="10" FontWeight="SemiBold" />
-                        <TextBlock Text="Fly together, not alone." FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="30" FontWeight="SemiBold" Margin="0,8,0,0" />
-                        <TextBlock Text="{Binding ConnectionDetail}" Foreground="#B8C9DF" FontSize="14" TextWrapping="Wrap" Margin="0,8,0,0" />
-                        <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
-                            <Button Content="Open BAV event calendar" Command="{Binding OpenBavEventsCommand}" Style="{StaticResource PrimaryButtonStyle}" MinHeight="38" Padding="16,5" />
-                            <TextBlock Text="Official registration stays on BAV." Foreground="#91AFCB" FontSize="11" VerticalAlignment="Center" Margin="14,0,0,0" />
+                    <StackPanel VerticalAlignment="Center" Margin="0,4,26,4" DataContext="{Binding FeaturedEvent}">
+                        <TextBlock Text="FEATURED CREW EVENT · ROTATING CALENDAR" Foreground="#83C8FA" FontSize="10" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding Title}" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="30" FontWeight="SemiBold" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding RouteLabel}" Foreground="#DBECFF" FontSize="15" FontWeight="SemiBold" Margin="0,7,0,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                            <TextBlock Text="{Binding DateLabel}" Foreground="#B8C9DF" FontSize="12" />
+                            <TextBlock Text="·" Foreground="#7895B3" FontSize="12" Margin="8,0" />
+                            <TextBlock Text="{Binding TimeLabel}" Foreground="#B8C9DF" FontSize="12" />
+                            <TextBlock Text="·" Foreground="#7895B3" FontSize="12" Margin="8,0" />
+                            <TextBlock Text="{Binding AircraftNote}" Foreground="#B8C9DF" FontSize="12" />
+                        </StackPanel>
+                        <TextBlock Text="A rotating Ember social-flight idea based on the BAV event calendar. Confirm final details and register on BAV." Foreground="#91AFCB" FontSize="11" TextWrapping="Wrap" Margin="0,11,0,0" />
+                        <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                            <Button Content="{Binding FollowButtonLabel}"
+                                    Command="{Binding DataContext.ToggleEventFollowCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource PrimaryButtonStyle}"
+                                    MinHeight="38"
+                                    Padding="16,5" />
+                            <Button Content="Open BAV event calendar" Command="{Binding DataContext.OpenBavEventsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="38" Padding="16,5" Margin="10,0,0,0" />
                         </StackPanel>
                     </StackPanel>
                     <Border Grid.Column="1" Background="#9A071426" BorderBrush="#3E6892" BorderThickness="1" CornerRadius="10" Padding="18" VerticalAlignment="Center">
@@ -69,6 +82,8 @@
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="{Binding PilotName}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{Binding PilotLabel}" Foreground="#8DCAFF" FontSize="11" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="CURRENT AIRCRAFT" Foreground="#7294B9" FontSize="8" FontWeight="SemiBold" Margin="0,9,0,0" />
+                                <TextBlock Text="{Binding CurrentAircraftLabel}" Foreground="#D7E8F8" FontSize="10" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                             <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,17,0,0" Padding="11,9" Background="#0D203B" BorderBrush="#284B72" BorderThickness="1" CornerRadius="6">
                                 <StackPanel>
@@ -182,7 +197,7 @@
                             <Grid Margin="18,16,18,13">
                                 <StackPanel>
                                     <TextBlock Text="Upcoming community events" Style="{StaticResource SectionTitleStyle}" />
-                                    <TextBlock Text="Published BAV calendar snapshot. Follow a flight here, then register on BAV." Style="{StaticResource MutedTextStyle}" FontSize="12" Margin="0,4,0,0" />
+                                    <TextBlock Text="Rotating Ember calendar inspired by BAV event formats. Follow a flight here, then confirm and register on BAV." Style="{StaticResource MutedTextStyle}" FontSize="12" Margin="0,4,0,0" />
                                 </StackPanel>
                                 <Button Content="Open BAV calendar" Command="{Binding OpenBavEventsCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="30" Padding="10,3" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" />
                             </Grid>

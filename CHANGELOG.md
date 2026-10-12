@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.69] - 2026-10-12
+
+### Improved
+
+- Reworked the Crew Room hero around a featured social flight. The current rotation leads with **Friday Night in Oslo**, keeping its route, timing and fleet guidance beside the pilot profile and selected BAV aircraft.
+- Expanded the desktop Crew Room calendar into a stable, four-week rotation of community, regional, long-haul and challenge flights inspired by the BAV website calendar.
+
+### Calendar transparency
+
+- Rotating Crew Room cards are local Ember calendar ideas and group-size guides, not live registrations or attendance. Pilots still confirm final event details and register on the BAV website.
+
 ## [0.5.68] - 2026-10-12
 
 ### Added
