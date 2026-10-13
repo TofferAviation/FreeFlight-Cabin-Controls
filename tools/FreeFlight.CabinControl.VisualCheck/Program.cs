@@ -274,7 +274,10 @@ internal static class Program
                     "visual-check@example.invalid",
                     Rank: "Captain"));
             viewModel.NavigateCommand.Execute("CrewRoom");
-            viewModel.CrewRoom.ToggleEventFollowCommand.Execute(viewModel.CrewRoom.Events[0]);
+            if (!viewModel.CrewRoom.Events[0].IsFollowed)
+            {
+                viewModel.CrewRoom.ToggleEventFollowCommand.Execute(viewModel.CrewRoom.Events[0]);
+            }
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             if (viewModel.ActivePage != "CrewRoom" ||
                 viewModel.CurrentPage != viewModel.CrewRoom ||

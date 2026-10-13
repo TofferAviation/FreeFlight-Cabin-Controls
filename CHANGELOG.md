@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.70] - 2026-10-13
+
+### Added
+
+- Added **Crew Lounge chat**, an authenticated BAV-backed shared conversation for signed-in pilots. Ember only displays messages the BAV service confirms; it does not fabricate activity or keep a private PC-only chat log.
+- The chat service validates every signed-in sender, limits message size and burst posting, and preserves the existing separation between public Crew Lounge conversation and private BAV Operations notices.
+
+### Improved
+
+- Rebuilt Crew Room into a warmer **Crew Lounge**: a featured community flight, pilot profile and aircraft now frame the page, while flight-board and notice data support the social space instead of dominating it.
+- Added a repeatable visual-check setup for the Crew Lounge so an existing local followed-event preference cannot make the desktop rendering check fail.
+
 ## [0.5.69] - 2026-10-12
 
 ### Improved

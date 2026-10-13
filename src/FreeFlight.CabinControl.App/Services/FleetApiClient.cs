@@ -290,6 +290,51 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return payload?.Session;
     }
 
+    /// <summary>
+    /// Reads the recent, BAV-backed public Crew Lounge conversation. Messages
+    /// are deliberately never cached as a private Ember-only chat history.
+    /// </summary>
+    public async Task<IReadOnlyList<FleetCrewRoomChatMessageDto>> GetCrewRoomChatMessagesAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetCrewRoomChatEnvelope>(
+            settings,
+            account,
+            HttpMethod.Get,
+            "/api/acars/v1/crew-room/messages?channel=crew-lounge&limit=60",
+            null,
+            cancellationToken);
+        return payload?.Messages ?? [];
+    }
+
+    /// <summary>
+    /// Sends a message to the authenticated BAV Crew Lounge. The server owns
+    /// validation, rate limiting, moderation and persistence so Ember never
+    /// pretends a message has been shared before BAV confirms it.
+    /// </summary>
+    public async Task<FleetCrewRoomChatMessageDto> SendCrewRoomChatMessageAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string body,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            throw new FleetApiException("Write a message before sending it to the Crew Lounge.");
+        }
+
+        var payload = await SendBavAsync<FleetCrewRoomChatMessageEnvelope>(
+            settings,
+            account,
+            HttpMethod.Post,
+            "/api/acars/v1/crew-room/messages",
+            new { channel = "crew-lounge", body = body.Trim() },
+            cancellationToken);
+        return payload?.Message ?? throw new FleetApiException("British Airways Virtual did not confirm the Crew Lounge message.");
+    }
+
     public async Task<FleetCrewLinkSessionDto> CreateCrewLinkSessionAsync(
         AppSettings settings,
         FleetAccountSession account,
@@ -601,6 +646,17 @@ public sealed record FleetFlightAssignmentDto(string Id, string AircraftId, stri
 public sealed record FleetAcarsSessionEnvelope(FleetAcarsSessionDto? Session);
 public sealed record FleetCrewLinkSessionEnvelope(FleetCrewLinkSessionDto? Session);
 public sealed record FleetCrewLinkLeaveEnvelope(bool Ok);
+public sealed record FleetCrewRoomChatEnvelope(IReadOnlyList<FleetCrewRoomChatMessageDto>? Messages);
+public sealed record FleetCrewRoomChatMessageEnvelope(FleetCrewRoomChatMessageDto? Message);
+public sealed record FleetCrewRoomChatMessageDto(
+    string Id,
+    string Channel,
+    string PilotId,
+    string PilotNumber,
+    string PilotName,
+    string? Rank,
+    string Body,
+    DateTimeOffset CreatedAt);
 public sealed record FleetAcarsTelemetryEnvelope(bool Ok, string? UpdatedAt, double? DistanceNm);
 public sealed record FleetAcarsCompleteEnvelope(FleetAcarsSessionDto? Session, FleetPirepDto? Pirep);
 public sealed record FleetAcarsSessionDto(string Id, string FlightNumber, string From, string To, string Aircraft, string Simulator, string Status, string StartedAt, FleetAcarsSnapshotDto? LastSnapshot = null);

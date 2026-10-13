@@ -114,7 +114,11 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             settings,
             new FleetApiClient(),
             new BavAccountSessionStore(resolvedSettingsDirectory));
-        CrewRoom = new CommunityHubViewModel(Account, resolvedSettingsDirectory);
+        CrewRoom = new CommunityHubViewModel(
+            settings,
+            new FleetApiClient(),
+            Account,
+            resolvedSettingsDirectory);
         IportDcs = new IportDcsViewModel(Operations, GateLogin, Account);
         Fleet = new FleetViewModel(
             settings,
