@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- Added BAV-controlled **Crew Tables** to the Ember Crew Room. Staff can feature one current published BAV calendar event, while pilots can open its shared conversation and optional planning board.
+- Pilots can add or remove a voluntary “I’m planning to fly” note. It can include their existing selected BAV flight and aircraft, but it never creates a booking, registration, roster entry or attendance record.
+
+### Improved
+
+- Replaced Ember’s hard-coded rotating events — including Friday Night in Oslo — with the live BAV calendar and a staff-set Lounge host note and conversation prompt.
+- Reworked the Crew Room around a warmer host desk, active table, planning board and real crew cards; empty tables remain honest rather than inventing pilots or attendance.
+
 ## [0.5.70] - 2026-10-13
 
 ### Added

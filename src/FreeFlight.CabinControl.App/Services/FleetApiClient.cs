@@ -297,16 +297,73 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
     public async Task<IReadOnlyList<FleetCrewRoomChatMessageDto>> GetCrewRoomChatMessagesAsync(
         AppSettings settings,
         FleetAccountSession account,
+        string channel,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(channel);
         var payload = await SendBavAsync<FleetCrewRoomChatEnvelope>(
             settings,
             account,
             HttpMethod.Get,
-            "/api/acars/v1/crew-room/messages?channel=crew-lounge&limit=60",
+            $"/api/acars/v1/crew-room/messages?channel={Uri.EscapeDataString(channel)}&limit=60",
             null,
             cancellationToken);
         return payload?.Messages ?? [];
+    }
+
+    /// <summary>
+    /// Reads the staff-curated Lounge host note and published BAV events.
+    /// Event tables are social planning spaces, never a flight roster.
+    /// </summary>
+    public async Task<FleetCrewRoomExperienceDto> GetCrewRoomExperienceAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetCrewRoomExperienceDto>(
+            settings, account, HttpMethod.Get, "/api/acars/v1/crew-room", null, cancellationToken);
+        return payload ?? new FleetCrewRoomExperienceDto(null, null, []);
+    }
+
+    public async Task<IReadOnlyList<FleetCrewRoomIntentDto>> GetCrewRoomIntentsAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string eventId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
+        var payload = await SendBavAsync<FleetCrewRoomIntentsEnvelope>(
+            settings, account, HttpMethod.Get,
+            $"/api/acars/v1/crew-room/intentions?eventId={Uri.EscapeDataString(eventId)}", null, cancellationToken);
+        return payload?.Intentions ?? [];
+    }
+
+    public async Task<FleetCrewRoomIntentDto> SetCrewRoomIntentAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string eventId,
+        string? flightNumber,
+        string? route,
+        string? aircraft,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
+        var payload = await SendBavAsync<FleetCrewRoomIntentEnvelope>(
+            settings, account, HttpMethod.Post, "/api/acars/v1/crew-room/intentions",
+            new { eventId, flightNumber, route, aircraft }, cancellationToken);
+        return payload?.Intention ?? throw new FleetApiException("British Airways Virtual did not confirm your planning note.");
+    }
+
+    public async Task RemoveCrewRoomIntentAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        string eventId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventId);
+        _ = await SendBavAsync<FleetCrewRoomIntentMutationEnvelope>(
+            settings, account, HttpMethod.Delete,
+            $"/api/acars/v1/crew-room/intentions?eventId={Uri.EscapeDataString(eventId)}", null, cancellationToken);
     }
 
     /// <summary>
@@ -317,9 +374,11 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
     public async Task<FleetCrewRoomChatMessageDto> SendCrewRoomChatMessageAsync(
         AppSettings settings,
         FleetAccountSession account,
+        string channel,
         string body,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(channel);
         if (string.IsNullOrWhiteSpace(body))
         {
             throw new FleetApiException("Write a message before sending it to the Crew Lounge.");
@@ -330,7 +389,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             account,
             HttpMethod.Post,
             "/api/acars/v1/crew-room/messages",
-            new { channel = "crew-lounge", body = body.Trim() },
+            new { channel, body = body.Trim() },
             cancellationToken);
         return payload?.Message ?? throw new FleetApiException("British Airways Virtual did not confirm the Crew Lounge message.");
     }
@@ -648,6 +707,44 @@ public sealed record FleetCrewLinkSessionEnvelope(FleetCrewLinkSessionDto? Sessi
 public sealed record FleetCrewLinkLeaveEnvelope(bool Ok);
 public sealed record FleetCrewRoomChatEnvelope(IReadOnlyList<FleetCrewRoomChatMessageDto>? Messages);
 public sealed record FleetCrewRoomChatMessageEnvelope(FleetCrewRoomChatMessageDto? Message);
+public sealed record FleetCrewRoomExperienceDto(
+    FleetCrewRoomSettingsDto? Settings,
+    FleetCrewRoomEventDto? FeaturedEvent,
+    IReadOnlyList<FleetCrewRoomEventDto>? Events);
+public sealed record FleetCrewRoomSettingsDto(
+    string? FeaturedEventId,
+    string? HostName,
+    string? HostMessage,
+    string? WelcomePrompt,
+    DateTimeOffset? UpdatedAt);
+public sealed record FleetCrewRoomEventDto(
+    string Id,
+    string Title,
+    string TypeLabel,
+    string Date,
+    string StartUtc,
+    string EndUtc,
+    FleetCrewRoomRouteDto? Route,
+    string? Summary,
+    string? AircraftNote,
+    FleetCrewRoomRewardsDto? Rewards,
+    string TableChannel);
+public sealed record FleetCrewRoomRouteDto(string From, string To, string? FromName, string? ToName);
+public sealed record FleetCrewRoomRewardsDto(int VaPoints, int TierPoints, string? Badge);
+public sealed record FleetCrewRoomIntentsEnvelope(IReadOnlyList<FleetCrewRoomIntentDto>? Intentions);
+public sealed record FleetCrewRoomIntentEnvelope(FleetCrewRoomIntentDto? Intention);
+public sealed record FleetCrewRoomIntentMutationEnvelope(bool Ok);
+public sealed record FleetCrewRoomIntentDto(
+    string Id,
+    string EventId,
+    string PilotId,
+    string PilotNumber,
+    string PilotName,
+    string? Rank,
+    string? FlightNumber,
+    string? Route,
+    string? Aircraft,
+    DateTimeOffset UpdatedAt);
 public sealed record FleetCrewRoomChatMessageDto(
     string Id,
     string Channel,

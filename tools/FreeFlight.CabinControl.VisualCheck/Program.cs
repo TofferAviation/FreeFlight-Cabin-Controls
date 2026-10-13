@@ -274,18 +274,13 @@ internal static class Program
                     "visual-check@example.invalid",
                     Rank: "Captain"));
             viewModel.NavigateCommand.Execute("CrewRoom");
-            if (!viewModel.CrewRoom.Events[0].IsFollowed)
-            {
-                viewModel.CrewRoom.ToggleEventFollowCommand.Execute(viewModel.CrewRoom.Events[0]);
-            }
             window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
             if (viewModel.ActivePage != "CrewRoom" ||
                 viewModel.CurrentPage != viewModel.CrewRoom ||
-                viewModel.CrewRoom.Events.Count != 4 ||
-                !viewModel.CrewRoom.Events[0].IsFollowed ||
+                !viewModel.CrewRoom.ActiveTable.IsGeneral ||
                 viewModel.CrewRoom.PilotName != "Kristoffer Eriksen")
             {
-                throw new InvalidOperationException("The authenticated Crew Room did not load its event and pilot context.");
+                throw new InvalidOperationException("The authenticated Crew Room did not load its BAV identity and safe default table context.");
             }
 
             Render(window, Path.Combine(outputDirectory, "crew-room.png"));
