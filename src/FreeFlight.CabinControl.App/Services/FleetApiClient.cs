@@ -322,7 +322,49 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
     {
         var payload = await SendBavAsync<FleetCrewRoomExperienceDto>(
             settings, account, HttpMethod.Get, "/api/acars/v1/crew-room", null, cancellationToken);
-        return payload ?? new FleetCrewRoomExperienceDto(null, null, []);
+        return payload ?? new FleetCrewRoomExperienceDto(null, null, null, []);
+    }
+
+    /// <summary>
+    /// Retrieves the current staff-approved Crew Lounge hero as private binary
+    /// media. A WPF Image URI cannot attach the pilot's ACARS bearer token, so
+    /// the desktop client fetches and decodes the image itself.
+    /// </summary>
+    public async Task<byte[]?> GetFeaturedCrewRoomHeroAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var baseUri = ResolveBaseUri(settings);
+        using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(baseUri, "/api/acars/v1/crew-room/hero"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", account.Token);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/jpeg"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/png"));
+
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new FleetApiException("British Airways Virtual Crew Lounge image request failed: " + ExtractError(content), response.StatusCode);
+        }
+
+        var contentType = response.Content.Headers.ContentType?.MediaType?.ToLowerInvariant();
+        if (contentType is not ("image/jpeg" or "image/png"))
+        {
+            throw new FleetApiException("British Airways Virtual returned an unsupported Crew Lounge image.");
+        }
+        if (response.Content.Headers.ContentLength is > 5 * 1024 * 1024)
+        {
+            throw new FleetApiException("The Crew Lounge image is too large to display.");
+        }
+
+        var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        if (bytes.Length == 0 || bytes.Length > 5 * 1024 * 1024)
+        {
+            throw new FleetApiException("The Crew Lounge image is unavailable.");
+        }
+        return bytes;
     }
 
     public async Task<IReadOnlyList<FleetCrewRoomIntentDto>> GetCrewRoomIntentsAsync(
@@ -710,6 +752,7 @@ public sealed record FleetCrewRoomChatMessageEnvelope(FleetCrewRoomChatMessageDt
 public sealed record FleetCrewRoomExperienceDto(
     FleetCrewRoomSettingsDto? Settings,
     FleetCrewRoomEventDto? FeaturedEvent,
+    FleetCrewRoomEventHeroDto? FeaturedHero,
     IReadOnlyList<FleetCrewRoomEventDto>? Events);
 public sealed record FleetCrewRoomSettingsDto(
     string? FeaturedEventId,
@@ -729,6 +772,7 @@ public sealed record FleetCrewRoomEventDto(
     string? AircraftNote,
     FleetCrewRoomRewardsDto? Rewards,
     string TableChannel);
+public sealed record FleetCrewRoomEventHeroDto(string EventId, string UpdatedAt);
 public sealed record FleetCrewRoomRouteDto(string From, string To, string? FromName, string? ToName);
 public sealed record FleetCrewRoomRewardsDto(int VaPoints, int TierPoints, string? Badge);
 public sealed record FleetCrewRoomIntentsEnvelope(IReadOnlyList<FleetCrewRoomIntentDto>? Intentions);

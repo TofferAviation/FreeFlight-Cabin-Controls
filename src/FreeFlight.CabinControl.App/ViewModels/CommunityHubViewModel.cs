@@ -2,9 +2,12 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using FreeFlight.CabinControl.App.Infrastructure;
 using FreeFlight.CabinControl.App.Services;
 using FreeFlight.CabinControl.Core.Configuration;
@@ -32,6 +35,8 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
     private string _planningStatus = "Choose a BAV event table to share an optional plan.";
     private CrewRoomEvent _featuredEvent = CrewRoomEvent.General;
     private CrewRoomEvent _activeTable = CrewRoomEvent.General;
+    private string? _featuredHeroRevision;
+    private ImageSource? _featuredHeroImageSource;
 
     public CommunityHubViewModel(
         AppSettings settings,
@@ -93,6 +98,11 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
 
     public CrewRoomEvent FeaturedEvent => _featuredEvent;
     public CrewRoomEvent ActiveTable => _activeTable;
+    public ImageSource? FeaturedHeroImageSource
+    {
+        get => _featuredHeroImageSource;
+        private set => SetProperty(ref _featuredHeroImageSource, value);
+    }
     public ICommand SelectCrewTableCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand RefreshChatCommand { get; }
@@ -317,7 +327,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         try
         {
             var experience = await _apiClient.GetCrewRoomExperienceAsync(_settings, account);
-            ApplyExperience(experience);
+            await ApplyExperienceAsync(experience, account);
             await RefreshActiveTableContentAsync(account);
             _chatPollTimer.Start();
         }
@@ -333,7 +343,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         }
     }
 
-    private void ApplyExperience(FleetCrewRoomExperienceDto experience)
+    private async Task ApplyExperienceAsync(FleetCrewRoomExperienceDto experience, FleetAccountSession account)
     {
         var priorTableId = ActiveTable.Id;
         Events.Clear();
@@ -360,6 +370,50 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(EventCount));
         OnPropertyChanged(nameof(EventSummary));
         RaiseTableProperties();
+        await RefreshFeaturedHeroAsync(experience.FeaturedHero, account);
+    }
+
+    private async Task RefreshFeaturedHeroAsync(FleetCrewRoomEventHeroDto? hero, FleetAccountSession account)
+    {
+        var revision = hero is not null && string.Equals(hero.EventId, FeaturedEvent.Id, StringComparison.Ordinal)
+            ? hero.EventId + ":" + hero.UpdatedAt
+            : null;
+        if (string.Equals(_featuredHeroRevision, revision, StringComparison.Ordinal)) return;
+
+        _featuredHeroRevision = revision;
+        FeaturedHeroImageSource = null;
+        if (revision is null) return;
+
+        try
+        {
+            var bytes = await _apiClient.GetFeaturedCrewRoomHeroAsync(_settings, account);
+            if (!string.Equals(_featuredHeroRevision, revision, StringComparison.Ordinal)) return;
+            FeaturedHeroImageSource = LoadCrewRoomHeroImage(bytes);
+        }
+        catch (Exception)
+        {
+            // The warm default hero remains available when staff media cannot be reached.
+        }
+    }
+
+    private static ImageSource? LoadCrewRoomHeroImage(byte[]? bytes)
+    {
+        if (bytes is not { Length: > 0 and <= 5 * 1024 * 1024 }) return null;
+        try
+        {
+            using var stream = new MemoryStream(bytes, writable: false);
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = stream;
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task RefreshActiveTableContentAsync(FleetAccountSession account)

@@ -55,6 +55,16 @@
 
             <Border Background="{StaticResource CrewLoungeHeroBrush}" BorderBrush="#46617A" BorderThickness="1" CornerRadius="14" Padding="0" Margin="0,0,0,16" ClipToBounds="True">
                 <Grid MinHeight="216">
+                    <Image Source="{Binding FeaturedHeroImageSource}" Stretch="UniformToFill" Opacity="0.86" />
+                    <Rectangle IsHitTestVisible="False">
+                        <Rectangle.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#A8172C44" Offset="0" />
+                                <GradientStop Color="#6E17273D" Offset="0.53" />
+                                <GradientStop Color="#98101C2D" Offset="1" />
+                            </LinearGradientBrush>
+                        </Rectangle.Fill>
+                    </Rectangle>
                     <Ellipse Width="285" Height="285" Fill="#174B5D" Opacity="0.45" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-142,170,0" />
                     <Ellipse Width="210" Height="210" Fill="#793C51" Opacity="0.3" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-58,-88" />
                     <Ellipse Width="82" Height="82" Fill="#F0C77D" Opacity="0.11" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="54,0,0,-37" />

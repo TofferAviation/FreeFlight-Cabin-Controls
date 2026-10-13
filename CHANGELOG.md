@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.72] - 2026-10-13
+
+### Added
+
+- Added a staff-curated **event hero** to the Crew Lounge. When BAV staff attach an approved image to the selected calendar event, Ember securely shows it behind the lounge host desk without exposing storage links or changing the official event record.
+
+### Improved
+
+- Kept the pilot profile, selected aircraft and community event legible over the new hero treatment, with a calm built-in backdrop whenever no event image has been chosen.
+
 ## [0.5.71] - 2026-10-13
 
 ### Added
