@@ -37,6 +37,9 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
     private CrewRoomEvent _activeTable = CrewRoomEvent.General;
     private string? _featuredHeroRevision;
     private ImageSource? _featuredHeroImageSource;
+    // BAV returns current portraits alongside the authenticated room response.
+    // Keep them in memory only; they are never copied into message history.
+    private readonly Dictionary<string, ImageSource?> _chatPortraits = new(StringComparer.Ordinal);
 
     public CommunityHubViewModel(
         AppSettings settings,
@@ -245,6 +248,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
 
     private void HandleAccountChanged(object? sender, EventArgs e)
     {
+        _chatPortraits.Clear();
         RefreshIdentity();
         RefreshLiveOperations();
         RefreshNotices();
@@ -335,6 +339,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
             _chatPollTimer.Stop();
             ChatMessages.Clear();
             Tablemates.Clear();
+            _chatPortraits.Clear();
             ChatStatus = "Sign in with BAV to pull up a chair in the Crew Lounge.";
             PlanningStatus = "Sign in with BAV to leave an optional event plan for the crew.";
         }
@@ -452,13 +457,55 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         }
     }
 
+    private void CacheChatPortraits(IEnumerable<FleetCrewRoomChatPortraitDto> portraits, FleetAccountSession account)
+    {
+        _chatPortraits[account.PilotId] = PilotAvatarImageSource;
+        foreach (var portrait in portraits)
+        {
+            if (string.IsNullOrWhiteSpace(portrait.PilotId) || string.Equals(portrait.PilotId, account.PilotId, StringComparison.Ordinal)) continue;
+            _chatPortraits[portrait.PilotId] = LoadCrewRoomProfileImage(portrait.ProfileImage);
+        }
+    }
+
+    private ImageSource? GetChatPortrait(string pilotId, FleetAccountSession account) =>
+        string.Equals(pilotId, account.PilotId, StringComparison.Ordinal)
+            ? PilotAvatarImageSource
+            : _chatPortraits.TryGetValue(pilotId, out var portrait) ? portrait : null;
+
+    private static ImageSource? LoadCrewRoomProfileImage(string? dataUrl)
+    {
+        const string Prefix = "data:image/webp;base64,";
+        if (string.IsNullOrWhiteSpace(dataUrl) || dataUrl.Length > 350_000 || !dataUrl.StartsWith(Prefix, StringComparison.Ordinal)) return null;
+
+        try
+        {
+            using var stream = new MemoryStream(Convert.FromBase64String(dataUrl[Prefix.Length..]));
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.StreamSource = stream;
+            image.EndInit();
+            image.Freeze();
+            return image;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
+
     private async Task RefreshActiveTableContentAsync(FleetAccountSession account)
     {
-        var messages = await _apiClient.GetCrewRoomChatMessagesAsync(_settings, account, ActiveTable.TableChannel);
+        var chat = await _apiClient.GetCrewRoomChatMessagesAsync(_settings, account, ActiveTable.TableChannel);
+        CacheChatPortraits(chat.Portraits, account);
         ChatMessages.Clear();
-        foreach (var message in messages.OrderBy(message => message.CreatedAt).TakeLast(60))
+        foreach (var message in chat.Messages.OrderBy(message => message.CreatedAt).TakeLast(60))
         {
-            ChatMessages.Add(new CrewRoomChatMessage(message, account.PilotId));
+            ChatMessages.Add(new CrewRoomChatMessage(message, account.PilotId, GetChatPortrait(message.PilotId, account)));
         }
 
         ChatStatus = ChatMessages.Count == 0
@@ -500,7 +547,8 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         {
             var sentMessage = await _apiClient.SendCrewRoomChatMessageAsync(_settings, account, ActiveTable.TableChannel, body);
             MessageDraft = string.Empty;
-            ChatMessages.Add(new CrewRoomChatMessage(sentMessage, account.PilotId));
+            _chatPortraits[account.PilotId] = PilotAvatarImageSource;
+            ChatMessages.Add(new CrewRoomChatMessage(sentMessage, account.PilotId, GetChatPortrait(sentMessage.PilotId, account)));
             ChatStatus = "Your note is at the table.";
             _chatPollTimer.Start();
         }
@@ -625,7 +673,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
 }
 public sealed class CrewRoomChatMessage
 {
-    public CrewRoomChatMessage(FleetCrewRoomChatMessageDto message, string currentPilotId)
+    public CrewRoomChatMessage(FleetCrewRoomChatMessageDto message, string currentPilotId, ImageSource? avatarImageSource)
     {
         Id = message.Id;
         PilotId = message.PilotId;
@@ -637,6 +685,7 @@ public sealed class CrewRoomChatMessage
         Initials = string.Concat(message.PilotName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(part => char.ToUpperInvariant(part[0])));
         if (string.IsNullOrWhiteSpace(Initials)) Initials = "BA";
         TimeLabel = FormatTimestamp(message.CreatedAt);
+        AvatarImageSource = avatarImageSource;
     }
 
     public string Id { get; }
@@ -648,6 +697,8 @@ public sealed class CrewRoomChatMessage
     public string Initials { get; }
     public string TimeLabel { get; }
     public bool IsOwnMessage { get; }
+    public ImageSource? AvatarImageSource { get; }
+    public bool HasAvatarImage => AvatarImageSource is not null;
 
     private static string FormatTimestamp(DateTimeOffset timestamp)
     {

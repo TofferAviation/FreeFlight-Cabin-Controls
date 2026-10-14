@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.74] - 2026-10-14
+
+### Improved
+
+- Crew Lounge conversations now show each pilot’s current BAV profile portrait beside their messages, while retaining initials when a portrait is unavailable.
+- Kept Crew Lounge portraits private to the authenticated BAV message response and in Ember memory only; chat history remains text and author metadata stored by BAV.
+
 ## [0.5.73] - 2026-10-14
 
 ### Added

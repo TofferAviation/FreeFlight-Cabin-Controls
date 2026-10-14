@@ -294,7 +294,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
     /// Reads the recent, BAV-backed public Crew Lounge conversation. Messages
     /// are deliberately never cached as a private Ember-only chat history.
     /// </summary>
-    public async Task<IReadOnlyList<FleetCrewRoomChatMessageDto>> GetCrewRoomChatMessagesAsync(
+    public async Task<FleetCrewRoomChatDto> GetCrewRoomChatMessagesAsync(
         AppSettings settings,
         FleetAccountSession account,
         string channel,
@@ -308,7 +308,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             $"/api/acars/v1/crew-room/messages?channel={Uri.EscapeDataString(channel)}&limit=60",
             null,
             cancellationToken);
-        return payload?.Messages ?? [];
+        return new FleetCrewRoomChatDto(payload?.Messages ?? [], payload?.Portraits ?? []);
     }
 
     /// <summary>
@@ -747,7 +747,13 @@ public sealed record FleetFlightAssignmentDto(string Id, string AircraftId, stri
 public sealed record FleetAcarsSessionEnvelope(FleetAcarsSessionDto? Session);
 public sealed record FleetCrewLinkSessionEnvelope(FleetCrewLinkSessionDto? Session);
 public sealed record FleetCrewLinkLeaveEnvelope(bool Ok);
-public sealed record FleetCrewRoomChatEnvelope(IReadOnlyList<FleetCrewRoomChatMessageDto>? Messages);
+public sealed record FleetCrewRoomChatEnvelope(
+    IReadOnlyList<FleetCrewRoomChatMessageDto>? Messages,
+    IReadOnlyList<FleetCrewRoomChatPortraitDto>? Portraits);
+public sealed record FleetCrewRoomChatDto(
+    IReadOnlyList<FleetCrewRoomChatMessageDto> Messages,
+    IReadOnlyList<FleetCrewRoomChatPortraitDto> Portraits);
+public sealed record FleetCrewRoomChatPortraitDto(string PilotId, string? ProfileImage);
 public sealed record FleetCrewRoomChatMessageEnvelope(FleetCrewRoomChatMessageDto? Message);
 public sealed record FleetCrewRoomExperienceDto(
     FleetCrewRoomSettingsDto? Settings,

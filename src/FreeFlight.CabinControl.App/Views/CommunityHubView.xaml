@@ -271,8 +271,11 @@
                                                         <ColumnDefinition Width="40" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
-                                                    <Border Width="30" Height="30" CornerRadius="15" Background="#496981" BorderBrush="#79A1B5" BorderThickness="1" VerticalAlignment="Top">
-                                                        <TextBlock Text="{Binding Initials}" Foreground="#F2F8FB" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <Border Width="30" Height="30" CornerRadius="15" Background="#496981" BorderBrush="#79A1B5" BorderThickness="1" VerticalAlignment="Top" ClipToBounds="True">
+                                                        <Grid>
+                                                            <Image Source="{Binding AvatarImageSource}" Stretch="UniformToFill" Visibility="{Binding HasAvatarImage, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                            <TextBlock Text="{Binding Initials}" Foreground="#F2F8FB" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasAvatarImage, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                                        </Grid>
                                                     </Border>
                                                     <StackPanel Grid.Column="1" Margin="9,0,0,0">
                                                         <Grid>
