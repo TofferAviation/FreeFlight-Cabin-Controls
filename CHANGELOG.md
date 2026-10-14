@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.73] - 2026-10-14
+
+### Added
+
+- Added the signed-in BAV pilot portrait to the Crew Room’s personal “seat at the table”, with initials retained whenever a portrait is unavailable.
+
+### Improved
+
+- Rebuilt Crew Room as a more human shared space: a personal arrival, a distinct featured-event setting, a central shared crew table, and quieter supporting lounge cards for plans, notices and live operations.
+- Refined the language around chatting, making a loose plan and arriving to an empty table so the room stays welcoming without inventing pilots, attendance or live operations.
+
 ## [0.5.72] - 2026-10-13
 
 ### Added

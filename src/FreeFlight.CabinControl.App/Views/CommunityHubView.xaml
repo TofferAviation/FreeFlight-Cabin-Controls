@@ -7,204 +7,282 @@
              d:DesignHeight="786"
              d:DesignWidth="1239">
     <UserControl.Resources>
-        <LinearGradientBrush x:Key="CrewLoungeHeroBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#172C44" Offset="0" />
-            <GradientStop Color="#20273E" Offset="0.5" />
-            <GradientStop Color="#291D31" Offset="1" />
+        <LinearGradientBrush x:Key="CrewLoungeArrivalBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#21445B" Offset="0" />
+            <GradientStop Color="#1B344C" Offset="0.52" />
+            <GradientStop Color="#352F44" Offset="1" />
         </LinearGradientBrush>
-        <LinearGradientBrush x:Key="CrewLoungeGlowBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#F3CE83" Offset="0" />
-            <GradientStop Color="#DE9172" Offset="1" />
+        <LinearGradientBrush x:Key="CrewLoungeEventBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#1B344A" Offset="0" />
+            <GradientStop Color="#243348" Offset="0.48" />
+            <GradientStop Color="#493448" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CrewLoungeEventOverlayBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#ED102235" Offset="0" />
+            <GradientStop Color="#B81C3044" Offset="0.52" />
+            <GradientStop Color="#A236263D" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CrewLoungeCardBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#172C42" Offset="0" />
+            <GradientStop Color="#11243A" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CrewLoungeTableBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#193044" Offset="0" />
+            <GradientStop Color="#13283D" Offset="0.62" />
+            <GradientStop Color="#162436" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CrewLoungeInsetBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#0E2033" Offset="0" />
+            <GradientStop Color="#0B1A2C" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CrewLoungeAvatarBrush" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#F3D19B" Offset="0" />
+            <GradientStop Color="#DE9274" Offset="0.56" />
+            <GradientStop Color="#B85D73" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CrewLoungeTableEdgeBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#00F0C87A" Offset="0" />
+            <GradientStop Color="#D8F0C87A" Offset="0.22" />
+            <GradientStop Color="#E5E9B16F" Offset="0.52" />
+            <GradientStop Color="#CCDD9170" Offset="0.78" />
+            <GradientStop Color="#00DD9170" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CrewLoungeWarmLineBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#F2C579" Offset="0" />
+            <GradientStop Color="#DF9976" Offset="0.58" />
+            <GradientStop Color="#BD6680" Offset="1" />
         </LinearGradientBrush>
         <Style x:Key="LoungeCardStyle" TargetType="Border" BasedOn="{StaticResource CardStyle}">
-            <Setter Property="Background" Value="#102035" />
-            <Setter Property="BorderBrush" Value="#29445E" />
+            <Setter Property="Background" Value="{StaticResource CrewLoungeCardBrush}" />
+            <Setter Property="BorderBrush" Value="#385B74" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="#67869A" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
-        <Style x:Key="LoungeSubCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="#0B192B" />
-            <Setter Property="BorderBrush" Value="#27435C" />
+        <Style x:Key="LoungeInsetCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CrewLoungeInsetBrush}" />
+            <Setter Property="BorderBrush" Value="#31536C" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="CornerRadius" Value="10" />
         </Style>
-        <Style x:Key="LoungeCaptionStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#E9C77D" />
-            <Setter Property="FontSize" Value="10" />
+        <Style x:Key="LoungeEyebrowStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F1C776" />
+            <Setter Property="FontSize" Value="9" />
             <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="LoungeSectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#F6F8FA" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="LoungeSmallPillStyle" TargetType="Border">
+            <Setter Property="Background" Value="#203D50" />
+            <Setter Property="BorderBrush" Value="#54758A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="10,5" />
         </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel>
-            <Grid Margin="0,0,0,16">
+            <Grid Margin="0,0,0,18">
                 <StackPanel>
                     <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitleStyle}" />
-                    <TextBlock Text="{Binding Subtitle}" Style="{StaticResource PageSubtitleStyle}" />
+                    <TextBlock Text="A place to meet, share a route, and make the next flight feel less solitary." Style="{StaticResource PageSubtitleStyle}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Border Background="#193A31" BorderBrush="#4D9574" BorderThickness="1" CornerRadius="15" Padding="11,6" Margin="0,0,10,0">
+                    <Border Background="#1D4038" BorderBrush="#4C9675" BorderThickness="1" CornerRadius="16" Padding="12,6" Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" Fill="#A9E39B" VerticalAlignment="Center" Margin="0,0,7,0" />
-                            <TextBlock Text="{Binding ConnectionLabel}" Foreground="#C5EFC3" FontSize="11" FontWeight="SemiBold" />
+                            <Ellipse Width="8" Height="8" Fill="#9DE5A4" VerticalAlignment="Center" Margin="0,0,7,0" />
+                            <TextBlock Text="{Binding ConnectionLabel}" Foreground="#D1F3D0" FontSize="11" FontWeight="SemiBold" />
                         </StackPanel>
                     </Border>
-                    <Button Content="Refresh my flight" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="12,4" FontSize="11" />
+                    <Button Content="Refresh my flight" Command="{Binding RefreshCommand}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="34" Padding="13,4" FontSize="11" ToolTip="Refresh your BAV account and current flight details" />
                 </StackPanel>
             </Grid>
 
-            <Border Background="{StaticResource CrewLoungeHeroBrush}" BorderBrush="#46617A" BorderThickness="1" CornerRadius="14" Padding="0" Margin="0,0,0,16" ClipToBounds="True">
-                <Grid MinHeight="216">
-                    <Image Source="{Binding FeaturedHeroImageSource}" Stretch="UniformToFill" Opacity="0.86" />
-                    <Rectangle IsHitTestVisible="False">
-                        <Rectangle.Fill>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="#A8172C44" Offset="0" />
-                                <GradientStop Color="#6E17273D" Offset="0.53" />
-                                <GradientStop Color="#98101C2D" Offset="1" />
-                            </LinearGradientBrush>
-                        </Rectangle.Fill>
-                    </Rectangle>
-                    <Ellipse Width="285" Height="285" Fill="#174B5D" Opacity="0.45" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-142,170,0" />
-                    <Ellipse Width="210" Height="210" Fill="#793C51" Opacity="0.3" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-58,-88" />
-                    <Ellipse Width="82" Height="82" Fill="#F0C77D" Opacity="0.11" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="54,0,0,-37" />
-                    <Grid Margin="26,24">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="24" />
-                            <ColumnDefinition Width="308" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="BAV CREW LOUNGE" Style="{StaticResource LoungeCaptionStyle}" />
-                            <TextBlock Text="{Binding WelcomeLabel}" FontSize="16" Foreground="#BBD3E6" Margin="0,8,0,0" />
-                            <TextBlock Text="{Binding FeaturedEvent.Title}" FontSize="29" FontWeight="SemiBold" Margin="0,4,0,0" />
-                            <TextBlock Text="{Binding FeaturedEvent.RouteDetail}" Foreground="#D9E5EC" FontSize="13" Margin="0,7,0,0" />
-                            <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
-                                <Border Background="#183B50" BorderBrush="#4B7994" BorderThickness="1" CornerRadius="14" Padding="10,5" Margin="0,0,8,0">
-                                    <TextBlock Text="{Binding FeaturedEvent.DateLabel}" Foreground="#BDE6EF" FontSize="10" FontWeight="SemiBold" />
-                                </Border>
-                                <Border Background="#392945" BorderBrush="#765577" BorderThickness="1" CornerRadius="14" Padding="10,5">
-                                    <TextBlock Text="{Binding FeaturedEvent.TimeLabel}" Foreground="#E4C8D7" FontSize="10" FontWeight="SemiBold" />
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,17,0,0">
-                                <Button Content="Open crew table"
-                                        Command="{Binding SelectCrewTableCommand}"
-                                        CommandParameter="{Binding FeaturedEvent}"
-                                        Style="{StaticResource PrimaryButtonStyle}"
-                                        MinHeight="34"
-                                        Padding="15,4"
-                                        FontSize="11" />
-                                <Button Content="Open BAV calendar"
-                                        Command="{Binding OpenBavEventsCommand}"
-                                        Style="{StaticResource SecondaryButtonStyle}"
-                                        MinHeight="34"
-                                        Padding="14,4"
-                                        FontSize="11"
-                                        Margin="9,0,0,0" />
-                            </StackPanel>
-                        </StackPanel>
-
-                        <Border Grid.Column="2" Background="#0C1A2B" BorderBrush="#517693" BorderThickness="1" CornerRadius="12" Padding="16" VerticalAlignment="Center">
-                            <StackPanel>
-                                <TextBlock Text="YOUR FLIGHT JACKET" Style="{StaticResource LoungeCaptionStyle}" Foreground="#A8CBE4" />
-                                <Grid Margin="0,13,0,12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="48" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource CrewLoungeGlowBrush}">
-                                        <TextBlock Text="{Binding PilotInitials}" Foreground="#172133" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding PilotName}" FontSize="16" FontWeight="SemiBold" />
-                                        <TextBlock Text="{Binding PilotLabel}" Foreground="#B2CAE0" FontSize="10" Margin="0,3,0,0" />
-                                    </StackPanel>
-                                </Grid>
-                                <Border Style="{StaticResource LoungeSubCardStyle}" Padding="12">
-                                    <StackPanel>
-                                        <TextBlock Text="NEXT BAV FLIGHT" Style="{StaticResource LoungeCaptionStyle}" Foreground="#C5D6E8" FontSize="9" />
-                                        <TextBlock Text="{Binding ActiveAssignmentLabel}" FontSize="13" FontWeight="SemiBold" Margin="0,7,0,0" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding CurrentAircraftLabel}" Foreground="#E3C17E" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding ActiveAssignmentDetail}" Foreground="#9EB4C9" FontSize="10" Margin="0,3,0,0" TextWrapping="Wrap" />
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Grid Margin="0,0,0,16">
+            <!-- Arrival and event space: intentionally asymmetric so the Crew Room reads as a place, not a dashboard. -->
+            <Grid Margin="0,0,0,18">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.35*" />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="0.85*" />
+                    <ColumnDefinition Width="0.82*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="1.48*" />
                 </Grid.ColumnDefinitions>
 
-                <Border Style="{StaticResource LoungeCardStyle}" Padding="0" ClipToBounds="True">
+                <Border Background="{StaticResource CrewLoungeArrivalBrush}" BorderBrush="#54758D" BorderThickness="1" CornerRadius="16" Padding="24" ClipToBounds="True" Effect="{StaticResource HeroShadowEffect}">
+                    <Grid MinHeight="286">
+                        <Ellipse Width="255" Height="255" Fill="#257EB1A0" Opacity="0.35" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-152,-120,0" />
+                        <Ellipse Width="178" Height="178" Fill="#D3787F" Opacity="0.16" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-100,0,0,-108" />
+                        <Border Width="2" Background="{StaticResource CrewLoungeWarmLineBrush}" HorizontalAlignment="Left" VerticalAlignment="Stretch" Margin="0,3,0,3" Opacity="0.85" />
+                        <StackPanel Margin="16,0,4,0">
+                            <TextBlock Text="YOUR SEAT AT THE TABLE" Style="{StaticResource LoungeEyebrowStyle}" />
+                            <Grid Margin="0,18,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="88" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="78" Height="78" CornerRadius="39" Background="{StaticResource CrewLoungeAvatarBrush}" BorderBrush="#FFE0AA" BorderThickness="2" VerticalAlignment="Top">
+                                    <Grid>
+                                        <Border CornerRadius="37" ClipToBounds="True" Visibility="{Binding HasPilotAvatarImage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <Image Source="{Binding PilotAvatarImageSource}" Stretch="UniformToFill" />
+                                        </Border>
+                                        <TextBlock Text="{Binding PilotInitials}" Foreground="#172133" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasPilotAvatarImage, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                    </Grid>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ArrivalTitle}" Foreground="#D7E7EC" FontSize="12" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding PilotName}" FontSize="21" FontWeight="SemiBold" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding PilotLabel}" Foreground="#C6D8E7" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource LoungeInsetCardStyle}" Padding="13" Margin="0,20,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="YOUR NEXT BAV FLIGHT" Style="{StaticResource LoungeEyebrowStyle}" Foreground="#C8E1EB" FontSize="8" />
+                                    <TextBlock Text="{Binding ActiveAssignmentLabel}" FontSize="14" FontWeight="SemiBold" Margin="0,7,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding CurrentAircraftLabel}" Foreground="#F0C778" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding ActiveAssignmentDetail}" Foreground="#A8C0D2" FontSize="10" Margin="0,3,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="{Binding ArrivalDetail}" Foreground="#D3E1E6" FontSize="11" TextWrapping="Wrap" Margin="0,15,0,0" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="2" Background="{StaticResource CrewLoungeEventBrush}" BorderBrush="#61748D" BorderThickness="1" CornerRadius="16" Padding="0" ClipToBounds="True" Effect="{StaticResource HeroShadowEffect}">
+                    <Grid MinHeight="286">
+                        <Image Source="{Binding FeaturedHeroImageSource}" Stretch="UniformToFill" Opacity="0.66" />
+                        <Rectangle Fill="{StaticResource CrewLoungeEventOverlayBrush}" />
+                        <Ellipse Width="420" Height="280" Fill="#2276A2A5" Opacity="0.35" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-150,-70,0" />
+                        <Ellipse Width="236" Height="236" Fill="#DC8A70" Opacity="0.17" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-104,-135" />
+                        <Border Height="3" Width="355" Background="{StaticResource CrewLoungeTableEdgeBrush}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,0" />
+                        <Grid Margin="30,25">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="136" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="THE TABLE IS SET" Style="{StaticResource LoungeEyebrowStyle}" />
+                                <TextBlock Text="{Binding FeaturedEvent.Title}" FontSize="30" FontWeight="SemiBold" Foreground="#FBFCFD" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <TextBlock Text="{Binding FeaturedEvent.RouteDetail}" Foreground="#E1EBEC" FontSize="13" Margin="0,7,0,0" TextWrapping="Wrap" />
+                                <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                                    <Border Style="{StaticResource LoungeSmallPillStyle}" Background="#21455A" BorderBrush="#6495AC" Margin="0,0,8,0">
+                                        <TextBlock Text="{Binding FeaturedEvent.DateLabel}" Foreground="#D1EEF4" FontSize="10" FontWeight="SemiBold" />
+                                    </Border>
+                                    <Border Style="{StaticResource LoungeSmallPillStyle}" Background="#45324B" BorderBrush="#846380">
+                                        <TextBlock Text="{Binding FeaturedEvent.TimeLabel}" Foreground="#F0D6E2" FontSize="10" FontWeight="SemiBold" />
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+                                    <Button Content="Take a seat"
+                                            Command="{Binding SelectCrewTableCommand}"
+                                            CommandParameter="{Binding FeaturedEvent}"
+                                            Style="{StaticResource PrimaryButtonStyle}"
+                                            MinHeight="36"
+                                            Padding="17,5"
+                                            FontSize="11"
+                                            ToolTip="Open the shared table for this event" />
+                                    <Button Content="Browse events"
+                                            Command="{Binding OpenBavEventsCommand}"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            MinHeight="36"
+                                            Padding="14,5"
+                                            FontSize="11"
+                                            Margin="9,0,0,0"
+                                            ToolTip="Open the official BAV event calendar" />
+                                </StackPanel>
+                            </StackPanel>
+                            <Border Grid.Column="1" Style="{StaticResource LoungeInsetCardStyle}" Background="#92102235" BorderBrush="#5C8FA2" Padding="12" VerticalAlignment="Bottom" Margin="16,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="CREW ROOM" Style="{StaticResource LoungeEyebrowStyle}" Foreground="#BFE6EA" FontSize="8" />
+                                    <TextBlock Text="Meet. Plan. Fly." FontSize="14" FontWeight="SemiBold" Margin="0,7,0,0" />
+                                    <TextBlock Text="The social side of a BAV operation, at your pace." Foreground="#B7CBD6" FontSize="9" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- The shared table is the centre of the room, not a small widget beside a dashboard. -->
+            <Grid Margin="0,0,0,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.58*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="0.72*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Background="{StaticResource CrewLoungeTableBrush}" BorderBrush="#4F7188" BorderThickness="1" CornerRadius="16" Padding="0" ClipToBounds="True">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <Grid Margin="20,18,20,13">
+                        <Rectangle Height="3" Fill="{StaticResource CrewLoungeTableEdgeBrush}" VerticalAlignment="Top" Opacity="0.95" />
+                        <Ellipse Width="460" Height="168" Fill="#145E7070" Opacity="0.22" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,-94" />
+                        <Grid Margin="24,22,24,15">
                             <StackPanel>
-                                <TextBlock Text="CREW LOUNGE" Style="{StaticResource LoungeCaptionStyle}" />
-                                <TextBlock Text="{Binding ActiveTableTitle}" Style="{StaticResource SectionTitleStyle}" Margin="0,5,0,0" />
-                                <TextBlock Text="{Binding ActiveTableDescription}" Style="{StaticResource MutedTextStyle}" FontSize="11" Margin="0,4,0,0" />
+                                <TextBlock Text="THE SHARED CREW TABLE" Style="{StaticResource LoungeEyebrowStyle}" />
+                                <TextBlock Text="{Binding ActiveTableTitle}" Style="{StaticResource LoungeSectionTitleStyle}" Margin="0,6,0,0" />
+                                <TextBlock Text="{Binding ActiveTableDescription}" Foreground="#B9CCDA" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
-                                <Border Background="#1B333E" BorderBrush="#4D7E80" BorderThickness="1" CornerRadius="12" Padding="9,4" Margin="0,0,8,0">
-                                    <TextBlock Text="{Binding ChatConnectionLabel}" Foreground="#BCE3D5" FontSize="9" FontWeight="SemiBold" />
+                                <Border Background="#213E44" BorderBrush="#5C8F88" BorderThickness="1" CornerRadius="14" Padding="10,5" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding ChatConnectionLabel}" Foreground="#C8E9DB" FontSize="9" FontWeight="SemiBold" />
                                 </Border>
-                                <Button Content="Refresh"
+                                <Button Content="Refresh table"
                                         Command="{Binding RefreshChatCommand}"
                                         Style="{StaticResource SecondaryButtonStyle}"
-                                        MinHeight="27"
-                                        Padding="9,2"
-                                        FontSize="10" />
+                                        MinHeight="29"
+                                        Padding="10,3"
+                                        FontSize="10"
+                                        ToolTip="Refresh messages from the Crew Lounge" />
                             </StackPanel>
                         </Grid>
 
-                        <Grid Grid.Row="1" Margin="20,0,20,14" MinHeight="190">
+                        <Grid Grid.Row="1" Margin="24,0,24,16" MinHeight="250">
                             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Visibility="{Binding HasChatMessages, Converter={StaticResource BooleanToVisibilityConverter}}">
                                 <ItemsControl ItemsSource="{Binding ChatMessages}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#0B192B" BorderBrush="#27435C" BorderThickness="1" CornerRadius="10" Padding="11" Margin="0,0,0,8" MaxWidth="510">
+                                            <Border Background="#132940" BorderBrush="#365B73" BorderThickness="1" CornerRadius="12" Padding="12" Margin="0,0,0,9" MaxWidth="575">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="HorizontalAlignment" Value="Left" />
-                                                        <Setter Property="Background" Value="#0B192B" />
-                                                        <Setter Property="BorderBrush" Value="#27435C" />
+                                                        <Setter Property="Background" Value="#132940" />
+                                                        <Setter Property="BorderBrush" Value="#365B73" />
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsOwnMessage}" Value="True">
                                                                 <Setter Property="HorizontalAlignment" Value="Right" />
-                                                                <Setter Property="Background" Value="#223B45" />
-                                                                <Setter Property="BorderBrush" Value="#4A786D" />
+                                                                <Setter Property="Background" Value="#254144" />
+                                                                <Setter Property="BorderBrush" Value="#658C7D" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="34" />
+                                                        <ColumnDefinition Width="40" />
                                                         <ColumnDefinition Width="*" />
                                                     </Grid.ColumnDefinitions>
-                                                    <Border Width="27" Height="27" CornerRadius="14" Background="#36526C" VerticalAlignment="Top">
-                                                        <TextBlock Text="{Binding Initials}" Foreground="#E3F0F7" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                    <Border Width="30" Height="30" CornerRadius="15" Background="#496981" BorderBrush="#79A1B5" BorderThickness="1" VerticalAlignment="Top">
+                                                        <TextBlock Text="{Binding Initials}" Foreground="#F2F8FB" FontSize="9" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                     </Border>
-                                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                                    <StackPanel Grid.Column="1" Margin="9,0,0,0">
                                                         <Grid>
                                                             <StackPanel Orientation="Horizontal">
                                                                 <TextBlock Text="{Binding PilotName}" FontWeight="SemiBold" FontSize="11" />
-                                                                <TextBlock Text="{Binding Rank}" Foreground="#A8BED1" FontSize="9" Margin="6,1,0,0" />
+                                                                <TextBlock Text="{Binding Rank}" Foreground="#B4C9D7" FontSize="9" Margin="7,1,0,0" />
                                                             </StackPanel>
-                                                            <TextBlock Text="{Binding TimeLabel}" Foreground="#91A9C1" FontSize="9" HorizontalAlignment="Right" />
+                                                            <TextBlock Text="{Binding TimeLabel}" Foreground="#99B1C4" FontSize="9" HorizontalAlignment="Right" />
                                                         </Grid>
-                                                        <TextBlock Text="{Binding Body}" Foreground="#E7EDF2" FontSize="12" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                                        <TextBlock Text="{Binding Body}" Foreground="#EEF4F7" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0" />
                                                     </StackPanel>
                                                 </Grid>
                                             </Border>
@@ -212,40 +290,50 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </ScrollViewer>
-                            <StackPanel Width="330" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasChatMessages, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                <TextBlock Text="☕" FontSize="28" HorizontalAlignment="Center" />
-                                <TextBlock Text="A table is waiting" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0" />
-                                <TextBlock Text="{Binding ChatStatus}" Foreground="#A8BFD2" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" />
-                            </StackPanel>
+
+                            <Grid Width="430" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasChatMessages, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                <Ellipse Width="246" Height="246" Fill="#12677C85" Opacity="0.35" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Ellipse Width="182" Height="182" Stroke="#5F9D98" StrokeThickness="1" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Border Background="#C9112338" BorderBrush="#5C7E92" BorderThickness="1" CornerRadius="14" Padding="22,19" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <StackPanel Width="296">
+                                        <TextBlock Text="PULL UP A CHAIR" Style="{StaticResource LoungeEyebrowStyle}" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding ChatEmptyTitle}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" TextAlignment="Center" Margin="0,9,0,0" />
+                                        <TextBlock Text="{Binding ChatEmptyDetail}" Foreground="#BED0DB" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Margin="0,7,0,0" />
+                                        <TextBlock Text="{Binding ChatStatus}" Foreground="#9EB8C9" FontSize="9" TextWrapping="Wrap" TextAlignment="Center" Margin="0,10,0,0" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </Grid>
 
-                        <Border Grid.Row="2" Background="#0B192B" BorderBrush="#27435C" BorderThickness="1,1,0,0" Padding="14,12">
+                        <Border Grid.Row="2" Background="#0D1E30" BorderBrush="#395D73" BorderThickness="1,1,0,0" Padding="16,13">
                             <StackPanel>
+                                <TextBlock Text="{Binding MessagePrompt}" Style="{StaticResource LoungeEyebrowStyle}" Foreground="#B9D9E5" FontSize="8" Margin="2,0,0,7" />
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="94" />
+                                        <ColumnDefinition Width="104" />
                                     </Grid.ColumnDefinitions>
                                     <TextBox Grid.Column="0"
                                              Text="{Binding MessageDraft, UpdateSourceTrigger=PropertyChanged}"
                                              MaxLength="600"
-                                             MinHeight="36"
-                                             Padding="10,7"
-                                             Foreground="#EDF4F8"
-                                             Background="#14283C"
-                                             BorderBrush="#385B72"
+                                             MinHeight="40"
+                                             Padding="11,8"
+                                             Foreground="#F3F7F9"
+                                             Background="#142B3F"
+                                             BorderBrush="#4B6D80"
                                              BorderThickness="1"
                                              VerticalContentAlignment="Center"
                                              ToolTip="Say hello to BAV pilots in the Crew Lounge" />
                                     <Button Grid.Column="1"
-                                            Content="Send"
+                                            Content="Share it"
                                             Command="{Binding SendChatMessageCommand}"
                                             IsEnabled="{Binding CanSendCrewMessage}"
                                             Style="{StaticResource PrimaryButtonStyle}"
-                                            MinHeight="36"
-                                            Padding="10,4"
+                                            MinHeight="40"
+                                            Padding="11,4"
                                             FontSize="11"
-                                            Margin="8,0,0,0" />
+                                            Margin="9,0,0,0"
+                                            ToolTip="Send your message to the shared crew table" />
                                 </Grid>
                                 <TextBlock Text="{Binding ChatStatus}" Foreground="#91ABC1" FontSize="9" Margin="2,7,2,0" TextWrapping="Wrap" />
                             </StackPanel>
@@ -254,22 +342,22 @@
                 </Border>
 
                 <StackPanel Grid.Column="2">
-                    <Border Style="{StaticResource LoungeCardStyle}" Padding="18" Margin="0,0,0,16">
+                    <Border Style="{StaticResource LoungeCardStyle}" Padding="20" Margin="0,0,0,14">
                         <StackPanel>
-                            <TextBlock Text="YOUR LOUNGE HOST" Style="{StaticResource LoungeCaptionStyle}" />
-                            <TextBlock Text="{Binding HostName}" Style="{StaticResource SectionTitleStyle}" Margin="0,6,0,0" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding HostMessage}" Foreground="#AFC2D3" FontSize="11" Margin="0,8,0,0" TextWrapping="Wrap" />
-                            <Border Style="{StaticResource LoungeSubCardStyle}" Padding="11" Margin="0,14,0,0">
+                            <TextBlock Text="A NOTE FROM THE LOUNGE" Style="{StaticResource LoungeEyebrowStyle}" Foreground="#F0C780" />
+                            <TextBlock Text="{Binding HostName}" Style="{StaticResource LoungeSectionTitleStyle}" Margin="0,7,0,0" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding HostMessage}" Foreground="#BDD0DB" FontSize="11" Margin="0,9,0,0" TextWrapping="Wrap" />
+                            <Border Style="{StaticResource LoungeInsetCardStyle}" Padding="12" Margin="0,16,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="{Binding ActiveTableCaption}" Foreground="#E8C67E" FontSize="10" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding WelcomePrompt}" Foreground="#DDE8ED" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding ActiveTableCaption}" Foreground="#F0C778" FontSize="10" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding WelcomePrompt}" Foreground="#E4EDF1" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
-                            <TextBlock Text="Staff selects this room’s featured event from the published BAV calendar. Official registration stays on BAV." Foreground="#91A8BD" FontSize="9" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            <TextBlock Text="The room follows the published BAV calendar. Official registration stays on BAV." Foreground="#91ABBD" FontSize="9" TextWrapping="Wrap" Margin="0,13,0,0" />
                         </StackPanel>
                     </Border>
 
-                    <Border Style="{StaticResource LoungeCardStyle}" Padding="18" Margin="0,0,0,16">
+                    <Border Style="{StaticResource LoungeCardStyle}" Padding="20">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -278,184 +366,191 @@
                             </Grid.RowDefinitions>
                             <Grid>
                                 <StackPanel>
-                                    <TextBlock Text="CREW PLANNING BOARD" Style="{StaticResource LoungeCaptionStyle}" Foreground="#A9E39B" />
-                                    <TextBlock Text="{Binding ActiveTableTitle}" Style="{StaticResource SectionTitleStyle}" Margin="0,5,0,0" TextWrapping="Wrap" />
-                                    <TextBlock Text="{Binding PlanningBoardLabel}" Foreground="#9FB5C8" FontSize="9" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding PlanningBoardHeading}" Style="{StaticResource LoungeEyebrowStyle}" Foreground="#A8E2B5" />
+                                    <TextBlock Text="{Binding ActiveTableTitle}" Style="{StaticResource LoungeSectionTitleStyle}" Margin="0,7,0,0" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding PlanningBoardLabel}" Foreground="#AFC4D1" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <TextBlock Text="{Binding TablemateCount}" Foreground="#B8E6BF" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                <Border Background="#234B45" BorderBrush="#5A9D83" BorderThickness="1" CornerRadius="16" Padding="10,4" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                    <TextBlock Text="{Binding TablemateCount}" Foreground="#CFF0C4" FontSize="18" FontWeight="SemiBold" />
+                                </Border>
                             </Grid>
-                            <Grid Grid.Row="1" Margin="0,13,0,9" MinHeight="56">
+                            <Grid Grid.Row="1" Margin="0,15,0,10" MinHeight="66">
                                 <ItemsControl ItemsSource="{Binding Tablemates}" Visibility="{Binding HasTablemates, Converter={StaticResource BooleanToVisibilityConverter}}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Margin="0,0,0,9">
-                                                <Grid.ColumnDefinitions><ColumnDefinition Width="29" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                                <Border Width="24" Height="24" CornerRadius="12" Background="#36526C" VerticalAlignment="Top"><TextBlock Text="{Binding Initials}" Foreground="#E3F0F7" FontSize="8" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
-                                                <StackPanel Grid.Column="1" Margin="7,0,0,0">
+                                            <Grid Margin="0,0,0,10">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="31" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <Border Width="25" Height="25" CornerRadius="13" Background="#496981" BorderBrush="#79A1B5" BorderThickness="1" VerticalAlignment="Top"><TextBlock Text="{Binding Initials}" Foreground="#F2F8FB" FontSize="8" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
+                                                <StackPanel Grid.Column="1" Margin="8,0,0,0">
                                                     <TextBlock Text="{Binding PilotName}" FontSize="10" FontWeight="SemiBold" />
-                                                    <TextBlock Text="{Binding PlanDetail}" Foreground="#AAC0D2" FontSize="9" TextWrapping="Wrap" />
-                                                    <TextBlock Text="{Binding UpdatedLabel}" Foreground="#829CB2" FontSize="8" Margin="0,2,0,0" />
+                                                    <TextBlock Text="{Binding PlanDetail}" Foreground="#B5CAD8" FontSize="9" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding UpdatedLabel}" Foreground="#8FA9BA" FontSize="8" Margin="0,2,0,0" />
                                                 </StackPanel>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Text="No one has added a voluntary plan yet." Foreground="#A8BFD2" FontSize="10" TextWrapping="Wrap" VerticalAlignment="Center" Visibility="{Binding HasTablemates, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                <TextBlock Text="{Binding TablemateEmptyMessage}" Foreground="#AFC3D1" FontSize="10" TextWrapping="Wrap" VerticalAlignment="Center" Visibility="{Binding HasTablemates, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
                             </Grid>
                             <StackPanel Grid.Row="2">
-                                <Button Content="{Binding PlanningButtonLabel}" Command="{Binding MarkPlanningCommand}" IsEnabled="{Binding CanPlanEvent}" Style="{StaticResource SecondaryButtonStyle}" MinHeight="29" Padding="10,3" FontSize="9" />
-                                <Button Content="Remove my plan" Command="{Binding RemovePlanningCommand}" IsEnabled="{Binding IsPlanning}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinHeight="26" Padding="9,2" FontSize="9" Margin="0,5,0,0" />
-                                <TextBlock Text="{Binding PlanningStatus}" Foreground="#91ABC1" FontSize="8" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                <Button Content="{Binding PlanningButtonLabel}" Command="{Binding MarkPlanningCommand}" IsEnabled="{Binding CanPlanEvent}" Style="{StaticResource PrimaryButtonStyle}" MinHeight="31" Padding="11,3" FontSize="10" />
+                                <Button Content="Remove my plan" Command="{Binding RemovePlanningCommand}" IsEnabled="{Binding IsPlanning}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Left" MinHeight="27" Padding="9,2" FontSize="9" Margin="0,6,0,0" />
+                                <TextBlock Text="{Binding PlanningStatus}" Foreground="#91ABC1" FontSize="8" TextWrapping="Wrap" Margin="0,6,0,0" />
                             </StackPanel>
                         </Grid>
                     </Border>
-
-                    <Border Style="{StaticResource LoungeCardStyle}" Padding="18" Margin="0,0,0,16">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-                            <Grid>
-                                <StackPanel>
-                                    <TextBlock Text="YOUR NOTICE BOARD" Style="{StaticResource LoungeCaptionStyle}" Foreground="#C8ACD6" />
-                                    <TextBlock Text="From BAV Operations" Style="{StaticResource SectionTitleStyle}" Margin="0,5,0,0" />
-                                </StackPanel>
-                                <TextBlock Text="{Binding NoticeCount}" Foreground="#D7B4E8" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
-                            </Grid>
-                            <Grid Grid.Row="1" Margin="0,14,0,0">
-                                <ItemsControl ItemsSource="{Binding Notices}" Visibility="{Binding HasNotices, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Margin="0,0,0,11">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="14" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <Ellipse Width="7" Height="7" Fill="{Binding LevelColor}" VerticalAlignment="Top" Margin="0,5,0,0" />
-                                                <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap" />
-                                                    <TextBlock Text="{Binding Body}" Foreground="#AAC0D2" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0" />
-                                                    <TextBlock Text="{Binding Timestamp}" Foreground="#91A8BE" FontSize="9" Margin="0,3,0,0" />
-                                                </StackPanel>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="No private BAV notices right now. When Operations has an update, it will appear here." Foreground="#A8BFD2" FontSize="11" TextWrapping="Wrap" Visibility="{Binding HasNotices, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
-                            </Grid>
-                        </Grid>
-                    </Border>
-
                 </StackPanel>
             </Grid>
 
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.2*" />
-                    <ColumnDefinition Width="16" />
-                    <ColumnDefinition Width="0.8*" />
+                    <ColumnDefinition Width="1.12*" />
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="0.88*" />
                 </Grid.ColumnDefinitions>
-                <Border Style="{StaticResource LoungeCardStyle}" Padding="0" ClipToBounds="True">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid Margin="19,17,19,13">
-                            <StackPanel>
-                                <TextBlock Text="THE LONG TABLE" Style="{StaticResource LoungeCaptionStyle}" />
-                                <TextBlock Text="Published BAV events" Style="{StaticResource SectionTitleStyle}" Margin="0,5,0,0" />
-                                <TextBlock Text="Open a table to meet pilots exploring an event. Plans here are voluntary; use BAV for official details and registration." Foreground="#A8BED0" FontSize="11" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <Button Content="BAV event calendar" Command="{Binding OpenBavEventsCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="30" Padding="11,3" FontSize="10" />
-                        </Grid>
-                        <StackPanel Grid.Row="1" Margin="19,0,19,18">
-                            <ItemsControl ItemsSource="{Binding Events}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource LoungeSubCardStyle}" Padding="12" Margin="0,0,0,8">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="84" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="112" />
-                                                </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding DateLabel}" Foreground="#E6C578" FontSize="10" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                                    <TextBlock Text="{Binding TimeLabel}" Foreground="#AABFD0" FontSize="9" Margin="0,4,0,0" TextWrapping="Wrap" />
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="1" Margin="8,0,8,0">
-                                                    <TextBlock Text="{Binding TypeLabel}" Foreground="#B9DDA5" FontSize="9" FontWeight="SemiBold" />
-                                                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Margin="0,3,0,0" />
-                                                    <TextBlock Text="{Binding RouteDetail}" Foreground="#B0C3D2" FontSize="10" Margin="0,4,0,0" />
-                                                </StackPanel>
-                                                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                    <TextBlock Text="{Binding TableStateLabel}" Foreground="{Binding TableStateColor}" FontSize="9" TextWrapping="Wrap" TextAlignment="Right" Width="106" />
-                                                    <Button Content="{Binding TableButtonLabel}"
-                                                            Command="{Binding DataContext.SelectCrewTableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                            CommandParameter="{Binding}"
-                                                            Style="{StaticResource SecondaryButtonStyle}"
-                                                            MinHeight="28"
-                                                            Padding="9,2"
-                                                            FontSize="9"
-                                                            Margin="0,7,0,0" />
-                                                </StackPanel>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Grid>
-                </Border>
-
-                <Border Grid.Column="2" Style="{StaticResource LoungeCardStyle}" Padding="18">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
+                <StackPanel>
+                    <Border Style="{StaticResource LoungeCardStyle}" Padding="0" ClipToBounds="True">
                         <Grid>
-                            <StackPanel>
-                                <TextBlock Text="COMMUNITY PULSE" Style="{StaticResource LoungeCaptionStyle}" Foreground="#B4D7E9" />
-                                <TextBlock Text="Crew flying now" Style="{StaticResource SectionTitleStyle}" Margin="0,5,0,0" />
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Margin="21,20,21,15">
+                                <StackPanel>
+                                    <TextBlock Text="AROUND THE LOUNGE" Style="{StaticResource LoungeEyebrowStyle}" />
+                                    <TextBlock Text="Published BAV events" Style="{StaticResource LoungeSectionTitleStyle}" Margin="0,6,0,0" />
+                                    <TextBlock Text="Open a table to meet pilots exploring an event. Plans are voluntary; BAV carries the official details." Foreground="#B1C5D2" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Content="BAV event calendar" Command="{Binding OpenBavEventsCommand}" Style="{StaticResource SecondaryButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" MinHeight="30" Padding="11,3" FontSize="10" />
+                            </Grid>
+                            <StackPanel Grid.Row="1" Margin="21,0,21,19">
+                                <ItemsControl ItemsSource="{Binding Events}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource LoungeInsetCardStyle}" Padding="13" Margin="0,0,0,9">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="84" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="116" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Background="#243E50" BorderBrush="#5A8094" BorderThickness="1" CornerRadius="9" Padding="9,7" VerticalAlignment="Top">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding DateLabel}" Foreground="#F0CD85" FontSize="10" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                            <TextBlock Text="{Binding TimeLabel}" Foreground="#B5CAD7" FontSize="9" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Margin="12,0,10,0">
+                                                        <TextBlock Text="{Binding TypeLabel}" Foreground="#B9DDA5" FontSize="9" FontWeight="SemiBold" />
+                                                        <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Margin="0,3,0,0" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding RouteDetail}" Foreground="#B4C7D4" FontSize="10" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding TableStateLabel}" Foreground="{Binding TableStateColor}" FontSize="9" TextWrapping="Wrap" TextAlignment="Right" Width="110" />
+                                                        <Button Content="{Binding TableButtonLabel}"
+                                                                Command="{Binding DataContext.SelectCrewTableCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                                MinHeight="29"
+                                                                Padding="10,2"
+                                                                FontSize="9"
+                                                                Margin="0,8,0,0" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
-                            <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#1B3548" BorderBrush="#48758E" BorderThickness="1" CornerRadius="11" Padding="8,4">
-                                <TextBlock Text="LIVE BAV DATA" Foreground="#B9D9EA" FontSize="8" FontWeight="SemiBold" />
-                            </Border>
                         </Grid>
-                        <Grid Grid.Row="1" Margin="0,15,0,0">
-                            <ItemsControl ItemsSource="{Binding LiveOperations}" Visibility="{Binding HasLiveOperations, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Style="{StaticResource LoungeSubCardStyle}" Padding="11" Margin="0,0,0,8">
-                                            <Grid>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <Border Style="{StaticResource LoungeCardStyle}" Padding="20" Margin="0,0,0,14">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="FROM BAV OPERATIONS" Style="{StaticResource LoungeEyebrowStyle}" Foreground="#DDB9E2" />
+                                    <TextBlock Text="Your notice board" Style="{StaticResource LoungeSectionTitleStyle}" Margin="0,6,0,0" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding NoticeCount}" Foreground="#E3C1E8" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </Grid>
+                            <Grid Grid.Row="1" Margin="0,15,0,0">
+                                <ItemsControl ItemsSource="{Binding Notices}" Visibility="{Binding HasNotices, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,12">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="72" />
+                                                    <ColumnDefinition Width="15" />
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
-                                                <StackPanel>
-                                                    <TextBlock Text="{Binding FlightNumber}" Foreground="#C0E6F0" FontSize="11" FontWeight="SemiBold" />
-                                                    <TextBlock Text="{Binding PilotMarker}" Foreground="#8EABC0" FontSize="8" Margin="0,3,0,0" />
-                                                </StackPanel>
+                                                <Ellipse Width="7" Height="7" Fill="{Binding LevelColor}" VerticalAlignment="Top" Margin="0,5,0,0" />
                                                 <StackPanel Grid.Column="1">
-                                                    <TextBlock Text="{Binding RouteLabel}" FontWeight="SemiBold" FontSize="11" />
-                                                    <TextBlock Text="{Binding Aircraft}" Foreground="#A6BCCA" FontSize="10" Margin="0,3,0,0" />
-                                                    <TextBlock Text="{Binding StatusLabel}" Foreground="{Binding StatusColor}" FontSize="9" FontWeight="SemiBold" Margin="0,4,0,0" />
+                                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="11" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Body}" Foreground="#B2C6D3" FontSize="10" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                                    <TextBlock Text="{Binding Timestamp}" Foreground="#92ABBC" FontSize="9" Margin="0,3,0,0" />
                                                 </StackPanel>
                                             </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <StackPanel Width="235" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasLiveOperations, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
-                                <TextBlock Text="No crew flights returned yet" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" />
-                                <TextBlock Text="The board stays calm rather than inventing activity when BAV Operations has nothing to share." Foreground="#A6BDCE" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" Margin="0,5,0,0" />
-                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="No private BAV notices right now. When Operations has an update, it will appear here." Foreground="#AEC2D0" FontSize="11" TextWrapping="Wrap" Visibility="{Binding HasNotices, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                            </Grid>
                         </Grid>
-                    </Grid>
-                </Border>
+                    </Border>
+
+                    <Border Style="{StaticResource LoungeCardStyle}" Padding="20">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="COMMUNITY PULSE" Style="{StaticResource LoungeEyebrowStyle}" Foreground="#B5DCEB" />
+                                    <TextBlock Text="Crew flying now" Style="{StaticResource LoungeSectionTitleStyle}" Margin="0,6,0,0" />
+                                </StackPanel>
+                                <Border HorizontalAlignment="Right" VerticalAlignment="Center" Background="#214253" BorderBrush="#5A869C" BorderThickness="1" CornerRadius="12" Padding="8,4">
+                                    <TextBlock Text="LIVE BAV DATA" Foreground="#C7E5F0" FontSize="8" FontWeight="SemiBold" />
+                                </Border>
+                            </Grid>
+                            <Grid Grid.Row="1" Margin="0,15,0,0" MinHeight="144">
+                                <ItemsControl ItemsSource="{Binding LiveOperations}" Visibility="{Binding HasLiveOperations, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource LoungeInsetCardStyle}" Padding="11" Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="74" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding FlightNumber}" Foreground="#C9E9F2" FontSize="11" FontWeight="SemiBold" />
+                                                        <TextBlock Text="{Binding PilotMarker}" Foreground="#97B1C2" FontSize="8" Margin="0,3,0,0" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Text="{Binding RouteLabel}" FontWeight="SemiBold" FontSize="11" />
+                                                        <TextBlock Text="{Binding Aircraft}" Foreground="#B0C5D2" FontSize="10" Margin="0,3,0,0" />
+                                                        <TextBlock Text="{Binding StatusLabel}" Foreground="{Binding StatusColor}" FontSize="9" FontWeight="SemiBold" Margin="0,4,0,0" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Width="240" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding HasLiveOperations, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding CommunityPulseEmptyTitle}" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Center" />
+                                    <TextBlock Text="{Binding CommunityPulseEmptyDetail}" Foreground="#AFC4D2" FontSize="10" TextWrapping="Wrap" TextAlignment="Center" Margin="0,6,0,0" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </StackPanel>
             </Grid>
         </StackPanel>
     </ScrollViewer>

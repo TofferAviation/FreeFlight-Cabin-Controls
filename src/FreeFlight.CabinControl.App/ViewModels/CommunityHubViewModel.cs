@@ -28,11 +28,11 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
     private readonly DispatcherTimer _chatPollTimer;
     private bool _isChatRefreshing;
     private string _messageDraft = string.Empty;
-    private string _chatStatus = "Sign in with BAV to join the Crew Lounge.";
+    private string _chatStatus = "Sign in with BAV to pull up a chair in the Crew Lounge.";
     private string _hostName = "BAV Community";
-    private string _hostMessage = "The Crew Lounge is open. Pull up a chair, share a route idea, and make another pilot feel welcome.";
-    private string _welcomePrompt = "What are you planning to fly next?";
-    private string _planningStatus = "Choose a BAV event table to share an optional plan.";
+    private string _hostMessage = "The Crew Lounge is open. Settle in, share a route idea, or leave a friendly note for a fellow pilot.";
+    private string _welcomePrompt = "What would you like to fly—or talk about—next?";
+    private string _planningStatus = "Choose a BAV event table to leave an optional plan for the crew.";
     private CrewRoomEvent _featuredEvent = CrewRoomEvent.General;
     private CrewRoomEvent _activeTable = CrewRoomEvent.General;
     private string? _featuredHeroRevision;
@@ -43,7 +43,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         FleetApiClient apiClient,
         CabinAccountViewModel account,
         string settingsDirectory)
-        : base("Crew Room", "A warmer corner of Ember for every British Airways Virtual pilot")
+        : base("Crew Room", "A place to arrive, share a plan, and fly alongside the British Airways Virtual community")
     {
         _settings = settings;
         _apiClient = apiClient;
@@ -114,22 +114,51 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
     public string PilotName => _account.DisplayName;
     public string PilotLabel => _account.PilotLabel;
     public string PilotInitials => string.IsNullOrWhiteSpace(_account.Initials) ? "BA" : _account.Initials;
-    public string ConnectionLabel => _account.IsAcarsOperating ? "ACARS live" : "BAV connected";
-    public string ConnectionDetail => _account.IsAcarsOperating ? _account.AcarsSessionLabel : "Your BAV identity is connected to Ember.";
+    /// <summary>
+    /// The authenticated pilot's locally decoded BAV portrait. The Crew Lounge
+    /// deliberately reuses the account view model's in-memory image rather
+    /// than opening an unauthenticated URL or copying profile media to a
+    /// community endpoint.
+    /// </summary>
+    public ImageSource? PilotAvatarImageSource => _account.ProfileImageSource;
+    public bool HasPilotAvatarImage => PilotAvatarImageSource is not null;
+    public string ConnectionLabel => _account.IsAcarsOperating ? "ACARS connected" : "BAV account connected";
+    public string ConnectionDetail => _account.IsAcarsOperating ? _account.AcarsSessionLabel : "Your BAV identity is ready to use in the Crew Lounge.";
     public string ActiveAssignmentLabel => _account.WebsiteFlightAssignmentLabel;
     public string ActiveAssignmentDetail => _account.WebsiteFlightAssignmentDetail;
     public string CurrentAircraftLabel => _account.WebsiteFlightAssignment is { Aircraft: { Length: > 0 } aircraft }
         ? aircraft
         : "Choose a BAV flight to add an aircraft";
-    public string WelcomeLabel => string.IsNullOrWhiteSpace(PilotName) ? "Make yourself at home." : $"Welcome back, {PilotName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? PilotName}.";
+    public string WelcomeLabel => string.IsNullOrWhiteSpace(PilotName)
+        ? "There’s a seat for you here."
+        : $"Welcome, {PilotName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? PilotName}. There’s a seat for you here.";
+    public string ArrivalTitle => FeaturedEvent.IsGeneral ? "Start wherever you are." : FeaturedEvent.Title;
+    public string ArrivalDetail => FeaturedEvent.IsGeneral
+        ? "A low-pressure place for route ideas, pre-flight questions, and the small moments between flights."
+        : "The event table is open for pilots who would like to compare plans before they fly.";
     public string HostName => _hostName;
     public string HostMessage => _hostMessage;
     public string WelcomePrompt => _welcomePrompt;
     public string ActiveTableTitle => ActiveTable.IsGeneral ? "The shared crew table" : ActiveTable.Title;
-    public string ActiveTableCaption => ActiveTable.IsGeneral ? "GENERAL CREW LOUNGE" : "BAV EVENT TABLE";
+    public string ActiveTableCaption => ActiveTable.IsGeneral ? "THE LONG TABLE" : "BAV EVENT TABLE";
     public string ActiveTableDescription => ActiveTable.IsGeneral
-        ? "A shared BAV space for route ideas, a quick hello, and the pre-flight catch-up."
-        : "A conversation table for pilots exploring this BAV calendar event. Registration stays on BAV.";
+        ? "Pull up a chair—compare routes, share a quick hello, or talk through the flight ahead."
+        : "A relaxed conversation table for pilots considering this BAV calendar event. Official registration stays on BAV.";
+    public string ChatEmptyTitle => ActiveTable.IsGeneral ? "The lounge is quiet for now." : "This table is quiet for now.";
+    public string ChatEmptyDetail => _account.Session is null
+        ? "Sign in with BAV to pull up a chair and join the conversation."
+        : ActiveTable.IsGeneral
+            ? "Start with a hello, a route idea, or a question for the crew."
+            : "Say hello to pilots considering this event. Every plan here is optional.";
+    public string MessagePrompt => ActiveTable.IsGeneral
+        ? "Say hello, share a route, or ask who is flying."
+        : "Share a route idea or a quick note for this event.";
+    public string PlanningBoardHeading => IsEventTable ? "Who’s thinking of flying?" : "Make a loose plan";
+    public string TablemateEmptyMessage => IsEventTable
+        ? "No voluntary plans here yet. Leave yours if you would like the crew to know you are considering this flight."
+        : "Choose an event table to see voluntary plans from pilots who want to share them.";
+    public string CommunityPulseEmptyTitle => "No live crew flights are listed right now.";
+    public string CommunityPulseEmptyDetail => "We only show flights returned by BAV Operations, so the board stays honest when there is nothing live to share.";
 
     public int LiveOperationCount => LiveOperations.Count;
     public int EventCount => Events.Count;
@@ -173,24 +202,24 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
     public bool IsEventTable => !ActiveTable.IsGeneral;
     public bool IsPlanning => IsEventTable && _account.Session is { } account && Tablemates.Any(item => string.Equals(item.PilotId, account.PilotId, StringComparison.Ordinal));
     public bool CanPlanEvent => IsEventTable && _account.Session is not null && !IsChatRefreshing;
-    public string PlanningButtonLabel => IsPlanning ? "You’re planning to fly" : "I’m planning to fly";
+    public string PlanningButtonLabel => IsPlanning ? "My plan is visible" : "I’m thinking of flying";
     public string PlanningBoardLabel => IsEventTable
-        ? "Voluntary plans · not a roster or registration"
-        : "Open a BAV event table to plan with the crew";
+        ? "A loose plan for fellow pilots—not a roster or BAV registration."
+        : "Open an event table to see who is considering a flight.";
 
     public string ChatConnectionLabel => _account.Session is null
-        ? "BAV sign-in needed"
+        ? "Sign in to join"
         : IsChatRefreshing
-            ? "Updating lounge"
-            : ActiveTable.IsGeneral ? "BAV crew chat" : "BAV event table";
+            ? "Refreshing the room"
+            : ActiveTable.IsGeneral ? "Crew conversation" : "Event conversation";
 
     public string LiveOperationsSummary => HasLiveOperations
         ? $"{LiveOperationCount} flight{(LiveOperationCount == 1 ? string.Empty : "s")} returned by BAV Operations"
-        : "No current flight slots have been returned by BAV Operations.";
+        : "No live crew flights returned by BAV Operations just now.";
 
     public string EventSummary => EventCount switch
     {
-        0 => "No published BAV events returned yet",
+        0 => "No published BAV events right now",
         1 => "1 published BAV event",
         _ => $"{EventCount} published BAV events"
     };
@@ -243,7 +272,12 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
             OnPropertyChanged(nameof(ConnectionDetail));
         }
 
-        if (e.PropertyName is nameof(CabinAccountViewModel.WebsiteFlightAssignment) or nameof(CabinAccountViewModel.DisplayName) or nameof(CabinAccountViewModel.PilotLabel) or nameof(CabinAccountViewModel.Initials))
+        if (e.PropertyName is nameof(CabinAccountViewModel.WebsiteFlightAssignment)
+            or nameof(CabinAccountViewModel.DisplayName)
+            or nameof(CabinAccountViewModel.PilotLabel)
+            or nameof(CabinAccountViewModel.Initials)
+            or nameof(CabinAccountViewModel.ProfileImageSource)
+            or nameof(CabinAccountViewModel.HasProfileImage))
         {
             RefreshIdentity();
             OnPropertyChanged(nameof(IsPlanning));
@@ -255,6 +289,8 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(PilotName));
         OnPropertyChanged(nameof(PilotLabel));
         OnPropertyChanged(nameof(PilotInitials));
+        OnPropertyChanged(nameof(PilotAvatarImageSource));
+        OnPropertyChanged(nameof(HasPilotAvatarImage));
         OnPropertyChanged(nameof(ConnectionLabel));
         OnPropertyChanged(nameof(ConnectionDetail));
         OnPropertyChanged(nameof(ActiveAssignmentLabel));
@@ -299,12 +335,12 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
             _chatPollTimer.Stop();
             ChatMessages.Clear();
             Tablemates.Clear();
-            ChatStatus = "Sign in with BAV to join the Crew Lounge.";
-            PlanningStatus = "Sign in with BAV to use an event planning board.";
+            ChatStatus = "Sign in with BAV to pull up a chair in the Crew Lounge.";
+            PlanningStatus = "Sign in with BAV to leave an optional event plan for the crew.";
         }
         else
         {
-            ChatStatus = "Loading the BAV Crew Lounge…";
+            ChatStatus = "Opening the Crew Lounge…";
             _ = RefreshCrewRoomAsync(manualRefresh: false);
         }
 
@@ -319,7 +355,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         if (IsChatRefreshing) return;
         if (_account.Session is not { } account)
         {
-            ChatStatus = "Sign in with BAV to join the Crew Lounge.";
+            ChatStatus = "Sign in with BAV to pull up a chair in the Crew Lounge.";
             return;
         }
 
@@ -355,9 +391,9 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         var settings = experience.Settings;
         _hostName = string.IsNullOrWhiteSpace(settings?.HostName) ? "BAV Community" : settings.HostName;
         _hostMessage = string.IsNullOrWhiteSpace(settings?.HostMessage)
-            ? "The Crew Lounge is open. Pull up a chair, share a route idea, and make another pilot feel welcome."
+            ? "The Crew Lounge is open. Settle in, share a route idea, or leave a friendly note for a fellow pilot."
             : settings.HostMessage;
-        _welcomePrompt = string.IsNullOrWhiteSpace(settings?.WelcomePrompt) ? "What are you planning to fly next?" : settings.WelcomePrompt;
+        _welcomePrompt = string.IsNullOrWhiteSpace(settings?.WelcomePrompt) ? "What would you like to fly—or talk about—next?" : settings.WelcomePrompt;
 
         _featuredEvent = experience.FeaturedEvent is null ? CrewRoomEvent.General : new CrewRoomEvent(experience.FeaturedEvent);
         var retained = Events.FirstOrDefault(item => string.Equals(item.Id, priorTableId, StringComparison.Ordinal));
@@ -426,8 +462,8 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         }
 
         ChatStatus = ChatMessages.Count == 0
-            ? $"{ActiveTableTitle} is quiet for the moment. Be the first to say hello."
-            : $"BAV-backed {ActiveTableCaption.ToLowerInvariant()} · refreshed just now.";
+            ? $"{ChatEmptyTitle} {ChatEmptyDetail}"
+            : $"{ActiveTableCaption} is up to date with the latest BAV-backed messages.";
 
         Tablemates.Clear();
         if (IsEventTable)
@@ -438,12 +474,12 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
                 Tablemates.Add(new CrewRoomIntent(intention, account.PilotId));
             }
             PlanningStatus = IsPlanning
-                ? "Your plan is visible to the crew. It is not a BAV registration or roster."
-                : "Say you’re planning to fly if you want other pilots to find you here. This never registers you for the event.";
+                ? "Your loose plan is visible to the crew. It is not a BAV registration or roster."
+                : "Leave a loose plan if you would like other pilots to find you here. This never registers you for the event.";
         }
         else
         {
-            PlanningStatus = "Open a BAV event table to share a voluntary plan with the crew.";
+            PlanningStatus = "Open a BAV event table when you are ready to leave a loose plan for the crew.";
         }
         RaiseTableProperties();
     }
@@ -465,7 +501,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
             var sentMessage = await _apiClient.SendCrewRoomChatMessageAsync(_settings, account, ActiveTable.TableChannel, body);
             MessageDraft = string.Empty;
             ChatMessages.Add(new CrewRoomChatMessage(sentMessage, account.PilotId));
-            ChatStatus = "Your note has reached the Crew Lounge.";
+            ChatStatus = "Your note is at the table.";
             _chatPollTimer.Start();
         }
         finally
@@ -480,7 +516,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         if (parameter is not CrewRoomEvent selected || string.Equals(selected.Id, ActiveTable.Id, StringComparison.Ordinal)) return;
         if (_account.Session is not { } account)
         {
-            ChatStatus = "Sign in with BAV to open a Crew Table.";
+            ChatStatus = "Sign in with BAV to pull up a chair at this table.";
             return;
         }
         if (IsChatRefreshing) return;
@@ -536,7 +572,7 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         {
             await _apiClient.RemoveCrewRoomIntentAsync(_settings, account, ActiveTable.Id);
             await RefreshActiveTableContentAsync(account);
-            PlanningStatus = "Your voluntary plan has been removed. Your BAV registration was never changed.";
+            PlanningStatus = "Your loose plan has been cleared from this table. Your BAV registration was never changed.";
         }
         finally
         {
@@ -550,6 +586,11 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(ActiveTableTitle));
         OnPropertyChanged(nameof(ActiveTableCaption));
         OnPropertyChanged(nameof(ActiveTableDescription));
+        OnPropertyChanged(nameof(ArrivalTitle));
+        OnPropertyChanged(nameof(ArrivalDetail));
+        OnPropertyChanged(nameof(ChatEmptyTitle));
+        OnPropertyChanged(nameof(ChatEmptyDetail));
+        OnPropertyChanged(nameof(MessagePrompt));
         OnPropertyChanged(nameof(IsEventTable));
         OnPropertyChanged(nameof(TablemateCount));
         OnPropertyChanged(nameof(HasTablemates));
@@ -557,6 +598,8 @@ public sealed class CommunityHubViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(CanPlanEvent));
         OnPropertyChanged(nameof(PlanningButtonLabel));
         OnPropertyChanged(nameof(PlanningBoardLabel));
+        OnPropertyChanged(nameof(PlanningBoardHeading));
+        OnPropertyChanged(nameof(TablemateEmptyMessage));
     }
 
     private void HandleChatPollTimerTick(object? sender, EventArgs e) => _ = RefreshCrewRoomAsync(manualRefresh: false);
