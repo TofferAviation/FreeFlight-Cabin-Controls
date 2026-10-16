@@ -16,7 +16,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-13
+          # Build Intel packages with Xcode's cross-architecture toolchain
+          # on the readily available Apple-Silicon runner. The published
+          # application host is still osx-x64 and the X-Plane bridge is
+          # compiled for x86_64.
+          - runner: macos-14
             runtime: osx-x64
             architecture: x86_64
             label: Intel
