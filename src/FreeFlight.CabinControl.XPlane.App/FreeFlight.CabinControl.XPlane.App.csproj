@@ -26,6 +26,14 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup Condition="Exists('../../xplane-plugin/dist/FreeFlightCabinBridge/64/mac.xpl')">
+    <Content Include="../../xplane-plugin/dist/FreeFlightCabinBridge/64/mac.xpl">
+      <Link>xplane-plugin/FreeFlightCabinBridge/64/mac.xpl</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
     <!-- The X-Plane bridge is platform-neutral. Link the existing implementation

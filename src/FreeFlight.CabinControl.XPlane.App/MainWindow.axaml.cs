@@ -13,7 +13,9 @@ public partial class MainWindow : Window
     private readonly ISettingsStore _settingsStore;
     private readonly FileLogService _log;
     private readonly XPlaneWebApiBridgeService _bridge;
+    private readonly MsfsRelayBridgeService _msfsRelay;
     private readonly DispatcherTimer _statusTimer;
+    private bool _usingMsfsRelay;
     private bool _disposed;
 
     public MainWindow()
@@ -28,10 +30,15 @@ public partial class MainWindow : Window
         _log.Information("Ember X-Plane desktop client starting.");
 
         WebApiPortBox.Text = _settings.XPlaneWebApiPort.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        MsfsRelayUrlBox.Text = _settings.MsfsRelayUrl;
+        MsfsRelayFingerprintBox.Text = _settings.MsfsRelayCertificateFingerprint;
         _bridge = new XPlaneWebApiBridgeService(_settings, _log);
         _bridge.StatusChanged += HandleBridgeStatus;
         _bridge.TelemetryReceived += HandleTelemetry;
         _bridge.Start();
+        _msfsRelay = new MsfsRelayBridgeService();
+        _msfsRelay.StatusChanged += HandleRelayStatus;
+        _msfsRelay.TelemetryReceived += HandleTelemetry;
 
         _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _statusTimer.Tick += (_, _) => RefreshDiagnostics();
@@ -63,17 +70,38 @@ public partial class MainWindow : Window
 
     private void HandleBridgeStatus(BridgeStatus status) => Dispatcher.UIThread.Post(() =>
     {
+        if (_usingMsfsRelay)
+        {
+            return;
+        }
+
+        ShowConnectionStatus(status, "X-Plane");
+        RefreshDiagnostics();
+    });
+
+    private void HandleRelayStatus(BridgeStatus status) => Dispatcher.UIThread.Post(() =>
+    {
+        if (!_usingMsfsRelay)
+        {
+            return;
+        }
+
+        ShowConnectionStatus(status, "MSFS relay");
+        RefreshDiagnostics();
+    });
+
+    private void ShowConnectionStatus(BridgeStatus status, string connectionName)
+    {
         ConnectionTitle.Text = status.Simulator;
         ConnectionDetail.Text = status.Detail;
         ConnectionBadge.Text = status.State switch
         {
-            BridgeConnectionState.Connected => "X-Plane connected",
-            BridgeConnectionState.Connecting => "Checking X-Plane",
-            BridgeConnectionState.Incompatible => "X-Plane needs attention",
-            _ => "X-Plane offline"
+            BridgeConnectionState.Connected => $"{connectionName} connected",
+            BridgeConnectionState.Connecting => $"Connecting {connectionName}",
+            BridgeConnectionState.Incompatible => $"{connectionName} needs attention",
+            _ => $"{connectionName} offline"
         };
-        RefreshDiagnostics();
-    });
+    }
 
     private void HandleTelemetry(CabinTelemetrySnapshot snapshot) => Dispatcher.UIThread.Post(() =>
     {
@@ -85,6 +113,19 @@ public partial class MainWindow : Window
 
     private void RefreshDiagnostics()
     {
+        if (_usingMsfsRelay)
+        {
+            AircraftName.Text = _msfsRelay.CurrentStatus.Aircraft;
+            ProfileTitle.Text = "MSFS private relay";
+            ProfileSummary.Text = "Live aircraft telemetry is shared from your chosen Windows PC. Cabin controls remain local to MSFS Windows Ember in this first release.";
+            if (_msfsRelay.LastFrameAge is { } relayAge)
+            {
+                TelemetryAge.Text = $"Latest relay frame: {Math.Max(0, relayAge.TotalSeconds):N1}s ago";
+            }
+
+            return;
+        }
+
         var report = _bridge.GetSharedFlightProfileReport();
         AircraftName.Text = _bridge.CurrentStatus.Aircraft;
         ProfileTitle.Text = report.ProfileName;
@@ -107,12 +148,53 @@ public partial class MainWindow : Window
         try
         {
             await _settingsStore.SaveAsync(_settings);
+            _usingMsfsRelay = false;
             SettingsMessage.Text = "Saved locally. Reconnecting to X-Plane…";
             _bridge.RequestReconnect();
+            RefreshDiagnostics();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             SettingsMessage.Text = "The port was used for this session, but Ember could not save the local setting.";
+        }
+    }
+
+    private async void ConnectMsfsRelayClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (!Uri.TryCreate(MsfsRelayUrlBox.Text?.Trim(), UriKind.Absolute, out var relayUri))
+        {
+            MsfsRelayMessage.Text = "Enter the HTTPS address printed by the Windows relay.";
+            return;
+        }
+
+        var fingerprint = MsfsRelayFingerprintBox.Text?.Trim() ?? string.Empty;
+        var pairingCode = MsfsRelayCodeBox.Text?.Trim() ?? string.Empty;
+        try
+        {
+            _usingMsfsRelay = true;
+            MsfsRelayMessage.Text = "Pairing with the private Windows relay…";
+            await _msfsRelay.ConnectAsync(relayUri, fingerprint, pairingCode, Environment.MachineName);
+            MsfsRelayCodeBox.Text = string.Empty;
+            _settings.MsfsRelayUrl = relayUri.GetLeftPart(UriPartial.Authority);
+            _settings.MsfsRelayCertificateFingerprint = fingerprint;
+            await _settingsStore.SaveAsync(_settings);
+            MsfsRelayMessage.Text = "Paired for this Ember session. The one-time code and relay access token are not saved.";
+            RefreshDiagnostics();
+        }
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or HttpRequestException or TaskCanceledException)
+        {
+            _usingMsfsRelay = false;
+            MsfsRelayMessage.Text = exception switch
+            {
+                TaskCanceledException => "The relay did not respond in time. Check the address and local firewall, then try again.",
+                _ => exception.Message
+            };
+            _bridge.RequestReconnect();
+            RefreshDiagnostics();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            MsfsRelayMessage.Text = "Paired, but Ember could not save the relay address locally. You can still use it this session.";
         }
     }
 
@@ -139,6 +221,12 @@ public partial class MainWindow : Window
 
     private async Task RunCabinCommandAsync(string action, Func<Task<bool>> command)
     {
+        if (_usingMsfsRelay)
+        {
+            CommandResult.Text = "MSFS relay mode is read-only in this release. Use Windows Ember to send MSFS cabin controls.";
+            return;
+        }
+
         CommandResult.Text = $"Sending {action.ToLowerInvariant()} to X-Plane…";
         try
         {
@@ -164,6 +252,9 @@ public partial class MainWindow : Window
         _bridge.StatusChanged -= HandleBridgeStatus;
         _bridge.TelemetryReceived -= HandleTelemetry;
         _bridge.Dispose();
+        _msfsRelay.StatusChanged -= HandleRelayStatus;
+        _msfsRelay.TelemetryReceived -= HandleTelemetry;
+        _msfsRelay.Dispose();
         _log.Information("Ember X-Plane desktop client stopped.");
     }
 }

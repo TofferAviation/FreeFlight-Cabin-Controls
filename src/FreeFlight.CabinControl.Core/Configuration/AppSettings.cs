@@ -126,6 +126,12 @@ public sealed class AppSettings
 
     public bool Msfs2024AutoConnect { get; set; } = true;
 
+    // The private MSFS relay can be paired from Ember on macOS or Linux.
+    // Pairing codes and relay access tokens are deliberately never persisted.
+    public string MsfsRelayUrl { get; set; } = string.Empty;
+
+    public string MsfsRelayCertificateFingerprint { get; set; } = string.Empty;
+
     // Cabin Control has one production Fleet source. The URL is bundled with
     // the release so pilots are never asked to point the app at localhost.
     public string FleetApiBaseUrl { get; set; } = BritishAirwaysVirtualWebsiteUrl;

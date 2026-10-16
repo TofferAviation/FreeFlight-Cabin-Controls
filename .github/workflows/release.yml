@@ -89,6 +89,22 @@ jobs:
             -p:FileVersion=${{ steps.version.outputs.version }}.0 `
             -p:InformationalVersion=${{ steps.version.outputs.version }}+$shortSha
 
+      - name: Publish the private Windows MSFS relay
+        shell: pwsh
+        run: |
+          $shortSha = "${{ github.sha }}".Substring(0, 8)
+          dotnet publish src/FreeFlight.CabinControl.MsfsRelay/FreeFlight.CabinControl.MsfsRelay.csproj `
+            -c Release -r win-x64 --self-contained true `
+            --source https://api.nuget.org/v3/index.json `
+            -o artifacts/msfs-relay `
+            -p:Version=${{ steps.version.outputs.version }} `
+            -p:AssemblyVersion=${{ steps.version.outputs.version }}.0 `
+            -p:FileVersion=${{ steps.version.outputs.version }}.0 `
+            -p:InformationalVersion=${{ steps.version.outputs.version }}+$shortSha
+          Copy-Item packaging/windows/Start* artifacts/msfs-relay -Force
+          Copy-Item docs/MSFS_RELAY.md artifacts/msfs-relay/README.md -Force
+          Copy-Item artifacts/msfs-relay artifacts/publish/msfs-relay -Recurse -Force
+
       - name: Generate release notes and bundled changelog
         shell: pwsh
         run: |

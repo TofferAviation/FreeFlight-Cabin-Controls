@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/FreeFlight.CabinControl.App/FreeFlight.CabinControl.App.csproj" />
     <Project Path="src/FreeFlight.CabinControl.Core/FreeFlight.CabinControl.Core.csproj" />
+    <Project Path="src/FreeFlight.CabinControl.MsfsRelay/FreeFlight.CabinControl.MsfsRelay.csproj" />
     <Project Path="src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj" />
   </Folder>
   <Folder Name="/tests/">

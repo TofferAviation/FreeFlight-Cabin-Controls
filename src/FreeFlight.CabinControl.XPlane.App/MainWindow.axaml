@@ -52,7 +52,7 @@
     </Border>
 
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-      <Grid Margin="32,26" RowDefinitions="Auto,Auto,*" RowSpacing="18">
+      <Grid Margin="32,26" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="18">
         <Border Classes="card" Background="#102B47">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="28">
             <StackPanel Spacing="8">
@@ -71,7 +71,27 @@
           </Grid>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="1.25*,1*" ColumnSpacing="18">
+        <Border Grid.Row="1" Classes="card" Background="#0B2637">
+          <Grid ColumnDefinitions="1.1*,1.1*,1*,Auto" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="9">
+            <StackPanel Spacing="5">
+              <TextBlock Classes="eyebrow" Text="MSFS ON A WINDOWS PC" />
+              <TextBox x:Name="MsfsRelayUrlBox" PlaceholderText="https://your-windows-pc:52187" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="5">
+              <TextBlock Classes="eyebrow" Text="CERTIFICATE FINGERPRINT" />
+              <TextBox x:Name="MsfsRelayFingerprintBox" PlaceholderText="64-character SHA-256 fingerprint" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="5">
+              <TextBlock Classes="eyebrow" Text="ONE-TIME PAIRING CODE" />
+              <TextBox x:Name="MsfsRelayCodeBox" PasswordChar="●" PlaceholderText="Shown by the Windows relay" />
+            </StackPanel>
+            <Button Grid.Column="3" Classes="primary" Click="ConnectMsfsRelayClick" Content="Pair MSFS relay" VerticalAlignment="Bottom" MinWidth="142" />
+            <TextBlock Grid.Row="1" Grid.ColumnSpan="4" x:Name="MsfsRelayMessage" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="For MSFS: start Ember MSFS Relay on the Windows computer running the simulator, then pair it here. Relay telemetry is read-only in this first release." />
+          </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="1.25*,1*" ColumnSpacing="18">
           <Border Classes="card">
             <StackPanel Spacing="9">
               <TextBlock Classes="eyebrow" Text="AIRCRAFT TELEMETRY" />
@@ -89,7 +109,7 @@
           </Border>
         </Grid>
 
-        <Border Grid.Row="2" Classes="card">
+        <Border Grid.Row="3" Classes="card">
           <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="15">
             <StackPanel Spacing="5">
               <TextBlock Classes="eyebrow" Text="CABIN CONTROLS" />
@@ -112,7 +132,7 @@
     </ScrollViewer>
 
     <Border Grid.Row="2" Background="#071B32" BorderBrush="#214A71" BorderThickness="0,1,0,0" Padding="32,14">
-      <TextBlock Classes="muted" FontSize="12" Text="X-Plane 12 is the first cross-platform Ember target. Microsoft Flight Simulator remains a Windows-only integration until a supported cross-platform route exists." />
+      <TextBlock Classes="muted" FontSize="12" Text="X-Plane 12 runs natively on macOS and Linux. Microsoft Flight Simulator can share private, read-only telemetry through the Ember relay on its Windows host." />
     </Border>
   </Grid>
 </Window>

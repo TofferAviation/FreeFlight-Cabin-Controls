@@ -30,3 +30,9 @@ On Linux, configure the project with a Linux C++ compiler and install `lin.xpl` 
 `X-Plane 12/Resources/plugins/FreeFlightCabinBridge/64/lin.xpl`. The Linux build
 uses the same loopback-only datarefs and has no network listener of its own. Restart
 X-Plane after installing or updating either plugin file.
+
+On macOS, install `mac.xpl` at
+`X-Plane 12/Resources/plugins/FreeFlightCabinBridge/64/mac.xpl`. The macOS package
+is built for the same CPU architecture as Ember; release automation produces separate
+Apple Silicon and Intel desktop packages. The bridge exposes only local X-Plane
+datarefs and never opens a network port.
