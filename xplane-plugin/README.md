@@ -24,4 +24,9 @@ cmake -S xplane-plugin -B artifacts/xplane-plugin-build -A x64 -DXPLANE_SDK_ROOT
 cmake --build artifacts/xplane-plugin-build --config Release
 ```
 
-Install `win.xpl` at `X-Plane 12/Resources/plugins/FreeFlightCabinBridge/64/win.xpl`, then restart X-Plane.
+On Windows, install `win.xpl` at `X-Plane 12/Resources/plugins/FreeFlightCabinBridge/64/win.xpl`.
+
+On Linux, configure the project with a Linux C++ compiler and install `lin.xpl` at
+`X-Plane 12/Resources/plugins/FreeFlightCabinBridge/64/lin.xpl`. The Linux build
+uses the same loopback-only datarefs and has no network listener of its own. Restart
+X-Plane after installing or updating either plugin file.

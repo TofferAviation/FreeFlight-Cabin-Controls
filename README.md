@@ -2,6 +2,13 @@
 
 Ember is a Windows desktop operations application with a live X-Plane 12 bridge for managing a simulated aircraft cabin, fleet lifecycle and flight operations. Development initially targets the FlightFactor 777 v2 while keeping the core aircraft- and airline-neutral.
 
+The published full Ember application remains Windows-only. A separate, X-Plane-first
+Linux/macOS desktop host now lives in `src/FreeFlight.CabinControl.XPlane.App` so it
+can reuse the portable X-Plane Web API bridge without changing the WPF application.
+Its Linux packaging target is a self-contained `x86_64.AppImage`; it is not announced
+as a supported pilot download until the AppImage and matching `lin.xpl` bridge have
+been built and tested on Linux. Microsoft Flight Simulator remains Windows-only.
+
 ## Current baseline
 
 Version `0.5.x` is the current application line. GitHub release builds are offered through the in-application updater. It provides:
