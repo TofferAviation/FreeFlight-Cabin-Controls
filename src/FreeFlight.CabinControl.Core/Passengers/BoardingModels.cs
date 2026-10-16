@@ -41,6 +41,12 @@ public enum PassengerCabinClass
     Economy
 }
 
+public enum PassengerCabinDeck
+{
+    Lower,
+    Upper
+}
+
 public enum PassengerCabinLayout
 {
     FlightFactor777V2,
@@ -52,6 +58,7 @@ public enum PassengerCabinLayout
     BritishAirwaysA321,
     BritishAirwaysA321Neo220M,
     BritishAirwaysA350,
+    BritishAirwaysA380,
     BritishAirways777200Lgw,
     BritishAirways777200First,
     BritishAirways7878ClubSuite,
@@ -106,7 +113,8 @@ public sealed record CabinSeat(
     PassengerCabinClass CabinClass,
     double X,
     double Y,
-    double AisleY);
+    double AisleY,
+    PassengerCabinDeck Deck = PassengerCabinDeck.Lower);
 
 public sealed record CabinDoorDefinition(
     BoardingDoor Door,

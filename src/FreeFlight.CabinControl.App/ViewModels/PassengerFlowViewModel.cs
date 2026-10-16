@@ -46,6 +46,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     private DateTimeOffset? _importedScheduledArrivalLocal;
     private DateTimeOffset? _lastSimBriefSyncTime;
     private CabinLayoutProfileOption _selectedCabinLayoutProfile;
+    private PassengerCabinDeck _selectedA380Deck = PassengerCabinDeck.Lower;
     private bool _seatbeltSignOn = true;
     private string _liveFlightPhase = "PREFLIGHT";
     private int _activityPulseTicks;
@@ -108,6 +109,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         SyncSimBriefCommand = new AsyncRelayCommand(SyncSimBriefAsync, ShowSimBriefError);
         UnloadFlightCommand = new RelayCommand(_ => UnloadFlight());
         ToggleSeatbeltSignCommand = new RelayCommand(_ => ToggleSeatbeltFailSafe());
+        SelectA380DeckCommand = new RelayCommand(SelectA380Deck);
 
         _animationTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -141,6 +143,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public ICommand SyncSimBriefCommand { get; }
     public ICommand UnloadFlightCommand { get; }
     public ICommand ToggleSeatbeltSignCommand { get; }
+    public ICommand SelectA380DeckCommand { get; }
     public ObservableCollection<PassengerMarkerViewModel> PassengerMarkers { get; } = [];
     public ObservableCollection<CabinCrewMarkerViewModel> CabinCrewMarkers { get; } = [];
     public ObservableCollection<CabinDoorViewModel> CabinDoors { get; } = [];
@@ -152,6 +155,20 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public bool IsReferenceCabinLayout => !IsOperationalCabinLayout;
     public bool IsFlightFactorCabinLayout => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.FlightFactor777V2;
     public bool IsAirlineCabinLayout => !IsFlightFactorCabinLayout;
+    public bool IsA380CabinLayout => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirwaysA380;
+    public bool IsA380LowerDeckSelected => _selectedA380Deck == PassengerCabinDeck.Lower;
+    public bool IsA380UpperDeckSelected => _selectedA380Deck == PassengerCabinDeck.Upper;
+    public string ActiveCabinDeckLabel => IsA380UpperDeckSelected ? "UPPER DECK" : "LOWER DECK";
+    public string ActiveCabinArtworkUri => IsA380CabinLayout
+        ? _selectedA380Deck == PassengerCabinDeck.Upper
+            ? "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirwaysA380UpperDeck.png"
+            : "pack://application:,,,/FreeFlight.CabinControl;component/Assets/CabinLayouts/BritishAirwaysA380LowerDeck.png"
+        : SelectedCabinLayoutProfile.LiveCabinArtworkUri;
+    public double ActiveCabinCanvasWidth => IsA380CabinLayout
+        ? _selectedA380Deck == PassengerCabinDeck.Upper ? 346d : 322d
+        : 1033d;
+    public double ActiveCabinCanvasHeight => IsA380CabinLayout ? 1033d : 192d;
+    public double ActiveCabinPreviewMaximumHeight => IsA380CabinLayout ? 520d : 250d;
     public bool IsBritishAirways777200Er => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777200Er;
     public bool IsBritishAirways777300 => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300;
     public bool IsNarrowBodyCabinLayout => SelectedCabinLayoutProfile.Layout is
@@ -177,6 +194,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public string LiveCabinStatus => $"{LiveFlightPhase.ToUpperInvariant()} · {AircraftMovementLabel} · {SeatbeltSignLabel}";
     private int ExpectedCabinCrewCount => SelectedCabinLayoutProfile.Layout switch
     {
+        PassengerCabinLayout.BritishAirwaysA380 => 22,
         PassengerCabinLayout.BritishAirways777300 => 12,
         PassengerCabinLayout.BritishAirwaysA350 => 13,
         PassengerCabinLayout.BritishAirways78710 => 10,
@@ -275,6 +293,33 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     public void ApplyCabinLayoutSelection(string? profileId) =>
         SetCabinLayoutProfile(CabinLayoutProfileCatalog.Resolve(profileId), persist: false);
+
+    private void SelectA380Deck(object? parameter)
+    {
+        if (!IsA380CabinLayout)
+        {
+            return;
+        }
+
+        var deck = string.Equals(parameter?.ToString(), "Upper", StringComparison.OrdinalIgnoreCase)
+            ? PassengerCabinDeck.Upper
+            : PassengerCabinDeck.Lower;
+        if (_selectedA380Deck == deck)
+        {
+            return;
+        }
+
+        _selectedA380Deck = deck;
+        OnPropertyChanged(nameof(IsA380LowerDeckSelected));
+        OnPropertyChanged(nameof(IsA380UpperDeckSelected));
+        OnPropertyChanged(nameof(ActiveCabinDeckLabel));
+        OnPropertyChanged(nameof(ActiveCabinArtworkUri));
+        OnPropertyChanged(nameof(ActiveCabinCanvasWidth));
+        OnPropertyChanged(nameof(ActiveCabinCanvasHeight));
+        OnPropertyChanged(nameof(ActiveCabinPreviewMaximumHeight));
+        ClearPassengerVisuals();
+        RefreshFromEngine();
+    }
 
     public void ApplyCabinTelemetry(CabinTelemetrySnapshot snapshot)
     {
@@ -1009,6 +1054,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             var value when value.Contains("A321NEO") || value.Contains("A21N") => "A21N",
             var value when value.Contains("A321") => "A321",
             var value when value.Contains("A350") || value.Contains("A359") || value.Contains("A35K") => "A359",
+            var value when value.Contains("A380") || value.Contains("A388") => "A388",
             var value when value.Contains("E190") => "E190",
             _ => string.Empty
         };
@@ -1165,6 +1211,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         var openDoors = CabinDoors.Where(door => door.IsOpen).Select(door => door.Door).ToHashSet();
         _animationTimer.Stop();
         _engine = new PassengerBoardingEngine(BookedPassengerCount, profile.Layout);
+        _selectedA380Deck = PassengerCabinDeck.Lower;
         RefreshCabinDoors(openDoors);
         ClearPassengerVisuals();
         ResetCabinServiceState();
@@ -1175,6 +1222,14 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         OnPropertyChanged(nameof(IsReferenceCabinLayout));
         OnPropertyChanged(nameof(IsFlightFactorCabinLayout));
         OnPropertyChanged(nameof(IsAirlineCabinLayout));
+        OnPropertyChanged(nameof(IsA380CabinLayout));
+        OnPropertyChanged(nameof(IsA380LowerDeckSelected));
+        OnPropertyChanged(nameof(IsA380UpperDeckSelected));
+        OnPropertyChanged(nameof(ActiveCabinDeckLabel));
+        OnPropertyChanged(nameof(ActiveCabinArtworkUri));
+        OnPropertyChanged(nameof(ActiveCabinCanvasWidth));
+        OnPropertyChanged(nameof(ActiveCabinCanvasHeight));
+        OnPropertyChanged(nameof(ActiveCabinPreviewMaximumHeight));
         OnPropertyChanged(nameof(IsBritishAirways777200Er));
         OnPropertyChanged(nameof(IsBritishAirways777300));
         OnPropertyChanged(nameof(IsNarrowBodyCabinLayout));
@@ -1391,13 +1446,14 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         RefreshCrewMarkers();
         var visiblePassengers = _engine.Passengers
             .Where(passenger => passenger.MovementState is not (PassengerMovementState.Waiting or PassengerMovementState.Deboarded))
+            .Where(IsPassengerVisibleOnActiveCabinDeck)
             .ToArray();
         var visibleIds = visiblePassengers.Select(passenger => passenger.Id).ToHashSet();
         foreach (var passenger in visiblePassengers)
         {
             if (!_markersByPassengerId.TryGetValue(passenger.Id, out var marker))
             {
-                marker = new PassengerMarkerViewModel(passenger);
+                marker = CreatePassengerMarker(passenger);
                 _markersByPassengerId.Add(passenger.Id, marker);
                 PassengerMarkers.Add(marker);
             }
@@ -1486,10 +1542,15 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
                 continue;
             }
 
+            if (!IsPassengerVisibleOnActiveCabinDeck(passenger))
+            {
+                continue;
+            }
+
             visibleIds.Add(passenger.Id);
             if (!_markersByPassengerId.TryGetValue(passenger.Id, out var marker))
             {
-                marker = new PassengerMarkerViewModel(passenger);
+                marker = CreatePassengerMarker(passenger);
                 _markersByPassengerId.Add(passenger.Id, marker);
                 PassengerMarkers.Add(marker);
             }
@@ -1518,6 +1579,12 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _loggedPassengerIds.Clear();
     }
 
+    private bool IsPassengerVisibleOnActiveCabinDeck(BoardingPassenger passenger) =>
+        !IsA380CabinLayout || passenger.Seat.Deck == _selectedA380Deck;
+
+    private PassengerMarkerViewModel CreatePassengerMarker(BoardingPassenger passenger) =>
+        new(passenger, IsA380CabinLayout, ActiveCabinCanvasWidth);
+
     private void ApplyImportedAircraftCabinProfile(string? aircraftIcao)
     {
         var normalized = (aircraftIcao ?? string.Empty).Trim().ToUpperInvariant();
@@ -1534,6 +1601,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             "A321" => "british-airways.a321",
             "A21N" => "british-airways.a321neo-220m",
             "A359" or "A35K" => "british-airways.a350",
+            "A388" or "A380" or "A380-800" => "british-airways.a380",
             "E190" => "british-airways.embraer-190",
             _ => string.Empty
         };
@@ -1545,6 +1613,15 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
 
     private void RefreshCrewMarkers()
     {
+        if (IsA380CabinLayout)
+        {
+            // The A380 presentation is a selectable portrait deck map. Keep
+            // the 22-person crew model live while omitting the single-deck
+            // positional dots that would otherwise land on the wrong deck.
+            CabinCrewMarkers.Clear();
+            return;
+        }
+
         var crewCount = ExpectedCabinCrewCount;
         while (CabinCrewMarkers.Count < crewCount)
         {
@@ -1929,8 +2006,11 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
 
 public sealed class PassengerMarkerViewModel : ObservableObject
 {
+    private const double StandardCabinCanvasHeight = 192d;
     private double _x;
     private double _y;
+    private readonly bool _usesPortraitDeckMap;
+    private readonly double _portraitDeckMapWidth;
     private PassengerMovementState _movementState;
     private PassengerOperation _operation;
     private PassengerCabinActivity _cabinActivity = PassengerCabinActivity.AwaitingBoarding;
@@ -1938,7 +2018,10 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     private string _markerColor = "#33B8E8";
     private string _markerBorderColor = "#D9F6FF";
 
-    public PassengerMarkerViewModel(BoardingPassenger passenger)
+    public PassengerMarkerViewModel(
+        BoardingPassenger passenger,
+        bool usesPortraitDeckMap = false,
+        double portraitDeckMapWidth = 322d)
     {
         PassengerId = passenger.Id;
         FullName = passenger.Profile.FullName;
@@ -1947,6 +2030,8 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         BoardingGroup = passenger.BoardingGroup;
         SeatX = passenger.Seat.X;
         SeatY = passenger.Seat.Y;
+        _usesPortraitDeckMap = usesPortraitDeckMap;
+        _portraitDeckMapWidth = portraitDeckMapWidth;
     }
 
     public int PassengerId { get; }
@@ -1982,8 +2067,10 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         }
     }
 
-    public double CanvasLeft => X - (MarkerSize / 2d);
-    public double CanvasTop => Y - (MarkerSize / 2d);
+    public double CanvasLeft => (_usesPortraitDeckMap
+        ? Y * (_portraitDeckMapWidth / StandardCabinCanvasHeight)
+        : X) - (MarkerSize / 2d);
+    public double CanvasTop => (_usesPortraitDeckMap ? X : Y) - (MarkerSize / 2d);
 
     public PassengerMovementState MovementState
     {

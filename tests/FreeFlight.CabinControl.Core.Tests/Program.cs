@@ -47,6 +47,7 @@ var tests = new (string Name, Func<Task> Run)[]
     ("British Airways cabin layouts map official seats", BritishAirwaysCabinLayoutsMapSeatsAsync),
     ("Airbus A320 cabin layouts map usable seats", AirbusA320CabinLayoutsMapSeatsAsync),
     ("Expanded British Airways fleet layouts expose mapped seats and doors", ExpandedBritishAirwaysFleetLayoutsAsync),
+    ("Airbus A380 maps both cabin decks and all four travel classes", BritishAirwaysA380DecksMapSeatsAsync),
     ("Every live cabin layout stays inside its artwork geometry", CabinArtworkGeometryIsRenderableAsync),
     ("British Airways layouts board and deboard", BritishAirwaysLayoutsOperateAsync),
     ("Partial loads distribute tickets across the cabin", PartialLoadsDistributeTicketsAsync),
@@ -1170,6 +1171,7 @@ static Task ExpandedBritishAirwaysFleetLayoutsAsync()
         [PassengerCabinLayout.BritishAirwaysA321] = 186,
         [PassengerCabinLayout.BritishAirwaysA321Neo220M] = 220,
         [PassengerCabinLayout.BritishAirwaysA350] = 331,
+        [PassengerCabinLayout.BritishAirwaysA380] = 469,
         [PassengerCabinLayout.BritishAirways777200Lgw] = 338,
         [PassengerCabinLayout.BritishAirways777200First] = 235,
         [PassengerCabinLayout.BritishAirways7878ClubSuite] = 204,
@@ -1204,6 +1206,34 @@ static Task ExpandedBritishAirwaysFleetLayoutsAsync()
         }
     }
 
+    return Task.CompletedTask;
+}
+
+static Task BritishAirwaysA380DecksMapSeatsAsync()
+{
+    var engine = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirwaysA380);
+    AssertEqual(469, engine.Capacity, "The British Airways A380 did not expose its 469-seat cabin.");
+    AssertEqual(14, engine.Passengers.Count(passenger => passenger.Seat.CabinClass == PassengerCabinClass.First),
+        "The A380 First cabin did not map all seats.");
+    AssertEqual(97, engine.Passengers.Count(passenger => passenger.Seat.CabinClass == PassengerCabinClass.Business),
+        "The A380 Club World cabin did not map all seats.");
+    AssertEqual(55, engine.Passengers.Count(passenger => passenger.Seat.CabinClass == PassengerCabinClass.PremiumEconomy),
+        "The A380 World Traveller Plus cabin did not map all seats.");
+    AssertEqual(303, engine.Passengers.Count(passenger => passenger.Seat.CabinClass == PassengerCabinClass.Economy),
+        "The A380 World Traveller cabin did not map all seats.");
+    AssertEqual(317, engine.Passengers.Count(passenger => passenger.Seat.Deck == PassengerCabinDeck.Lower),
+        "The A380 lower deck did not keep its mapped seats.");
+    AssertEqual(152, engine.Passengers.Count(passenger => passenger.Seat.Deck == PassengerCabinDeck.Upper),
+        "The A380 upper deck did not keep its mapped seats.");
+    Assert(engine.Doors.Any(door => door.Door == BoardingDoor.L3 && door.IsBoardingDoor),
+        "The A380 did not expose its additional boarding doors.");
+
+    engine.ConfigurePassengerCount(40);
+    engine.SetDoorOpen(BoardingDoor.L1, true);
+    engine.SetDoorOpen(BoardingDoor.L2, true);
+    engine.Start();
+    Advance(engine, seconds: 10d, speed: 4d);
+    Assert(engine.BoardedCount > 0, "The A380 passengers did not begin boarding through its live cabin engine.");
     return Task.CompletedTask;
 }
 

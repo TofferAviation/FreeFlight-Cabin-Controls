@@ -801,6 +801,7 @@ public sealed record CabinLayoutProfileOption(
         PassengerCabinLayout.BritishAirwaysA321 or
         PassengerCabinLayout.BritishAirwaysA321Neo220M or
         PassengerCabinLayout.BritishAirwaysA350 or
+        PassengerCabinLayout.BritishAirwaysA380 or
         PassengerCabinLayout.BritishAirways777200Lgw or
         PassengerCabinLayout.BritishAirways777200First or
         PassengerCabinLayout.BritishAirways7878ClubSuite or
@@ -886,6 +887,8 @@ public static class CabinLayoutProfileCatalog
             "British Airways Airbus A321neo 220M", "BritishAirwaysA321Neo220M.png", "A21N", 220),
         Layout("british-airways.a350", PassengerCabinLayout.BritishAirwaysA350,
             "British Airways Airbus A350", "BritishAirwaysA350.png", "A35K", 331),
+        Layout("british-airways.a380", PassengerCabinLayout.BritishAirwaysA380,
+            "British Airways Airbus A380-800", "BritishAirwaysA380LowerDeck.png", "A388 · upper and lower decks", 469),
         Layout("british-airways.777-200-lgw", PassengerCabinLayout.BritishAirways777200Lgw,
             "British Airways 777-200 LGW", "BritishAirways777200Lgw.png", "B772 · LGW configuration", 338),
         Layout("british-airways.777-200-first", PassengerCabinLayout.BritishAirways777200First,

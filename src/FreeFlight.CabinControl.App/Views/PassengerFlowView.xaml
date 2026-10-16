@@ -102,6 +102,10 @@
                             <TextBlock Text="{Binding SelectedCabinLayoutProfile.Name}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,4,0,0" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding IsA380CabinLayout, Converter={StaticResource VisibleWhenTrue}}" Margin="0,0,10,0">
+                                <ToggleButton Content="LOWER DECK" IsChecked="{Binding IsA380LowerDeckSelected, Mode=OneWay}" Command="{Binding SelectA380DeckCommand}" CommandParameter="Lower" Style="{StaticResource DoorControl}" Padding="10,5" FontSize="9" Margin="0,0,5,0" />
+                                <ToggleButton Content="UPPER DECK" IsChecked="{Binding IsA380UpperDeckSelected, Mode=OneWay}" Command="{Binding SelectA380DeckCommand}" CommandParameter="Upper" Style="{StaticResource DoorControl}" Padding="10,5" FontSize="9" />
+                            </StackPanel>
                             <Border Style="{StaticResource StatusPillStyle}" Padding="10,5" Margin="0,0,8,0"><TextBlock Text="WEBSITE-SELECTED AIRFRAME" Foreground="{DynamicResource PrimaryBrush}" FontSize="9" FontWeight="SemiBold" /></Border>
                             <Border Style="{StaticResource StatusPillStyle}" Padding="10,5"><TextBlock Text="{Binding ActiveDoorSummary}" Foreground="{DynamicResource TextPrimaryBrush}" FontSize="9" FontWeight="SemiBold" /></Border>
                         </StackPanel>
@@ -115,17 +119,17 @@
                                 <GradientStop Color="#0A1C30" Offset="1" />
                             </RadialGradientBrush>
                         </Border.Background>
-                        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Canvas Width="1033" Height="192" ClipToBounds="False">
-                                <Border Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" Panel.ZIndex="0">
+                        <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" MaxHeight="{Binding ActiveCabinPreviewMaximumHeight}">
+                            <Canvas Width="{Binding ActiveCabinCanvasWidth}" Height="{Binding ActiveCabinCanvasHeight}" ClipToBounds="False">
+                                <Border Canvas.Left="0" Canvas.Top="0" Width="{Binding ActiveCabinCanvasWidth}" Height="{Binding ActiveCabinCanvasHeight}" Panel.ZIndex="0">
                                     <Border.Background>
-                                        <ImageBrush ImageSource="{Binding SelectedCabinLayoutProfile.LiveCabinArtworkUri}"
+                                        <ImageBrush ImageSource="{Binding ActiveCabinArtworkUri}"
                                                     Viewbox="{Binding SelectedCabinLayoutProfile.LivePreviewViewbox}"
                                                     ViewboxUnits="{Binding SelectedCabinLayoutProfile.LivePreviewViewboxUnits}"
                                                     Stretch="{Binding SelectedCabinLayoutProfile.LivePreviewStretch}" />
                                     </Border.Background>
                                 </Border>
-                                <ItemsControl Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" ItemsSource="{Binding PassengerMarkers}" ItemContainerStyle="{StaticResource PassengerCanvasItem}" Panel.ZIndex="4">
+                                <ItemsControl Canvas.Left="0" Canvas.Top="0" Width="{Binding ActiveCabinCanvasWidth}" Height="{Binding ActiveCabinCanvasHeight}" ItemsSource="{Binding PassengerMarkers}" ItemContainerStyle="{StaticResource PassengerCanvasItem}" Panel.ZIndex="4">
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -136,7 +140,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <ItemsControl Canvas.Left="0" Canvas.Top="0" Width="1033" Height="192" ItemsSource="{Binding CabinCrewMarkers}" ItemContainerStyle="{StaticResource CrewCanvasItem}" Panel.ZIndex="5">
+                                <ItemsControl Canvas.Left="0" Canvas.Top="0" Width="{Binding ActiveCabinCanvasWidth}" Height="{Binding ActiveCabinCanvasHeight}" ItemsSource="{Binding CabinCrewMarkers}" ItemContainerStyle="{StaticResource CrewCanvasItem}" Panel.ZIndex="5">
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><Canvas /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

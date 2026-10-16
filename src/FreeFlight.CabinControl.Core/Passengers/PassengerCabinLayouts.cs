@@ -56,6 +56,7 @@ internal static class PassengerCabinLayouts
         PassengerCabinLayout.BritishAirwaysA321Neo220M => CreateSingleAisle(layout, 37, 0, 2, BritishAirwaysA321NeoArtwork),
         PassengerCabinLayout.BritishAirwaysEmbraer190 => CreateEmbraer190(),
         PassengerCabinLayout.BritishAirwaysA350 => CreateWideBody(layout, 2, 14, 7, 22, 9, CabinArtworkGeometry.Wide(2910d, 425d, 360d, 2700d, 201d, 2771d)),
+        PassengerCabinLayout.BritishAirwaysA380 => CreateBritishAirwaysA380(),
         PassengerCabinLayout.BritishAirways777200Lgw => CreateWideBody(layout, 0, 8, 7, 25, 0, CabinArtworkGeometry.Wide(2888d, 418d, 325d, 2566d, 177d, 2649d)),
         PassengerCabinLayout.BritishAirways777200First => CreateWideBody(layout, 2, 12, 5, 14, 1, CabinArtworkGeometry.Wide(2866d, 499d, 513d, 2620d, 177d, 2653d)),
         PassengerCabinLayout.BritishAirways7878ClubSuite => CreateWideBody(layout, 0, 8, 5, 14, 8, CabinArtworkGeometry.Wide(2906d, 506d, 360d, 2620d, 233d, 2697d)),
@@ -137,6 +138,90 @@ internal static class PassengerCabinLayouts
                 new(BoardingDoor.L2, "L2", artwork.MapX(artwork.AftDoorSourceX), true),
                 new(BoardingDoor.R2, "R2", artwork.MapX(artwork.AftDoorSourceX), false)
             ]);
+    }
+
+    private static PassengerCabinLayoutDefinition CreateBritishAirwaysA380()
+    {
+        // These coordinates deliberately use the existing cabin engine's
+        // longitudinal X / lateral Y model. PassengerFlowView projects them
+        // into the supplied portrait deck maps, so boarding still uses the
+        // same door, aisle, service and deboarding simulation as every other
+        // operational layout.
+        var seats = new List<CabinSeat>(469);
+
+        // Main deck: 14 First / 303 World Traveller.
+        AddA380Rows(
+            seats,
+            PassengerCabinDeck.Lower,
+            PassengerCabinClass.First,
+            [1, 2, 3, 4],
+            410d,
+            720d,
+            ["A", "E", "F", "K"],
+            [265d, 390d, 545d, 670d],
+            936d);
+        seats.RemoveAll(seat => seat.Deck == PassengerCabinDeck.Lower &&
+                                seat.CabinClass == PassengerCabinClass.First &&
+                                seat.Number is "4F" or "4K");
+
+        AddA380Rows(
+            seats,
+            PassengerCabinDeck.Lower,
+            PassengerCabinClass.Economy,
+            Enumerable.Range(20, 33).ToArray(),
+            1540d,
+            2800d,
+            ["A", "B", "C", "D", "E", "F", "G", "H", "K"],
+            [245d, 295d, 345d, 405d, 468d, 531d, 591d, 641d, 691d],
+            936d);
+        AddA380Rows(
+            seats,
+            PassengerCabinDeck.Lower,
+            PassengerCabinClass.Economy,
+            [53],
+            2850d,
+            2850d,
+            ["A", "B", "C", "G", "H", "K"],
+            [245d, 295d, 345d, 591d, 641d, 691d],
+            936d);
+
+        // Upper deck: 97 Club World / 55 World Traveller Plus.
+        AddA380Rows(
+            seats,
+            PassengerCabinDeck.Upper,
+            PassengerCabinClass.Business,
+            Enumerable.Range(10, 25).ToArray(),
+            430d,
+            1660d,
+            ["A", "E", "F", "K"],
+            [292d, 414d, 590d, 710d],
+            1006d);
+        seats.RemoveAll(seat => seat.Deck == PassengerCabinDeck.Upper &&
+                                seat.CabinClass == PassengerCabinClass.Business &&
+                                seat.Number is "34E" or "34F" or "34K");
+
+        AddA380Rows(
+            seats,
+            PassengerCabinDeck.Upper,
+            PassengerCabinClass.PremiumEconomy,
+            Enumerable.Range(50, 7).ToArray(),
+            1770d,
+            2470d,
+            ["A", "B", "D", "E", "F", "G", "J", "K"],
+            [250d, 315d, 380d, 448d, 558d, 626d, 691d, 756d],
+            1006d);
+        seats.RemoveAll(seat => seat.Deck == PassengerCabinDeck.Upper &&
+                                seat.CabinClass == PassengerCabinClass.PremiumEconomy &&
+                                seat.Number == "56K");
+
+        return new PassengerCabinLayoutDefinition(
+            PassengerCabinLayout.BritishAirwaysA380,
+            seats,
+            68d,
+            360d,
+            208d,
+            174d,
+            CreateWideBodyDoors(68d, 360d, 565d, 770d, 965d));
     }
 
     private static PassengerCabinLayoutDefinition CreateWideBody(
@@ -597,6 +682,39 @@ internal static class PassengerCabinLayouts
             [140d, 132d, 124d, 113d, 105d, 97d, 89d, 77d, 69d, 61d],
             81d,
             121d);
+
+    private static void AddA380Rows(
+        ICollection<CabinSeat> seats,
+        PassengerCabinDeck deck,
+        PassengerCabinClass cabinClass,
+        IReadOnlyList<int> rows,
+        double firstSourceY,
+        double lastSourceY,
+        IReadOnlyList<string> letters,
+        IReadOnlyList<double> sourceXPositions,
+        double sourceWidth)
+    {
+        const double sourceHeight = 3000d;
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+        {
+            var sourceY = rows.Count == 1
+                ? firstSourceY
+                : Lerp(firstSourceY, lastSourceY, rowIndex / (rows.Count - 1d));
+            var x = sourceY / sourceHeight * CabinCanvasWidth;
+            for (var seatIndex = 0; seatIndex < letters.Count; seatIndex++)
+            {
+                var y = sourceXPositions[seatIndex] / sourceWidth * CabinCanvasHeight;
+                var aisleY = seatIndex < letters.Count / 2 ? 82d : 110d;
+                seats.Add(new CabinSeat(
+                    $"{rows[rowIndex]}{letters[seatIndex]}",
+                    cabinClass,
+                    x,
+                    y,
+                    aisleY,
+                    deck));
+            }
+        }
+    }
 
     private static void AddRows(
         ICollection<CabinSeat> seats,

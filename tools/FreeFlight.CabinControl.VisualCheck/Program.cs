@@ -372,6 +372,18 @@ internal static class Program
                 "1",
                 StringComparison.Ordinal))
         {
+            // Live Cabin is deliberately protected by the BAV account gate in
+            // production. Supply the same harmless visual-test identity used
+            // by the Crew Room check so this path renders the actual cabin.
+            typeof(CabinAccountViewModel)
+                .GetProperty(nameof(CabinAccountViewModel.Session))!
+                .SetValue(viewModel.Account, new FleetAccountSession(
+                    "visual-check-token",
+                    "pilot-visual-check",
+                    "BAW0001",
+                    "Kristoffer Eriksen",
+                    "visual-check@example.invalid",
+                    Rank: "Captain"));
             viewModel.Passengers.SelectedCabinLayoutProfile = viewModel.Passengers.CabinLayoutProfiles.Single(profile =>
                 profile.Id == "british-airways.777-300");
             viewModel.Passengers.ApplyCabinTelemetry(new CabinTelemetrySnapshot(
@@ -471,6 +483,47 @@ internal static class Program
 
                 Render(window, Path.Combine(outputDirectory, $"passengers-expanded-{layoutId.Replace("british-airways.", string.Empty, StringComparison.Ordinal)}.png"));
             }
+
+            var miamiA380Assignment = new FleetWebsiteFlightAssignmentDto(
+                "visual-miami-a380",
+                "BA207",
+                "LHR",
+                "MIA",
+                "Airbus A380-800",
+                "09:55",
+                "14:35",
+                "2026-10-16",
+                "scheduled",
+                "EGLL",
+                "KMIA");
+            var a380Import = viewModel.Passengers.ApplyBavAssignmentAircraft(miamiA380Assignment);
+            viewModel.Passengers.BookedPassengerCount = 120;
+            if (!a380Import.Applied ||
+                viewModel.Passengers.ImportedAircraftIcao != "A388" ||
+                !viewModel.Passengers.IsA380CabinLayout ||
+                !viewModel.Passengers.IsA380LowerDeckSelected ||
+                viewModel.Passengers.CabinCapacity != 469 ||
+                viewModel.Passengers.ActiveCabinCanvasHeight != 1033d ||
+                viewModel.Passengers.ActiveCabinCanvasWidth != 322d ||
+                !viewModel.Passengers.ActiveCabinArtworkUri.EndsWith("BritishAirwaysA380LowerDeck.png", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("A380 lower-deck presentation state was not applied.");
+            }
+
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+            Render(window, Path.Combine(outputDirectory, "passengers-a380-lower-deck.png"));
+
+            viewModel.Passengers.SelectA380DeckCommand.Execute("Upper");
+            if (!viewModel.Passengers.IsA380UpperDeckSelected ||
+                viewModel.Passengers.ActiveCabinCanvasWidth != 346d ||
+                !viewModel.Passengers.ActiveCabinArtworkUri.EndsWith("BritishAirwaysA380UpperDeck.png", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("A380 upper-deck presentation state was not applied.");
+            }
+
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+            Render(window, Path.Combine(outputDirectory, "passengers-a380-upper-deck.png"));
+            viewModel.Passengers.SelectA380DeckCommand.Execute("Lower");
 
             window.Width = 1120;
             window.Height = 700;
@@ -1220,6 +1273,33 @@ internal static class Program
                 {
                     throw new InvalidOperationException("Passenger Flow did not finish with an empty cabin.");
                 }
+
+                var a380Profile = viewModel.Passengers.CabinLayoutProfiles.Single(profile => profile.Id == "british-airways.a380");
+                viewModel.Passengers.SelectedCabinLayoutProfile = a380Profile;
+                viewModel.Passengers.BookedPassengerCount = 120;
+                if (!viewModel.Passengers.IsA380CabinLayout ||
+                    viewModel.Passengers.CabinCapacity != 469 ||
+                    viewModel.Passengers.ActiveCabinCanvasWidth != 322d ||
+                    viewModel.Passengers.ActiveCabinCanvasHeight != 1033d ||
+                    !viewModel.Passengers.ActiveCabinArtworkUri.EndsWith("BritishAirwaysA380LowerDeck.png", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The A380 lower-deck presentation did not load its mapped cabin profile.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-a380-lower-deck.png"));
+
+                viewModel.Passengers.SelectA380DeckCommand.Execute("Upper");
+                if (!viewModel.Passengers.IsA380UpperDeckSelected ||
+                    viewModel.Passengers.ActiveCabinCanvasWidth != 346d ||
+                    !viewModel.Passengers.ActiveCabinArtworkUri.EndsWith("BritishAirwaysA380UpperDeck.png", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The A380 upper-deck control did not swap to the supplied deck map.");
+                }
+
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.DataBind);
+                Render(window, Path.Combine(outputDirectory, "passengers-a380-upper-deck.png"));
+                viewModel.Passengers.SelectA380DeckCommand.Execute("Lower");
 
                 viewModel.Passengers.SimBriefPilotId = "123456";
                 viewModel.Passengers.SyncSimBriefAsync().GetAwaiter().GetResult();

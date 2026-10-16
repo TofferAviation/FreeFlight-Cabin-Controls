@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.76] - 2026-10-16
+
+### Added
+
+- Added an operational British Airways Airbus A380-800 cabin for BAV A388 flights, with 469 mapped seats, the supplied lower- and upper-deck maps, and deck-aware live passenger markers.
+- Added Upper deck and Lower deck controls in Live Cabin so pilots can inspect the active level while boarding, deboarding and cabin activity continue in the same Ember session.
+
+### Improved
+
+- BAV A388, A380 and A380-800 flight imports now automatically choose the A380 cabin profile, including BA207 LHR–MIA testing.
+
 ## [0.5.75] - 2026-10-16
 
 ### Added
