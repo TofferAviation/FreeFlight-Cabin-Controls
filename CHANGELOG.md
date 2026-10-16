@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.77] - 2026-10-16
+
+### Fixed
+
+- Ground-state Ember updates no longer mistake an assigned BAV flight or loaded passenger manifest for an active operation. Cabin preparation is saved safely through the update; updates remain deferred once ACARS, fleet operations, engine start, pushback or departure has begun.
+
 ## [0.5.76] - 2026-10-16
 
 ### Added

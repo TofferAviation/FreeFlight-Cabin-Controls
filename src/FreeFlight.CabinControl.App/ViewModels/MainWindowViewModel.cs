@@ -205,8 +205,20 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Controls whether the operational Ember shell may be shown.</summary>
     public bool IsBavAuthenticated => Account.IsAuthenticated;
 
+    /// <summary>
+    /// Controls only the update safety gate. Selecting a BAV flight, loading
+    /// its manifest or preparing the cabin on the ground is not an active
+    /// operation: Ember persists that state before it restarts. An update is
+    /// deferred only after the pilot has actually initiated an operation or
+    /// the linked ACARS/fleet session is live.
+    /// </summary>
     public bool IsFlightInProgress =>
-        Passengers.PassengerManifest.Count > 0 && !Passengers.IsFlightCompleted;
+        Account.IsAcarsOperating ||
+        Fleet.IsFlightOperating ||
+        _acarsFlightStartRequested ||
+        _fleetFlightStartRequested ||
+        _hasObservedEnginesRunning ||
+        _hasObservedDeparture;
 
     public ICommand NavigateCommand { get; }
 

@@ -500,6 +500,7 @@ internal static class Program
             viewModel.Passengers.BookedPassengerCount = 120;
             if (!a380Import.Applied ||
                 viewModel.Passengers.ImportedAircraftIcao != "A388" ||
+                viewModel.IsFlightInProgress ||
                 !viewModel.Passengers.IsA380CabinLayout ||
                 !viewModel.Passengers.IsA380LowerDeckSelected ||
                 viewModel.Passengers.CabinCapacity != 469 ||
