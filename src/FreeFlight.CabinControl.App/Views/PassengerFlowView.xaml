@@ -68,6 +68,19 @@
             <Setter Property="Canvas.Top" Value="{Binding CanvasTop}" />
             <Setter Property="Panel.ZIndex" Value="5" />
         </Style>
+        <Style x:Key="CabinPresentationCanvas" TargetType="Canvas">
+            <Style.Triggers>
+                <!-- The supplied A380 plans are portrait scans. Rotate the
+                     complete map and its live marker layer together so the
+                     passenger view retains Ember's normal nose-left cabin
+                     orientation instead of becoming a tiny vertical strip. -->
+                <DataTrigger Binding="{Binding IsA380CabinLayout}" Value="True">
+                    <Setter Property="LayoutTransform">
+                        <Setter.Value><RotateTransform Angle="-90" /></Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <BooleanToVisibilityConverter x:Key="VisibleWhenTrue" />
     </UserControl.Resources>
 
@@ -120,7 +133,7 @@
                             </RadialGradientBrush>
                         </Border.Background>
                         <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" MaxHeight="{Binding ActiveCabinPreviewMaximumHeight}">
-                            <Canvas Width="{Binding ActiveCabinCanvasWidth}" Height="{Binding ActiveCabinCanvasHeight}" ClipToBounds="False">
+                            <Canvas Style="{StaticResource CabinPresentationCanvas}" Width="{Binding ActiveCabinCanvasWidth}" Height="{Binding ActiveCabinCanvasHeight}" ClipToBounds="False">
                                 <Border Canvas.Left="0" Canvas.Top="0" Width="{Binding ActiveCabinCanvasWidth}" Height="{Binding ActiveCabinCanvasHeight}" Panel.ZIndex="0">
                                     <Border.Background>
                                         <ImageBrush ImageSource="{Binding ActiveCabinArtworkUri}"

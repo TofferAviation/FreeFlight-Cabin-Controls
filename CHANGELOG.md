@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.78] - 2026-10-16
+
+### Improved
+
+- The A380 lower- and upper-deck seat plans now display horizontally, matching Ember's other live cabin layouts while retaining accurate deck-specific passenger markers.
+
 ## [0.5.77] - 2026-10-16
 
 ### Fixed
