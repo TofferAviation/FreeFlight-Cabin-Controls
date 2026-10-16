@@ -2,6 +2,14 @@
 
 Ember is a Windows desktop operations application with a live X-Plane 12 bridge for managing a simulated aircraft cabin, fleet lifecycle and flight operations. Development initially targets the FlightFactor 777 v2 while keeping the core aircraft- and airline-neutral.
 
+The published full Ember application remains Windows-only. A separate, X-Plane-first
+Linux/macOS desktop host now lives in `src/FreeFlight.CabinControl.XPlane.App` so it
+can reuse the portable X-Plane Web API bridge without changing the WPF application.
+It packages with a matching `lin.xpl` or `mac.xpl` bridge for X-Plane 12. Microsoft
+Flight Simulator still runs on Windows, but Ember on macOS or Linux can receive its
+private, read-only telemetry through the separately started Windows MSFS Relay. See
+[`docs/MSFS_RELAY.md`](docs/MSFS_RELAY.md) for its pairing and network boundaries.
+
 ## Current baseline
 
 Version `0.5.x` is the current application line. GitHub release builds are offered through the in-application updater. It provides:
@@ -58,6 +66,10 @@ The FlightFactor 777 v2 L1/L2 and passenger-sign mappings are verified and imple
 The release includes the FreeFlight Cabin Bridge under `xplane-plugin`. Select the X-Plane folder in Settings and choose **Install / Update X-Plane Plugin**, then restart X-Plane once. The plugin converts aircraft outputs into stable FreeFlight datarefs while the loopback-only Web API transports them to the desktop app. Diagnostics shows the active aircraft, flight phase, plugin state, and age of the latest telemetry frame. See the [official X-Plane Data Access API](https://developer.x-plane.com/sdk/XPLMDataAccess/) and [Web API reference](https://developer.x-plane.com/article/x-plane-web-api/).
 
 For native jetways, Gate Desk sends X-Plane's `sim/ground_ops/jetway` command through the Web API. This requires X-Plane 12.1.4 or later. X-Plane selects any eligible bridge(s) and aircraft door(s), so FreeFlight reports the command result rather than claiming a specific bridge is docked. Individual bridge-to-door assignment and multi-bridge control are reserved for a future FreeFlight jetway engine or compatible scenery adapter.
+
+## Microsoft Flight Simulator relay
+
+MSFS itself is Windows-only. When the simulator is running on a Windows PC, a pilot can explicitly start Ember MSFS Relay on that same PC and pair their Ember client on macOS or Linux over the private LAN. The relay is HTTPS-only, uses a certificate fingerprint shown by the Windows relay, gives each pairing a one-time six-digit code, and retains neither code nor access token after it closes. It shares only read-only MSFS telemetry in this release; remote cabin controls remain in Windows Ember. Do not expose its port to the internet or forward it from a router. Full setup and privacy details are in [`docs/MSFS_RELAY.md`](docs/MSFS_RELAY.md).
 
 For first-time installation, use `Ember-vX.Y.Z-Setup.exe` from GitHub Releases. The portable ZIP remains available for the in-app updater.
 

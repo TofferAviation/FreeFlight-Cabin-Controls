@@ -1,0 +1,111 @@
+name: Build Ember X-Plane for macOS
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS ${{ matrix.label }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Build Intel packages with Xcode's cross-architecture toolchain
+          # on the readily available Apple-Silicon runner. The published
+          # application host is still osx-x64 and the X-Plane bridge is
+          # compiled for x86_64.
+          - runner: macos-14
+            runtime: osx-x64
+            architecture: x86_64
+            label: Intel
+          - runner: macos-14
+            runtime: osx-arm64
+            architecture: arm64
+            label: Apple-Silicon
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore and verify the X-Plane client
+        run: |
+          dotnet restore src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj
+          dotnet build src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj --configuration Release --no-restore
+
+      - name: Download the X-Plane SDK and build the macOS cabin bridge
+        run: |
+          mkdir -p artifacts
+          curl --fail --location --retry 3 \
+            --output artifacts/XPSDK430.zip \
+            https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip
+          unzip -q artifacts/XPSDK430.zip -d artifacts/xplane-sdk
+          cmake -S xplane-plugin -B artifacts/xplane-plugin-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="${{ matrix.architecture }}" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DXPLANE_SDK_ROOT="$PWD/artifacts/xplane-sdk/SDK"
+          cmake --build artifacts/xplane-plugin-build --config Release
+          mkdir -p xplane-plugin/dist/FreeFlightCabinBridge/64
+          cp artifacts/xplane-plugin-build/mac.xpl xplane-plugin/dist/FreeFlightCabinBridge/64/mac.xpl
+
+      - name: Publish the self-contained macOS client
+        run: |
+          dotnet publish src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj \
+            --configuration Release \
+            --runtime ${{ matrix.runtime }} \
+            --self-contained true \
+            --output artifacts/publish
+
+      - name: Build the app bundle and DMG
+        run: |
+          set -eu
+          version="$(sed -n 's:.*<Version>\([^<]*\)</Version>.*:\1:p' src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj | head -n 1)"
+          test -n "$version"
+          app="artifacts/Ember.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" artifacts/Ember.iconset
+          cp -a artifacts/publish/. "$app/Contents/MacOS/"
+          sed "s/@VERSION@/$version/g" packaging/macos/Info.plist.template > "$app/Contents/Info.plist"
+          icon_source="src/FreeFlight.CabinControl.App/Assets/FreeFlightAppIcon.png"
+          sips -z 16 16 "$icon_source" --out artifacts/Ember.iconset/icon_16x16.png
+          sips -z 32 32 "$icon_source" --out artifacts/Ember.iconset/icon_16x16@2x.png
+          sips -z 32 32 "$icon_source" --out artifacts/Ember.iconset/icon_32x32.png
+          sips -z 64 64 "$icon_source" --out artifacts/Ember.iconset/icon_32x32@2x.png
+          sips -z 128 128 "$icon_source" --out artifacts/Ember.iconset/icon_128x128.png
+          sips -z 256 256 "$icon_source" --out artifacts/Ember.iconset/icon_128x128@2x.png
+          sips -z 256 256 "$icon_source" --out artifacts/Ember.iconset/icon_256x256.png
+          sips -z 512 512 "$icon_source" --out artifacts/Ember.iconset/icon_256x256@2x.png
+          sips -z 512 512 "$icon_source" --out artifacts/Ember.iconset/icon_512x512.png
+          sips -z 1024 1024 "$icon_source" --out artifacts/Ember.iconset/icon_512x512@2x.png
+          iconutil -c icns artifacts/Ember.iconset -o "$app/Contents/Resources/Ember.icns"
+          chmod +x "$app/Contents/MacOS/Ember.XPlane"
+          hdiutil create \
+            -volname "Ember for X-Plane" \
+            -srcfolder "$app" \
+            -ov \
+            -format UDZO \
+            "artifacts/Ember-XPlane-v$version-macos-${{ matrix.architecture }}.dmg"
+          shasum -a 256 "artifacts/Ember-XPlane-v$version-macos-${{ matrix.architecture }}.dmg" \
+            > "artifacts/Ember-XPlane-v$version-macos-${{ matrix.architecture }}.dmg.sha256"
+
+      - name: Upload the unsigned test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ember-XPlane-macos-${{ matrix.architecture }}
+          path: |
+            artifacts/Ember-XPlane-v*-macos-${{ matrix.architecture }}.dmg
+            artifacts/Ember-XPlane-v*-macos-${{ matrix.architecture }}.dmg.sha256
+          if-no-files-found: error

@@ -1,0 +1,83 @@
+name: Build Ember X-Plane AppImage
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    name: Linux x86_64 AppImage
+    runs-on: ubuntu-22.04
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore and verify the X-Plane client
+        run: |
+          dotnet restore src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj
+          dotnet build src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj --configuration Release --no-restore
+
+      - name: Download the X-Plane SDK and build the Linux cabin bridge
+        run: |
+          mkdir -p artifacts
+          curl --fail --location --retry 3 \
+            --output artifacts/XPSDK430.zip \
+            https://developer.x-plane.com/wp-content/plugins/code-sample-generation/sdk_zip_files/XPSDK430.zip
+          unzip -q artifacts/XPSDK430.zip -d artifacts/xplane-sdk
+          cmake -S xplane-plugin -B artifacts/xplane-plugin-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DXPLANE_SDK_ROOT="$PWD/artifacts/xplane-sdk/SDK"
+          cmake --build artifacts/xplane-plugin-build --config Release
+          mkdir -p xplane-plugin/dist/FreeFlightCabinBridge/64
+          cp artifacts/xplane-plugin-build/lin.xpl xplane-plugin/dist/FreeFlightCabinBridge/64/lin.xpl
+
+      - name: Publish the self-contained Linux client
+        run: |
+          dotnet publish src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj \
+            --configuration Release \
+            --runtime linux-x64 \
+            --self-contained true \
+            --output artifacts/publish
+
+      - name: Package the AppImage
+        run: |
+          set -eu
+          version="$(sed -n 's:.*<Version>\([^<]*\)</Version>.*:\1:p' src/FreeFlight.CabinControl.XPlane.App/FreeFlight.CabinControl.XPlane.App.csproj | head -n 1)"
+          test -n "$version"
+          appdir="$PWD/artifacts/AppDir"
+          mkdir -p "$appdir/usr/bin"
+          cp -a artifacts/publish/. "$appdir/usr/bin/"
+          cp packaging/linux/AppRun "$appdir/AppRun"
+          cp packaging/linux/Ember-XPlane.desktop "$appdir/ember-xplane.desktop"
+          cp src/FreeFlight.CabinControl.App/Assets/FreeFlightAppIcon.png "$appdir/ember-xplane.png"
+          chmod +x "$appdir/AppRun"
+          curl --fail --location --retry 3 \
+            --output artifacts/appimagetool.AppImage \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x artifacts/appimagetool.AppImage
+          ARCH=x86_64 artifacts/appimagetool.AppImage --appimage-extract-and-run \
+            "$appdir" "artifacts/Ember-XPlane-v$version-linux-x86_64.AppImage"
+          sha256sum "artifacts/Ember-XPlane-v$version-linux-x86_64.AppImage" \
+            > "artifacts/Ember-XPlane-v$version-linux-x86_64.AppImage.sha256"
+
+      - name: Upload the tested AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ember-XPlane-linux-x86_64-AppImage
+          path: |
+            artifacts/Ember-XPlane-v*-linux-x86_64.AppImage
+            artifacts/Ember-XPlane-v*-linux-x86_64.AppImage.sha256
+          if-no-files-found: error

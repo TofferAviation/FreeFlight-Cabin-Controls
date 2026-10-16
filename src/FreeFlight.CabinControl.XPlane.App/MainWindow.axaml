@@ -1,0 +1,138 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FreeFlight.CabinControl.XPlane.App.MainWindow"
+        Title="Ember · X-Plane"
+        Width="1060"
+        Height="720"
+        MinWidth="860"
+        MinHeight="620"
+        Background="#061426"
+        Foreground="#F7F9FC">
+  <Window.Styles>
+    <Style Selector="TextBlock.eyebrow">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="#D8A447" />
+      <Setter Property="LetterSpacing" Value="1.8" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#B6C7D9" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#0D2138" />
+      <Setter Property="BorderBrush" Value="#254867" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="22" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#D9A441" />
+      <Setter Property="Foreground" Value="#071426" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.secondary">
+      <Setter Property="Background" Value="#153858" />
+      <Setter Property="BorderBrush" Value="#46759C" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Background="#071B32" BorderBrush="#214A71" BorderThickness="0,0,0,1" Padding="32,22">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="5">
+          <TextBlock Classes="eyebrow" Text="EMBER · X-PLANE OPERATIONS" />
+          <TextBlock FontSize="28" FontWeight="SemiBold" Text="Ready for the flight deck" />
+          <TextBlock Classes="muted" Text="Linux and macOS client · X-Plane 12 first · Windows Ember remains unchanged" />
+        </StackPanel>
+        <Border Grid.Column="1" Background="#102D32" BorderBrush="#387C69" BorderThickness="1" CornerRadius="999" Padding="14,8" VerticalAlignment="Center">
+          <TextBlock x:Name="ConnectionBadge" Foreground="#8EEDBE" FontWeight="SemiBold" Text="Checking X-Plane" />
+        </Border>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <Grid Margin="32,26" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="18">
+        <Border Classes="card" Background="#102B47">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="28">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="eyebrow" Text="LIVE X-PLANE CONNECTION" />
+              <TextBlock x:Name="ConnectionTitle" FontSize="24" FontWeight="SemiBold" Text="Looking for X-Plane 12" />
+              <TextBlock x:Name="ConnectionDetail" Classes="muted" TextWrapping="Wrap" Text="Starting the loopback-only Web API check." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="9" Width="212">
+              <TextBlock Classes="eyebrow" Text="WEB API PORT" />
+              <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right" Classes="secondary" Click="ReconnectClick" Content="Reconnect" Margin="8,0,0,0" />
+                <TextBox x:Name="WebApiPortBox" HorizontalContentAlignment="Center" />
+              </DockPanel>
+              <TextBlock x:Name="SettingsMessage" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Classes="card" Background="#0B2637">
+          <Grid ColumnDefinitions="1.1*,1.1*,1*,Auto" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="9">
+            <StackPanel Spacing="5">
+              <TextBlock Classes="eyebrow" Text="MSFS ON A WINDOWS PC" />
+              <TextBox x:Name="MsfsRelayUrlBox" PlaceholderText="https://your-windows-pc:52187" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="5">
+              <TextBlock Classes="eyebrow" Text="CERTIFICATE FINGERPRINT" />
+              <TextBox x:Name="MsfsRelayFingerprintBox" PlaceholderText="64-character SHA-256 fingerprint" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Spacing="5">
+              <TextBlock Classes="eyebrow" Text="ONE-TIME PAIRING CODE" />
+              <TextBox x:Name="MsfsRelayCodeBox" PasswordChar="●" PlaceholderText="Shown by the Windows relay" />
+            </StackPanel>
+            <Button Grid.Column="3" Classes="primary" Click="ConnectMsfsRelayClick" Content="Pair MSFS relay" VerticalAlignment="Bottom" MinWidth="142" />
+            <TextBlock Grid.Row="1" Grid.ColumnSpan="4" x:Name="MsfsRelayMessage" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="For MSFS: start Ember MSFS Relay on the Windows computer running the simulator, then pair it here. Relay telemetry is read-only in this first release." />
+          </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="1.25*,1*" ColumnSpacing="18">
+          <Border Classes="card">
+            <StackPanel Spacing="9">
+              <TextBlock Classes="eyebrow" Text="AIRCRAFT TELEMETRY" />
+              <TextBlock x:Name="AircraftName" FontSize="21" FontWeight="SemiBold" Text="Waiting for aircraft data" />
+              <TextBlock x:Name="TelemetrySummary" Classes="muted" Text="No live frame has been received yet." TextWrapping="Wrap" />
+              <TextBlock x:Name="TelemetryAge" Classes="muted" FontSize="12" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="1" Classes="card">
+            <StackPanel Spacing="9">
+              <TextBlock Classes="eyebrow" Text="COMPATIBILITY" />
+              <TextBlock x:Name="ProfileTitle" FontSize="21" FontWeight="SemiBold" Text="Checking the loaded aircraft" />
+              <TextBlock x:Name="ProfileSummary" Classes="muted" TextWrapping="Wrap" Text="Ember will use standard X-Plane datarefs when an aircraft-specific bridge is unavailable." />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Border Grid.Row="3" Classes="card">
+          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="15">
+            <StackPanel Spacing="5">
+              <TextBlock Classes="eyebrow" Text="CABIN CONTROLS" />
+              <TextBlock FontSize="22" FontWeight="SemiBold" Text="X-Plane controls" />
+              <TextBlock Classes="muted" TextWrapping="Wrap" Text="Commands are sent only to the local X-Plane Web API. Nothing is sent until you choose an action." />
+            </StackPanel>
+            <WrapPanel Grid.Row="1" ItemHeight="42" ItemWidth="142" HorizontalAlignment="Left">
+              <Button Classes="secondary" Click="OpenL1Click" Content="Open L1" Margin="0,0,10,10" />
+              <Button Classes="secondary" Click="CloseL1Click" Content="Close L1" Margin="0,0,10,10" />
+              <Button Classes="secondary" Click="OpenL2Click" Content="Open L2" Margin="0,0,10,10" />
+              <Button Classes="secondary" Click="CloseL2Click" Content="Close L2" Margin="0,0,10,10" />
+              <Button Classes="secondary" Click="SeatbeltOnClick" Content="Seatbelts on" Margin="0,0,10,10" />
+              <Button Classes="secondary" Click="SeatbeltOffClick" Content="Seatbelts off" Margin="0,0,10,10" />
+              <Button Classes="primary" Click="JetwayClick" Content="Operate jetway" Margin="0,0,10,10" />
+            </WrapPanel>
+            <TextBlock Grid.Row="2" x:Name="CommandResult" Classes="muted" Text="Controls will become available when a compatible X-Plane aircraft is connected." TextWrapping="Wrap" />
+          </Grid>
+        </Border>
+      </Grid>
+    </ScrollViewer>
+
+    <Border Grid.Row="2" Background="#071B32" BorderBrush="#214A71" BorderThickness="0,1,0,0" Padding="32,14">
+      <TextBlock Classes="muted" FontSize="12" Text="X-Plane 12 runs natively on macOS and Linux. Microsoft Flight Simulator can share private, read-only telemetry through the Ember relay on its Windows host." />
+    </Border>
+  </Grid>
+</Window>

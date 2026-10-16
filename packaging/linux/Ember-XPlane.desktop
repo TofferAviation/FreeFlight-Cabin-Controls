@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ember for X-Plane
+Comment=FreeFlight Ember operations for X-Plane 12
+Exec=Ember.XPlane
+Icon=ember-xplane
+Terminal=false
+Categories=Game;Utility;
+Keywords=X-Plane;flight;simulator;Ember;FreeFlight;
+StartupWMClass=Ember.XPlane
