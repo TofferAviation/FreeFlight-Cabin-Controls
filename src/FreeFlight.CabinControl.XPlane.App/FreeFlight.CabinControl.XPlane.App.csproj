@@ -6,7 +6,7 @@
     <AssemblyName>Ember.XPlane</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <Version>0.5.67</Version>
+    <Version>0.5.75</Version>
     <Company>FreeFlightLTD</Company>
     <Description>Ember X-Plane operations for Linux and macOS.</Description>
   </PropertyGroup>

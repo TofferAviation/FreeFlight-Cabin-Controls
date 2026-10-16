@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <RootNamespace>FreeFlight.CabinControl.MsfsRelay</RootNamespace>
     <AssemblyName>Ember.MsfsRelay</AssemblyName>
-    <Version>0.5.67</Version>
+    <Version>0.5.75</Version>
     <Company>FreeFlightLTD</Company>
     <Description>Private Ember relay for Microsoft Flight Simulator telemetry.</Description>
   </PropertyGroup>

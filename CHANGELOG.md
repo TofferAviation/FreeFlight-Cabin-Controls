@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.75] - 2026-10-16
+
+### Added
+
+- Added native X-Plane Ember packages for Linux and macOS, including a Linux AppImage and separate Apple Silicon and Intel Mac packages.
+- Added the optional private Windows MSFS relay for pilots using a Mac or Linux X-Plane client alongside Microsoft Flight Simulator on their Windows PC. The relay is telemetry-only and requires explicit local pairing.
+
+### Changed
+
+- Published macOS packages as clearly labelled unsigned beta builds while signing and notarisation are not yet configured.
+
 ## [0.5.74] - 2026-10-14
 
 ### Improved
