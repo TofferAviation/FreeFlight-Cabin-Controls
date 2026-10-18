@@ -19,6 +19,7 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
     private readonly HashSet<int> _highLifeCafePurchaserIds = [];
     private CateringMenuPack _pack;
     private CateringProfileSelection _selection;
+    private CabinServicePacing _servicePacing;
     private string _selectedTab = "Menu";
     private string _selectedCabin = string.Empty;
     private string _selectedCourse = "All";
@@ -34,6 +35,8 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
     private bool _isTimingEditorVisible;
     private int _serviceTimingOffsetMinutes;
     private double _timelineProgress;
+    private DateTimeOffset? _cruiseStartedAt;
+    private DateTimeOffset? _lastServiceProgressAdvanceAt;
     private CateringPassengerPreferenceViewModel? _selectedPassengerPreference;
 
     public CateringViewModel(PassengerFlowViewModel passengers, string? settingsDirectory = null)
@@ -43,6 +46,7 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
         _settingsDirectory = settingsDirectory;
         _pack = CateringMenuPackLoader.Load(settingsDirectory, DateTimeOffset.Now);
         _selection = BritishAirwaysCateringProfileSelector.Select(CreateFlightContext());
+        _servicePacing = CabinServicePacing.Select(CreateFlightContext(), 0, _passengers.ScheduledCabinCrewCount);
         SelectTabCommand = new RelayCommand(parameter => SelectedTab = parameter?.ToString() ?? "Menu");
         SelectCabinCommand = new RelayCommand(parameter => SelectCabin(parameter?.ToString()));
         SelectCourseCommand = new RelayCommand(parameter => SelectCourse(parameter?.ToString()));
@@ -179,6 +183,8 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
     public string DurationLabel => FormatDuration(CreateFlightContext().Duration);
     public string ProfileLabel => _selection.DisplayName;
     public string ServiceBandLabel => $"{_selection.ServiceBand} · {BritishAirwaysCateringProfileSelector.FormatMealPeriod(_selection.MealPeriod)}";
+    public string ServicePacingLabel => _servicePacing.Summary;
+    public string ServicePacingDetail => $"{_servicePacing.ConcurrentServicePositions} service positions active at once · pauses automatically before the pre-arrival service.";
     public string PackLabel => $"{_pack.DisplayName} · v{_pack.Version}";
     public string CateringCycleLabel => HasSimBriefFlight
         ? $"{PackEffectiveMonth()} · {FormatRouteRegion(_selection.RouteRegion, ShortAirport(_passengers.ImportedDestination))}"
@@ -314,9 +320,12 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
         _flightKey = key;
         _pack = CateringMenuPackLoader.Load(_settingsDirectory, context.ScheduledDeparture);
         _selection = BritishAirwaysCateringProfileSelector.Select(context);
+        _servicePacing = CabinServicePacing.Select(context, _passengers.PassengerManifest.Count, _passengers.ScheduledCabinCrewCount);
         _servedPassengerIds.Clear();
         _highLifeCafePurchaserIds.Clear();
         ServiceProgress = 0d;
+        _cruiseStartedAt = null;
+        _lastServiceProgressAdvanceAt = null;
         var definitions = _pack.Items.Where(MatchesSelection).ToArray();
         BuildCabins(definitions);
         BuildInventory(definitions);
@@ -551,9 +560,44 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
         var isDescent = phase.Contains("Descent", StringComparison.OrdinalIgnoreCase) || phase.Contains("Approach", StringComparison.OrdinalIgnoreCase);
         var isArrival = phase.Contains("Arrival", StringComparison.OrdinalIgnoreCase) || phase.Contains("Landed", StringComparison.OrdinalIgnoreCase);
         var safetyHold = _passengers.SeatbeltSignOn && (isCruise || isDescent);
-        if (isArrival) ServiceProgress = 100d;
-        else if (isDescent) ServiceProgress = Math.Max(ServiceProgress, 86d);
-        else if (isCruise && AutoProgress && !_serviceManuallyHeld && !safetyHold) ServiceProgress += 0.45d;
+        var now = DateTimeOffset.UtcNow;
+        if (isArrival)
+        {
+            ServiceProgress = 100d;
+            _lastServiceProgressAdvanceAt = now;
+        }
+        else if (isDescent)
+        {
+            // Arrival preparation belongs to the real descent rather than the
+            // end of an arbitrary wall-clock countdown.
+            ServiceProgress = Math.Max(ServiceProgress, 80d);
+            _lastServiceProgressAdvanceAt = now;
+        }
+        else if (isCruise)
+        {
+            _cruiseStartedAt ??= now;
+            if (_selection.AircraftFamily == CateringAircraftFamily.LongHaul && ServiceProgress < 20d)
+            {
+                // Pre-departure drinks are completed during boarding; a
+                // long-haul cruise begins with the main meal already underway.
+                ServiceProgress = 20d;
+            }
+
+            var elapsed = _lastServiceProgressAdvanceAt is { } previous
+                ? now - previous
+                : TimeSpan.Zero;
+            _lastServiceProgressAdvanceAt = now;
+            if (AutoProgress && !_serviceManuallyHeld && !safetyHold)
+            {
+                // A UI stall or a computer waking from sleep must not serve an
+                // entire A380 cabin in one update.
+                AdvanceServiceProgress(TimeSpan.FromSeconds(Math.Clamp(elapsed.TotalSeconds, 0d, 4d)), now);
+            }
+        }
+        else
+        {
+            _lastServiceProgressAdvanceAt = now;
+        }
         var serviceIndex = Math.Clamp((int)Math.Floor(ServiceProgress / (100d / Math.Max(1, _selection.ServiceSequence.Count))), 0, _selection.ServiceSequence.Count - 1);
         CurrentServiceTitle = isCruise || isDescent || isArrival ? _selection.ServiceSequence[serviceIndex] : "Catering loaded · waiting for cruise";
         NextServiceTitle = !isCruise && !isDescent && !isArrival
@@ -561,16 +605,94 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
             : serviceIndex + 1 < _selection.ServiceSequence.Count
                 ? _selection.ServiceSequence[serviceIndex + 1]
                 : "Arrival and stock reconciliation";
-        ServiceStatus = _serviceManuallyHeld ? "SERVICE HELD BY USER" : safetyHold ? "SERVICE PAUSED · SEAT-BELT SIGN ON" : isCruise ? "LIVE CABIN SERVICE" : $"STAGED · {phase.ToUpperInvariant()}";
+        var waitingForPreArrival = isCruise && ServiceProgress is >= 60d and < 80d && !CanStartPreArrivalService(now);
+        ServiceStatus = _serviceManuallyHeld
+            ? "SERVICE HELD BY USER"
+            : safetyHold
+                ? "SERVICE PAUSED · SEAT-BELT SIGN ON"
+                : waitingForPreArrival
+                    ? "MID-FLIGHT HOSPITALITY · PRE-ARRIVAL SERVICE SCHEDULED"
+                    : isCruise
+                        ? "LIVE CABIN SERVICE"
+                        : $"STAGED · {phase.ToUpperInvariant()}";
         UpdatePassengerOrderStatus(safetyHold || _serviceManuallyHeld);
         UpdateCabinProgress();
         UpdateServicePhaseStates();
     }
 
+    private void AdvanceServiceProgress(TimeSpan elapsed, DateTimeOffset now)
+    {
+        if (elapsed <= TimeSpan.Zero || ServiceProgress >= 80d)
+        {
+            return;
+        }
+
+        if (ServiceProgress < 40d)
+        {
+            ServiceProgress = Math.Min(40d, ServiceProgress + elapsed.TotalSeconds / _servicePacing.MainServiceDuration.TotalSeconds * 20d);
+            return;
+        }
+
+        if (ServiceProgress < 60d)
+        {
+            ServiceProgress = Math.Min(60d, ServiceProgress + elapsed.TotalSeconds / _servicePacing.MidFlightServiceDuration.TotalSeconds * 20d);
+            return;
+        }
+
+        if (CanStartPreArrivalService(now))
+        {
+            ServiceProgress = Math.Min(80d, ServiceProgress + elapsed.TotalSeconds / _servicePacing.PreArrivalServiceDuration.TotalSeconds * 20d);
+        }
+    }
+
+    private bool CanStartPreArrivalService(DateTimeOffset now)
+    {
+        if (_cruiseStartedAt is not { } cruiseStart)
+        {
+            return false;
+        }
+
+        return now - cruiseStart >= PreArrivalServiceOpensAt();
+    }
+
+    private TimeSpan PreArrivalServiceOpensAt()
+    {
+        var cruiseDuration = EstimatedCruiseDuration();
+        var leadTime = TimeSpan.FromTicks(Math.Min(_servicePacing.PreArrivalLead.Ticks, cruiseDuration.Ticks / 2));
+        var openAt = cruiseDuration - leadTime + TimeSpan.FromMinutes(_serviceTimingOffsetMinutes);
+        return openAt < TimeSpan.Zero ? TimeSpan.Zero : openAt;
+    }
+
+    private TimeSpan EstimatedCruiseDuration()
+    {
+        var duration = CreateFlightContext().Duration;
+        var terminalTime = TimeSpan.FromMinutes(Math.Clamp(duration.TotalMinutes * 0.17d, 35d, 90d));
+        return duration > terminalTime
+            ? duration - terminalTime
+            : TimeSpan.FromMinutes(Math.Max(30d, duration.TotalMinutes * 0.7d));
+    }
+
+    private double ActiveServiceWaveProgress()
+    {
+        var lowerBound = ServiceProgress < 40d ? 20d : ServiceProgress < 60d ? 40d : 60d;
+        return Math.Clamp((ServiceProgress - lowerBound) / 20d * 100d, 0d, 100d);
+    }
+
+    private bool IsDrinkServiceWave() => ServiceProgress is >= 40d and < 60d;
+
+    private string CabinServiceActivityLabel() => ServiceProgress switch
+    {
+        < 20d => "Waiting for service",
+        < 40d => "Main meal service",
+        < 60d => "Drinks and refreshments",
+        < 80d => "Pre-arrival service",
+        _ => "Cabin secured for arrival"
+    };
+
     private void UpdatePassengerOrderStatus(bool held)
     {
-        if (held) return;
-        var servedCount = (int)Math.Floor(PassengerPreferences.Count * ServiceProgress / 100d);
+        if (held || ServiceProgress < 20d || ServiceProgress >= 80d) return;
+        var servedCount = (int)Math.Floor(PassengerPreferences.Count * ActiveServiceWaveProgress() / 100d);
         for (var index = 0; index < PassengerPreferences.Count; index++)
         {
             var passenger = PassengerPreferences[index];
@@ -603,7 +725,8 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
             }
             passenger.Status = newStatus;
         }
-        _passengers.ApplyCateringServiceProgress(ServiceProgress, ServiceProgress >= 46d && ServiceProgress < 68d, ServiceProgress > 0d && ServiceProgress < 86d);
+        var serviceActive = ServiceProgress is >= 20d and < 80d;
+        _passengers.ApplyCateringServiceProgress(ActiveServiceWaveProgress(), IsDrinkServiceWave(), serviceActive, _servicePacing.ConcurrentServicePositions);
         RefreshSummaryProperties();
     }
 
@@ -624,9 +747,9 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
     {
         for (var index = 0; index < Cabins.Count; index++)
         {
-            var offset = index switch { 0 => 12d, 1 => 5d, 2 => -13d, _ => -22d };
-            Cabins[index].UpdateService(ServiceProgress < 1d ? 0d : Math.Clamp(ServiceProgress + offset, 0d, 100d),
-                ServiceProgress < 1d ? "Waiting for service" : ServiceProgress < 68d ? "Main meal service" : "Beverage / second service");
+            var offset = index switch { 0 => 14d, 1 => 6d, 2 => -8d, _ => -16d };
+            Cabins[index].UpdateService(ServiceProgress < 20d ? 0d : Math.Clamp(ActiveServiceWaveProgress() + offset, 0d, 100d),
+                CabinServiceActivityLabel());
         }
         OnPropertyChanged(nameof(CurrentActivitySubtitle));
         OnPropertyChanged(nameof(CurrentActivityDetail));
@@ -728,20 +851,41 @@ public sealed class CateringViewModel : PageViewModel, IDisposable
             return "Paused while the seat-belt sign is on";
         if (!_passengers.HasSimBriefFlight) return "Ready when cabin conditions allow";
 
-        var departure = _passengers.ImportedScheduledDepartureLocal ?? DateTimeOffset.Now;
-        var duration = CreateFlightContext().Duration;
-        var serviceIndex = Math.Clamp((int)Math.Floor(ServiceProgress / (100d / Math.Max(1, _selection.ServiceSequence.Count))), 0, _selection.ServiceSequence.Count - 1);
-        var nextFraction = Math.Clamp((serviceIndex + 2d) / (_selection.ServiceSequence.Count + 2d), 0.12d, 0.88d);
-        var estimatedStart = departure + TimeSpan.FromTicks((long)(duration.Ticks * nextFraction)) + TimeSpan.FromMinutes(_serviceTimingOffsetMinutes);
-        var remaining = estimatedStart - DateTimeOffset.Now;
-        if (remaining <= TimeSpan.Zero) return "Ready when cabin conditions allow";
-        if (remaining.TotalHours >= 1d) return $"Estimated start in {(int)remaining.TotalHours}h {remaining.Minutes:00}m";
-        return $"Estimated start in {Math.Max(1, remaining.Minutes)} min";
+        if (livePhase.Contains("Arrival", StringComparison.OrdinalIgnoreCase) || livePhase.Contains("Landed", StringComparison.OrdinalIgnoreCase))
+            return "Service sequence complete";
+        if (livePhase.Contains("Descent", StringComparison.OrdinalIgnoreCase) || livePhase.Contains("Approach", StringComparison.OrdinalIgnoreCase))
+            return "Cabin secured for arrival";
+        if (!livePhase.Contains("Cruise", StringComparison.OrdinalIgnoreCase))
+            return "Main service opens after the cabin is clear";
+
+        var now = DateTimeOffset.UtcNow;
+        if (ServiceProgress < 40d)
+            return FormatRemaining("Main service completes", RemainingForWindow(40d, _servicePacing.MainServiceDuration));
+        if (ServiceProgress < 60d)
+            return FormatRemaining("Refreshment service completes", RemainingForWindow(60d, _servicePacing.MidFlightServiceDuration));
+        if (ServiceProgress < 80d && _cruiseStartedAt is { } cruiseStart && !CanStartPreArrivalService(now))
+            return FormatRemaining("Pre-arrival service opens", PreArrivalServiceOpensAt() - (now - cruiseStart));
+        if (ServiceProgress < 80d)
+            return FormatRemaining("Pre-arrival service completes", RemainingForWindow(80d, _servicePacing.PreArrivalServiceDuration));
+        return "Cabin prepared for descent";
+    }
+
+    private TimeSpan RemainingForWindow(double endProgress, TimeSpan windowDuration)
+    {
+        var windowStart = endProgress - 20d;
+        return TimeSpan.FromTicks((long)(windowDuration.Ticks * Math.Clamp((endProgress - ServiceProgress) / (endProgress - windowStart), 0d, 1d)));
+    }
+
+    private static string FormatRemaining(string action, TimeSpan remaining)
+    {
+        if (remaining <= TimeSpan.Zero) return $"{action} shortly";
+        if (remaining.TotalHours >= 1d) return $"{action} in {(int)remaining.TotalHours}h {remaining.Minutes:00}m";
+        return $"{action} in {Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes))} min";
     }
 
     private void RefreshSummaryProperties()
     {
-        foreach (var property in new[] { nameof(HasSimBriefFlight), nameof(IsCateringLoaded), nameof(IsShortHaul), nameof(PageDescription), nameof(MenuExperienceTitle), nameof(MenuExperienceSubtitle), nameof(MenuHeroTitle), nameof(MenuHeroDescription), nameof(MenuBrandLabel), nameof(ServiceNoteOne), nameof(ServiceNoteTwo), nameof(ServiceNoteThree), nameof(ServiceNoteFour), nameof(PassengerOrdersHeading), nameof(FlightNumber), nameof(RouteLabel), nameof(AircraftLabel), nameof(DepartureLabel), nameof(DurationLabel), nameof(ProfileLabel), nameof(ServiceBandLabel), nameof(PackLabel), nameof(CateringCycleLabel), nameof(CateringOverviewTitle), nameof(CateringOverviewDescription), nameof(CateringOverviewSymbol), nameof(CateringOverviewColor), nameof(TotalUnits), nameof(LoadedUnits), nameof(UsedUnits), nameof(InventoryUsagePercent), nameof(InventoryUsageLabel), nameof(LowStockCount), nameof(OutOfStockCount), nameof(TotalPassengerSpend), nameof(MealServiceStatus), nameof(DrinkServiceStatus), nameof(LavatoryQueueStatus), nameof(TotalSpecialMeals), nameof(VegetarianMeals), nameof(VeganMeals), nameof(GlutenFreeMeals), nameof(HalalMeals), nameof(OtherSpecialMeals), nameof(PassengerCount), nameof(CabinCrewCount), nameof(ConnectionLabel), nameof(CateringLoadLabel), nameof(SimBriefFooterLabel), nameof(CurrentActivityTitle), nameof(CurrentActivitySubtitle), nameof(CurrentActivityDetail), nameof(CurrentActivityProgress), nameof(CurrentActivityProgressLabel), nameof(NextServiceDisplayTitle), nameof(NextServiceEtaLabel) }) OnPropertyChanged(property);
+        foreach (var property in new[] { nameof(HasSimBriefFlight), nameof(IsCateringLoaded), nameof(IsShortHaul), nameof(PageDescription), nameof(MenuExperienceTitle), nameof(MenuExperienceSubtitle), nameof(MenuHeroTitle), nameof(MenuHeroDescription), nameof(MenuBrandLabel), nameof(ServiceNoteOne), nameof(ServiceNoteTwo), nameof(ServiceNoteThree), nameof(ServiceNoteFour), nameof(PassengerOrdersHeading), nameof(FlightNumber), nameof(RouteLabel), nameof(AircraftLabel), nameof(DepartureLabel), nameof(DurationLabel), nameof(ProfileLabel), nameof(ServiceBandLabel), nameof(ServicePacingLabel), nameof(ServicePacingDetail), nameof(PackLabel), nameof(CateringCycleLabel), nameof(CateringOverviewTitle), nameof(CateringOverviewDescription), nameof(CateringOverviewSymbol), nameof(CateringOverviewColor), nameof(TotalUnits), nameof(LoadedUnits), nameof(UsedUnits), nameof(InventoryUsagePercent), nameof(InventoryUsageLabel), nameof(LowStockCount), nameof(OutOfStockCount), nameof(TotalPassengerSpend), nameof(MealServiceStatus), nameof(DrinkServiceStatus), nameof(LavatoryQueueStatus), nameof(TotalSpecialMeals), nameof(VegetarianMeals), nameof(VeganMeals), nameof(GlutenFreeMeals), nameof(HalalMeals), nameof(OtherSpecialMeals), nameof(PassengerCount), nameof(CabinCrewCount), nameof(ConnectionLabel), nameof(CateringLoadLabel), nameof(SimBriefFooterLabel), nameof(CurrentActivityTitle), nameof(CurrentActivitySubtitle), nameof(CurrentActivityDetail), nameof(CurrentActivityProgress), nameof(CurrentActivityProgressLabel), nameof(NextServiceDisplayTitle), nameof(NextServiceEtaLabel) }) OnPropertyChanged(property);
     }
 
     private int PassengerCountForCabin(string cabin) => _passengers.PassengerManifest.Count(passenger => CateringCabinName(passenger.CabinClassName) == cabin);

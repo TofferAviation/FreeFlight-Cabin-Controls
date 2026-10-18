@@ -255,7 +255,7 @@ public sealed class PassengerBoardingEngine
         InitializeManifest();
     }
 
-    public void ApplyCateringServiceProgress(double progressPercent, bool drinksService, bool serviceActive)
+    public void ApplyCateringServiceProgress(double progressPercent, bool drinksService, bool serviceActive, int servicePositions = 1)
     {
         if (!serviceActive)
         {
@@ -278,23 +278,37 @@ public sealed class PassengerBoardingEngine
         }
 
         var completed = Math.Clamp((int)Math.Floor(seated.Length * Math.Clamp(progressPercent, 0d, 100d) / 100d), 0, seated.Length);
+        var activePositions = Math.Clamp(servicePositions, 1, Math.Min(24, seated.Length));
+        var receivingUntil = Math.Min(seated.Length, completed + activePositions);
+        var waitingUntil = Math.Min(seated.Length, receivingUntil + activePositions * 2);
+        var completedActivity = drinksService ? PassengerCabinActivity.Drinking : PassengerCabinActivity.EatingMeal;
+        var receivingActivity = drinksService ? PassengerCabinActivity.ReceivingDrink : PassengerCabinActivity.ReceivingMeal;
         for (var index = 0; index < seated.Length; index++)
         {
             var passenger = seated[index];
             if (index < completed)
             {
-                passenger.CabinActivity = drinksService ? PassengerCabinActivity.Drinking : PassengerCabinActivity.EatingMeal;
-                passenger.SecondsUntilActivityChange = 45d + (passenger.Id % 75);
+                if (passenger.CabinActivity != completedActivity)
+                {
+                    passenger.CabinActivity = completedActivity;
+                    passenger.SecondsUntilActivityChange = drinksService ? 6d * 60d + (passenger.Id % 180) : 12d * 60d + (passenger.Id % 240);
+                }
             }
-            else if (index == completed)
+            else if (index < receivingUntil)
             {
-                passenger.CabinActivity = drinksService ? PassengerCabinActivity.ReceivingDrink : PassengerCabinActivity.ReceivingMeal;
-                passenger.SecondsUntilActivityChange = 8d + (passenger.Id % 12);
+                if (passenger.CabinActivity != receivingActivity)
+                {
+                    passenger.CabinActivity = receivingActivity;
+                    passenger.SecondsUntilActivityChange = drinksService ? 6d + (passenger.Id % 12) : 10d + (passenger.Id % 20);
+                }
             }
-            else if (index <= completed + 12)
+            else if (index < waitingUntil)
             {
-                passenger.CabinActivity = PassengerCabinActivity.WaitingForCabinService;
-                passenger.SecondsUntilActivityChange = 20d + (passenger.Id % 30);
+                if (passenger.CabinActivity != PassengerCabinActivity.WaitingForCabinService)
+                {
+                    passenger.CabinActivity = PassengerCabinActivity.WaitingForCabinService;
+                    passenger.SecondsUntilActivityChange = 20d + (passenger.Id % 30);
+                }
             }
         }
     }

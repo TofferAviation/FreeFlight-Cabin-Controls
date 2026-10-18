@@ -169,6 +169,8 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         : 1033d;
     public double ActiveCabinCanvasHeight => IsA380CabinLayout ? 1033d : 192d;
     public double ActiveCabinPreviewMaximumHeight => IsA380CabinLayout ? 520d : 250d;
+    private double ActiveA380ArtworkSourceWidth => _selectedA380Deck == PassengerCabinDeck.Upper ? 1006d : 936d;
+    private const double A380ArtworkSourceHeight = 3000d;
     public bool IsBritishAirways777200Er => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777200Er;
     public bool IsBritishAirways777300 => SelectedCabinLayoutProfile.Layout == PassengerCabinLayout.BritishAirways777300;
     public bool IsNarrowBodyCabinLayout => SelectedCabinLayoutProfile.Layout is
@@ -192,7 +194,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
     public string LiveFlightPhase => _liveFlightPhase;
     public string AircraftMovementLabel => _isPushbackActive ? "PUSHBACK ACTIVE" : _isAircraftMoving ? "AIRCRAFT MOVING" : "STATIONARY";
     public string LiveCabinStatus => $"{LiveFlightPhase.ToUpperInvariant()} · {AircraftMovementLabel} · {SeatbeltSignLabel}";
-    private int ExpectedCabinCrewCount => SelectedCabinLayoutProfile.Layout switch
+    public int ScheduledCabinCrewCount => SelectedCabinLayoutProfile.Layout switch
     {
         PassengerCabinLayout.BritishAirwaysA380 => 22,
         PassengerCabinLayout.BritishAirways777300 => 12,
@@ -209,6 +211,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _ => 10
     };
     public int RestingCrewCount => _crewRestAssignment.IsActive ? _crewRestAssignment.RestingCrewCount : 0;
+    public int ActiveServiceCrewCount => Math.Max(1, ScheduledCabinCrewCount - RestingCrewCount);
     public string CrewRestStatus
     {
         get
@@ -407,9 +410,9 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         };
     }
 
-    public void ApplyCateringServiceProgress(double progressPercent, bool drinksService, bool serviceActive)
+    public void ApplyCateringServiceProgress(double progressPercent, bool drinksService, bool serviceActive, int servicePositions = 1)
     {
-        _engine.ApplyCateringServiceProgress(progressPercent, drinksService, serviceActive && !SeatbeltSignOn);
+        _engine.ApplyCateringServiceProgress(progressPercent, drinksService, serviceActive && !SeatbeltSignOn, servicePositions);
         RefreshFullUiIfDue(TimeSpan.FromSeconds(1));
     }
 
@@ -1583,7 +1586,13 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         !IsA380CabinLayout || passenger.Seat.Deck == _selectedA380Deck;
 
     private PassengerMarkerViewModel CreatePassengerMarker(BoardingPassenger passenger) =>
-        new(passenger, IsA380CabinLayout, ActiveCabinCanvasWidth);
+        new(
+            passenger,
+            IsA380CabinLayout,
+            ActiveCabinCanvasWidth,
+            ActiveCabinCanvasHeight,
+            ActiveA380ArtworkSourceWidth,
+            A380ArtworkSourceHeight);
 
     private void ApplyImportedAircraftCabinProfile(string? aircraftIcao)
     {
@@ -1622,7 +1631,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
             return;
         }
 
-        var crewCount = ExpectedCabinCrewCount;
+        var crewCount = ScheduledCabinCrewCount;
         while (CabinCrewMarkers.Count < crewCount)
         {
             CabinCrewMarkers.Add(new CabinCrewMarkerViewModel(
@@ -1748,7 +1757,7 @@ public sealed class PassengerFlowViewModel : PageViewModel, IDisposable
         _crewRestAssignment = CabinCrewRestSchedule.Evaluate(
             _crewRestCycleStartedAt.Value,
             currentTime,
-            ExpectedCabinCrewCount,
+            ScheduledCabinCrewCount,
             timeUntilLanding);
         if (!_crewRestAssignment.IsActive)
         {
@@ -2006,11 +2015,13 @@ public sealed class CabinCrewMarkerViewModel : ObservableObject
 
 public sealed class PassengerMarkerViewModel : ObservableObject
 {
-    private const double StandardCabinCanvasHeight = 192d;
     private double _x;
     private double _y;
     private readonly bool _usesPortraitDeckMap;
     private readonly double _portraitDeckMapWidth;
+    private readonly double _portraitDeckMapHeight;
+    private readonly double _portraitDeckSourceWidth;
+    private readonly double _portraitDeckSourceHeight;
     private PassengerMovementState _movementState;
     private PassengerOperation _operation;
     private PassengerCabinActivity _cabinActivity = PassengerCabinActivity.AwaitingBoarding;
@@ -2021,7 +2032,10 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     public PassengerMarkerViewModel(
         BoardingPassenger passenger,
         bool usesPortraitDeckMap = false,
-        double portraitDeckMapWidth = 322d)
+        double portraitDeckMapWidth = 322d,
+        double portraitDeckMapHeight = 1033d,
+        double portraitDeckSourceWidth = 936d,
+        double portraitDeckSourceHeight = 3000d)
     {
         PassengerId = passenger.Id;
         FullName = passenger.Profile.FullName;
@@ -2031,7 +2045,10 @@ public sealed class PassengerMarkerViewModel : ObservableObject
         SeatX = passenger.Seat.X;
         SeatY = passenger.Seat.Y;
         _usesPortraitDeckMap = usesPortraitDeckMap;
-        _portraitDeckMapWidth = portraitDeckMapWidth;
+        _portraitDeckMapWidth = Math.Max(1d, portraitDeckMapWidth);
+        _portraitDeckMapHeight = Math.Max(1d, portraitDeckMapHeight);
+        _portraitDeckSourceWidth = Math.Max(1d, portraitDeckSourceWidth);
+        _portraitDeckSourceHeight = Math.Max(1d, portraitDeckSourceHeight);
     }
 
     public int PassengerId { get; }
@@ -2068,9 +2085,11 @@ public sealed class PassengerMarkerViewModel : ObservableObject
     }
 
     public double CanvasLeft => (_usesPortraitDeckMap
-        ? Y * (_portraitDeckMapWidth / StandardCabinCanvasHeight)
+        ? Y * (_portraitDeckMapWidth / _portraitDeckSourceWidth)
         : X) - (MarkerSize / 2d);
-    public double CanvasTop => (_usesPortraitDeckMap ? X : Y) - (MarkerSize / 2d);
+    public double CanvasTop => (_usesPortraitDeckMap
+        ? X * (_portraitDeckMapHeight / _portraitDeckSourceHeight)
+        : Y) - (MarkerSize / 2d);
 
     public PassengerMovementState MovementState
     {

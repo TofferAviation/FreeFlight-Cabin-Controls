@@ -60,6 +60,8 @@ var tests = new (string Name, Func<Task> Run)[]
     ("X-Plane shared-flight profiles fail closed when safe signals are absent", XPlaneSharedFlightProfilesFailClosedAsync)
     ,("BA catering selects long-haul route and meal period", BritishAirwaysLongHaulCateringSelectionAsync)
     ,("BA catering selects short-haul service band", BritishAirwaysShortHaulCateringSelectionAsync)
+    ,("A380 catering service uses a multi-deck pace", A380CateringServicePacingAsync)
+    ,("Cabin service uses parallel crew positions", CabinServiceUsesParallelCrewPositionsAsync)
 };
 
 static Task XPlaneSharedFlightProfilesRecogniseTestGroupAsync()
@@ -201,6 +203,35 @@ static Task BritishAirwaysShortHaulCateringSelectionAsync()
     AssertEqual(CateringMealPeriod.Breakfast, selection.MealPeriod, "The morning departure did not select breakfast.");
     Assert(selection.ServiceBand.Contains("Band 1", StringComparison.Ordinal), "The short sector did not select the express band.");
     Assert(selection.ServiceSequence.Contains("High Life Café"), "Euro Traveller buy-on-board service was omitted.");
+    return Task.CompletedTask;
+}
+
+static Task A380CateringServicePacingAsync()
+{
+    var context = new CateringFlightContext(
+        "BA207", "LHR", "MIA", "A388", new DateTimeOffset(2026, 10, 18, 9, 55, 0, TimeSpan.Zero),
+        TimeSpan.FromHours(9.67), false);
+    var pacing = CabinServicePacing.Select(context, 469, 22);
+
+    Assert(pacing.Label.Contains("A380", StringComparison.Ordinal), "The A380 did not receive its multi-deck service profile.");
+    Assert(pacing.MainServiceDuration >= TimeSpan.FromMinutes(30), "The A380 main service was still paced like a short sector.");
+    Assert(pacing.MidFlightServiceDuration >= TimeSpan.FromMinutes(18), "The A380 refreshment service was unrealistically short.");
+    Assert(pacing.PreArrivalLead >= TimeSpan.FromMinutes(90), "The A380 pre-arrival service did not reserve enough landing time.");
+    Assert(pacing.ConcurrentServicePositions is >= 8 and <= 16, "The A380 service profile did not model parallel cabin crew positions.");
+    return Task.CompletedTask;
+}
+
+static Task CabinServiceUsesParallelCrewPositionsAsync()
+{
+    var engine = new PassengerBoardingEngine(int.MaxValue, PassengerCabinLayout.BritishAirwaysA380);
+    foreach (var passenger in engine.Passengers)
+    {
+        Assert(engine.TryBoardPassenger(passenger.Id), "An A380 passenger could not be seated for the parallel-service check.");
+    }
+
+    engine.ApplyCateringServiceProgress(0d, drinksService: false, serviceActive: true, servicePositions: 12);
+    AssertEqual(12, engine.Passengers.Count(passenger => passenger.CabinActivity == PassengerCabinActivity.ReceivingMeal),
+        "The A380 meal service did not open enough parallel crew positions.");
     return Task.CompletedTask;
 }
 
