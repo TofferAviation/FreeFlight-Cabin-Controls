@@ -234,6 +234,16 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return JsonSerializer.Deserialize<FleetWebsiteFlightAssignmentEnvelope>(content, JsonOptions)?.Assignment;
     }
 
+    public async Task<IReadOnlyList<FleetPirepDto>> GetVirtualPassportPirepsAsync(
+        AppSettings settings,
+        FleetAccountSession account,
+        CancellationToken cancellationToken = default)
+    {
+        var payload = await SendBavAsync<FleetVirtualPassportEnvelope>(
+            settings, account, HttpMethod.Get, "/api/acars/v1/passport", null, cancellationToken);
+        return payload?.Pireps ?? [];
+    }
+
     public async Task<IReadOnlyList<FleetOperationsFlightDto>> GetOperationsFlightsAsync(
         AppSettings settings,
         FleetAccountSession account,
@@ -806,6 +816,7 @@ public sealed record FleetCrewRoomChatMessageDto(
     DateTimeOffset CreatedAt);
 public sealed record FleetAcarsTelemetryEnvelope(bool Ok, string? UpdatedAt, double? DistanceNm);
 public sealed record FleetAcarsCompleteEnvelope(FleetAcarsSessionDto? Session, FleetPirepDto? Pirep);
+public sealed record FleetVirtualPassportEnvelope(IReadOnlyList<FleetPirepDto>? Pireps);
 public sealed record FleetAcarsSessionDto(string Id, string FlightNumber, string From, string To, string Aircraft, string Simulator, string Status, string StartedAt, FleetAcarsSnapshotDto? LastSnapshot = null);
 public sealed record FleetAcarsCompletionDto(FleetAcarsSessionDto Session, FleetPirepDto Pirep);
 public sealed record FleetAcarsSnapshotDto(bool FlightStarted);
@@ -832,7 +843,7 @@ public sealed record FleetCrewLinkSessionDto(
     string CreatedAt,
     string UpdatedAt,
     IReadOnlyList<FleetCrewLinkMemberDto>? Members);
-public sealed record FleetPirepDto(string Id, string FlightNumber, string From, string To, string Aircraft, int BlockMinutes, int DistanceNm, int? LandingFpm, int? FuelUsedKg, string Status, string Source, string Simulator);
+public sealed record FleetPirepDto(string Id, string FlightNumber, string From, string To, string Aircraft, int BlockMinutes, int DistanceNm, int? LandingFpm, int? FuelUsedKg, string Status, string Source, string Simulator, string? CompletedAt = null);
 // These values are Ember's own operational cabin model. They deliberately do
 // not contain passenger identities, SayIntentions transcripts, or credentials.
 public sealed record FleetCabinTelemetryDto(

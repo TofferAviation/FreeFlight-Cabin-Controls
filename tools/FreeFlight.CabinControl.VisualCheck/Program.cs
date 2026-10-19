@@ -257,6 +257,49 @@ internal static class Program
         }
 
         if (string.Equals(
+                Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_PASSPORT_ONLY"),
+                "1",
+                StringComparison.Ordinal))
+        {
+            // The visual harness supplies a harmless identity so it can visit
+            // authenticated personal pages without contacting BAV.
+            typeof(CabinAccountViewModel)
+                .GetProperty(nameof(CabinAccountViewModel.Session))!
+                .SetValue(viewModel.Account, new FleetAccountSession(
+                    "visual-check-token",
+                    "pilot-visual-check",
+                    "BAW0001",
+                    "Kristoffer Eriksen",
+                    "visual-check@example.invalid",
+                    Rank: "Captain"));
+            viewModel.Passport.RecordArrivalAsync(
+                    new FleetPirepDto("visual-pirep-jfk", "BA117", "LHR", "JFK", "B77W", 410, 3451, -217, 0, "completed", "visual", "MSFS"),
+                    new DateTimeOffset(2026, 8, 25, 17, 50, 0, TimeSpan.Zero))
+                .GetAwaiter()
+                .GetResult();
+            viewModel.NavigateCommand.Execute("Passport");
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            if (viewModel.ActivePage != "Passport" ||
+                viewModel.CurrentPage != viewModel.Passport ||
+                viewModel.Passport.Entries.Count != 1 ||
+                viewModel.Passport.Entries[0].AirportCode != "JFK" ||
+                viewModel.Passport.Entries[0].ArrivalTime != "13:50")
+            {
+                throw new InvalidOperationException("The virtual passport did not create a destination-local arrival stamp.");
+            }
+
+            Render(window, Path.Combine(outputDirectory, "virtual-passport.png"));
+            window.Width = 1120;
+            window.Height = 700;
+            window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+            Render(window, Path.Combine(outputDirectory, "virtual-passport-minimum-window.png"));
+            window.Close();
+            application.Shutdown();
+            Console.WriteLine($"Rendered focused Virtual Passport checks to {outputDirectory}");
+            return 0;
+        }
+
+        if (string.Equals(
                 Environment.GetEnvironmentVariable("FREEFLIGHT_VISUAL_CREW_ROOM_ONLY"),
                 "1",
                 StringComparison.Ordinal))

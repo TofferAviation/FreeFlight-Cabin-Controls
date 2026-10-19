@@ -110,6 +110,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             PrepareFlightForUpdate,
             CancelFlightUpdateShutdown);
         FlightLogger = new FlightLoggerViewModel();
+        Passport = new VirtualPassportViewModel(settings, settingsStore);
         Account = new CabinAccountViewModel(
             settings,
             new FleetApiClient(),
@@ -193,6 +194,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     public UpdatesViewModel Updates { get; }
 
     public FlightLoggerViewModel FlightLogger { get; }
+
+    public VirtualPassportViewModel Passport { get; }
 
     public CommunityHubViewModel CrewRoom { get; }
 
@@ -355,6 +358,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             "Performance" => Performance,
             "Settings" => Settings,
             "FlightLogger" => FlightLogger,
+            "Passport" => Passport,
             "CrewRoom" => CrewRoom,
             "CabinAccount" => Account,
             "Fleet" => Fleet,
@@ -553,6 +557,23 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         // session. Refresh immediately after sign-in instead of making pilots
         // discover that they must press Refresh a second time.
         _ = Fleet.RefreshAsync();
+        if (Account.Session is not null)
+        {
+            _ = SyncVirtualPassportHistoryAsync();
+        }
+    }
+
+    private async Task SyncVirtualPassportHistoryAsync()
+    {
+        try
+        {
+            await Passport.SyncHistoryAsync(await Account.GetVirtualPassportHistoryAsync());
+        }
+        catch (FleetApiException)
+        {
+            // Passport history is a convenience sync; a temporary website
+            // failure must never interfere with a successful account sign-in.
+        }
     }
 
     private void HandlePassengerFlightPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -671,7 +692,14 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
-            await Account.CompleteAcarsSessionAsync(touchdownFpm, simulatorBlockMinutes);
+            var pirep = await Account.CompleteAcarsSessionAsync(touchdownFpm, simulatorBlockMinutes);
+            if (pirep is not null)
+            {
+                var completedAt = DateTimeOffset.TryParse(pirep.CompletedAt, out var parsedCompletion)
+                    ? parsedCompletion
+                    : DateTimeOffset.UtcNow;
+                await Passport.RecordArrivalAsync(pirep, completedAt);
+            }
         }
         catch (Exception exception)
         {

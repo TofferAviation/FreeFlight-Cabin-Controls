@@ -217,4 +217,8 @@ public sealed class AppSettings
     public bool AutoArchiveCompletedFlights { get; set; } = true;
 
     public int ArchiveCompletedFlightsAfterDays { get; set; } = 30;
+
+    // A private, device-local keepsake of flights that Ember has confirmed
+    // through ACARS. These are fictional simulation stamps, not travel data.
+    public List<VirtualPassportStampSettings> VirtualPassportStamps { get; set; } = [];
 }

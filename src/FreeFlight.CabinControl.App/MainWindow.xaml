@@ -119,6 +119,9 @@
                                 <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="FlightLogger" Tag="&#xE774;" GroupName="Navigation"
                                              IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=FlightLogger, Mode=OneWay}"
                                              Command="{Binding NavigateCommand}" CommandParameter="FlightLogger" />
+                                <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="Virtual Passport" Tag="&#xE8C7;" GroupName="Navigation"
+                                             IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Passport, Mode=OneWay}"
+                                             Command="{Binding NavigateCommand}" CommandParameter="Passport" />
                                 <RadioButton Style="{StaticResource WorkspaceNavStyle}" Content="Settings" Tag="&#xE713;" GroupName="Navigation"
                                              IsChecked="{Binding ActivePage, Converter={StaticResource StringEqualsConverter}, ConverterParameter=Settings, Mode=OneWay}"
                                              Command="{Binding NavigateCommand}" CommandParameter="Settings" />
@@ -181,6 +184,7 @@
                         <views:PerformanceView DataContext="{Binding Performance}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Performance}" />
                         <views:IportDcsView DataContext="{Binding IportDcs}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=IportDcs}" />
                         <views:FlightLoggerView DataContext="{Binding FlightLogger}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=FlightLogger}" />
+                        <views:VirtualPassportView DataContext="{Binding Passport}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Passport}" />
                         <views:CommunityHubView DataContext="{Binding CrewRoom}" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=CrewRoom}" />
                         <views:SettingsTabbedView DataContext="{Binding Settings}" PreviewUpdateRequested="SettingsView_PreviewUpdateRequested" CheckForUpdatesRequested="SettingsView_CheckForUpdatesRequested" ThemeToggleRequested="SettingsView_ThemeToggleRequested" AppearanceChanged="SettingsView_AppearanceChanged" Visibility="{Binding DataContext.ActivePage, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource StringEqualsToVisibilityConverter}, ConverterParameter=Settings}" />
                     </Grid>

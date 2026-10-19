@@ -502,13 +502,13 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
         }
     }
 
-    public async Task CompleteAcarsSessionAsync(int? landingFpm, int? simulatorBlockMinutes = null)
+    public async Task<FleetPirepDto?> CompleteAcarsSessionAsync(int? landingFpm, int? simulatorBlockMinutes = null)
     {
         var account = Session;
         var session = ActiveAcarsSession;
         if (account is null || session is null || session.Status != "active")
         {
-            return;
+            return null;
         }
 
         var completed = await _apiClient.CompleteAcarsSessionAsync(_settings, account, session.Id, landingFpm, simulatorBlockMinutes);
@@ -529,6 +529,16 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             // A connection issue while refreshing an informational notice must
             // never change the confirmed ACARS completion outcome.
         }
+
+        return completed.Pirep;
+    }
+
+    public async Task<IReadOnlyList<FleetPirepDto>> GetVirtualPassportHistoryAsync()
+    {
+        var account = Session;
+        return account is null
+            ? []
+            : await _apiClient.GetVirtualPassportPirepsAsync(_settings, account);
     }
 
     private async Task RequestManualFlightCompletionAsync()
