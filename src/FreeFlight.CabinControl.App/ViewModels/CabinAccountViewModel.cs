@@ -19,6 +19,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     private readonly AppSettings _settings;
     private readonly FleetApiClient _apiClient;
     private readonly BavAccountSessionStore? _sessionStore;
+    private readonly SemaphoreSlim _accountRefreshLock = new(1, 1);
     private string _email = string.Empty;
     private string _password = string.Empty;
     private FleetAccountSession? _session;
@@ -59,6 +60,7 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
     }
 
     public event EventHandler? SessionChanged;
+    public event EventHandler? AcarsSessionRecovered;
     public event EventHandler<WebsiteFlightAssignmentRefreshedEventArgs>? WebsiteFlightAssignmentRefreshed;
     public event EventHandler? OperationsFlightsRefreshed;
     public event Func<Task>? ManualFlightCompletionRequested;
@@ -477,8 +479,10 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             return;
         }
 
-        var account = Session ?? throw new FleetApiException("Sign in with your BAV website account before starting a flight.");
-        ActiveAcarsSession = await _apiClient.StartAcarsSessionAsync(_settings, account, simulator);
+        var account = await EnsureFreshAccountSessionAsync();
+        ActiveAcarsSession = await RetryAfterSessionRefreshAsync(
+            account,
+            activeAccount => _apiClient.StartAcarsSessionAsync(_settings, activeAccount, simulator));
         AcarsSessionLabel = $"ACARS active · {ActiveAcarsSession.FlightNumber} · {ActiveAcarsSession.From} → {ActiveAcarsSession.To}";
         StatusMessage = $"ACARS is running for {ActiveAcarsSession.FlightNumber}. Ember will record the flight in the background.";
     }
@@ -492,7 +496,14 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             return;
         }
 
-        await _apiClient.SendAcarsTelemetryAsync(_settings, account, session.Id, telemetry);
+        account = await EnsureFreshAccountSessionAsync(account);
+        await RetryAfterSessionRefreshAsync(
+            account,
+            async activeAccount =>
+            {
+                await _apiClient.SendAcarsTelemetryAsync(_settings, activeAccount, session.Id, telemetry);
+                return true;
+            });
         // Carry the durable departure marker in memory as well.  On a later
         // app restart it is restored from the active ACARS session so an
         // aircraft that has genuinely flown can still be finalised safely.
@@ -511,7 +522,10 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
             return null;
         }
 
-        var completed = await _apiClient.CompleteAcarsSessionAsync(_settings, account, session.Id, landingFpm, simulatorBlockMinutes);
+        account = await EnsureFreshAccountSessionAsync(account);
+        var completed = await RetryAfterSessionRefreshAsync(
+            account,
+            activeAccount => _apiClient.CompleteAcarsSessionAsync(_settings, activeAccount, session.Id, landingFpm, simulatorBlockMinutes));
         ActiveAcarsSession = null;
         // The completed website booking must not remain in memory: otherwise
         // the next simulator telemetry sample could create a second ACARS
@@ -727,8 +741,10 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
     private async Task RecoverActiveAcarsSessionAsync()
     {
-        var account = Session ?? throw new FleetApiException("Sign in with your BAV website account first.");
-        var recovered = await _apiClient.GetActiveAcarsSessionAsync(_settings, account);
+        var account = await EnsureFreshAccountSessionAsync();
+        var recovered = await RetryAfterSessionRefreshAsync(
+            account,
+            activeAccount => _apiClient.GetActiveAcarsSessionAsync(_settings, activeAccount));
         ActiveAcarsSession = recovered;
         if (recovered is null)
         {
@@ -738,12 +754,67 @@ public sealed class CabinAccountViewModel : PageViewModel, IDisposable
 
         AcarsSessionLabel = $"ACARS recovered · {recovered.FlightNumber} · {recovered.From} → {recovered.To}";
         StatusMessage = $"Recovered active ACARS session for {recovered.FlightNumber}. Telemetry will continue in the background.";
+        AcarsSessionRecovered?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task<FleetAccountSession> EnsureFreshAccountSessionAsync(FleetAccountSession? account = null, bool forceRefresh = false)
+    {
+        account ??= Session ?? throw new FleetApiException("Sign in with your BAV website account first.");
+        if (!forceRefresh && (account.TokenExpiresAt is null || account.TokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(5)))
+        {
+            return account;
+        }
+
+        if (string.IsNullOrWhiteSpace(account.DeviceSessionToken))
+        {
+            // The current bearer is still used while valid. Pilots who chose
+            // not to remember this PC will receive the website's normal sign-in
+            // error only after that token actually expires.
+            return account;
+        }
+
+        await _accountRefreshLock.WaitAsync();
+        try
+        {
+            var current = Session ?? account;
+            if (!forceRefresh &&
+                (current.TokenExpiresAt is null || current.TokenExpiresAt > DateTimeOffset.UtcNow.AddMinutes(5)))
+            {
+                return current;
+            }
+
+            var refreshed = await _apiClient.RefreshAccountSessionAsync(_settings, current);
+            Session = refreshed;
+            _sessionStore?.TrySave(refreshed);
+            return refreshed;
+        }
+        finally
+        {
+            _accountRefreshLock.Release();
+        }
+    }
+
+    private async Task<T> RetryAfterSessionRefreshAsync<T>(
+        FleetAccountSession account,
+        Func<FleetAccountSession, Task<T>> operation)
+    {
+        try
+        {
+            return await operation(account);
+        }
+        catch (FleetApiException exception) when (exception.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden &&
+                                                  !string.IsNullOrWhiteSpace(account.DeviceSessionToken))
+        {
+            var refreshed = await EnsureFreshAccountSessionAsync(account, forceRefresh: true);
+            return await operation(refreshed);
+        }
     }
 
     public void Dispose()
     {
         _websiteBriefingPollTimer.Stop();
         _websiteBriefingPollTimer.Tick -= HandleWebsiteBriefingPollTick;
+        _accountRefreshLock.Dispose();
         _apiClient.Dispose();
     }
 

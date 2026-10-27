@@ -17,6 +17,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private readonly ISimulatorBridge? _simulatorBridge;
     private readonly ISimulatorCabinControlBridge? _simulatorCabinControlBridge;
     private readonly FlightSessionStore? _flightSessionStore;
+    private readonly AcarsTelemetryRecoveryStore? _acarsRecoveryStore;
     private readonly IOperationsClock _operationsClock;
     private readonly SayIntentionsCabinEventMonitor _sayIntentionsCabinEventMonitor;
     private readonly DispatcherTimer _sessionSaveTimer;
@@ -30,7 +31,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private bool _fleetFlightStartRequested;
     private bool _fleetFlightCompletionInProgress;
     private bool _acarsTelemetryInFlight;
-    private PendingAcarsTelemetry? _pendingAcarsTelemetry;
+    private readonly List<PendingAcarsTelemetry> _pendingAcarsTelemetry = [];
     private int? _touchdownFpm;
     private string? _fleetAircraftIdForCurrentFlight;
     private bool _preserveFlightForUpdate;
@@ -52,6 +53,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         IBoardingPassPrinterService? boardingPassPrinterService = null,
         ISimulatorBridge? simulatorBridge = null,
         FlightSessionStore? flightSessionStore = null,
+        AcarsTelemetryRecoveryStore? acarsRecoveryStore = null,
         UpdateService? updateService = null,
         IVamsysOAuthService? vamsysService = null,
         string? settingsDirectory = null)
@@ -60,6 +62,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _simulatorBridge = simulatorBridge;
         _simulatorCabinControlBridge = simulatorBridge as ISimulatorCabinControlBridge;
         _flightSessionStore = flightSessionStore;
+        _acarsRecoveryStore = acarsRecoveryStore;
         var resolvedOperationsClock = operationsClock ?? new LocalOperationsClock();
         _operationsClock = resolvedOperationsClock;
         Status = new SharedStatusViewModel();
@@ -136,6 +139,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _sayIntentionsCabinEventMonitor.StatusChanged += HandleSayIntentionsStatusChanged;
         _sayIntentionsCabinEventMonitor.Start();
         Account.SessionChanged += HandleBavAccountSessionChanged;
+        Account.AcarsSessionRecovered += HandleAcarsSessionRecovered;
         Account.ManualFlightCompletionRequested += CompleteFlightManuallyAsync;
         Account.WebsiteFlightAssignmentRefreshed += HandleWebsiteFlightAssignmentRefreshed;
         Passengers.PropertyChanged += HandlePassengerFlightPropertyChanged;
@@ -252,6 +256,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         GateLogin.SignedIn -= HandleGateSignedIn;
         GateLogin.SignedOut -= HandleGateSignedOut;
         Account.SessionChanged -= HandleBavAccountSessionChanged;
+        Account.AcarsSessionRecovered -= HandleAcarsSessionRecovered;
         Account.ManualFlightCompletionRequested -= CompleteFlightManuallyAsync;
         Account.WebsiteFlightAssignmentRefreshed -= HandleWebsiteFlightAssignmentRefreshed;
         Passengers.PropertyChanged -= HandlePassengerFlightPropertyChanged;
@@ -674,6 +679,17 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         var aircraftId = _fleetAircraftIdForCurrentFlight ?? Fleet.ActiveFlightAircraftId;
         var touchdownFpm = _touchdownFpm;
         var simulatorBlockMinutes = GetSimulatorBlockMinutes();
+        var acarsCompletionConfirmed = false;
+        await FlushAcarsTelemetryAsync();
+        if (_pendingAcarsTelemetry.Count > 0)
+        {
+            Account.ReportBackgroundAcarsFailure(new FleetApiException(
+                "Ember is still safely holding unsent ACARS telemetry. Keep Ember open and select end flight again once the BAV connection returns."));
+            PersistFlightSession();
+            _fleetFlightCompletionInProgress = false;
+            return;
+        }
+
         try
         {
             await Fleet.CompleteAssignedFlightAsync();
@@ -695,6 +711,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             var pirep = await Account.CompleteAcarsSessionAsync(touchdownFpm, simulatorBlockMinutes);
             if (pirep is not null)
             {
+                // The remote PIREP is the authoritative completion. A local
+                // passport-keepsake failure must never strand a completed
+                // flight in Ember's recovery state.
+                acarsCompletionConfirmed = true;
                 var completedAt = DateTimeOffset.TryParse(pirep.CompletedAt, out var parsedCompletion)
                     ? parsedCompletion
                     : DateTimeOffset.UtcNow;
@@ -707,7 +727,18 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
         finally
         {
-            Passengers.UnloadFlight("Flight completed manually in Ember");
+            if (acarsCompletionConfirmed)
+            {
+                _acarsRecoveryStore?.Clear();
+                Passengers.UnloadFlight("Flight completed manually in Ember");
+            }
+            else
+            {
+                // Keep the cabin and durable ACARS journal intact. A restart
+                // now resumes the unfinished flight instead of merely saying
+                // that it recovered it.
+                PersistFlightSession();
+            }
             _fleetFlightCompletionInProgress = false;
         }
     }
@@ -744,7 +775,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         _fleetAircraftIdForCurrentFlight = null;
         _lastAcarsTelemetrySentAt = null;
         _acarsTelemetryInFlight = false;
-        _pendingAcarsTelemetry = null;
+        _pendingAcarsTelemetry.Clear();
+        _acarsRecoveryStore?.Clear();
         _firstAcarsSimulatorTimeSeconds = null;
         _lastAcarsSimulatorTimeSeconds = null;
     }
@@ -772,10 +804,15 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private void QueueAcarsTelemetry(FleetAcarsTelemetryDto telemetry, DateTimeOffset timestamp)
     {
-        // Keep the newest unsent position. This provides a small, bounded
-        // retry buffer across transient website failures without an
-        // unbounded queue or stale movement reports.
-        _pendingAcarsTelemetry = new PendingAcarsTelemetry(telemetry, timestamp);
+        // Preserve the ordered stream until BAV acknowledges it. This is a
+        // bounded, on-disk journal rather than the former single in-memory
+        // point, so a long-haul token/network interruption survives restart.
+        _pendingAcarsTelemetry.Add(new PendingAcarsTelemetry(telemetry, timestamp));
+        if (_pendingAcarsTelemetry.Count > 17_280)
+        {
+            _pendingAcarsTelemetry.RemoveRange(0, _pendingAcarsTelemetry.Count - 17_280);
+        }
+        PersistPendingAcarsTelemetry();
         if (!_acarsTelemetryInFlight)
         {
             _ = FlushAcarsTelemetryAsync();
@@ -784,21 +821,27 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private async Task FlushAcarsTelemetryAsync()
     {
-        while (Account.IsAcarsOperating && _pendingAcarsTelemetry is { } pending)
+        if (_acarsTelemetryInFlight)
         {
-            _pendingAcarsTelemetry = null;
+            return;
+        }
+
+        while (Account.IsAcarsOperating && _pendingAcarsTelemetry.Count > 0)
+        {
+            var pending = _pendingAcarsTelemetry[0];
             _acarsTelemetryInFlight = true;
             try
             {
                 await Account.SendAcarsTelemetryAsync(pending.Telemetry);
                 _lastAcarsTelemetrySentAt = pending.Timestamp;
+                _pendingAcarsTelemetry.RemoveAt(0);
+                PersistPendingAcarsTelemetry();
             }
             catch (Exception exception)
             {
-                // Retain the last confirmed position for the next simulator
-                // sample to retry; the active server-side ACARS session is
-                // already durable even if this particular update fails.
-                _pendingAcarsTelemetry ??= pending;
+                // The journal is unchanged until BAV acknowledges the point.
+                // It will be replayed in timestamp order after reconnect or a
+                // restart, rather than silently replacing it with a newer one.
                 Account.ReportBackgroundAcarsFailure(exception);
                 return;
             }
@@ -807,6 +850,47 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
                 _acarsTelemetryInFlight = false;
             }
         }
+    }
+
+    private void HandleAcarsSessionRecovered(object? sender, EventArgs e)
+    {
+        var session = Account.ActiveAcarsSession;
+        var journal = _acarsRecoveryStore?.Load();
+        if (session is null || journal is null)
+        {
+            return;
+        }
+
+        if (!string.Equals(journal.SessionId, session.Id, StringComparison.Ordinal))
+        {
+            // A journal from a completed/abandoned flight must never be sent
+            // into a different active BAV session.
+            _acarsRecoveryStore?.Clear();
+            return;
+        }
+
+        _pendingAcarsTelemetry.Clear();
+        _pendingAcarsTelemetry.AddRange(journal.PendingTelemetry
+            .Select(point => new PendingAcarsTelemetry(point.Telemetry, point.CapturedAt)));
+        if (_pendingAcarsTelemetry.Count > 0 && !_acarsTelemetryInFlight)
+        {
+            _ = FlushAcarsTelemetryAsync();
+        }
+    }
+
+    private void PersistPendingAcarsTelemetry()
+    {
+        var sessionId = Account.ActiveAcarsSession?.Id;
+        if (string.IsNullOrWhiteSpace(sessionId))
+        {
+            return;
+        }
+
+        _acarsRecoveryStore?.Save(
+            sessionId,
+            _pendingAcarsTelemetry
+                .Select(point => new PendingAcarsTelemetryRecovery(point.Telemetry, point.Timestamp))
+                .ToArray());
     }
 
     private bool TryCreateAcarsTelemetry(CabinTelemetrySnapshot snapshot, out FleetAcarsTelemetryDto telemetry)
@@ -859,7 +943,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
                 Math.Round(Math.Max(0d, Wifi.UplinkMbps), 1),
                 Math.Clamp(Wifi.LatencyMs, 0, 5_000),
                 Math.Round(Math.Clamp(Wifi.LinkQuality, 0d, 100d), 1),
-                IsModelled: true));
+                IsModelled: true),
+            snapshot.Timestamp);
         return true;
     }
 

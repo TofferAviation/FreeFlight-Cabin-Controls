@@ -68,6 +68,9 @@ public partial class App
         var flightSessionStore = new FlightSessionStore(
             Path.Combine(settingsDirectory, "active-flight.json"),
             _logService);
+        var acarsRecoveryStore = new AcarsTelemetryRecoveryStore(
+            Path.Combine(settingsDirectory, "acars-telemetry-recovery.json"),
+            _logService);
         var updateService = new UpdateService(settingsDirectory);
         var viewModel = new MainWindowViewModel(
             settings,
@@ -75,6 +78,7 @@ public partial class App
             _logService.LogDirectory,
             simulatorBridge: simulatorBridge,
             flightSessionStore: flightSessionStore,
+            acarsRecoveryStore: acarsRecoveryStore,
             updateService: updateService,
             vamsysService: vamsysService,
             settingsDirectory: activeSettingsDirectory);

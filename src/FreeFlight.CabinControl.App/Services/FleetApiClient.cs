@@ -109,7 +109,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             throw new FleetApiException("British Airways Virtual did not return a usable account session.");
         }
 
-        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken, payload.Pilot.Rank);
+        return CreateAccountSession(payload);
     }
 
     public async Task<FleetAccountPilotDto> GetAccountProfileAsync(
@@ -189,7 +189,7 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
             throw new FleetApiException("British Airways Virtual did not return a usable device session.");
         }
 
-        return new FleetAccountSession(payload.Token, payload.Pilot.Id, payload.Pilot.PilotNumber, payload.Pilot.Name, payload.Pilot.Email, payload.Pilot.ProfileImage, payload.DeviceSessionToken, payload.Pilot.Rank);
+        return CreateAccountSession(payload);
     }
 
     public async Task RevokeAccountSessionAsync(
@@ -657,6 +657,24 @@ public sealed class FleetApiClient(HttpClient? httpClient = null) : IDisposable
         return new Uri(AppSettings.BritishAirwaysVirtualWebsiteUrl, UriKind.Absolute);
     }
 
+    private static FleetAccountSession CreateAccountSession(FleetAccountEnvelope payload)
+    {
+        ArgumentNullException.ThrowIfNull(payload.Pilot);
+        var expiresAt = payload.ExpiresInSeconds is > 0
+            ? DateTimeOffset.UtcNow.AddSeconds(payload.ExpiresInSeconds.Value)
+            : (DateTimeOffset?)null;
+        return new FleetAccountSession(
+            payload.Token!,
+            payload.Pilot.Id,
+            payload.Pilot.PilotNumber,
+            payload.Pilot.Name,
+            payload.Pilot.Email,
+            payload.Pilot.ProfileImage,
+            payload.DeviceSessionToken,
+            payload.Pilot.Rank,
+            expiresAt);
+    }
+
     private static string ExtractError(string json)
     {
         try { return JsonSerializer.Deserialize<FleetErrorEnvelope>(json, JsonOptions)?.Error ?? "Request failed."; }
@@ -700,7 +718,8 @@ public sealed record FleetAccountSession(
     string Email,
     string? ProfileImage = null,
     string? DeviceSessionToken = null,
-    string? Rank = null);
+    string? Rank = null,
+    DateTimeOffset? TokenExpiresAt = null);
 public sealed record FleetWebsiteFlightAssignmentEnvelope(FleetWebsiteFlightAssignmentDto? Assignment);
 public sealed record FleetWebsiteFlightAssignmentDto(
     string Id,
@@ -879,7 +898,8 @@ public sealed record FleetAcarsTelemetryDto(
     bool FlightStarted,
     string? Registration,
     FleetCabinTelemetryDto? Cabin = null,
-    FleetConnectivityTelemetryDto? Connectivity = null);
+    FleetConnectivityTelemetryDto? Connectivity = null,
+    DateTimeOffset? CapturedAt = null);
 public sealed record FleetAircraftSummaryDto(
     string Id,
     string Registration,
