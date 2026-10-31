@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.79] - 2026-10-31
+
+### Fixed
+
+- ACARS now saves pending telemetry locally and replays it in order after reconnecting or restarting, retaining the original capture times.
+- Long flights renew their account session automatically and retry interrupted ACARS requests after authentication expires.
+- Ending a flight preserves its recovery data until the website confirms the PIREP, including safe retries after a lost response.
+
 ## [0.5.78] - 2026-10-16
 
 ### Improved
