@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.80] - 2026-11-06
+
+### Added
+
+- Partner airline assignments use the existing BA Virtual identity, briefing and durable ACARS recorder.
+- Partner flights no longer select, start, complete or file landing maintenance against a BA-owned Fleet aircraft. Existing BA reservations stay protected.
+- Operator information is accepted from the website assignment; older website responses remain compatible.
+
 ## [0.5.79] - 2026-10-31
 
 ### Fixed

@@ -733,7 +733,10 @@ public sealed record FleetWebsiteFlightAssignmentDto(
     string Status,
     string? OriginIcao = null,
     string? DestinationIcao = null,
-    FleetWebsiteFlightBriefingDto? Briefing = null);
+    FleetWebsiteFlightBriefingDto? Briefing = null,
+    bool IsAllianceFlight = false,
+    string? OperatingAirlineName = null,
+    string? OperatingAirlineIcao = null);
 /// <summary>
 /// A pilot-scoped operational briefing supplied by the BAV website. Ember
 /// deliberately consumes this instead of fetching an arbitrary latest OFP

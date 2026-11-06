@@ -432,6 +432,13 @@ public sealed class FleetViewModel : PageViewModel, IDisposable
     public bool SelectAircraftForBavAssignment(FleetWebsiteFlightAssignmentDto assignment)
     {
         ArgumentNullException.ThrowIfNull(assignment);
+        if (assignment.IsAllianceFlight)
+        {
+            if (!HasActiveFlightAssignment) SelectedAircraft = null;
+            FlightAssignmentStatus = $"{assignment.OperatingAirlineName ?? "Partner airline"} operation: no BA Fleet registration is required. Any existing BA reservation remains protected.";
+            FlightAssignmentStatusColor = WarningBrush;
+            return false;
+        }
 
         if (HasActiveFlightAssignment)
         {

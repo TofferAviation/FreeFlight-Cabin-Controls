@@ -506,13 +506,13 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             _ = StartAcarsFlightAsync();
         }
 
-        if (trackingActivated && !_fleetFlightStartRequested && Fleet.IsFlightReserved)
+        if (Account.WebsiteFlightAssignment?.IsAllianceFlight != true && trackingActivated && !_fleetFlightStartRequested && Fleet.IsFlightReserved)
         {
             _fleetFlightStartRequested = true;
-            _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
+            if (Account.WebsiteFlightAssignment?.IsAllianceFlight != true) _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
             _ = StartFleetFlightAsync();
         }
-        else if (!trackingActivated && Fleet.IsFlightReserved)
+        else if (Account.WebsiteFlightAssignment?.IsAllianceFlight != true && !trackingActivated && Fleet.IsFlightReserved)
         {
             Fleet.ReportReservationAwaitingFlightStart();
         }
@@ -522,7 +522,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         if (!snapshot.OnGround)
         {
             _wasAirborne = true;
-            _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
+            if (Account.WebsiteFlightAssignment?.IsAllianceFlight != true) _fleetAircraftIdForCurrentFlight ??= Fleet.ActiveFlightAircraftId;
         }
         else if (_wasAirborne && _touchdownFpm is null &&
                  snapshot.Signals.TryGetValue("vertical_speed_fpm", out var verticalSpeed) &&
@@ -676,7 +676,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         _fleetFlightCompletionInProgress = true;
-        var aircraftId = _fleetAircraftIdForCurrentFlight ?? Fleet.ActiveFlightAircraftId;
+        var aircraftId = Account.WebsiteFlightAssignment?.IsAllianceFlight == true ? null : _fleetAircraftIdForCurrentFlight ?? Fleet.ActiveFlightAircraftId;
         var touchdownFpm = _touchdownFpm;
         var simulatorBlockMinutes = GetSimulatorBlockMinutes();
         var acarsCompletionConfirmed = false;
@@ -692,7 +692,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
         try
         {
-            await Fleet.CompleteAssignedFlightAsync();
+            if (Account.WebsiteFlightAssignment?.IsAllianceFlight != true) await Fleet.CompleteAssignedFlightAsync();
             if (!_landingAssessmentReported && aircraftId is not null && touchdownFpm is <= -500)
             {
                 _landingAssessmentReported = true;
